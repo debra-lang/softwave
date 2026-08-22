@@ -45,6 +45,7 @@
     </a>
     <nav class="nav" aria-label="Main">
       <a href="#sounds" data-view="sounds" class="active">Sounds</a>
+      <a href="#focus" data-view="focus">Visual Focus</a>
       <a href="#mixer" data-view="mixer">Mixer</a>
       <a href="#frequency" data-view="frequency">Frequency</a>
       <a href="#match" data-view="match">Find My Sound</a>
@@ -76,6 +77,58 @@
       </div>
 
       <div id="sound-groups"></div>
+    </section>
+
+
+    <!-- ============ VISUAL FOCUS ============ -->
+    <section id="view-focus" class="view" aria-labelledby="focus-title" hidden>
+      <div class="hero">
+        <h1 id="focus-title">Visual Focus</h1>
+        <p class="lead">Something calm to look at while you listen. Pick a sound, pick a visual, then let Focus Mode take over the screen.</p>
+        <p class="hint">An optional way to relax and rest your attention. It is not a treatment &mdash; just a more pleasant place to be.</p>
+      </div>
+
+      <div class="card focus-setup">
+        <div class="focus-setup-grid">
+          <div>
+            <div class="label-sm">Sound</div>
+            <div id="focus-setup-sound" class="setup-value">No sound yet</div>
+            <a href="#sounds" data-view="sounds" class="btn btn-ghost btn-sm">Choose sound</a>
+          </div>
+          <div>
+            <div class="label-sm">Visual</div>
+            <div id="current-visual-name" class="setup-value">Ocean Waves</div>
+            <a href="#visual-library-title" class="btn btn-ghost btn-sm" data-scroll>Choose below</a>
+          </div>
+          <div class="setup-cta">
+            <button id="focus-enter" class="btn btn-primary btn-lg">Enter Focus Mode</button>
+            <button id="fav-save" class="btn btn-secondary btn-sm">Save this combination</button>
+          </div>
+        </div>
+        <div class="focus-settings">
+          <div class="setting">
+            <span class="label-sm">Visual movement</span>
+            <div class="seg" role="radiogroup" aria-label="Visual movement">
+              <button role="radio" aria-checked="false" data-motion="still">Still</button>
+              <button role="radio" aria-checked="true" data-motion="low">Low</button>
+              <button role="radio" aria-checked="false" data-motion="medium">Medium</button>
+              <button role="radio" aria-checked="false" data-motion="high">High</button>
+            </div>
+          </div>
+          <label class="switch"><input id="reduce-motion" type="checkbox"><span class="track" aria-hidden="true"></span><span>Reduce motion</span></label>
+          <label class="switch"><input id="breath-text" type="checkbox" checked><span class="track" aria-hidden="true"></span><span>Show &ldquo;Breathe in / out&rdquo; text</span></label>
+        </div>
+      </div>
+
+      <h2 class="row-title">Visual + sound pairings</h2>
+      <p class="muted">One tap sets both. You can change either one afterwards.</p>
+      <div id="pairings" class="pair-grid"></div>
+
+      <h2 class="row-title">My combinations</h2>
+      <div id="fav-list" class="fav-grid"></div>
+
+      <h2 class="row-title" id="visual-library-title">Visual library</h2>
+      <div id="visual-library"></div>
     </section>
 
     <!-- ============ MIXER ============ -->
@@ -149,6 +202,7 @@
           </div>
           <div class="control play-col">
             <button id="freq-play" class="btn btn-primary btn-lg" aria-pressed="false">Play tone</button>
+            <button id="freq-visualizer" class="btn btn-secondary">Open Sound Visualizer</button>
           </div>
         </div>
         <p class="note">Tones are for exploration and personal comfort. Matching a particular frequency is not a treatment and does not change the tinnitus itself.</p>
@@ -341,10 +395,59 @@
     </div>
   </div>
 
+
+  <!-- ============ FOCUS SCREEN ============ -->
+  <div id="focus-screen" class="focus-screen" hidden role="dialog" aria-label="Focus Mode" aria-modal="true">
+    <canvas id="focus-canvas" aria-hidden="true"></canvas>
+    <div class="focus-top focus-ui">
+      <div class="focus-names"><span id="focus-visual-name" class="focus-visual-name">Ocean Waves</span><span id="focus-sound-name" class="focus-sound-name">No sound</span></div>
+      <div class="focus-top-actions">
+        <button id="focus-fullscreen" class="btn btn-ghost btn-sm">Full screen</button>
+        <button id="focus-exit" class="btn btn-ghost btn-sm">Exit Focus Mode</button>
+      </div>
+    </div>
+    <div id="focus-panel" class="focus-panel" hidden>
+      <div class="focus-panel-head"><button id="focus-panel-close" class="btn btn-ghost btn-sm">Close</button></div>
+      <div class="focus-pane" data-pane="sound"><h2>Change sound</h2><div class="pane-body"></div></div>
+      <div class="focus-pane" data-pane="visual" hidden><h2>Change visual</h2><div class="pane-body"></div></div>
+      <div class="focus-pane" data-pane="timer" hidden><h2>Timer</h2>
+        <div class="seg timer-seg" role="radiogroup" aria-label="Timer">
+          <button role="radio" aria-checked="false" data-min="15">15 min</button>
+          <button role="radio" aria-checked="false" data-min="30">30 min</button>
+          <button role="radio" aria-checked="false" data-min="60">60 min</button>
+          <button role="radio" aria-checked="false" data-min="90">90 min</button>
+          <button role="radio" aria-checked="true" data-min="0">Off</button>
+        </div>
+        <p class="muted small">Sound fades out gently before the timer ends.</p>
+        <h2>Visual movement</h2>
+        <div class="seg" role="radiogroup" aria-label="Visual movement">
+          <button role="radio" aria-checked="false" data-motion="still">Still</button>
+          <button role="radio" aria-checked="true" data-motion="low">Low</button>
+          <button role="radio" aria-checked="false" data-motion="medium">Medium</button>
+          <button role="radio" aria-checked="false" data-motion="high">High</button>
+        </div>
+        <label class="switch"><input id="focus-reduce" type="checkbox"><span class="track" aria-hidden="true"></span><span>Reduce motion</span></label>
+        <div id="focus-breath-row" hidden><label class="switch"><input id="focus-breath-text" type="checkbox" checked><span class="track" aria-hidden="true"></span><span>Show breathing text</span></label></div>
+        <button id="focus-pause-visual" class="btn btn-ghost btn-sm" aria-pressed="false">Pause visual</button>
+      </div>
+    </div>
+    <div class="focus-bar focus-ui">
+      <button id="focus-play" class="play-btn" aria-label="Play" aria-pressed="false">
+        <svg class="ico-play" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>
+        <svg class="ico-pause" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M7 5h4v14H7zM13 5h4v14h-4z" fill="currentColor"/></svg>
+      </button>
+      <div class="focus-vol"><label for="focus-vol" class="sr-only">Volume</label><input id="focus-vol" type="range" min="0" max="100" value="35"></div>
+      <button class="btn btn-ghost btn-sm" data-open-pane="sound">Change sound</button>
+      <button class="btn btn-ghost btn-sm" data-open-pane="visual">Change visual</button>
+      <button class="btn btn-ghost btn-sm" data-open-pane="timer"><span id="focus-timer-label">Timer</span></button>
+    </div>
+  </div>
+
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script src="audio.js"></script>
   <script src="visuals.js"></script>
   <script src="app.js"></script>
+  <script src="focus.js"></script>
 </body>
 </html>

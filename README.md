@@ -16,12 +16,14 @@ Serve over HTTPS (or localhost) for the service worker / "Install app" to be ava
 - `styles.css` — light/dark themes, responsive layout
 - `audio.js`  — Web Audio engine: 14 synthesised sounds (seamless pre-roll-crossfaded noise loops + LFO/event textures),
                5-channel mixer with per-sound volume/balance, limiter, frequency/tone generator, sleep timer with fade
+- `focus.js`   — Visual Focus: 32 procedural Canvas visuals (Nature / Abstract / Sound Reactive / Interactive / Focus Activities / Breathing),
+               full-screen Focus Mode with auto-hiding controls, pairings, saved combinations, movement level + Reduce Motion
 - `visuals.js` — audio-reactive background (waves, rings, particles, rain) and tone spectrum visualiser
 - `app.js`    — UI, presets, Find My Sound wizard, local persistence (localStorage only), PWA install
 - `sw.js`, `manifest.webmanifest`, `icons/` — offline support and installability
 
 ## Deep-link / dev flags
-`#sounds #mixer #frequency #match #sleep #learn`, `?welcomed` skips onboarding, `?theme=dark|light`.
+`#sounds #focus #mixer #frequency #match #sleep #learn`, `?welcomed` skips onboarding, `?theme=dark|light`, `?focus=<visual id>` opens Focus Mode directly.
 
 ## Safety defaults
 Master starts at 35% (never restored above 60%), all sounds fade in over ~1.2 s, tones are trimmed,

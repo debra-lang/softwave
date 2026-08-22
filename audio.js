@@ -499,6 +499,7 @@
       }
       if (opts.volume !== undefined) { t.volume = opts.volume; t.gain.gain.setTargetAtTime(this._curve(opts.volume), now, 0.05); }
       if (opts.balance !== undefined) { t.balance = opts.balance; if (t.pan) t.pan.pan.setTargetAtTime(opts.balance, now, 0.05); }
+      if (opts.freq !== undefined || opts.type) this.emit('tone', { playing: true });
     }
     toneStop() {
       const t = this.tone; if (!t || !t.playing) return;

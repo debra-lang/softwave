@@ -42,7 +42,7 @@
   $('#theme-toggle').addEventListener('click', () => applyTheme(root.dataset.theme === 'dark' ? 'light' : 'dark'));
 
   // ---------- views ----------
-  const views = ['sounds', 'mixer', 'frequency', 'match', 'sleep', 'learn'];
+  const views = ['sounds', 'focus', 'mixer', 'frequency', 'match', 'sleep', 'learn'];
   function showView(name) {
     if (!views.includes(name)) name = 'sounds';
     views.forEach(v => { const el = $('#view-' + v); el.hidden = v !== name; el.classList.toggle('active', v === name); });
@@ -52,13 +52,14 @@
     bg.setMode(engine.isActive('rain') ? 'rain' : 'calm');
   }
   document.addEventListener('click', e => {
+    const sc = e.target.closest('[data-scroll]'); if (sc) { e.preventDefault(); const tgt = $(sc.getAttribute('href')); tgt && tgt.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
     const a = e.target.closest('[data-view]'); if (!a) return;
     e.preventDefault(); showView(a.dataset.view);
   });
   addEventListener('hashchange', () => showView(location.hash.slice(1)));
 
   // ---------- background ----------
-  const bg = new Background($('#bg'), engine);
+  const bg = new Background($('#bg'), engine); window.softwaveBg = bg;
 
   // ---------- presets ----------
   const PRESETS = [
@@ -220,6 +221,7 @@
     $('#mix-play').textContent = playing ? 'Pause' : 'Play';
     $('#sleep-now-list').textContent = names.length ? names.join(' + ') : 'Nothing yet — pick a preset below or choose sounds.';
     $('#sleep-sounds').textContent = names.join(' · ');
+    const fs = $('#focus-setup-sound'); if (fs) fs.textContent = names.length ? names.join(' + ') : 'No sound yet';
     bg.setMode(engine.isActive('rain') ? 'rain' : 'calm');
     document.title = names.length ? `${names[0]}${names.length > 1 ? ' +' + (names.length - 1) : ''} — Softwave` : 'Softwave — Find a comfortable sound for tinnitus';
   }
@@ -375,6 +377,8 @@
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; $('#install-btn').hidden = false; });
   $('#install-btn').addEventListener('click', async () => { if (!deferredPrompt) return; deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; $('#install-btn').hidden = true; });
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => { }));
+
+  window.softwaveApp = { loadPreset, setMaster, togglePlay, toast, store, PRESETS, paintRange, showView };
 
   // ---------- init ----------
   renderSounds(); renderPresets(); renderMixer([]); updatePlayer();
