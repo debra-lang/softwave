@@ -1,0 +1,382 @@
+/* Softwave — app UI */
+(function () {
+  'use strict';
+  const { Engine, SOUND_DEFS, MAX_ACTIVE } = window.SoftwaveAudio;
+  const { Background, ToneViz } = window.SoftwaveVisuals;
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const engine = new Engine();
+  window.softwave = engine; // for debugging
+
+  // ---------- storage ----------
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem('softwave:' + k); return v === null ? d : JSON.parse(v); } catch (_) { return d; } },
+    set(k, v) { try { localStorage.setItem('softwave:' + k, JSON.stringify(v)); } catch (_) { } },
+    del(k) { try { localStorage.removeItem('softwave:' + k); } catch (_) { } },
+  };
+
+  // ---------- helpers ----------
+  const fmt = n => Math.round(n).toLocaleString('en-US');
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const MINF = 20, MAXF = 16000;
+  const sliderToHz = v => MINF * Math.pow(MAXF / MINF, v / 1000);
+  const hzToSlider = f => Math.round(1000 * Math.log(f / MINF) / Math.log(MAXF / MINF));
+  function paintRange(el) {
+    const min = +el.min || 0, max = +el.max || 100; const pct = ((+el.value - min) / (max - min)) * 100;
+    el.style.setProperty('--pct', pct + '%');
+  }
+  $$('input[type=range]').forEach(paintRange);
+  document.addEventListener('input', e => { if (e.target.type === 'range') paintRange(e.target); });
+
+  let toastT;
+  function toast(msg, ms = 2600) {
+    const el = $('#toast'); el.textContent = msg; el.classList.add('show');
+    clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('show'), ms);
+  }
+
+  // ---------- theme ----------
+  const root = document.documentElement;
+  function applyTheme(t) { root.dataset.theme = t; store.set('theme', t); }
+  const qTheme = new URLSearchParams(location.search).get('theme');
+  applyTheme(qTheme || store.get('theme', matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+  $('#theme-toggle').addEventListener('click', () => applyTheme(root.dataset.theme === 'dark' ? 'light' : 'dark'));
+
+  // ---------- views ----------
+  const views = ['sounds', 'mixer', 'frequency', 'match', 'sleep', 'learn'];
+  function showView(name) {
+    if (!views.includes(name)) name = 'sounds';
+    views.forEach(v => { const el = $('#view-' + v); el.hidden = v !== name; el.classList.toggle('active', v === name); });
+    $$('.nav a').forEach(a => a.classList.toggle('active', a.dataset.view === name));
+    if (location.hash !== '#' + name) history.replaceState(null, '', '#' + name);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    bg.setMode(engine.isActive('rain') ? 'rain' : 'calm');
+  }
+  document.addEventListener('click', e => {
+    const a = e.target.closest('[data-view]'); if (!a) return;
+    e.preventDefault(); showView(a.dataset.view);
+  });
+  addEventListener('hashchange', () => showView(location.hash.slice(1)));
+
+  // ---------- background ----------
+  const bg = new Background($('#bg'), engine);
+
+  // ---------- presets ----------
+  const PRESETS = [
+    { id: 'gentle', name: 'Gentle Relief', desc: 'Soft broadband sound, low volume', mix: [{ id: 'pink', volume: 0.45 }], master: 0.3 },
+    { id: 'sleep', name: 'Sleep', desc: 'Brown noise + gentle rain', mix: [{ id: 'brown', volume: 0.6 }, { id: 'rain', volume: 0.35 }], master: 0.3 },
+    { id: 'focus', name: 'Focus', desc: 'Pink noise + subtle nature', mix: [{ id: 'pink', volume: 0.5 }, { id: 'forest', volume: 0.3 }], master: 0.35 },
+    { id: 'ocean', name: 'Ocean', desc: 'Soft waves + broadband bed', mix: [{ id: 'ocean', volume: 0.6 }, { id: 'brown', volume: 0.25 }], master: 0.35 },
+    { id: 'rainy', name: 'Rainy Night', desc: 'Rain + low ambience', mix: [{ id: 'rain', volume: 0.55 }, { id: 'wind', volume: 0.3 }, { id: 'brown', volume: 0.2 }], master: 0.35 },
+  ];
+  function renderPresets() {
+    const make = (container, includeCustom) => {
+      container.innerHTML = '';
+      const list = [...PRESETS];
+      const custom = store.get('mixes', []);
+      if (includeCustom) custom.forEach((m, i) => list.push({ id: 'custom-' + i, name: m.name, desc: m.mix.map(x => engine.def(x.id).name).join(' + '), mix: m.mix, master: m.master, custom: true, index: i }));
+      list.forEach(p => {
+        const b = document.createElement('button'); b.className = 'chip'; b.setAttribute('role', 'listitem'); b.dataset.preset = p.id;
+        b.innerHTML = `<strong>${p.name}</strong><span>${p.desc}</span>`;
+        b.addEventListener('click', () => loadPreset(p));
+        container.appendChild(b);
+      });
+      if (includeCustom && !custom.length) {
+        const b = document.createElement('a'); b.className = 'chip'; b.href = '#mixer'; b.dataset.view = 'mixer';
+        b.innerHTML = '<strong>My Custom Mix</strong><span>Build one in the Mixer and save it</span>'; container.appendChild(b);
+      }
+    };
+    make($('#presets'), true); make($('#sleep-presets'), false);
+    const saved = $('#saved-mixes'); saved.innerHTML = '';
+    const custom = store.get('mixes', []);
+    if (!custom.length) saved.innerHTML = '<p class="muted">Nothing saved yet. Build a mix and tap "Save as My Custom Mix".</p>';
+    custom.forEach((m, i) => {
+      const b = document.createElement('button'); b.className = 'chip';
+      b.innerHTML = `<strong>${m.name}</strong><span>${m.mix.map(x => engine.def(x.id).name + ' ' + Math.round(x.volume * 100) + '%').join(' · ')}</span>`;
+      b.addEventListener('click', () => loadPreset({ name: m.name, mix: m.mix, master: m.master }));
+      const del = document.createElement('button'); del.className = 'btn btn-ghost btn-sm'; del.textContent = 'Delete'; del.setAttribute('aria-label', 'Delete ' + m.name);
+      del.addEventListener('click', e => { e.stopPropagation(); custom.splice(i, 1); store.set('mixes', custom); renderPresets(); toast('Mix deleted'); });
+      const wrap = document.createElement('div'); wrap.style.display = 'flex'; wrap.style.gap = '6px'; wrap.style.alignItems = 'center'; wrap.append(b, del); saved.appendChild(wrap);
+    });
+  }
+  async function loadPreset(p) {
+    if (p.master !== undefined) setMaster(Math.min(p.master, engine.masterVolume || p.master));
+    await engine.loadMix(p.mix);
+    toast(`Playing “${p.name}” — adjust anything you like`);
+  }
+
+  // ---------- sound cards ----------
+  function renderSounds() {
+    const host = $('#sound-groups'); host.innerHTML = '';
+    const groups = [...new Set(SOUND_DEFS.map(d => d.group))];
+    groups.forEach(g => {
+      const h = document.createElement('h2'); h.className = 'group-title'; h.textContent = g; host.appendChild(h);
+      const grid = document.createElement('div'); grid.className = 'sound-grid'; grid.setAttribute('role', 'list');
+      SOUND_DEFS.filter(d => d.group === g).forEach(d => {
+        const card = document.createElement('div'); card.className = 'sound-card'; card.style.setProperty('--hue', d.hue); card.dataset.id = d.id; card.setAttribute('role', 'listitem');
+        card.innerHTML = `
+          <div class="art"></div>
+          <div class="waves"><span></span><span></span></div>
+          <span class="state">Playing</span>
+          <button class="card-btn" aria-pressed="false" aria-label="${d.name}: ${d.desc}"><span class="icon" aria-hidden="true">${d.icon}</span><span class="name">${d.name}</span><span class="desc">${d.desc}</span></button>
+          <div class="vol"><label class="sr-only" for="vol-${d.id}">${d.name} volume</label><input id="vol-${d.id}" type="range" min="0" max="100" value="60"><output>60%</output></div>`;
+        const btn = $('.card-btn', card);
+        Object.assign(btn.style, { all: 'unset', display: 'flex', flexDirection: 'column', gap: '8px', cursor: 'pointer', flex: '1', position: 'relative' });
+        btn.addEventListener('click', async () => {
+          const ok = await engine.toggleSound(d.id, (+$('input', card).value) / 100);
+          if (ok === false) toast(`You can layer up to ${MAX_ACTIVE} sounds. Turn one off to add another.`);
+        });
+        const slider = $('input', card);
+        slider.addEventListener('input', () => { engine.setVolume(d.id, +slider.value / 100); $('output', card).textContent = slider.value + '%'; });
+        grid.appendChild(card);
+      });
+      host.appendChild(grid);
+    });
+  }
+  function syncCards(list) {
+    const ids = new Set(list.map(s => s.id));
+    $$('#sound-groups .sound-card').forEach(c => {
+      const on = ids.has(c.dataset.id); c.classList.toggle('active', on); $('.card-btn', c).setAttribute('aria-pressed', on);
+      if (on) { const s = list.find(x => x.id === c.dataset.id); const r = $('input', c); r.value = Math.round(s.volume * 100); paintRange(r); $('output', c).textContent = r.value + '%'; }
+    });
+  }
+
+  // ---------- mixer ----------
+  function renderMixer(list) {
+    const host = $('#mixer-channels'); host.innerHTML = '';
+    $('#mixer-empty').hidden = list.length > 0;
+    list.forEach(s => {
+      const d = engine.def(s.id);
+      const ch = document.createElement('div'); ch.className = 'channel'; ch.style.setProperty('--hue', d.hue);
+      ch.innerHTML = `
+        <div class="ch-head"><span class="ch-icon" aria-hidden="true">${d.icon}</span><span class="ch-name">${d.name}</span></div>
+        <div class="ch-controls">
+          <div class="control"><label for="chv-${s.id}">Volume <output>${Math.round(s.volume * 100)}%</output></label><input id="chv-${s.id}" type="range" min="0" max="100" value="${Math.round(s.volume * 100)}"></div>
+          <div class="control"><label for="chp-${s.id}">Balance <output>${panLabel(s.balance)}</output></label><input id="chp-${s.id}" type="range" min="-100" max="100" value="${Math.round(s.balance * 100)}"></div>
+        </div>
+        <div class="ch-actions"><button class="btn btn-ghost btn-sm" aria-label="Remove ${d.name}">Off</button></div>`;
+      const [v, p] = $$('input', ch);
+      v.addEventListener('input', () => { engine.setVolume(s.id, +v.value / 100); $('output', v.parentElement).textContent = v.value + '%'; syncCards(engine.activeList()); });
+      p.addEventListener('input', () => { engine.setBalance(s.id, +p.value / 100); $('output', p.parentElement).textContent = panLabel(+p.value / 100); });
+      p.addEventListener('dblclick', () => { p.value = 0; p.dispatchEvent(new Event('input')); });
+      $('button', ch).addEventListener('click', () => engine.stopSound(s.id));
+      host.appendChild(ch); $$('input', ch).forEach(paintRange);
+    });
+    const sel = $('#mix-add'); sel.innerHTML = '<option value="">+ Add a sound…</option>';
+    SOUND_DEFS.filter(d => !engine.isActive(d.id)).forEach(d => { const o = document.createElement('option'); o.value = d.id; o.textContent = d.name; sel.appendChild(o); });
+    sel.disabled = list.length >= MAX_ACTIVE;
+  }
+  function panLabel(b) { if (Math.abs(b) < 0.05) return 'Centre'; return (b < 0 ? 'L ' : 'R ') + Math.round(Math.abs(b) * 100) + '%'; }
+  $('#mix-add').addEventListener('change', async e => { if (e.target.value) { await engine.startSound(e.target.value, 0.5); e.target.value = ''; } });
+  $('#mix-play').addEventListener('click', () => togglePlay());
+  $('#mix-stop').addEventListener('click', () => { engine.stopAll(); toast('All sounds stopped'); });
+  $('#mix-reset').addEventListener('click', () => { engine.activeList().forEach(s => { engine.setVolume(s.id, 0.5); engine.setBalance(s.id, 0); }); setMaster(0.35); renderMixer(engine.activeList()); syncCards(engine.activeList()); toast('Levels reset'); });
+  $('#mix-save').addEventListener('click', () => {
+    const list = engine.activeList(); if (!list.length) return toast('Add some sounds first');
+    let form = $('#mix-name-form');
+    if (form) { form.remove(); return; }
+    form = document.createElement('form'); form.id = 'mix-name-form'; form.className = 'add-row'; form.style.cssText = 'display:flex;gap:8px;justify-content:center;flex-wrap:wrap';
+    form.innerHTML = '<label class="sr-only" for="mix-name">Mix name</label><input id="mix-name" class="select" maxlength="40" value="My Custom Mix" style="min-width:220px"><button type="submit" class="btn btn-primary btn-sm">Save</button><button type="button" class="btn btn-ghost btn-sm" data-cancel>Cancel</button>';
+    $('.mixer-toolbar').after(form); const inp = $('#mix-name', form); inp.focus(); inp.select();
+    $('[data-cancel]', form).addEventListener('click', () => form.remove());
+    form.addEventListener('submit', e => {
+      e.preventDefault(); const name = inp.value.trim() || 'My Custom Mix';
+      const mixes = store.get('mixes', []); mixes.push({ name, mix: engine.activeList().map(s => ({ id: s.id, volume: s.volume, balance: s.balance })), master: engine.masterVolume });
+      store.set('mixes', mixes); renderPresets(); form.remove(); toast(`Saved “${name}” on this device`);
+    });
+  });
+
+  // ---------- player bar ----------
+  const masterEl = $('#master-vol');
+  function setMaster(v, fromSlider) {
+    engine.setMasterVolume(v);
+    if (!fromSlider) { masterEl.value = Math.round(v * 100); paintRange(masterEl); }
+    $('#master-out').textContent = Math.round(v * 100) + '%';
+    $('.player-vol').classList.toggle('warn', v > 0.75);
+    store.set('master', v);
+  }
+  let warned = false;
+  masterEl.addEventListener('input', () => {
+    const v = +masterEl.value / 100; setMaster(v, true);
+    if (v > 0.75 && !warned) { warned = true; toast('High level. The lowest comfortable volume usually works best — and protects your hearing.', 4000); }
+    if (v <= 0.75) warned = false;
+  });
+  setMaster(clamp(store.get('master', 0.35), 0, 0.6)); // never restore above a moderate level
+  async function togglePlay() {
+    if (!engine.ctx) { if (!engine.activeList().length) return toast('Choose a sound to begin'); }
+    if (engine.ctx && engine.ctx.state === 'running' && engine.isPlaying) await engine.pauseAll();
+    else if (engine.isPlaying || (engine.ctx && engine.ctx.state === 'suspended' && engine.active.size)) await engine.playAll();
+    else toast('Choose a sound to begin');
+  }
+  $('#player-toggle').addEventListener('click', togglePlay);
+  $('#player-stop').addEventListener('click', () => engine.stopAll());
+  function updatePlayer() {
+    const list = engine.activeList();
+    const playing = engine.isPlaying;
+    const names = list.map(s => engine.def(s.id).name);
+    if (engine.tone && engine.tone.playing) names.push(`Tone ${fmt(engine.tone.freq)} Hz`);
+    $('#player-title').textContent = names.length ? names.join(' + ') : 'Nothing playing';
+    $('#player-sub').textContent = names.length ? (playing ? 'Playing · keep it low and comfortable' : 'Paused') : 'Choose a sound to begin';
+    const t = $('#player-toggle'); t.setAttribute('aria-pressed', playing); t.setAttribute('aria-label', playing ? 'Pause' : 'Play');
+    $('#mix-play').textContent = playing ? 'Pause' : 'Play';
+    $('#sleep-now-list').textContent = names.length ? names.join(' + ') : 'Nothing yet — pick a preset below or choose sounds.';
+    $('#sleep-sounds').textContent = names.join(' · ');
+    bg.setMode(engine.isActive('rain') ? 'rain' : 'calm');
+    document.title = names.length ? `${names[0]}${names.length > 1 ? ' +' + (names.length - 1) : ''} — Softwave` : 'Softwave — Find a comfortable sound for tinnitus';
+  }
+  engine.on((type, data) => {
+    if (type === 'sounds') { syncCards(data); renderMixer(data); updatePlayer(); }
+    if (type === 'state' || type === 'tone') updatePlayer();
+    if (type === 'timer') renderTimer(data);
+    if (type === 'timerDone') { toast('Sleep timer finished. Rest well.'); }
+    if (type === 'limit') toast(`You can layer up to ${data} sounds at once.`);
+  });
+
+  // ---------- frequency generator ----------
+  const F = { freq: 4000, type: 'sine', volume: 0.25, balance: 0 };
+  const fSlider = $('#freq-slider'), fInput = $('#freq-input');
+  function setFreq(hz, from) {
+    F.freq = clamp(Math.round(hz), MINF, MAXF);
+    $('#freq-value').textContent = fmt(F.freq);
+    if (from !== 'slider') { fSlider.value = hzToSlider(F.freq); paintRange(fSlider); }
+    fSlider.setAttribute('aria-valuetext', F.freq + ' hertz');
+    if (from !== 'input') fInput.value = F.freq;
+    if (engine.tone) engine.toneUpdate({ freq: F.freq });
+  }
+  fSlider.addEventListener('input', () => setFreq(sliderToHz(+fSlider.value), 'slider'));
+  fInput.addEventListener('change', () => setFreq(+fInput.value || 1000, 'input'));
+  fInput.addEventListener('keydown', e => { if (e.key === 'Enter') fInput.blur(); });
+  $$('.fine-row [data-step]').forEach(b => b.addEventListener('click', () => setFreq(F.freq + +b.dataset.step)));
+  $('#freq-type').addEventListener('change', e => { F.type = e.target.value; if (engine.tone) engine.toneUpdate({ type: F.type }); });
+  $('#freq-vol').addEventListener('input', e => { F.volume = +e.target.value / 100; $('#freq-vol-out').textContent = e.target.value + '%'; if (engine.tone) engine.toneUpdate({ volume: F.volume }); });
+  $('#freq-pan').addEventListener('input', e => { F.balance = +e.target.value / 100; $('#freq-pan-out').textContent = panLabel(F.balance); if (engine.tone) engine.toneUpdate({ balance: F.balance }); });
+  $('#freq-play').addEventListener('click', async () => {
+    if (engine.tone && engine.tone.playing) engine.toneStop();
+    else { matchStop(); await engine.toneStart(F); await engine.playAll(); }
+  });
+  engine.on(type => { if (type === 'tone') { const on = !!(engine.tone && engine.tone.playing && toneOwner === 'freq'); const b = $('#freq-play'); b.textContent = on ? 'Stop tone' : 'Play tone'; b.setAttribute('aria-pressed', on); } });
+  let toneOwner = 'freq';
+  const origToneStart = engine.toneStart.bind(engine);
+  engine.toneStart = (o) => { toneOwner = o === M ? 'match' : 'freq'; return origToneStart(o); };
+  new ToneViz($('#freq-viz'), engine, () => F.freq);
+  setFreq(4000);
+
+  // ---------- find my sound ----------
+  const M = { freq: 4000, type: 'sine', volume: 0.15, balance: 0 };
+  const mSlider = $('#match-slider');
+  let mStep = 1;
+  function mShow(n) {
+    mStep = n; $$('.match-step').forEach(s => s.hidden = +s.dataset.step !== n);
+    if (n !== 3 && engine.tone && toneOwner === 'match') matchStop();
+    if (n === 4) renderSuggestions();
+    $('#view-match .card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  function matchStop() { if (engine.tone && toneOwner === 'match') engine.toneStop(); }
+  $$('#view-match [data-next]').forEach(b => b.addEventListener('click', () => mShow(mStep + 1)));
+  $$('#view-match [data-prev]').forEach(b => b.addEventListener('click', () => mShow(mStep - 1)));
+  $$('#view-match [data-ear]').forEach(b => b.addEventListener('click', () => { $$('#view-match [data-ear]').forEach(x => x.setAttribute('aria-checked', x === b)); M.balance = +b.dataset.ear; if (engine.tone) engine.toneUpdate({ balance: M.balance }); }));
+  $$('#view-match [data-type]').forEach(b => b.addEventListener('click', () => { $$('#view-match [data-type]').forEach(x => x.setAttribute('aria-checked', x === b)); M.type = b.dataset.type; if (engine.tone) engine.toneUpdate({ type: M.type }); }));
+  function setMFreq(hz, fromSlider) {
+    M.freq = clamp(Math.round(hz), MINF, MAXF); $('#match-freq-value').textContent = fmt(M.freq);
+    if (!fromSlider) { mSlider.value = hzToSlider(M.freq); paintRange(mSlider); }
+    mSlider.setAttribute('aria-valuetext', M.freq + ' hertz');
+    if (engine.tone && toneOwner === 'match') engine.toneUpdate({ freq: M.freq });
+  }
+  mSlider.addEventListener('input', () => setMFreq(sliderToHz(+mSlider.value), true));
+  $$('[data-mstep]').forEach(b => b.addEventListener('click', () => setMFreq(M.freq * Math.pow(2, +b.dataset.mstep / 1200))));
+  $('#match-vol').addEventListener('input', e => { M.volume = +e.target.value / 100; $('#match-vol-out').textContent = e.target.value + '%'; if (engine.tone) engine.toneUpdate({ volume: M.volume }); });
+  $('#match-play').addEventListener('click', async () => {
+    if (engine.tone && toneOwner === 'match') engine.toneStop();
+    else { if (engine.tone) engine.toneStop(); await engine.toneStart(M); await engine.playAll(); }
+  });
+  engine.on(type => { if (type === 'tone') { const on = !!(engine.tone && engine.tone.playing && toneOwner === 'match'); const b = $('#match-play'); b.textContent = on ? 'Stop tone' : 'Play tone'; b.setAttribute('aria-pressed', on); } });
+  new ToneViz($('#match-viz'), engine, () => M.freq);
+  setMFreq(4000);
+
+  function suggestionsFor(hz, type) {
+    // Broad, low-commitment guidance: sounds with energy in the same region tend
+    // to blend with a tone; softer/lower options for people who find hiss tiring.
+    const s = [];
+    if (hz >= 6000) s.push('white', 'hiss', 'rain', 'waterfall', 'static');
+    else if (hz >= 2500) s.push('pink', 'rain', 'stream', 'fan', 'white');
+    else if (hz >= 800) s.push('pink', 'fan', 'stream', 'forest', 'ocean');
+    else s.push('brown', 'ocean', 'wind', 'fire', 'fan');
+    if (type === 'hiss' && !s.includes('hiss')) s.splice(1, 0, 'hiss');
+    return s.slice(0, 5);
+  }
+  function renderSuggestions() {
+    const earTxt = M.balance < 0 ? 'left ear' : M.balance > 0 ? 'right ear' : 'both ears';
+    const typeTxt = { sine: 'ringing', narrow: 'whistling', hiss: 'hissing', soft: 'humming' }[M.type];
+    $('#match-summary').textContent = `You chose a ${typeTxt} sound around ${fmt(M.freq)} Hz in your ${earTxt}. Here are sounds worth trying first. Tap to play, then adjust the level until the tinnitus feels less noticeable.`;
+    const host = $('#match-suggestions'); host.innerHTML = '';
+    suggestionsFor(M.freq, M.type).forEach((id, i) => {
+      const d = engine.def(id); const card = document.createElement('button'); card.className = 'sound-card'; card.style.setProperty('--hue', d.hue);
+      card.innerHTML = `<div class="art"></div><span class="icon" aria-hidden="true">${d.icon}</span><span class="name">${d.name}</span><span class="desc">${i === 0 ? 'Start here · ' : ''}${d.desc}</span>`;
+      card.addEventListener('click', async () => { matchStop(); await engine.loadMix([{ id, volume: 0.5 }]); toast(`Playing ${d.name}. Try others too — comfort is what matters.`); });
+      host.appendChild(card);
+    });
+    const saved = store.get('match'); $('#match-clear').hidden = !saved;
+  }
+  $('#match-save').addEventListener('click', () => { store.set('match', { freq: M.freq, type: M.type, balance: M.balance, when: new Date().toISOString() }); $('#match-clear').hidden = false; toast('Saved on this device only. Nothing is sent anywhere.'); });
+  $('#match-clear').addEventListener('click', () => { store.del('match'); $('#match-clear').hidden = true; toast('Saved result removed'); });
+  (function restoreMatch() { const m = store.get('match'); if (!m) return; M.freq = m.freq; M.type = m.type; M.balance = m.balance; setMFreq(m.freq); $$('#view-match [data-type]').forEach(x => x.setAttribute('aria-checked', x.dataset.type === m.type)); $$('#view-match [data-ear]').forEach(x => x.setAttribute('aria-checked', +x.dataset.ear === m.balance)); })();
+
+  // ---------- sleep ----------
+  const sleep = { minutes: 0, fade: true };
+  $$('.timer-seg [data-min]').forEach(b => b.addEventListener('click', () => { $$('.timer-seg [data-min]').forEach(x => x.setAttribute('aria-checked', x === b)); sleep.minutes = +b.dataset.min; engine.setTimer(sleep.minutes, sleep.fade); if (sleep.minutes) toast(`Timer set: ${sleep.minutes} minutes${sleep.fade ? ' with gentle fade-out' : ''}`); }));
+  $('#sleep-fade').addEventListener('change', e => { sleep.fade = e.target.checked; if (engine.timer.endsAt) engine.timer.fade = sleep.fade; });
+  const screen = $('#sleep-screen');
+  $('#sleep-enter').addEventListener('click', async () => {
+    if (!engine.activeList().length) await loadPreset(PRESETS[1]);
+    else await engine.playAll();
+    screen.hidden = false; document.body.style.overflow = 'hidden'; $('#sleep-toggle').focus();
+    try { if (navigator.wakeLock) wake = await navigator.wakeLock.request('screen'); } catch (_) { }
+  });
+  let wake = null;
+  function exitSleep() { screen.hidden = true; document.body.style.overflow = ''; if (wake) { wake.release().catch(() => { }); wake = null; } }
+  $('#sleep-exit').addEventListener('click', exitSleep);
+  screen.addEventListener('keydown', e => { if (e.key === 'Escape') exitSleep(); });
+  $('#sleep-toggle').addEventListener('click', togglePlay);
+  $('#sleep-vol-down').addEventListener('click', () => setMaster(clamp(engine.masterVolume - 0.05, 0, 1)));
+  $('#sleep-vol-up').addEventListener('click', () => setMaster(clamp(engine.masterVolume + 0.05, 0, 1)));
+  function clockTick() { const d = new Date(); $('#sleep-clock').textContent = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); }
+  setInterval(clockTick, 1000); clockTick();
+  engine.on(type => { if (type === 'state') $('#sleep-toggle').textContent = engine.isPlaying ? '❚❚' : '▶'; });
+  function renderTimer(t) {
+    const el = $('#player-timer'), rem = $('#sleep-remaining');
+    if (!t.endsAt) { el.hidden = true; rem.textContent = 'Continuous'; if (!t.durationMin) $$('.timer-seg [data-min]').forEach(x => x.setAttribute('aria-checked', x.dataset.min === '0')); return; }
+    const left = Math.max(0, t.endsAt - Date.now()); const m = Math.floor(left / 60000), s = Math.floor((left % 60000) / 1000);
+    const txt = `${m}:${String(s).padStart(2, '0')}`;
+    el.hidden = false; el.textContent = (t.fading ? 'Fading · ' : '⏾ ') + txt; rem.textContent = (t.fading ? 'Fading out · ' : 'Sound stops in ') + txt;
+  }
+
+  // ---------- welcome ----------
+  const welcome = $('#welcome');
+  if (new URLSearchParams(location.search).has('welcomed')) store.set('welcomed', true);
+  if (!store.get('welcomed')) { welcome.hidden = false; $('#start-listening').focus(); }
+  $('#start-listening').addEventListener('click', async () => {
+    store.set('welcomed', true); welcome.hidden = true;
+    await engine.init(); // unlock audio on the user gesture (important for iOS)
+    showView('sounds');
+  });
+
+  // ---------- keyboard shortcuts ----------
+  document.addEventListener('keydown', e => {
+    if (e.target.matches('input, select, textarea')) return;
+    if (e.key === ' ') { e.preventDefault(); togglePlay(); }
+    if (e.key === 'Escape' && !screen.hidden) exitSleep();
+  });
+
+  // ---------- audio interruptions (calls, Safari backgrounding) ----------
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && engine.ctx && engine.active.size && engine.ctx.state === 'interrupted') engine.resume(); });
+  document.addEventListener('touchend', () => { if (engine.ctx && engine.ctx.state === 'interrupted') engine.resume(); }, { passive: true });
+
+  // ---------- PWA ----------
+  let deferredPrompt = null;
+  addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; $('#install-btn').hidden = false; });
+  $('#install-btn').addEventListener('click', async () => { if (!deferredPrompt) return; deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; $('#install-btn').hidden = true; });
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => { }));
+
+  // ---------- init ----------
+  renderSounds(); renderPresets(); renderMixer([]); updatePlayer();
+  showView((location.hash || '#sounds').slice(1));
+})();

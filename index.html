@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Softwave — Find a comfortable sound for tinnitus</title>
+  <meta name="description" content="Softwave is a calm sound studio for tinnitus comfort: broadband noise, nature sounds, a frequency generator, a sound mixer and a sleep timer. Sound masking and relaxation — not a medical treatment.">
+  <meta name="theme-color" content="#0b1020" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f4f6fb" media="(prefers-color-scheme: light)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Softwave">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <canvas id="bg" aria-hidden="true"></canvas>
+
+  <!-- First-time welcome -->
+  <div id="welcome" class="welcome" role="dialog" aria-modal="true" aria-labelledby="welcome-title" hidden>
+    <div class="welcome-card">
+      <div class="logo-mark" aria-hidden="true"><span></span><span></span><span></span></div>
+      <h1 id="welcome-title">Welcome to Softwave</h1>
+      <p class="lead">A calm space to find sounds that make tinnitus less noticeable.</p>
+      <ol class="steps">
+        <li><span class="step-num">1</span><div><strong>Choose a sound</strong><p>Try several sounds and see which feels most comfortable.</p></div></li>
+        <li><span class="step-num">2</span><div><strong>Keep it comfortable</strong><p>Use a low, comfortable listening level rather than trying to overpower the tinnitus.</p></div></li>
+        <li><span class="step-num">3</span><div><strong>Personalize it</strong><p>Adjust or combine sounds until you find something you prefer.</p></div></li>
+      </ol>
+      <button id="start-listening" class="btn btn-primary btn-xl">Start Listening</button>
+      <p class="fineprint">Softwave is for sound masking, relaxation and comfort. It does not diagnose, treat or cure tinnitus.</p>
+    </div>
+  </div>
+
+  <header class="topbar">
+    <a class="brand" href="#sounds" data-view="sounds">
+      <span class="logo-mark small" aria-hidden="true"><span></span><span></span><span></span></span>
+      <span>Softwave</span>
+    </a>
+    <nav class="nav" aria-label="Main">
+      <a href="#sounds" data-view="sounds" class="active">Sounds</a>
+      <a href="#mixer" data-view="mixer">Mixer</a>
+      <a href="#frequency" data-view="frequency">Frequency</a>
+      <a href="#match" data-view="match">Find My Sound</a>
+      <a href="#sleep" data-view="sleep">Sleep</a>
+      <a href="#learn" data-view="learn">Learn</a>
+    </nav>
+    <div class="topbar-actions">
+      <button id="install-btn" class="btn btn-ghost btn-sm" hidden>Install app</button>
+      <button id="theme-toggle" class="icon-btn" aria-label="Toggle dark mode" title="Light / dark">
+        <svg class="sun" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="12" cy="12" r="4.5" fill="none" stroke="currentColor" stroke-width="1.8"/><g stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/></g></svg>
+        <svg class="moon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main id="main">
+
+    <!-- ============ SOUNDS ============ -->
+    <section id="view-sounds" class="view active" aria-labelledby="sounds-title">
+      <div class="hero">
+        <h1 id="sounds-title">Find Your Sound</h1>
+        <p class="lead">Explore different sounds and find the combination that makes your tinnitus less noticeable.</p>
+        <p class="hint">Tap a sound to play it. Tap more to layer up to five. Keep the volume low and comfortable.</p>
+      </div>
+
+      <div class="presets-row" aria-label="Quick presets">
+        <h2 class="row-title">One-tap presets</h2>
+        <div id="presets" class="chips" role="list"></div>
+      </div>
+
+      <div id="sound-groups"></div>
+    </section>
+
+    <!-- ============ MIXER ============ -->
+    <section id="view-mixer" class="view" aria-labelledby="mixer-title" hidden>
+      <div class="hero compact">
+        <h1 id="mixer-title">Sound Mixer</h1>
+        <p class="lead">Blend up to five sounds. Each has its own level and left/right balance.</p>
+      </div>
+      <div class="mixer-toolbar">
+        <button id="mix-play" class="btn btn-primary">Play</button>
+        <button id="mix-stop" class="btn btn-ghost">Stop all</button>
+        <button id="mix-reset" class="btn btn-ghost">Reset</button>
+        <button id="mix-save" class="btn btn-secondary">Save as My Custom Mix</button>
+      </div>
+      <div id="mixer-empty" class="empty">
+        <p>No sounds in your mix yet.</p>
+        <a href="#sounds" data-view="sounds" class="btn btn-secondary">Choose sounds</a>
+      </div>
+      <div id="mixer-channels" class="channels"></div>
+      <div class="add-row">
+        <label for="mix-add" class="sr-only">Add a sound to the mix</label>
+        <select id="mix-add" class="select"><option value="">+ Add a sound…</option></select>
+      </div>
+      <h2 class="row-title">My saved mixes</h2>
+      <div id="saved-mixes" class="chips"></div>
+    </section>
+
+    <!-- ============ FREQUENCY ============ -->
+    <section id="view-frequency" class="view" aria-labelledby="freq-title" hidden>
+      <div class="hero compact">
+        <h1 id="freq-title">Frequency Generator</h1>
+        <p class="lead">Generate a continuous tone and shape it to your liking. Start quiet.</p>
+      </div>
+      <div class="freq-panel card">
+        <div class="freq-readout" aria-live="polite"><span id="freq-value">4,000</span><span class="unit">Hz</span></div>
+        <canvas id="freq-viz" class="viz" aria-hidden="true"></canvas>
+        <div class="control">
+          <label for="freq-slider">Frequency</label>
+          <input id="freq-slider" type="range" min="0" max="1000" value="672" aria-valuetext="4000 hertz">
+          <div class="scale"><span>20 Hz</span><span>200</span><span>2k</span><span>16 kHz</span></div>
+        </div>
+        <div class="fine-row" role="group" aria-label="Fine adjustment">
+          <button class="btn btn-ghost btn-sm" data-step="-100">−100</button>
+          <button class="btn btn-ghost btn-sm" data-step="-10">−10</button>
+          <button class="btn btn-ghost btn-sm" data-step="-1">−1</button>
+          <label class="sr-only" for="freq-input">Enter frequency in hertz</label>
+          <input id="freq-input" class="num" type="number" min="20" max="16000" step="1" value="4000" inputmode="numeric">
+          <button class="btn btn-ghost btn-sm" data-step="1">+1</button>
+          <button class="btn btn-ghost btn-sm" data-step="10">+10</button>
+          <button class="btn btn-ghost btn-sm" data-step="100">+100</button>
+        </div>
+        <div class="grid-2">
+          <div class="control">
+            <label for="freq-type">Tone type</label>
+            <select id="freq-type" class="select">
+              <option value="sine">Pure tone (sine)</option>
+              <option value="soft">Soft tone</option>
+              <option value="triangle">Triangle</option>
+              <option value="narrow">Narrow noise band</option>
+              <option value="hiss">Hiss band</option>
+            </select>
+          </div>
+          <div class="control">
+            <label for="freq-vol">Volume <output id="freq-vol-out">25%</output></label>
+            <input id="freq-vol" type="range" min="0" max="100" value="25">
+          </div>
+          <div class="control">
+            <label for="freq-pan">Balance <output id="freq-pan-out">Centre</output></label>
+            <input id="freq-pan" type="range" min="-100" max="100" value="0">
+            <div class="scale"><span>Left</span><span>Centre</span><span>Right</span></div>
+          </div>
+          <div class="control play-col">
+            <button id="freq-play" class="btn btn-primary btn-lg" aria-pressed="false">Play tone</button>
+          </div>
+        </div>
+        <p class="note">Tones are for exploration and personal comfort. Matching a particular frequency is not a treatment and does not change the tinnitus itself.</p>
+      </div>
+    </section>
+
+    <!-- ============ FIND MY SOUND ============ -->
+    <section id="view-match" class="view" aria-labelledby="match-title" hidden>
+      <div class="hero compact">
+        <h1 id="match-title">Find My Tinnitus Sound</h1>
+        <p class="lead">If you're comfortable doing so, use these controls to find a tone that sounds similar to your tinnitus. Keep the volume low and comfortable.</p>
+      </div>
+      <div class="card match-card">
+        <div class="match-step" data-step="1">
+          <h2>Before you start</h2>
+          <ul class="bullets">
+            <li>This is an <strong>experimental personalisation feature</strong>, not a hearing test or diagnosis.</li>
+            <li>It cannot determine the cause of tinnitus. Only a professional can do that.</li>
+            <li>Use headphones if you can, at a low level. Stop if anything feels uncomfortable.</li>
+            <li>Nothing is stored unless you choose to save the result on this device.</li>
+          </ul>
+          <button class="btn btn-primary" data-next>I understand — let's begin</button>
+        </div>
+        <div class="match-step" data-step="2" hidden>
+          <h2>Which ear?</h2>
+          <p>Where do you notice the sound most?</p>
+          <div class="seg" role="radiogroup" aria-label="Ear">
+            <button role="radio" aria-checked="false" data-ear="-1">Left</button>
+            <button role="radio" aria-checked="true" data-ear="0">Both</button>
+            <button role="radio" aria-checked="false" data-ear="1">Right</button>
+          </div>
+          <h2>What does it sound like?</h2>
+          <div class="seg wrap" role="radiogroup" aria-label="Tone type">
+            <button role="radio" aria-checked="true" data-type="sine">Ringing (pure tone)</button>
+            <button role="radio" aria-checked="false" data-type="narrow">Whistling / narrow hiss</button>
+            <button role="radio" aria-checked="false" data-type="hiss">Hissing</button>
+            <button role="radio" aria-checked="false" data-type="soft">Humming / buzzing</button>
+          </div>
+          <div class="btn-row"><button class="btn btn-ghost" data-prev>Back</button><button class="btn btn-primary" data-next>Next</button></div>
+        </div>
+        <div class="match-step" data-step="3" hidden>
+          <h2>Adjust the pitch</h2>
+          <p>Move the slider slowly until the tone feels closest to your tinnitus. Use the fine buttons for small steps.</p>
+          <div class="freq-readout"><span id="match-freq-value">4,000</span><span class="unit">Hz</span></div>
+          <canvas id="match-viz" class="viz small" aria-hidden="true"></canvas>
+          <div class="control">
+            <label for="match-slider">Pitch</label>
+            <input id="match-slider" type="range" min="0" max="1000" value="672">
+            <div class="scale"><span>Low</span><span>Mid</span><span>High</span></div>
+          </div>
+          <div class="fine-row" role="group" aria-label="Fine pitch adjustment">
+            <button class="btn btn-ghost btn-sm" data-mstep="-250">Lower</button>
+            <button class="btn btn-ghost btn-sm" data-mstep="-25">A little lower</button>
+            <button class="btn btn-ghost btn-sm" data-mstep="25">A little higher</button>
+            <button class="btn btn-ghost btn-sm" data-mstep="250">Higher</button>
+          </div>
+          <div class="control">
+            <label for="match-vol">Volume <output id="match-vol-out">15%</output> <span class="muted">— keep it low</span></label>
+            <input id="match-vol" type="range" min="0" max="60" value="15">
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-ghost" data-prev>Back</button>
+            <button id="match-play" class="btn btn-secondary" aria-pressed="false">Play tone</button>
+            <button class="btn btn-primary" data-next>This sounds close</button>
+          </div>
+        </div>
+        <div class="match-step" data-step="4" hidden>
+          <h2>Sounds to try</h2>
+          <p id="match-summary"></p>
+          <div id="match-suggestions" class="suggest-grid"></div>
+          <p class="note">These are suggestions to experiment with, based only on the pitch you chose. There is no single sound that works for everyone — the one that feels most comfortable to you is the right one.</p>
+          <div class="btn-row">
+            <button class="btn btn-ghost" data-prev>Adjust again</button>
+            <button id="match-save" class="btn btn-secondary">Save result on this device</button>
+            <button id="match-clear" class="btn btn-ghost" hidden>Forget saved result</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SLEEP ============ -->
+    <section id="view-sleep" class="view" aria-labelledby="sleep-title" hidden>
+      <div class="hero compact">
+        <h1 id="sleep-title">Sleep Mode</h1>
+        <p class="lead">A darker, simpler screen with a timer that fades the sound away gently.</p>
+      </div>
+      <div class="card sleep-card">
+        <div class="sleep-now">
+          <div class="label">Now playing</div>
+          <div id="sleep-now-list" class="now-list">Nothing yet — pick a preset below or choose sounds.</div>
+        </div>
+        <div class="chips" id="sleep-presets"></div>
+        <h2 class="row-title">Timer</h2>
+        <div class="seg timer-seg" role="radiogroup" aria-label="Sleep timer">
+          <button role="radio" aria-checked="false" data-min="15">15 min</button>
+          <button role="radio" aria-checked="false" data-min="30">30 min</button>
+          <button role="radio" aria-checked="false" data-min="60">60 min</button>
+          <button role="radio" aria-checked="false" data-min="90">90 min</button>
+          <button role="radio" aria-checked="true" data-min="0">Continuous</button>
+        </div>
+        <label class="switch">
+          <input id="sleep-fade" type="checkbox" checked>
+          <span class="track" aria-hidden="true"></span>
+          <span>Gradual fade-out before the timer ends</span>
+        </label>
+        <button id="sleep-enter" class="btn btn-primary btn-xl">Enter Sleep Screen</button>
+      </div>
+    </section>
+
+    <!-- ============ LEARN ============ -->
+    <section id="view-learn" class="view" aria-labelledby="learn-title" hidden>
+      <div class="hero compact">
+        <h1 id="learn-title">Listen well</h1>
+        <p class="lead">A few simple principles from tinnitus and hearing-health organisations.</p>
+      </div>
+      <div class="learn-grid">
+        <article class="card">
+          <h2>Safe listening</h2>
+          <ul class="bullets">
+            <li><strong>Use the lowest level that helps.</strong> Sound therapy works best as a gentle background — partly covering the tinnitus, not overpowering it. Most people find a level just below or around their tinnitus most comfortable.</li>
+            <li><strong>Mind headphone time.</strong> The WHO safe-listening standard suggests keeping personal audio around 80 dB or below for no more than 40 hours a week. A good habit: keep your device volume around 60% or less.</li>
+            <li><strong>Take breaks.</strong> Prolonged high-volume headphone use can harm hearing and may make tinnitus more noticeable.</li>
+            <li><strong>Start quiet, adjust slowly.</strong> Softwave always starts sounds at a soft level and fades them in; raise volume gradually.</li>
+            <li><strong>Speakers are fine.</strong> A speaker or a pillow speaker at night can be just as useful as headphones.</li>
+          </ul>
+        </article>
+        <article class="card">
+          <h2>When to talk to a professional</h2>
+          <p>Sound tools can help day to day, but please see a doctor, audiologist or ENT (ear, nose and throat) specialist if your tinnitus:</p>
+          <ul class="bullets">
+            <li>is <strong>new</strong>, or changed suddenly</li>
+            <li>is <strong>persistent</strong> (around six months or more) or is bothering you a lot</li>
+            <li>is only in <strong>one ear</strong></li>
+            <li>comes with <strong>hearing difficulty</strong>, fullness in the ear, or dizziness</li>
+            <li><strong>pulses with your heartbeat</strong></li>
+            <li>started after an injury, or is affecting sleep, mood or concentration</li>
+          </ul>
+          <p>A hearing evaluation is the usual first step. Evidence-based options such as hearing aids, sound therapy and cognitive behavioural therapy are available, and professionals can help you choose.</p>
+        </article>
+        <article class="card">
+          <h2>How sound can help</h2>
+          <p>Tinnitus often feels loudest in silence. Adding a pleasant, steady sound can make it less noticeable, give your attention something else to rest on, and help with relaxation and sleep. Over time many people find the tinnitus fades further into the background.</p>
+          <p>There is no single best sound. Broadband noise (white, pink, brown) and natural sounds are the most widely used; what matters is what feels comfortable to you.</p>
+        </article>
+        <article class="card">
+          <h2>Privacy</h2>
+          <p>Softwave works without an account. Your favourites, presets and settings are stored only on this device. Nothing about your hearing is collected or sent anywhere, and the optional "Find My Sound" result is saved only if you choose to.</p>
+        </article>
+        <article class="card disclaimer">
+          <h2>Important</h2>
+          <p>This app is designed for sound masking, relaxation, and tinnitus management support. It does not diagnose, treat, or cure tinnitus and is not a substitute for professional medical care.</p>
+          <p class="muted small">Sources: NIDCD (National Institute on Deafness and Other Communication Disorders), American Tinnitus Association, AAO-HNS Clinical Practice Guideline: Tinnitus, WHO-ITU safe-listening standard.</p>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <!-- ============ NOW PLAYING BAR ============ -->
+  <div id="player" class="player" role="region" aria-label="Now playing">
+    <button id="player-toggle" class="play-btn" aria-label="Play" aria-pressed="false">
+      <svg class="ico-play" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>
+      <svg class="ico-pause" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M7 5h4v14H7zM13 5h4v14h-4z" fill="currentColor"/></svg>
+    </button>
+    <div class="player-info">
+      <div id="player-title" class="player-title">Nothing playing</div>
+      <div id="player-sub" class="player-sub">Choose a sound to begin</div>
+    </div>
+    <div class="player-vol">
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z" fill="currentColor"/><path d="M16 9a3.5 3.5 0 0 1 0 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <label for="master-vol" class="sr-only">Master volume</label>
+      <input id="master-vol" type="range" min="0" max="100" value="35">
+      <output id="master-out" for="master-vol">35%</output>
+    </div>
+    <div id="player-timer" class="player-timer" hidden></div>
+    <button id="player-stop" class="btn btn-ghost btn-sm">Stop</button>
+  </div>
+
+  <!-- ============ SLEEP SCREEN ============ -->
+  <div id="sleep-screen" class="sleep-screen" hidden>
+    <div class="sleep-inner">
+      <div id="sleep-clock" class="sleep-clock">00:00</div>
+      <div id="sleep-remaining" class="sleep-remaining">Continuous</div>
+      <div id="sleep-sounds" class="sleep-sounds"></div>
+      <div class="sleep-controls">
+        <button id="sleep-vol-down" class="round-btn" aria-label="Quieter">−</button>
+        <button id="sleep-toggle" class="round-btn big" aria-label="Pause">❚❚</button>
+        <button id="sleep-vol-up" class="round-btn" aria-label="Louder">+</button>
+      </div>
+      <button id="sleep-exit" class="btn btn-ghost">Exit sleep screen</button>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="audio.js"></script>
+  <script src="visuals.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
