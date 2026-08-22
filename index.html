@@ -50,6 +50,7 @@
       <a href="#frequency" data-view="frequency">Frequency</a>
       <a href="#match" data-view="match">Find My Sound</a>
       <a href="#sleep" data-view="sleep">Sleep</a>
+      <a href="#lab" data-view="lab" class="nav-lab">Experiments</a>
       <a href="#learn" data-view="learn">Learn</a>
     </nav>
     <div class="topbar-actions">
@@ -312,6 +313,54 @@
       </div>
     </section>
 
+
+    <!-- ============ EXPERIMENTS / THE LAB ============ -->
+    <section id="view-lab" class="view lab-view" aria-labelledby="lab-title" hidden>
+      <div class="hero compact">
+        <div class="lab-eyebrow">Experiments</div>
+        <h1 id="lab-title">Try new ways of interacting with sound, attention, and visual focus.</h1>
+        <p class="lead">These experimental tools are optional and are not medical treatments.</p>
+      </div>
+      <div class="lab-notice">
+        <strong>Experimental features</strong> are exploratory tools for relaxation, attention, sound personalization, and tinnitus management support. They are not proven treatments and may not work for everyone. Everything starts quiet, fades in and out, never raises your volume, and can be stopped instantly with <em>Stop</em>.
+      </div>
+
+      <div id="lab-detail" class="lab-detail" hidden></div>
+
+      <div class="lab-two">
+        <div>
+          <h2 class="row-title">Recommended for you</h2>
+          <div id="lab-recommended" class="lab-grid"></div>
+        </div>
+        <aside class="card lab-profile-card">
+          <h2>Your sound profile</h2>
+          <div id="lab-profile"></div>
+        </aside>
+      </div>
+
+      <h2 class="row-title" id="thelab">The Lab</h2>
+      <p class="muted">The deeper page. Experiments are grouped by what they explore; <strong>New</strong> shows the most recent concepts.</p>
+      <div id="lab-cats" class="seg wrap" role="radiogroup" aria-label="Lab category">
+        <button role="radio" aria-checked="true" data-cat="All">All</button>
+        <button role="radio" aria-checked="false" data-cat="Sound">Sound</button>
+        <button role="radio" aria-checked="false" data-cat="Visual">Visual</button>
+        <button role="radio" aria-checked="false" data-cat="Immersive">Immersive</button>
+        <button role="radio" aria-checked="false" data-cat="Discovery">Discovery</button>
+        <button role="radio" aria-checked="false" data-cat="Sleep">Sleep</button>
+        <button role="radio" aria-checked="false" data-cat="New">New</button>
+      </div>
+      <p class="muted small lab-cat-desc"><span>Sound — experimental audio concepts.</span> <span>Visual — attention and visual tools.</span> <span>Immersive — sound + visual + spatial.</span> <span>Discovery — learning your preferences.</span> <span>Sleep — experimental night-time environments.</span></p>
+      <div id="lab-list" class="lab-grid"></div>
+
+      <h2 class="row-title">Experiment history</h2>
+      <div class="lab-hist">
+        <div><h3>Recently tried</h3><div id="hist-recent" class="chips"></div></div>
+        <div><h3>Favourites</h3><div id="hist-favs" class="chips"></div></div>
+        <div><h3>Worked well for me</h3><div id="hist-good" class="chips"></div></div>
+        <div><h3>Not for me</h3><div id="hist-bad" class="chips"></div></div>
+      </div>
+    </section>
+
     <!-- ============ LEARN ============ -->
     <section id="view-learn" class="view" aria-labelledby="learn-title" hidden>
       <div class="hero compact">
@@ -376,6 +425,7 @@
       <input id="master-vol" type="range" min="0" max="100" value="35">
       <output id="master-out" for="master-vol">35%</output>
     </div>
+    <div id="player-exp" class="player-exp" hidden></div>
     <div id="player-timer" class="player-timer" hidden></div>
     <button id="player-stop" class="btn btn-ghost btn-sm">Stop</button>
   </div>
@@ -443,11 +493,23 @@
     </div>
   </div>
 
+
+  <!-- ============ EYES-CLOSED SCREEN ============ -->
+  <div id="eyes-screen" class="eyes-screen" hidden role="dialog" aria-label="Eyes-closed mode" aria-modal="true">
+    <div class="eyes-controls">
+      <button id="eyes-toggle" class="btn btn-ghost">Pause</button>
+      <button id="eyes-timer" class="btn btn-ghost">Timer off</button>
+      <button id="eyes-exit" class="btn btn-ghost">Exit</button>
+    </div>
+    <p class="eyes-hint">Tap anywhere to show controls</p>
+  </div>
+
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script src="audio.js"></script>
   <script src="visuals.js"></script>
   <script src="app.js"></script>
   <script src="focus.js"></script>
+  <script src="lab.js"></script>
 </body>
 </html>

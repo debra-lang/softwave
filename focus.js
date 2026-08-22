@@ -36,6 +36,7 @@
   // env: { dt, speed, t(global), level, spec, wave, freq, pointer:{x,y,on}, taps:[{x,y,age}], breathText, reduced, still }
   const V = [];
   const add = (d) => V.push(d);
+  const P = { target: 'light', sync: true, haptic: false, soundTouch: false, breathPeriod: 0 };   // experiment parameters
 
   // ===== NATURE =====
   add({ id: 'ocean', name: 'Ocean Waves', cat: 'Nature', desc: 'Slow rolling swells at dusk.', make() {
@@ -282,12 +283,64 @@
 
   // ===== BREATHING =====
   add({ id: 'breathing', name: 'Breathing Circle', cat: 'Breathing', desc: 'A circle that grows as you breathe in and settles as you breathe out.', make() {
-    let t = 0; const IN = 4, HOLD = 1, OUT = 6, REST = 1, CYC = IN + HOLD + OUT + REST; return { draw(ctx, w, h, e) { t += e.dt * (e.still ? 0 : Math.max(e.speed, 0.6)); const p = t % CYC; let s, label;
+    let t = 0; return { draw(ctx, w, h, e) { const k = P.breathPeriod ? P.breathPeriod / 12 : 1; const IN = 4 * k, HOLD = 1 * k, OUT = 6 * k, REST = 1 * k, CYC = IN + HOLD + OUT + REST; t += e.dt * (e.still ? 0 : Math.max(e.speed, 0.6)); const p = t % CYC; let s, label;
       if (p < IN) { const q = p / IN; s = q * q * (3 - 2 * q); label = 'Breathe in'; } else if (p < IN + HOLD) { s = 1; label = 'Breathe in'; } else if (p < IN + HOLD + OUT) { const q = (p - IN - HOLD) / OUT; s = 1 - q * q * (3 - 2 * q); label = 'Breathe out'; } else { s = 0; label = 'Breathe out'; }
       sky(ctx, w, h, isDark() ? '#090c1c' : '#f3f5fb', isDark() ? '#0e1332' : '#e3e8f6'); const cx = w / 2, cy = h / 2, R = Math.min(w, h) * (0.16 + s * 0.16);
       glow(ctx, cx, cy, R * 2.2, isDark() ? 'rgba(140,170,255,A)' : 'rgba(90,130,240,A)', 0.25 + s * 0.2); ctx.beginPath(); ctx.arc(cx, cy, R, 0, TAU); ctx.fillStyle = isDark() ? 'rgba(150,180,255,0.25)' : 'rgba(90,130,240,0.22)'; ctx.fill(); ctx.strokeStyle = isDark() ? 'rgba(200,215,255,0.8)' : 'rgba(60,100,220,0.7)'; ctx.lineWidth = 2; ctx.stroke();
       ctx.beginPath(); ctx.arc(cx, cy, Math.min(w, h) * 0.34, 0, TAU); ctx.strokeStyle = isDark() ? 'rgba(200,215,255,0.12)' : 'rgba(60,100,220,0.12)'; ctx.lineWidth = 1; ctx.stroke();
       if (e.breathText) { ctx.fillStyle = isDark() ? 'rgba(230,236,255,0.9)' : 'rgba(20,30,60,0.8)'; ctx.font = `600 ${Math.max(18, Math.min(w, h) * 0.045)}px Manrope, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(label, cx, cy); ctx.textBaseline = 'alphabetic'; }
+    } }; } });
+
+  // ===== EXPERIMENT VISUALS (opened from The Lab) =====
+  add({ id: 'target', name: 'Attention Target', cat: 'Lab', hidden: true, desc: 'Follow one slow object; the sound follows it too.', make() {
+    let t = 0, lastSync = 0; return { draw(ctx, w, h, e) { t += e.dt * e.speed * 0.3;
+      const kind = P.target; const x = w * (0.5 + Math.sin(t * 0.9) * 0.36 + Math.sin(t * 0.23) * 0.06), y = h * (0.5 + Math.sin(t * 0.6 + 1.3) * 0.3 + Math.cos(t * 0.31) * 0.05);
+      if (kind === 'bubble') { sky(ctx, w, h, '#0a3a66', '#031428'); const r = Math.min(w, h) * 0.07; const g = ctx.createRadialGradient(x - r * 0.3, y - r * 0.3, r * 0.1, x, y, r); g.addColorStop(0, 'rgba(255,255,255,0.5)'); g.addColorStop(0.7, 'rgba(200,225,255,0.1)'); g.addColorStop(1, 'rgba(255,255,255,0.5)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill(); ctx.strokeStyle = 'rgba(255,255,255,0.7)'; ctx.lineWidth = 1.5; ctx.stroke(); }
+      else if (kind === 'star') { sky(ctx, w, h, '#03061a', '#0c1538'); glow(ctx, x, y, Math.min(w, h) * 0.12, 'rgba(220,230,255,A)', 0.6); ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(x, y, 3.5, 0, TAU); ctx.fill(); }
+      else if (kind === 'leaf') { sky(ctx, w, h, isDark() ? '#0a1a14' : '#e8f2d8', isDark() ? '#06100b' : '#c5dcb0'); ctx.save(); ctx.translate(x, y); ctx.rotate(Math.sin(t * 2) * 0.6 + t); const r = Math.min(w, h) * 0.045; ctx.fillStyle = isDark() ? '#6fbf7a' : '#4f9a5a'; ctx.beginPath(); ctx.ellipse(0, 0, r * 1.6, r * 0.8, 0, 0, TAU); ctx.fill(); ctx.strokeStyle = 'rgba(255,255,255,0.45)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(-r * 1.4, 0); ctx.lineTo(r * 1.4, 0); ctx.stroke(); ctx.restore(); }
+      else if (kind === 'orb') { sky(ctx, w, h, isDark() ? '#0c0a14' : '#f7f3ee', isDark() ? '#15102a' : '#ede4d8'); glow(ctx, x, y, Math.min(w, h) * 0.2, 'rgba(255,180,120,A)', 0.55); glow(ctx, x, y, Math.min(w, h) * 0.05, 'rgba(255,240,220,A)', 0.95); }
+      else { sky(ctx, w, h, isDark() ? '#06081a' : '#f3f4fb', isDark() ? '#0a0d24' : '#e6e9f6'); glow(ctx, x, y, Math.min(w, h) * 0.25, isDark() ? 'rgba(255,225,170,A)' : 'rgba(255,190,90,A)', 0.5); glow(ctx, x, y, Math.min(w, h) * 0.06, 'rgba(255,255,255,A)', 0.9); }
+      if (P.sync && engine.ctx && t - lastSync > 0.02) { lastSync = t; engine.setMasterPan((x / w - 0.5) * 0.5, 0.4); engine.setMasterTone(3000 * Math.pow(6, 1 - y / h), 0.4); }
+    } }; } });
+
+  add({ id: 'synced', name: 'Synced Scene', cat: 'Lab', hidden: true, desc: 'The scene takes its form from the sounds playing.', make() {
+    let t = 0; const drops = Array.from({ length: 120 }, () => ({ x: Math.random(), y: Math.random(), s: rnd(0.5, 0.25), l: rnd(0.05, 0.02) })); const ps = Array.from({ length: 90 }, () => ({ x: Math.random(), y: Math.random(), ph: Math.random() * TAU, r: rnd(2.5, 1) })); const n = 32, vals = new Float32Array(n); let centroid = 0.5;
+    return { draw(ctx, w, h, e) { t += e.dt * e.speed; bands(e, n, vals);
+      let num = 0, den = 0; for (let i = 0; i < n; i++) { num += vals[i] * i; den += vals[i]; } centroid += ((den ? num / den / n : 0.5) - centroid) * 0.03;   // 0 = low-heavy, 1 = high-heavy
+      const act = new Set(engine.activeList().map(a => a.id)); const hasRain = act.has('rain') || act.has('waterfall') || act.has('stream'); const hasOcean = act.has('ocean') || act.has('wind'); const hasNoise = act.has('white') || act.has('pink') || act.has('brown') || act.has('static') || act.has('hiss') || act.has('fan') || act.has('paint') || act.has('sculpt') || act.has('notched');
+      sky(ctx, w, h, isDark() ? '#090d1e' : '#eef2fb', isDark() ? '#0f1634' : '#dbe3f6');
+      const size = 1.8 - centroid * 1.3, spd = 0.5 + centroid * 0.9;   // low = bigger/slower, high = finer/faster
+      if (hasOcean || (!hasRain && !hasNoise)) for (let k = 0; k < 5; k++) { ctx.beginPath(); const base = h * (0.5 + k * 0.1); const amp = (14 + k * 6) * size * (1 + e.level); for (let x = 0; x <= w; x += 8) ctx.lineTo(x, base + Math.sin(x * 0.004 / size + t * spd * (0.6 + k * 0.1) + k) * amp); ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.closePath(); ctx.fillStyle = `hsla(${205 + k * 6},60%,${isDark() ? 22 + k * 4 : 60 + k * 5}%,0.6)`; ctx.fill(); }
+      if (hasNoise) for (const p of ps) { p.y -= 0.02 * e.dt * spd * e.speed; p.x += Math.sin(t + p.ph) * 0.0004; if (p.y < -0.02) p.y = 1.02; glow(ctx, p.x * w, p.y * h, p.r * 5 * size, isDark() ? 'rgba(170,195,255,A)' : 'rgba(80,120,240,A)', 0.2 + e.level * 0.3); }
+      if (hasRain) { ctx.strokeStyle = isDark() ? 'rgba(200,225,255,0.5)' : 'rgba(60,100,180,0.45)'; ctx.lineWidth = 1.2 * size; for (const d of drops) { d.y += d.s * e.dt * spd * e.speed * 1.2; if (d.y > 1.05) { d.y = -0.05; d.x = Math.random(); } ctx.beginPath(); ctx.moveTo(d.x * w, d.y * h); ctx.lineTo(d.x * w - 1, (d.y + d.l * size) * h); ctx.stroke(); } }
+    } }; } });
+
+  add({ id: 'followone', name: 'Follow One Particle', cat: 'Lab', hidden: true, desc: 'Keep track of the one that glows at the start.', make() {
+    let t = 0; const ps = Array.from({ length: 14 }, () => ({ x: Math.random(), y: Math.random(), ph: Math.random() * TAU, a: Math.random() * TAU })); const chosen = 3; return { draw(ctx, w, h, e) { t += e.dt * e.speed; sky(ctx, w, h, isDark() ? '#090d1c' : '#f4f6fc', isDark() ? '#111735' : '#e3e8f7');
+      const reveal = (t % 40) < 6 || (t % 40) > 36;   // glows for the first seconds of each 40 s cycle, and again near the end
+      ps.forEach((p, i) => { p.a += Math.sin(t * 0.3 + p.ph) * 0.01; p.x += Math.cos(p.a) * 0.025 * e.dt; p.y += Math.sin(p.a) * 0.025 * e.dt; if (p.x < 0.05 || p.x > 0.95) p.a = Math.PI - p.a; if (p.y < 0.05 || p.y > 0.95) p.a = -p.a; const x = p.x * w, y = p.y * h; glow(ctx, x, y, 26, isDark() ? 'rgba(160,190,255,A)' : 'rgba(80,120,240,A)', i === chosen && reveal ? 0.6 : 0.22); ctx.fillStyle = i === chosen && reveal ? '#ffd27a' : (isDark() ? 'rgba(220,230,255,0.9)' : 'rgba(60,100,220,0.85)'); ctx.beginPath(); ctx.arc(x, y, 5, 0, TAU); ctx.fill(); });
+      ctx.fillStyle = isDark() ? 'rgba(200,210,255,0.5)' : 'rgba(30,40,80,0.5)'; ctx.font = `500 ${Math.max(13, w * 0.016)}px Manrope, sans-serif`; ctx.textAlign = 'center'; ctx.fillText(reveal ? 'Follow the golden one' : 'Keep following it… it will glow again soon', w / 2, h - 36);
+    } }; } });
+
+  add({ id: 'noticechange', name: 'Notice the Change', cat: 'Lab', hidden: true, desc: 'The background shifts very slowly. Notice when it has.', make() {
+    let t = 0, hue = 215, target = 215, lastShift = 0; return { draw(ctx, w, h, e) { t += e.dt * e.speed; if (t - lastShift > 25) { lastShift = t; target = 180 + Math.random() * 120; } hue += (target - hue) * 0.002;
+      sky(ctx, w, h, `hsl(${hue} 40% ${isDark() ? 9 : 92}%)`, `hsl(${hue + 30} 45% ${isDark() ? 14 : 84}%)`); glow(ctx, w * 0.5, h * 0.5, Math.min(w, h) * 0.4, `hsla(${hue + 60},70%,${isDark() ? 55 : 75}%,A)`, 0.25);
+      ctx.fillStyle = isDark() ? 'rgba(230,236,255,0.5)' : 'rgba(30,40,80,0.5)'; ctx.font = `500 ${Math.max(13, w * 0.016)}px Manrope, sans-serif`; ctx.textAlign = 'center'; ctx.fillText('Just watch. Notice when the colour has changed.', w / 2, h - 36);
+    } }; } });
+
+  add({ id: 'countpulses', name: 'Count Slow Pulses', cat: 'Lab', hidden: true, desc: 'A soft pulse every few seconds. Count them, lose count, start again.', make() {
+    let t = 0; return { draw(ctx, w, h, e) { t += e.dt * e.speed; const period = 5; const p = (t % period) / period; const s = Math.exp(-Math.pow((p - 0.15) * 4, 2)); sky(ctx, w, h, isDark() ? '#0a0d1e' : '#f5f6fb', isDark() ? '#0f1538' : '#e7ebf8'); const R = Math.min(w, h) * (0.12 + s * 0.1); glow(ctx, w / 2, h / 2, R * 2.5, isDark() ? 'rgba(140,170,255,A)' : 'rgba(80,120,240,A)', 0.15 + s * 0.35); ctx.beginPath(); ctx.arc(w / 2, h / 2, R, 0, TAU); ctx.fillStyle = isDark() ? `rgba(160,185,255,${0.2 + s * 0.3})` : `rgba(90,130,240,${0.2 + s * 0.3})`; ctx.fill();
+      ctx.fillStyle = isDark() ? 'rgba(230,236,255,0.5)' : 'rgba(30,40,80,0.5)'; ctx.font = `500 ${Math.max(13, w * 0.016)}px Manrope, sans-serif`; ctx.textAlign = 'center'; ctx.fillText('Count the pulses. If you lose count, simply begin again at one.', w / 2, h - 36);
+    } }; } });
+
+  add({ id: 'starflight', name: 'Among Stars', cat: 'Lab', hidden: true, desc: 'Very slow drift forward through a star field.', make() {
+    let t = 0; const st = Array.from({ length: 220 }, () => ({ x: Math.random() * 2 - 1, y: Math.random() * 2 - 1, z: Math.random() })); return { draw(ctx, w, h, e) { t += e.dt; sky(ctx, w, h, '#03061a', '#0a0f2e'); const cx = w / 2, cy = h / 2; const sp = 0.035 * e.speed;
+      for (const s of st) { s.z -= sp * e.dt; if (s.z <= 0.02) { s.z = 1; s.x = Math.random() * 2 - 1; s.y = Math.random() * 2 - 1; } const k = 0.5 / s.z; const x = cx + s.x * k * w * 0.5, y = cy + s.y * k * h * 0.5; if (x < 0 || x > w || y < 0 || y > h) continue; const r = (1 - s.z) * 2.2 + 0.3; ctx.fillStyle = `rgba(235,240,255,${0.25 + (1 - s.z) * 0.65})`; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill(); }
+    } }; } });
+
+  add({ id: 'cloudflight', name: 'Through Clouds', cat: 'Lab', hidden: true, desc: 'Drifting slowly forward through soft cloud.', make() {
+    let t = 0; const cl = Array.from({ length: 18 }, () => ({ x: Math.random() * 2 - 1, y: Math.random() * 2 - 1, z: Math.random(), r: rnd(0.3, 0.15) })); return { draw(ctx, w, h, e) { t += e.dt; sky(ctx, w, h, isDark() ? '#121a3a' : '#a9cdf0', isDark() ? '#1b2b55' : '#e9f2fb'); const cx = w / 2, cy = h / 2; const sp = 0.03 * e.speed;
+      cl.sort((a, b) => b.z - a.z); for (const c of cl) { c.z -= sp * e.dt; if (c.z <= 0.05) { c.z = 1; c.x = Math.random() * 2 - 1; c.y = Math.random() * 2 - 1; } const k = 0.4 / c.z; const x = cx + c.x * k * w * 0.5, y = cy + c.y * k * h * 0.5; const rad = c.r * k * w * 0.5; for (let i = 0; i < 3; i++) glow(ctx, x + (i - 1) * rad * 0.5, y + Math.sin(t * 0.1 + i) * rad * 0.1, rad * (0.7 + (i % 2) * 0.3), isDark() ? 'rgba(180,195,235,A)' : 'rgba(255,255,255,A)', (isDark() ? 0.18 : 0.55) * Math.min(1, (1 - c.z) * 2)); }
     } }; } });
 
   const byId = Object.fromEntries(V.map(v => [v.id, v]));
@@ -333,7 +386,7 @@
       const sec = document.createElement('section'); sec.className = 'vis-cat';
       sec.innerHTML = `<h2 class="group-title">${cat}</h2><p class="muted vis-cat-desc">${CAT_DESC[cat]}</p><div class="vis-grid" role="list"></div>`;
       const grid = $('.vis-grid', sec);
-      V.filter(v => v.cat === cat).forEach(v => {
+      V.filter(v => v.cat === cat && !v.hidden).forEach(v => {
         const card = document.createElement('div'); card.className = 'vis-card' + (v.id === S.visual ? ' active' : ''); card.dataset.id = v.id; card.setAttribute('role', 'listitem');
         card.innerHTML = `<canvas width="320" height="200" aria-hidden="true"></canvas><div class="vis-meta"><div class="vis-name">${v.name}${v.interactive ? ' <span class="tag">Touch</span>' : ''}${v.reactive ? ' <span class="tag">Sound</span>' : ''}</div><div class="vis-desc">${v.desc}</div></div><div class="vis-actions"><button class="btn btn-secondary btn-sm" data-select>Use this visual</button><button class="btn btn-primary btn-sm" data-open>Open in Focus</button></div>`;
         const c = $('canvas', card); previews.set(c, { inst: v.make(), visible: false }); io.observe(c);
@@ -425,6 +478,7 @@
     if (engine.activeList().length && !engine.isPlaying) engine.playAll();
   }
   function exitFocus() {
+    if (engine.ctx) engine.resetMasterShape();
     screen.hidden = true; document.body.style.overflow = ''; cancelAnimationFrame(focus.raf); closePanel();
     if (document.fullscreenElement) document.exitFullscreen().catch(() => { });
     if (focus.wake) { focus.wake.release().catch(() => { }); focus.wake = null; }
@@ -438,7 +492,7 @@
   // pointer / touch interactions on the canvas
   const toNorm = ev => ({ x: ev.clientX / focus.w, y: ev.clientY / focus.h });
   canvas.addEventListener('pointermove', ev => { const p = toNorm(ev); focus.pointer.x = p.x; focus.pointer.y = p.y; focus.pointer.on = true; showControls(); });
-  canvas.addEventListener('pointerdown', ev => { const p = toNorm(ev); focus.pointer.x = p.x; focus.pointer.y = p.y; focus.pointer.on = true; focus.pointer.down = true; focus.taps.push({ x: p.x, y: p.y, age: 0, id: ++focus.tapId }); showControls(); });
+  canvas.addEventListener('pointerdown', ev => { const p = toNorm(ev); focus.pointer.x = p.x; focus.pointer.y = p.y; focus.pointer.on = true; focus.pointer.down = true; focus.taps.push({ x: p.x, y: p.y, age: 0, id: ++focus.tapId }); showControls(); if (window.softwaveLab) window.softwaveLab.onTap(); });
   addEventListener('pointerup', () => { focus.pointer.down = false; });
   canvas.addEventListener('pointerleave', () => { focus.pointer.on = false; focus.pointer.down = false; });
   screen.addEventListener('pointermove', showControls); screen.addEventListener('touchstart', showControls, { passive: true });
@@ -476,7 +530,7 @@
   }
   function renderVisualPane() {
     const host = $('[data-pane="visual"] .pane-body'); host.innerHTML = '';
-    CATS.forEach(cat => { const h = document.createElement('div'); h.className = 'row-title'; h.textContent = cat; host.appendChild(h); const g = document.createElement('div'); g.className = 'pane-visuals'; V.filter(v => v.cat === cat).forEach(v => { const b = document.createElement('button'); b.className = 'pane-visual' + (v.id === S.visual ? ' on' : ''); b.setAttribute('aria-pressed', v.id === S.visual); b.textContent = v.name; b.addEventListener('click', () => { setVisual(v.id); renderVisualPane(); }); g.appendChild(b); }); host.appendChild(g); });
+    CATS.forEach(cat => { const h = document.createElement('div'); h.className = 'row-title'; h.textContent = cat; host.appendChild(h); const g = document.createElement('div'); g.className = 'pane-visuals'; V.filter(v => v.cat === cat && !v.hidden).forEach(v => { const b = document.createElement('button'); b.className = 'pane-visual' + (v.id === S.visual ? ' on' : ''); b.setAttribute('aria-pressed', v.id === S.visual); b.textContent = v.name; b.addEventListener('click', () => { setVisual(v.id); renderVisualPane(); }); g.appendChild(b); }); host.appendChild(g); });
   }
   $$('#focus-panel [data-min]').forEach(b => b.addEventListener('click', () => { engine.setTimer(+b.dataset.min, true); updateFocusBar(); if (+b.dataset.min) app.toast(`Timer: ${b.dataset.min} minutes, with gentle fade`); }));
 
@@ -484,7 +538,7 @@
   $('#freq-visualizer').addEventListener('click', async () => { if (!(engine.tone && engine.tone.playing)) $('#freq-play').click(); setVisual('frequency'); enterFocus(); });
 
   // expose for app
-  window.softwaveFocus = { enterFocus, exitFocus, setVisual, visuals: V };
+  window.softwaveFocus = { enterFocus, exitFocus, setVisual, visuals: V.filter(v => !v.hidden), allVisuals: V, setParam: (k, v) => { P[k] = v; }, getParam: () => P };
 
   // ---------- init ----------
   renderLibrary(); renderPairings(); renderFavs(); syncSettings();

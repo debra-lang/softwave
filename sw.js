@@ -1,6 +1,6 @@
 /* Softwave service worker — network-first app shell with offline fallback */
-const CACHE = 'softwave-v5';
-const ASSETS = ['./', './index.html', './styles.css', './app.js', './audio.js', './visuals.js', './focus.js', './manifest.webmanifest', './icons/icon.svg', './icons/icon-192.png', './icons/icon-512.png'];
+const CACHE = 'softwave-v6';
+const ASSETS = ['./', './index.html', './styles.css', './app.js', './audio.js', './visuals.js', './focus.js', './lab.js', './manifest.webmanifest', './icons/icon.svg', './icons/icon-192.png', './icons/icon-512.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
 self.addEventListener('fetch', e => {

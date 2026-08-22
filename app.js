@@ -42,7 +42,7 @@
   $('#theme-toggle').addEventListener('click', () => applyTheme(root.dataset.theme === 'dark' ? 'light' : 'dark'));
 
   // ---------- views ----------
-  const views = ['sounds', 'focus', 'mixer', 'frequency', 'match', 'sleep', 'learn'];
+  const views = ['sounds', 'focus', 'lab', 'mixer', 'frequency', 'match', 'sleep', 'learn'];
   function showView(name) {
     if (!views.includes(name)) name = 'sounds';
     views.forEach(v => { const el = $('#view-' + v); el.hidden = v !== name; el.classList.toggle('active', v === name); });
@@ -108,11 +108,11 @@
   // ---------- sound cards ----------
   function renderSounds() {
     const host = $('#sound-groups'); host.innerHTML = '';
-    const groups = [...new Set(SOUND_DEFS.map(d => d.group))];
+    const groups = [...new Set(engine.defs().map(d => d.group))];
     groups.forEach(g => {
       const h = document.createElement('h2'); h.className = 'group-title'; h.textContent = g; host.appendChild(h);
       const grid = document.createElement('div'); grid.className = 'sound-grid'; grid.setAttribute('role', 'list');
-      SOUND_DEFS.filter(d => d.group === g).forEach(d => {
+      engine.defs().filter(d => d.group === g).forEach(d => {
         const card = document.createElement('div'); card.className = 'sound-card'; card.style.setProperty('--hue', d.hue); card.dataset.id = d.id; card.setAttribute('role', 'listitem');
         card.innerHTML = `
           <div class="art"></div>
@@ -163,7 +163,7 @@
       host.appendChild(ch); $$('input', ch).forEach(paintRange);
     });
     const sel = $('#mix-add'); sel.innerHTML = '<option value="">+ Add a sound…</option>';
-    SOUND_DEFS.filter(d => !engine.isActive(d.id)).forEach(d => { const o = document.createElement('option'); o.value = d.id; o.textContent = d.name; sel.appendChild(o); });
+    engine.defs().filter(d => !engine.isActive(d.id)).forEach(d => { const o = document.createElement('option'); o.value = d.id; o.textContent = d.name; sel.appendChild(o); });
     sel.disabled = list.length >= MAX_ACTIVE;
   }
   function panLabel(b) { if (Math.abs(b) < 0.05) return 'Centre'; return (b < 0 ? 'L ' : 'R ') + Math.round(Math.abs(b) * 100) + '%'; }
@@ -225,8 +225,9 @@
     bg.setMode(engine.isActive('rain') ? 'rain' : 'calm');
     document.title = names.length ? `${names[0]}${names.length > 1 ? ' +' + (names.length - 1) : ''} — Softwave` : 'Softwave — Find a comfortable sound for tinnitus';
   }
+  let lastIds = new Set();
   engine.on((type, data) => {
-    if (type === 'sounds') { syncCards(data); renderMixer(data); updatePlayer(); }
+    if (type === 'sounds') { syncCards(data); renderMixer(data); updatePlayer(); const now = new Set(data.map(s => s.id)); const pc = store.get('playcounts', {}); now.forEach(id => { if (!lastIds.has(id)) pc[id] = (pc[id] || 0) + 1; }); store.set('playcounts', pc); lastIds = now; }
     if (type === 'state' || type === 'tone') updatePlayer();
     if (type === 'timer') renderTimer(data);
     if (type === 'timerDone') { toast('Sleep timer finished. Rest well.'); }

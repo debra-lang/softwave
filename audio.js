@@ -22,6 +22,14 @@
     { id: 'fan',       name: 'Fan',            group: 'Indoor',    desc: 'A familiar, steady room fan.',                       icon: '✣', hue: 250 },
     { id: 'fire',      name: 'Fireplace',      group: 'Indoor',    desc: 'Low, warm glow with gentle crackles.',               icon: '♨', hue: 20 },
     { id: 'night',     name: 'Night Sounds',   group: 'Nature',    desc: 'Crickets and a light night breeze.',                 icon: '☾', hue: 265 },
+    // Lab-only sources (not shown in the main library)
+    { id: 'thunder',   name: 'Distant Thunder', group: 'Lab', lab: true, desc: 'Occasional far-off rumbles.',                      icon: '⛈', hue: 240 },
+    { id: 'city',      name: 'Distant City',    group: 'Lab', lab: true, desc: 'A faraway urban hum.',                            icon: '⌂', hue: 280 },
+    { id: 'cabin',     name: 'Cabin Hum',       group: 'Lab', lab: true, desc: 'Steady low aircraft-cabin ambience.',             icon: '✈', hue: 220 },
+    { id: 'chimes',    name: 'Gentle Chimes',   group: 'Lab', lab: true, desc: 'Soft, never-repeating tones.',                    icon: '♪', hue: 45 },
+    { id: 'paint',     name: 'Painted Noise',   group: 'Lab', lab: true, desc: 'Noise shaped by your drawing.',                   icon: '✎', hue: 300 },
+    { id: 'sculpt',    name: 'Sculpted Noise',  group: 'Lab', lab: true, desc: 'Noise shaped by plain-language controls.',        icon: '◈', hue: 160 },
+    { id: 'notched',   name: 'Notched Noise',   group: 'Lab', lab: true, desc: 'Broadband noise with a gap around one region.',   icon: '⊘', hue: 10 },
   ];
 
   const MAX_ACTIVE = 5;
@@ -33,6 +41,7 @@
     white: 0.16, pink: 0.32, brown: 0.9, static: 0.22, hiss: 0.26,
     rain: 0.45, ocean: 0.85, stream: 0.4, waterfall: 0.38, forest: 0.6,
     wind: 0.8, fan: 0.5, fire: 0.9, night: 0.7,
+    thunder: 1.0, city: 0.9, cabin: 0.8, chimes: 0.5, paint: 0.3, sculpt: 0.32, notched: 0.32,
   };
 
   // ---------- buffer generators ----------
@@ -102,6 +111,8 @@
       this.silentEl = null;
       this._timerId = null;
       this.timer = { endsAt: null, fade: true, durationMin: null };
+      this.lab = { paint: null, sculpt: { warm: 0, soft: 0, smooth: 0, deep: 0, moving: 0 }, notch: { freq: 4000, width: 1 } };
+      this.variation = { amount: 0, rate: 1, timer: null };
     }
 
     on(fn) { this.listeners.add(fn); return () => this.listeners.delete(fn); }
@@ -129,7 +140,11 @@
       this.analyser.fftSize = 1024;
       this.analyser.smoothingTimeConstant = 0.85;
 
-      this.master.connect(this.limiter);
+      this.trim = ctx.createGain(); this.trim.gain.value = 1;           // experiments modulate this (breath sync etc.)
+      this.masterFilter = ctx.createBiquadFilter(); this.masterFilter.type = 'lowpass'; this.masterFilter.frequency.value = 20000; this.masterFilter.Q.value = 0.5;
+      this.masterPan = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
+      this.master.connect(this.trim); this.trim.connect(this.masterFilter);
+      if (this.masterPan) { this.masterFilter.connect(this.masterPan); this.masterPan.connect(this.limiter); } else this.masterFilter.connect(this.limiter);
       this.limiter.connect(this.analyser);
       this.analyser.connect(ctx.destination);
 
@@ -191,7 +206,7 @@
     _curve(v) { return v * v; } // perceptual-ish taper; 100% slider = unity gain (pre-limiter)
 
     // ---------- sounds ----------
-    defs() { return SOUND_DEFS; }
+    defs(includeLab) { return includeLab ? SOUND_DEFS : SOUND_DEFS.filter(d => !d.lab); }
     def(id) { return SOUND_DEFS.find(d => d.id === id); }
     isActive(id) { return this.active.has(id); }
     activeList() { return [...this.active.entries()].map(([id, a]) => ({ id, volume: a.volume, balance: a.balance, name: this.def(id).name })); }
@@ -207,10 +222,12 @@
       if (this.active.size >= MAX_ACTIVE) { this.emit('limit', MAX_ACTIVE); return false; }
       const ctx = this.ctx;
       const gain = ctx.createGain(); gain.gain.value = 0;
+      const filt = ctx.createBiquadFilter(); filt.type = 'lowpass'; filt.frequency.value = 20000; filt.Q.value = 0.4;
       const pan = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
-      if (pan) { pan.pan.value = balance; gain.connect(pan); pan.connect(this.master); }
-      else gain.connect(this.master);
-      const entry = { gain, pan, nodes: [], timers: [], volume, balance, trim: TRIM[id] || 0.5 };
+      gain.connect(filt);
+      if (pan) { pan.pan.value = balance; filt.connect(pan); pan.connect(this.master); }
+      else filt.connect(this.master);
+      const entry = { gain, filt, pan, nodes: [], timers: [], volume, balance, trim: TRIM[id] || 0.5, cutoff: 20000 };
       this.active.set(id, entry);
       this._build(id, entry, gain);
       const t = ctx.currentTime;
@@ -248,8 +265,42 @@
       e.balance = b;
       if (e.pan) e.pan.pan.setTargetAtTime(b, this.ctx.currentTime, 0.05);
     }
+    // Long, linear volume ramp (journeys / timelines). seconds may be minutes long.
+    rampVolume(id, v, seconds = 1) {
+      const e = this.active.get(id); if (!e) return;
+      e.volume = v; const t = this.ctx.currentTime; const g = e.gain.gain;
+      g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.linearRampToValueAtTime(this._curve(v) * e.trim, t + Math.max(0.05, seconds));
+    }
+    setCutoff(id, hz, tc = 0.2) { const e = this.active.get(id); if (!e) return; e.cutoff = hz; e.filt.frequency.setTargetAtTime(Math.max(120, Math.min(20000, hz)), this.ctx.currentTime, tc); }
+    setMasterTone(hz, tc = 0.3) { if (this.masterFilter) this.masterFilter.frequency.setTargetAtTime(Math.max(300, Math.min(20000, hz)), this.ctx.currentTime, tc); }
+    setMasterPan(p, tc = 0.3) { if (this.masterPan) this.masterPan.pan.setTargetAtTime(Math.max(-1, Math.min(1, p)), this.ctx.currentTime, tc); }
+    setMasterTrim(m, tc = 0.5) { if (this.trim) this.trim.gain.setTargetAtTime(Math.max(0, Math.min(1, m)), this.ctx.currentTime, tc); }
+    resetMasterShape() { this.setMasterTone(20000, 0.3); this.setMasterPan(0, 0.3); this.setMasterTrim(1, 0.3); }
+
+    // Micro-variation: tiny slow random walks on level, brightness and width of every active sound.
+    // amount 0..1 (0 = stable), rate = how often targets change (seconds).
+    setVariation(amount, rate = 6) {
+      this.variation.amount = amount; this.variation.rate = rate;
+      if (this.variation.timer) { clearInterval(this.variation.timer); this.variation.timer = null; }
+      if (!amount) { this.active.forEach((e, id) => { this.setVolume(id, e.volume); this.setBalance(id, e.balance); this.setCutoff(id, e.cutoff, 0.5); }); return; }
+      const tick = () => {
+        if (!this.ctx) return;
+        const t = this.ctx.currentTime; const tc = Math.max(1, rate * 0.6);
+        this.active.forEach((e) => {
+          const a = this.variation.amount;
+          const gTarget = this._curve(e.volume) * e.trim * (1 + (Math.random() * 2 - 1) * 0.22 * a);
+          e.gain.gain.cancelScheduledValues(t); e.gain.gain.setTargetAtTime(Math.max(0, gTarget), t, tc);
+          if (e.pan) e.pan.pan.setTargetAtTime(Math.max(-1, Math.min(1, e.balance + (Math.random() * 2 - 1) * 0.35 * a)), t, tc);
+          const base = Math.min(e.cutoff, 20000); const f = base * Math.pow(2, (Math.random() * 2 - 1) * 1.2 * a);
+          e.filt.frequency.setTargetAtTime(Math.max(400, Math.min(20000, f)), t, tc);
+        });
+      };
+      tick(); this.variation.timer = setInterval(tick, rate * 1000);
+    }
 
     stopAll() {
+      if (this.variation.timer) this.setVariation(0);
+      if (this.ctx) this.resetMasterShape();
       [...this.active.keys()].forEach(id => this.stopSound(id));
       if (this.tone) this.toneStop();
       if (this.matcher) this.matcherStop();
@@ -312,6 +363,7 @@
 
     _build(id, e, out) {
       const ctx = this.ctx, B = this.buffers;
+      const d = this.def(id); if (d && d.lab) return this._buildLab(id, e, out);
       switch (id) {
         case 'white': this._chain(e, [this._src(B.white)], out); break;
         case 'pink': this._chain(e, [this._src(B.pink)], out); break;
@@ -453,15 +505,95 @@
       }
     }
 
+    // ---------- lab sound builders ----------
+    _buildLab(id, e, out) {
+      const ctx = this.ctx, B = this.buffers;
+      switch (id) {
+        case 'thunder': {
+          const g = ctx.createGain(); g.gain.value = 0; g.connect(out); e.nodes.push(g);
+          const rumble = () => {
+            if (!this.active.has(id)) return;
+            const s = this._src(B.brown); const lp = this._filter('lowpass', 90 + Math.random() * 60, 0.9); const gg = ctx.createGain();
+            const t = ctx.currentTime, len = 4 + Math.random() * 5; gg.gain.setValueAtTime(0, t); gg.gain.linearRampToValueAtTime(0.5 + Math.random() * 0.5, t + len * 0.35); gg.gain.linearRampToValueAtTime(0, t + len);
+            s.connect(lp); lp.connect(gg); gg.connect(g); setTimeout(() => { try { s.stop(); s.disconnect(); lp.disconnect(); gg.disconnect(); } catch (_) { } }, len * 1000 + 100);
+            e.timers.push(setTimeout(rumble, 15000 + Math.random() * 45000));
+          };
+          g.gain.setTargetAtTime(1, ctx.currentTime, 0.5); e.timers.push(setTimeout(rumble, 3000 + Math.random() * 8000)); break;
+        }
+        case 'city': {
+          const s = this._src(B.brown); const lp = this._filter('lowpass', 220, 0.7); const g = ctx.createGain(); g.gain.value = 0.7;
+          e.nodes.push(...this._lfo(0.03, 0.2, g.gain, 0.7)); this._chain(e, [s, lp, g], out);
+          const s2 = this._src(B.pink); const bp = this._filter('bandpass', 500, 1.2); const g2 = ctx.createGain(); g2.gain.value = 0.08;
+          e.nodes.push(...this._lfo(0.11, 0.05, g2.gain, 0.08)); this._chain(e, [s2, bp, g2], out);
+          const hum = ctx.createOscillator(); hum.type = 'sine'; hum.frequency.value = 60; const hg = ctx.createGain(); hg.gain.value = 0.04; hum.start(); this._chain(e, [hum, hg], out); break;
+        }
+        case 'cabin': {
+          const s = this._src(B.brown); const lp = this._filter('lowpass', 400, 0.6); const g = ctx.createGain(); g.gain.value = 0.8; this._chain(e, [s, lp, g], out);
+          const s2 = this._src(B.pink); const bp = this._filter('bandpass', 900, 0.6); const g2 = ctx.createGain(); g2.gain.value = 0.25; this._chain(e, [s2, bp, g2], out);
+          const hum = ctx.createOscillator(); hum.type = 'triangle'; hum.frequency.value = 95; const hg = ctx.createGain(); hg.gain.value = 0.05; hum.start();
+          e.nodes.push(...this._lfo(0.4, 0.015, hg.gain, 0.05)); this._chain(e, [hum, hg], out); break;
+        }
+        case 'chimes': {
+          // Fractal-style: a random walk over a pentatonic set, slow attacks, long releases, never the same twice.
+          const g = ctx.createGain(); g.gain.value = 1; g.connect(out); e.nodes.push(g);
+          const scale = [0, 2, 4, 7, 9, 12, 14, 16]; let idx = 3; const base = 220 * Math.pow(2, (Math.random() * 5 | 0) / 12);
+          const note = () => {
+            if (!this.active.has(id)) return;
+            idx = Math.max(0, Math.min(scale.length - 1, idx + (Math.random() < 0.5 ? -1 : 1) * (Math.random() < 0.8 ? 1 : 2)));
+            const f = base * Math.pow(2, scale[idx] / 12) * (Math.random() < 0.3 ? 2 : 1);
+            const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = f; const o2 = ctx.createOscillator(); o2.type = 'sine'; o2.frequency.value = f * 2.01; const g2 = ctx.createGain(); g2.gain.value = 0.15;
+            const env = ctx.createGain(); const t = ctx.currentTime; const a = 0.8 + Math.random() * 1.2, r = 4 + Math.random() * 5;
+            env.gain.setValueAtTime(0, t); env.gain.linearRampToValueAtTime(0.25 + Math.random() * 0.15, t + a); env.gain.exponentialRampToValueAtTime(0.0005, t + a + r);
+            o.connect(env); o2.connect(g2); g2.connect(env); env.connect(g); o.start(t); o2.start(t); o.stop(t + a + r + 0.1); o2.stop(t + a + r + 0.1);
+            e.timers.push(setTimeout(note, 2500 + Math.random() * 6000));
+          };
+          note(); break;
+        }
+        case 'paint': {
+          // 24 log-spaced bands over white noise; gains come from the drawn curve (0..1 each).
+          const curve = this.lab.paint || new Array(24).fill(0.5); const s = this._src(B.white); e.nodes.push(s);
+          const sum = ctx.createGain(); sum.gain.value = 0.35; sum.connect(out); e.nodes.push(sum); e.bands = [];
+          for (let i = 0; i < 24; i++) { const f = 60 * Math.pow(14000 / 60, (i + 0.5) / 24); const bp = this._filter('bandpass', f, 2.2); const g = ctx.createGain(); g.gain.value = Math.pow(curve[i], 1.6) * (0.6 + i / 24); s.connect(bp); bp.connect(g); g.connect(sum); e.nodes.push(bp, g); e.bands.push(g); }
+          break;
+        }
+        case 'sculpt': {
+          const p = this.lab.sculpt; const s = this._src(B.pink);
+          const low = this._filter('lowshelf', 250); const high = this._filter('highshelf', 3500); const lp = this._filter('lowpass', 20000, 0.5); const hp = this._filter('highpass', 40, 0.5);
+          const g = ctx.createGain(); g.gain.value = 1; e.sculpt = { low, high, lp, hp, g, lfo: null };
+          this._chain(e, [s, hp, low, high, lp, g], out); this._applySculpt(e); break;
+        }
+        case 'notched': {
+          const n = this.lab.notch; const s = this._src(B.pink); const q = n.width >= 1 ? 0.7 : n.width >= 0.5 ? 1.4 : 2.8;
+          const a = this._filter('notch', n.freq, q); const b = this._filter('notch', n.freq, q); const c = this._filter('notch', n.freq, q); e.notches = [a, b, c];
+          this._chain(e, [s, a, b, c], out); break;
+        }
+      }
+    }
+    _applySculpt(e) {
+      const p = this.lab.sculpt, t = this.ctx.currentTime, k = e.sculpt; if (!k) return;
+      k.low.gain.setTargetAtTime(p.warm * -1 * 8 + p.deep * 7, t, 0.2);          // warmer = more low shelf (warm is -1..1, negative = warmer)
+      k.high.gain.setTargetAtTime(p.warm * 8 - p.deep * 5, t, 0.2);              // brighter = more high shelf
+      k.lp.frequency.setTargetAtTime(p.soft < 0 ? 20000 * Math.pow(2, p.soft * 2.5) : 20000, t, 0.2);   // softer = lower cutoff
+      k.hp.frequency.setTargetAtTime(p.deep < 0 ? 40 : 40 * Math.pow(2, p.deep * 3), t, 0.2);          // airy = remove lows
+      if (k.lfo) { try { k.lfo[0].stop(); k.lfo[0].disconnect(); k.lfo[1].disconnect(); } catch (_) { } k.lfo = null; }
+      if (p.moving > 0.05) { k.lfo = this._lfo(0.05 + p.moving * 0.12, p.moving * 0.25, k.g.gain, 1); e.nodes.push(...k.lfo); } else k.g.gain.setTargetAtTime(1, t, 0.2);
+      // texture: smooth <0 keeps it steady; textured >0 adds micro-variation handled by setVariation on this sound only
+      if (p.smooth > 0.05) { e._tex = setInterval(() => { if (!this.active.has('sculpt')) return clearInterval(e._tex); k.g.gain.setTargetAtTime(1 + (Math.random() * 2 - 1) * 0.25 * p.smooth, this.ctx.currentTime, 0.6); }, 900); e.timers.push(e._tex); }
+      else if (e._tex) { clearInterval(e._tex); e._tex = null; }
+    }
+    setSculpt(params) { Object.assign(this.lab.sculpt, params); const e = this.active.get('sculpt'); if (e) this._applySculpt(e); }
+    setPaint(curve) { this.lab.paint = curve.slice(); const e = this.active.get('paint'); if (e && e.bands) e.bands.forEach((g, i) => g.gain.setTargetAtTime(Math.pow(curve[i], 1.6) * (0.6 + i / 24), this.ctx.currentTime, 0.15)); }
+    setNotch(freq, width) { Object.assign(this.lab.notch, { freq, width }); const e = this.active.get('notched'); if (e && e.notches) { const q = width >= 1 ? 0.7 : width >= 0.5 ? 1.4 : 2.8; e.notches.forEach(n => { n.frequency.setTargetAtTime(freq, this.ctx.currentTime, 0.1); n.Q.setTargetAtTime(q, this.ctx.currentTime, 0.1); }); } }
+
     // ---------- frequency generator ----------
     async toneStart(opts) {
       await this.init();
       if (this.tone && this.tone.playing) { this.toneUpdate(opts); return; }
       const ctx = this.ctx;
-      const t = { playing: true, freq: opts.freq, type: opts.type || 'sine', volume: opts.volume ?? 0.3, balance: opts.balance ?? 0 };
+      const t = { playing: true, freq: opts.freq, type: opts.type || 'sine', volume: opts.volume ?? 0.3, balance: opts.balance ?? 0, am: opts.am || 0 };
       t.gain = ctx.createGain(); t.gain.gain.value = 0;
       t.pan = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
-      t.out = ctx.createGain(); t.out.gain.value = 0.25; // tones are perceptually loud; trim hard
+      t.out = ctx.createGain(); t.out.gain.value = 0.5; // tones are perceptually loud; trimmed
       t.gain.connect(t.pan || t.out); if (t.pan) t.pan.connect(t.out);
       t.out.connect(this.master);
       this._toneSource(t);
@@ -487,11 +619,20 @@
         o.start(); t.src = o;
       }
       if (t.pan) t.pan.pan.value = t.balance;
+      this._toneAM(t);
+    }
+    _toneAM(t) {
+      if (t.amNodes) { try { t.amNodes[0].stop(); t.amNodes.forEach(n => n.disconnect()); } catch (_) { } t.amNodes = null; t.out.gain.setTargetAtTime(0.5, this.ctx.currentTime, 0.05); }
+      if (!t.am) return;
+      // out gain oscillates between ~0 and 0.25 at the AM rate (full-depth sinusoidal AM, as in the RI studies)
+      const o = this.ctx.createOscillator(); o.type = 'sine'; o.frequency.value = t.am; const g = this.ctx.createGain(); g.gain.value = 0.25;
+      o.connect(g); g.connect(t.out.gain); t.out.gain.setTargetAtTime(0.25, this.ctx.currentTime, 0.05); o.start(); t.amNodes = [o, g];
     }
     toneUpdate(opts) {
       const t = this.tone; if (!t) return;
       const now = this.ctx.currentTime;
       if (opts.type && opts.type !== t.type) { t.type = opts.type; this._toneSource(t); }
+      if (opts.am !== undefined && opts.am !== t.am) { t.am = opts.am; this._toneAM(t); }
       if (opts.freq !== undefined) {
         t.freq = opts.freq;
         if (t.src.frequency) t.src.frequency.setTargetAtTime(opts.freq, now, 0.02);
@@ -506,7 +647,7 @@
       t.playing = false;
       const now = this.ctx.currentTime;
       t.gain.gain.cancelScheduledValues(now); t.gain.gain.setValueAtTime(t.gain.gain.value, now); t.gain.gain.linearRampToValueAtTime(0, now + 0.4);
-      setTimeout(() => { try { t.src.stop(); } catch (_) { } try { t.out.disconnect(); } catch (_) { } }, 450);
+      setTimeout(() => { try { t.src.stop(); } catch (_) { } try { if (t.amNodes) t.amNodes[0].stop(); } catch (_) { } try { t.out.disconnect(); } catch (_) { } }, 450);
       this.tone = null;
       if (!this.isPlaying) this._keepAlive(false);
       this.emit('tone', { playing: false });
