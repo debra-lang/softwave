@@ -83,6 +83,8 @@ p { margin: 0 0 .8em; }
 .nav a { padding: 8px 14px; border-radius: 999px; color: var(--muted); text-decoration: none; font-weight: 600; white-space: nowrap; transition: background .2s, color .2s; }
 .nav a:hover { color: var(--text); background: var(--accent-soft); }
 .nav a.active { color: var(--accent); background: var(--accent-soft); }
+.nav a.nav-lab.active { color: #2f8a5a; background: rgba(111,211,154,.18); }
+:root[data-theme="dark"] .nav a.nav-lab.active { color: #9fe6bd; }
 .topbar-actions { display: flex; gap: 8px; align-items: center; }
 .icon-btn { width: 42px; height: 42px; border-radius: 50%; border: 1px solid var(--border); background: var(--card); color: var(--text); display: grid; place-items: center; cursor: pointer; }
 .icon-btn .moon { display: none; }
@@ -401,9 +403,9 @@ input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.12); }
 
 /* ===================== EXPERIMENTS / THE LAB ===================== */
 .nav-lab { position: relative; }
-.nav-lab::after { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent-2); margin-left: 6px; vertical-align: middle; }
-.lab-view { --lab: #b07cff; --lab-2: #ff9f6e; }
-:root[data-theme="dark"] .lab-view { --lab: #c79cff; --lab-2: #ffb088; }
+.nav-lab::after { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #6fd39a; margin-left: 6px; vertical-align: middle; }
+.lab-view { --lab: #4fb98a; --lab-2: #9fd9b4; }
+:root[data-theme="dark"] .lab-view { --lab: #8fe0b4; --lab-2: #c6f0d6; }
 .lab-eyebrow { display: inline-block; font-size: .78rem; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: var(--lab); border: 1px dashed var(--lab); padding: 5px 12px; border-radius: 999px; margin-bottom: 12px; }
 .lab-view h1 { max-width: 22ch; text-wrap: balance; font-size: clamp(1.6rem, 3.4vw, 2.5rem); }
 .lab-notice { border-left: 4px solid var(--lab); background: color-mix(in srgb, var(--lab) 10%, var(--card-solid)); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; padding: 14px 18px; margin: 0 auto 26px; max-width: 860px; font-size: .95rem; line-height: 1.55; }
@@ -423,8 +425,8 @@ input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.12); }
 .ev-established { background: rgba(76,175,120,.15); color: #2f8a5a; border-color: rgba(76,175,120,.3); }
 .ev-promising { background: rgba(63,108,240,.12); color: var(--accent); }
 .ev-exploratory { background: color-mix(in srgb, var(--lab) 16%, transparent); color: var(--lab); }
-.ev-limited { background: color-mix(in srgb, var(--lab-2) 18%, transparent); color: #c26a3a; }
-:root[data-theme="dark"] .ev-established { color: #7ed6a3; } :root[data-theme="dark"] .ev-limited { color: var(--lab-2); }
+.ev-limited { background: rgba(194,106,58,.14); color: #c26a3a; }
+:root[data-theme="dark"] .ev-established { color: #7ed6a3; } :root[data-theme="dark"] .ev-limited { color: #ffb088; }
 .lab-what { margin: 0; font-size: .95rem; }
 .lab-card.compact .lab-what { color: var(--muted); font-size: .9rem; }
 .lab-dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 0; font-size: .95rem; }
@@ -467,8 +469,8 @@ input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.12); }
 .lab-hist { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
 .lab-hist h3 { font-size: .85rem; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-bottom: 8px; }
 .lab-cat-desc span { display: inline-block; margin-right: 10px; }
-.player-exp { font-size: .8rem; font-weight: 700; color: #b07cff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
-:root[data-theme="dark"] .player-exp { color: #c79cff; }
+.player-exp { font-size: .8rem; font-weight: 700; color: #3a9a68; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
+:root[data-theme="dark"] .player-exp { color: #8fe0b4; }
 .eyes-screen { position: fixed; inset: 0; z-index: 58; background: #000; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 14px; }
 .eyes-screen[hidden] { display: none; }
 .eyes-controls { display: flex; gap: 12px; opacity: 0; transition: opacity .5s; }
