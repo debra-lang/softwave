@@ -68,7 +68,7 @@
   function ensureLab() {
     if (window.softwaveLab) return Promise.resolve();
     if (labPromise) return labPromise;
-    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=28'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
+    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=29'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
     return labPromise;
   }
   window.softwaveEnsureLab = ensureLab;
@@ -267,7 +267,7 @@
     $('#sleep-sounds').textContent = names.join(' · ');
     const fs = $('#focus-setup-sound'); if (fs) fs.textContent = names.length ? names.join(' + ') : 'No sound yet';
     if (!$('#view-lab').hidden) bg.setMode('lab'); else bg.setMode(engine.isActive('rain') ? 'rain' : 'calm');
-    document.title = names.length ? `${names[0]}${names.length > 1 ? ' +' + (names.length - 1) : ''} — Softwave` : 'Softwave — Free Tinnitus Sound Generator & Masking Sounds';
+    document.title = names.length ? `${names[0]}${names.length > 1 ? ' +' + (names.length - 1) : ''} — Find My Quiet Sound` : 'Find My Quiet Sound — Free Tinnitus Sound Generator & Masking Sounds';
   }
   let lastIds = new Set();
   engine.on((type, data) => {

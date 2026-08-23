@@ -1,6 +1,6 @@
 {
-  "name": "Softwave — Tinnitus Sound Studio",
-  "short_name": "Softwave",
+  "name": "Find My Quiet Sound — Tinnitus Sound Studio",
+  "short_name": "Quiet Sound",
   "description": "Find comfortable sounds that make tinnitus less noticeable. Sound masking and relaxation — not a medical treatment.",
   "start_url": "./index.html",
   "scope": "./",

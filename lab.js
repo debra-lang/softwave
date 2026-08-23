@@ -1,4 +1,4 @@
-/* Softwave — The Lab: personal sound discovery
+/* Find My Quiet Sound — The Lab: personal sound discovery
    Ten experiments in four groups (Discover / Explore / Focus / Sessions), a preference profile,
    custom sounds that can be saved and reused anywhere, favourites, feedback and history.
    Everything is stored locally. Nothing here is a treatment; labels say so. */
@@ -14,7 +14,7 @@
   const VISUALS = focus.visuals;
   const DEF = () => engine.constructor.defaultSculpt();
   const SV = window.SoftwaveVisuals;
-  // ===== LAB v3 — the Softwave language, deeper and more interactive =====
+  // ===== LAB v3 — the Find My Quiet Sound language, deeper and more interactive =====
   const SF = () => window.SoftwaveField;
   const TAU = Math.PI * 2;
   const isDark = () => document.documentElement.dataset.theme === 'dark';
@@ -161,7 +161,7 @@
   function renderProfile() {
     const pr = profile(); const el = $('#lab-profile'); if (!el) return;
     let fp = $('.profile-fp', el.parentElement); if (!fp) { fp = document.createElement('div'); fp.className = 'profile-fp'; fp.innerHTML = '<canvas aria-label="Your sound fingerprint — an abstract picture of your preferences"></canvas>'; el.parentElement.insertBefore(fp, el); liveShape($('canvas', fp), () => { const pp = profileParams(); return { p: pp ? Object.assign({}, pp, { nature: profile().nature }) : Object.assign(DEF(), { colour: 0.45, width: 0.5 }), live: false, speed: 0.6, scale: 0.4 }; }); }
-    el.innerHTML = `${pr.rounds ? `<p>You seem to prefer:</p><ul class="bullets">${pr.lines.map(l => `<li>${l}</li>`).join('')}</ul><p class="muted small">Learned from ${pr.rounds} comparison${pr.rounds === 1 ? '' : 's'} in Find My Sound.</p>` : `<p>Nothing learned yet. Run <strong>Help Me Find My Sound</strong> — about ten quick comparisons — and Softwave will summarise what you preferred here.</p>`}
+    el.innerHTML = `${pr.rounds ? `<p>You seem to prefer:</p><ul class="bullets">${pr.lines.map(l => `<li>${l}</li>`).join('')}</ul><p class="muted small">Learned from ${pr.rounds} comparison${pr.rounds === 1 ? '' : 's'} in Find My Sound.</p>` : `<p>Nothing learned yet. Run <strong>Help Me Find My Sound</strong> — about ten quick comparisons — and Find My Quiet Sound will summarise what you preferred here.</p>`}
       <div class="btn-row"><button class="btn btn-primary btn-sm" data-p="play" ${pr.rounds ? '' : 'disabled'}>Play my sound</button><button class="btn btn-secondary btn-sm" data-p="sound" ${pr.rounds ? '' : 'disabled'}>Fine tune</button><button class="btn btn-secondary btn-sm" data-p="visual" ${pr.rounds ? '' : 'disabled'}>Add visual</button><button class="btn btn-secondary btn-sm" data-p="sleep" ${pr.rounds ? '' : 'disabled'}>Build sleep session</button><button class="btn btn-ghost btn-sm" data-p="explore">Try another experiment</button></div>
       <p class="muted small">A sound preference profile — not a hearing profile, not a diagnosis. Built only from your own taps; stored only on this device. <button class="btn btn-ghost btn-sm" data-p="clear">Clear</button></p>`;
     $('[data-p="play"]', el).addEventListener('click', async () => { safeMaster(); await engine.loadMix(soundMix({ params: pr.pp, nature: pr.nature, natureVol: 0.3 })); app.toast('Playing the sound you preferred.'); });

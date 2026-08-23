@@ -1,4 +1,4 @@
-/* Softwave — static page content for the SEO build (build-site.js).
+/* Find My Quiet Sound — static page content for the SEO build (build-site.js).
    Every page here is real, reviewed text; tool pages link into the app, Learn pages cite sources.
    Dates are "last reviewed" dates; update them when content changes. */
 'use strict';
@@ -24,8 +24,8 @@ const SRC = {
 };
 
 // ---------- shared snippets ----------
-const disclaimer = `<p class="disclaimer-line"><strong>Important:</strong> Softwave is designed for sound masking, relaxation and tinnitus management support. It does not diagnose, treat or cure tinnitus and is not a substitute for professional medical care. If your tinnitus is new, in one ear only, pulsing with your heartbeat, or comes with hearing loss or dizziness, see a doctor or audiologist.</p>`;
-const tryBox = (items) => `<aside class="try-box" aria-label="Try it in the app"><h2>Try it now — free, no account</h2><ul>${items.map(i => `<li><a class="btn btn-primary" href="${i.href}">${i.label}</a>${i.note ? `<span>${i.note}</span>` : ''}</li>`).join('')}</ul><p class="muted small">Opens Softwave in this browser. Sound starts only when you tap play, always at a low level.</p></aside>`;
+const disclaimer = `<p class="disclaimer-line"><strong>Important:</strong> Find My Quiet Sound is designed for sound masking, relaxation and tinnitus management support. It does not diagnose, treat or cure tinnitus and is not a substitute for professional medical care. If your tinnitus is new, in one ear only, pulsing with your heartbeat, or comes with hearing loss or dizziness, see a doctor or audiologist.</p>`;
+const tryBox = (items) => `<aside class="try-box" aria-label="Try it in the app"><h2>Try it now — free, no account</h2><ul>${items.map(i => `<li><a class="btn btn-primary" href="${i.href}">${i.label}</a>${i.note ? `<span>${i.note}</span>` : ''}</li>`).join('')}</ul><p class="muted small">Opens Find My Quiet Sound in this browser. Sound starts only when you tap play, always at a low level.</p></aside>`;
 
 // ---------- pages ----------
 const PAGES = [];
@@ -33,10 +33,10 @@ const PAGES = [];
 // ===== TOOL LANDING PAGES =====
 PAGES.push({
   path: 'tinnitus-sound-generator/', type: 'tool',
-  title: 'Free Tinnitus Sound Generator (Noise, Rain, Ocean) | Softwave',
+  title: 'Free Tinnitus Sound Generator (Noise, Rain, Ocean) | Find My Quiet Sound',
   description: 'Free online tinnitus sound generator: white, pink and brown noise, rain, ocean, fan and more. Layer up to five sounds and find a comfortable level. No account.',
   h1: 'Tinnitus sound generator',
-  intro: 'Softwave is a free tinnitus sound generator that runs in your browser. It plays steady, seamless sounds — broadband noise and natural ambience — that can make ringing, buzzing or hissing in the ears less noticeable while you work, rest or sleep.',
+  intro: 'Find My Quiet Sound is a free tinnitus sound generator that runs in your browser. It plays steady, seamless sounds — broadband noise and natural ambience — that can make ringing, buzzing or hissing in the ears less noticeable while you work, rest or sleep.',
   try: [{ href: '/', label: 'Open the sound generator' }, { href: '/?sound=brown', label: 'Try brown noise' }, { href: '/?sound=rain', label: 'Try rain' }],
   body: `
 <h2>What the generator includes</h2>
@@ -57,13 +57,13 @@ PAGES.push({
 <h2>Who it is for</h2>
 <p>People with tinnitus who want an easy, free way to add a comfortable background sound — at a desk, at night, or in a quiet room where the ringing feels loudest. It works with speakers, headphones or a pillow speaker, on phones, tablets and computers. It is not for diagnosing tinnitus, and it does not make tinnitus go away.</p>
 <h2>Why the sounds are generated, not recorded</h2>
-<p>Recorded loops have a seam the brain learns to expect. Softwave synthesises every sound in real time with the Web Audio API, so noise never repeats and nature scenes drift slowly — which many people find easier to tune out over long sessions. Everything runs on your device; nothing is uploaded.</p>
+<p>Recorded loops have a seam the brain learns to expect. Find My Quiet Sound synthesises every sound in real time with the Web Audio API, so noise never repeats and nature scenes drift slowly — which many people find easier to tune out over long sessions. Everything runs on your device; nothing is uploaded.</p>
 <h2>Frequently asked questions</h2>
 <div class="faq">
 <h3>Is this a treatment for tinnitus?</h3><p>No. Sound generators are a management tool. Clinical guidelines say sound therapy may be offered for bothersome tinnitus as a way to make it less noticeable and to support relaxation and sleep, alongside education and, where needed, counselling or hearing aids.</p>
 <h3>Which sound is best for tinnitus?</h3><p>Studies comparing noise colours and nature sounds have not found one clear winner; comfort and preference matter more. Start with pink or brown noise if you find white noise too sharp, and add rain or ocean if pure noise feels clinical.</p>
 <h3>How loud should it be?</h3><p>As low as still helps. The sound should blend with the tinnitus, not overpower it. Prolonged loud listening — especially on headphones — can harm hearing.</p>
-<h3>Does it work offline?</h3><p>Yes. Once opened, Softwave can be installed to your home screen and runs without a connection.</p>
+<h3>Does it work offline?</h3><p>Yes. Once opened, Find My Quiet Sound can be installed to your home screen and runs without a connection.</p>
 </div>`,
   faq: true,
   sources: ['nidcd', 'ata', 'aao', 'cochrane', 'bbn'],
@@ -71,7 +71,7 @@ PAGES.push({
 
 PAGES.push({
   path: 'tinnitus-masking-sounds/', type: 'tool',
-  title: 'Tinnitus Masking Sounds for Ringing in the Ears | Softwave',
+  title: 'Tinnitus Masking Sounds for Ringing in the Ears | Find My Quiet Sound',
   description: 'Masking sounds that blend with ringing, buzzing or hissing in the ears: which sounds, how loud to set them, and free players to try.',
   h1: 'Tinnitus masking sounds',
   intro: 'Masking means adding an external sound so that the ringing or hissing in your ears is partly covered and easier to ignore. These are the sounds people most often use for it — and how to set them so they help without being loud.',
@@ -80,7 +80,7 @@ PAGES.push({
 <h2>Which sounds mask ringing in the ears?</h2>
 <p>Ringing is usually high-pitched, so sounds with energy across the higher frequencies tend to blend with it best: <a href="/white-noise-for-tinnitus/">white noise</a>, a soft hiss, <a href="/pink-noise-for-tinnitus/">pink noise</a>, steady rain and waterfall. Lower, deeper tinnitus (humming, buzzing) often pairs better with <a href="/brown-noise-for-tinnitus/">brown noise</a>, ocean waves, wind or a fan. The <a href="/tinnitus-sound-matching/">sound matching</a> tool can suggest a starting point from the rough pitch of your tinnitus.</p>
 <h2>Partial masking is usually the goal</h2>
-<p>Tinnitus retraining therapy uses the idea of a <em>mixing point</em>: the level at which the sound just starts to blend with the tinnitus without hiding it completely. In one study, setting sound at the mixing point worked as well as full masking — and it avoids loud listening. Softwave starts every sound quietly and fades it in for that reason.</p>
+<p>Tinnitus retraining therapy uses the idea of a <em>mixing point</em>: the level at which the sound just starts to blend with the tinnitus without hiding it completely. In one study, setting sound at the mixing point worked as well as full masking — and it avoids loud listening. Find My Quiet Sound starts every sound quietly and fades it in for that reason.</p>
 <h2>A simple routine</h2>
 <ol><li>Pick one sound and play it at a low level.</li><li>Raise it slowly until the tinnitus feels blended, not gone.</li><li>Leave it there. If it still bothers you after a few minutes, try another sound instead of turning up.</li></ol>
 <h2>Masking is not the only option</h2>
@@ -96,7 +96,7 @@ const COLOUR_PAGES = [
 for (const c of COLOUR_PAGES) {
   PAGES.push({
     path: c.slug + '/', type: 'tool',
-    title: `${c.name} for Tinnitus: When It Helps & Free Player | Softwave`,
+    title: `${c.name} for Tinnitus: When It Helps & Free Player | Find My Quiet Sound`,
     description: `${c.name} for tinnitus: what it sounds like, who it tends to suit, how loud to set it, and a free seamless player.`,
     h1: `${c.name} for tinnitus`,
     intro: `${c.name} has ${c.desc}. It is one of the most-used sounds for making tinnitus less noticeable, and it is often best for ${c.best}.`,
@@ -113,24 +113,24 @@ for (const c of COLOUR_PAGES) {
 <h2>At night</h2>
 <p>${c.name} is a common bedtime choice because it is steady and has no events to wake you. Use the <a href="/tinnitus-sleep-sounds/">sleep timer</a> with a gradual fade, or leave it on all night at a very low level.</p>
 <h2>About the player</h2>
-<p>Softwave generates ${c.name.toLowerCase()} live with the Web Audio API, so there is no loop seam and no file to download. The level starts low, fades in over about a second, and never jumps.</p>`,
+<p>Find My Quiet Sound generates ${c.name.toLowerCase()} live with the Web Audio API, so there is no loop seam and no file to download. The level starts low, fades in over about a second, and never jumps.</p>`,
     sources: ['bbn', 'cochrane', 'nidcd', 'who'],
   });
 }
 
 PAGES.push({
   path: 'tinnitus-frequency-generator/', type: 'tool',
-  title: 'Tinnitus Frequency Generator (20 Hz – 16 kHz) | Softwave',
+  title: 'Tinnitus Frequency Generator (20 Hz – 16 kHz) | Find My Quiet Sound',
   description: 'Free tinnitus frequency generator: a continuous tone adjustable by 1 Hz, pure tone or narrow noise, balance and a low default level. For careful exploration.',
   h1: 'Tinnitus frequency generator',
   intro: 'A tone generator built for tinnitus: a continuous tone from 20 Hz to 16,000 Hz with coarse, fine and 1 Hz steps, a choice of pure tone, soft tone or narrow noise band, left/right balance, and a volume that starts low.',
   try: [{ href: '/#frequency', label: 'Open the frequency generator' }, { href: '/#match', label: 'Guided: Find My Tinnitus Sound' }],
   body: `
 <h2>What a frequency generator is for</h2>
-<p>Many people with tonal tinnitus want to know roughly what pitch they hear. A frequency generator lets you sweep a tone up and down until it sounds similar. That rough pitch is useful in two ways: it helps choose masking sounds with energy in the same region, and it lets you try the <a href="/learn/tinnitus-frequency-matching/">frequency-centred experiments</a> in Softwave. It is not a hearing test and it does not change the tinnitus itself.</p>
+<p>Many people with tonal tinnitus want to know roughly what pitch they hear. A frequency generator lets you sweep a tone up and down until it sounds similar. That rough pitch is useful in two ways: it helps choose masking sounds with energy in the same region, and it lets you try the <a href="/learn/tinnitus-frequency-matching/">frequency-centred experiments</a> in Find My Quiet Sound. It is not a hearing test and it does not change the tinnitus itself.</p>
 <h2>How to use it safely</h2>
 <ol>
-<li>Tones feel louder than noise at the same setting, so Softwave caps the tone level lower than other sounds and fades it in. Keep it at the lowest comfortable level.</li>
+<li>Tones feel louder than noise at the same setting, so Find My Quiet Sound caps the tone level lower than other sounds and fades it in. Keep it at the lowest comfortable level.</li>
 <li>Sweep slowly with the slider, then refine with +/−10 Hz and +/−1 Hz.</li>
 <li>Check one octave up and down. Pitch matching often lands an octave off; compare the tone with double and half its frequency before you settle.</li>
 <li>Stop if anything feels uncomfortable. A few minutes is plenty.</li>
@@ -144,7 +144,7 @@ PAGES.push({
 
 PAGES.push({
   path: 'tinnitus-sound-matching/', type: 'tool',
-  title: 'Tinnitus Sound Matching: Find a Tone Like Yours | Softwave',
+  title: 'Tinnitus Sound Matching: Find a Tone Like Yours | Find My Quiet Sound',
   description: 'A guided tool to find a tone that resembles your tinnitus — pitch, type, ear and level — then get masking sounds to try. Experimental, not a diagnosis.',
   h1: 'Tinnitus sound matching',
   intro: 'Find My Tinnitus Sound walks you through choosing an ear, a sound type (ringing, whistling, hissing, humming) and a pitch at a low level, then suggests masking sounds to try around that region. It is an experimental personalisation feature, not a hearing test.',
@@ -161,7 +161,7 @@ PAGES.push({
 
 PAGES.push({
   path: 'tinnitus-sound-mixer/', type: 'tool',
-  title: 'Tinnitus Sound Mixer: Layer Up to Five Sounds | Softwave',
+  title: 'Tinnitus Sound Mixer: Layer Up to Five Sounds | Find My Quiet Sound',
   description: 'Mix up to five tinnitus sounds — rain, brown noise, ocean — each with its own level and left/right balance. Save custom mixes locally. Free.',
   h1: 'Tinnitus sound mixer',
   intro: 'Layer up to five sounds, set each one’s level and balance, and save the combinations you like. A mix of a steady noise bed with one or two natural textures is the most common way people build a background that is easy to forget.',
@@ -184,10 +184,10 @@ PAGES.push({
 
 PAGES.push({
   path: 'tinnitus-sleep-sounds/', type: 'tool',
-  title: 'Sleep Sounds for Tinnitus with Timer & Fade-Out | Softwave',
+  title: 'Sleep Sounds for Tinnitus with Timer & Fade-Out | Find My Quiet Sound',
   description: 'Tinnitus sounds for sleeping: brown noise and rain, a 15–90 minute timer, slow fade-out and a dark sleep screen. How to use sound when ringing feels loudest.',
   h1: 'Sleep sounds for tinnitus',
-  intro: 'Tinnitus often feels loudest in a quiet bedroom. A soft, steady sound gives the brain something else to rest on. Softwave’s Sleep Mode adds a timer, a gradual fade-out, and a dark screen with only three controls.',
+  intro: 'Tinnitus often feels loudest in a quiet bedroom. A soft, steady sound gives the brain something else to rest on. Find My Quiet Sound’s Sleep Mode adds a timer, a gradual fade-out, and a dark screen with only three controls.',
   try: [{ href: '/#sleep', label: 'Open Sleep Mode' }, { href: '/?preset=sleep', label: 'Sleep preset: brown noise + rain' }, { href: '/?exp=journey', label: 'Lab: Adaptive Sound Journey with sleep fade' }],
   body: `
 <h2>Why tinnitus seems worse at night</h2>
@@ -214,7 +214,7 @@ learn({
 <h2>The short answer</h2>
 <p>Masking adds sound so the tinnitus signal has competition. Your auditory system is always comparing what it hears against the background; in silence, tinnitus is the only thing there. Add a steady sound and the ringing becomes one sound among several — less prominent, easier to tune out.</p>
 <h2>Partial versus total masking</h2>
-<p><strong>Total masking</strong> sets the sound loud enough that you cannot hear the tinnitus at all. <strong>Partial masking</strong> sets it where the two blend — the "mixing point" in tinnitus retraining therapy. A study comparing the two found them equally effective, and partial masking avoids loud listening and is thought to support habituation (the brain learning to treat the tinnitus as unimportant). Most guidance, and Softwave’s defaults, favour partial masking.</p>
+<p><strong>Total masking</strong> sets the sound loud enough that you cannot hear the tinnitus at all. <strong>Partial masking</strong> sets it where the two blend — the "mixing point" in tinnitus retraining therapy. A study comparing the two found them equally effective, and partial masking avoids loud listening and is thought to support habituation (the brain learning to treat the tinnitus as unimportant). Most guidance, and Find My Quiet Sound’s defaults, favour partial masking.</p>
 <h2>What the evidence says</h2>
 <p>A Cochrane review of sound therapy (2018) found the research too limited to say that sound alone reduces tinnitus severity more than other care, but also found no harm, and noted that sound is widely used and valued by patients. The AAO-HNSF guideline says clinicians <em>may</em> offer sound therapy to patients with persistent, bothersome tinnitus. In other words: a reasonable, low-risk tool for comfort, not an established treatment.</p>
 <h2>Which sounds?</h2>
@@ -231,19 +231,19 @@ learn({
   title: 'How Tinnitus Sound Generators Work (Devices, Apps and Web Tools)',
   description: 'How tinnitus sound generators work: wearable maskers, bedside machines, apps and browser tools; how noise is made; why looping and low levels matter.',
   h1: 'How tinnitus sound generators work',
-  intro: 'A tinnitus sound generator is any device or app that produces a steady, pleasant sound to make tinnitus less noticeable. They range from tiny in-ear maskers fitted by an audiologist to bedside machines, phone apps and web tools like Softwave.',
+  intro: 'A tinnitus sound generator is any device or app that produces a steady, pleasant sound to make tinnitus less noticeable. They range from tiny in-ear maskers fitted by an audiologist to bedside machines, phone apps and web tools like Find My Quiet Sound.',
   body: `
 <h2>Types of sound generator</h2>
-<ul><li><strong>Wearable ear-level generators</strong> — small devices (often combined with hearing aids) that play soft noise all day; fitted and set by a hearing professional.</li><li><strong>Tabletop / bedside machines</strong> — loop recordings or synthesise noise; used for sleep.</li><li><strong>Phone apps</strong> — libraries of recordings, often with mixing and timers.</li><li><strong>Browser tools</strong> — run in a web page with no install; Softwave is one of these.</li></ul>
+<ul><li><strong>Wearable ear-level generators</strong> — small devices (often combined with hearing aids) that play soft noise all day; fitted and set by a hearing professional.</li><li><strong>Tabletop / bedside machines</strong> — loop recordings or synthesise noise; used for sleep.</li><li><strong>Phone apps</strong> — libraries of recordings, often with mixing and timers.</li><li><strong>Browser tools</strong> — run in a web page with no install; Find My Quiet Sound is one of these.</li></ul>
 <h2>How the sound is made</h2>
-<p>White noise is random samples with equal energy at every frequency. Pink and brown noise are white noise filtered so that energy falls with frequency (−3 dB and −6 dB per octave). Nature sounds are either recordings or, in Softwave, layers of filtered noise with slow modulation and small random events (droplets, crackles, gusts) so they never repeat exactly.</p>
+<p>White noise is random samples with equal energy at every frequency. Pink and brown noise are white noise filtered so that energy falls with frequency (−3 dB and −6 dB per octave). Nature sounds are either recordings or, in Find My Quiet Sound, layers of filtered noise with slow modulation and small random events (droplets, crackles, gusts) so they never repeat exactly.</p>
 <h2>Why seamless looping matters</h2>
 <p>A loop with an audible seam gives the brain a landmark to anticipate, which pulls attention back to the sound — and to the tinnitus. Generated sound has no seam. If you use recordings, choose long ones with cross-faded ends.</p>
 <h2>Why level control matters more than the sound</h2>
 <p>The most useful features are the ones that keep you at a low, comfortable level: a quiet default, smooth fade-ins, fine volume steps, a timer with a gradual fade, and a limiter so layering sounds never produces a spike. Headphone use should follow safe-listening guidance (the WHO suggests keeping personal audio around 80 dB or less for no more than 40 hours a week).</p>
 <h2>What to look for</h2>
 <ul><li>Sounds you actually like — you will use them longer.</li><li>Mixing and balance.</li><li>Sleep timer with fade.</li><li>Works offline, no account, no tracking of your hearing.</li><li>Honest wording: no promises of cures.</li></ul>
-<p>Try the <a href="/tinnitus-sound-generator/">Softwave sound generator</a>.</p>`,
+<p>Try the <a href="/tinnitus-sound-generator/">Find My Quiet Sound sound generator</a>.</p>`,
   sources: ['nidcd', 'ata', 'who', 'harvard'],
 });
 
@@ -326,7 +326,7 @@ learn({
 <h2>Why it is often high</h2>
 <p>Tinnitus frequently accompanies high-frequency hearing loss, and the matched pitch often falls in or near the region of loss. That is one reason a hearing evaluation is the standard first step when tinnitus is persistent: it puts the pitch in context.</p>
 <h2>Octave confusion</h2>
-<p>A tone and the tone an octave higher (double the frequency) sound similar in character. People matching their own tinnitus frequently choose the wrong octave; clinic procedures include an "octave check" for this reason, and Softwave’s Find My Tinnitus Sound does too.</p>
+<p>A tone and the tone an octave higher (double the frequency) sound similar in character. People matching their own tinnitus frequently choose the wrong octave; clinic procedures include an "octave check" for this reason, and Find My Quiet Sound’s Find My Tinnitus Sound does too.</p>
 <h2>Noise-like tinnitus</h2>
 <p>If your tinnitus is a hiss rather than a ring, a pure tone will never feel right. Narrow bands of noise are used instead, and the matched region is wider.</p>
 <h2>What you can do with it</h2>
@@ -347,12 +347,12 @@ learn({
 <h2>What people do with the matched frequency</h2>
 <ul>
 <li><strong>Choose masking sounds</strong> with energy near the region — the simplest, safest use.</li>
-<li><strong>Notched sound</strong> — broadband noise or music with a gap around the pitch. Trials of "tailor-made notched music" are mixed: one large randomised trial found no advantage over placebo on its main outcome, a later one found it comparable to an established therapy. Notch width did not matter. Softwave does not offer a notched mode for this reason, though you can paint a dip yourself in Frequency Painting.</li>
-<li><strong>Residual inhibition</strong> — a temporary quieting of tinnitus after a sound stops. Well documented, short-lived, and more likely with sounds near the tinnitus pitch; small studies found amplitude-modulated tones produced more of it than plain noise. Softwave does not sell this as a feature.</li>
+<li><strong>Notched sound</strong> — broadband noise or music with a gap around the pitch. Trials of "tailor-made notched music" are mixed: one large randomised trial found no advantage over placebo on its main outcome, a later one found it comparable to an established therapy. Notch width did not matter. Find My Quiet Sound does not offer a notched mode for this reason, though you can paint a dip yourself in Frequency Painting.</li>
+<li><strong>Residual inhibition</strong> — a temporary quieting of tinnitus after a sound stops. Well documented, short-lived, and more likely with sounds near the tinnitus pitch; small studies found amplitude-modulated tones produced more of it than plain noise. Find My Quiet Sound does not sell this as a feature.</li>
 <li><strong>"Neuromodulation" tone patterns</strong> sold by some apps — a controlled trial was inconclusive.</li>
 </ul>
 <h2>What matching cannot do</h2>
-<p>It does not identify the cause of tinnitus, does not replace a hearing test, and does not by itself change the tinnitus. Softwave keeps tone levels low and labels the tool as exploratory.</p>
+<p>It does not identify the cause of tinnitus, does not replace a hearing test, and does not by itself change the tinnitus. Find My Quiet Sound keeps tone levels low and labels the tool as exploratory.</p>
 <p>Try <a href="/tinnitus-sound-matching/">Find My Tinnitus Sound</a>.</p>`,
   sources: ['pitch', 'ipod', 'tmnmt', 'ri', 'aao'],
 });
@@ -384,7 +384,7 @@ learn({
   intro: 'Start low and raise it only until the sound feels comfortable and useful; you do not need to cover the tinnitus. In tinnitus retraining therapy this blend level is called the "mixing point", and in one direct comparison it worked as well as total masking — at a far lower level.',
   body: `
 <h2>The mixing point</h2>
-<p>Raise the sound slowly from silence. The moment it begins to blend with the tinnitus — without hiding it and without being annoying — is the mixing point. Stop there. Softwave starts every sound quietly and fades it in so you can stop at that point.</p>
+<p>Raise the sound slowly from silence. The moment it begins to blend with the tinnitus — without hiding it and without being annoying — is the mixing point. Stop there. Find My Quiet Sound starts every sound quietly and fades it in so you can stop at that point.</p>
 <h2>Why not just cover it?</h2>
 <p>Total masking is louder, more tiring, and is thought to get in the way of habituation, the process by which the brain stops treating tinnitus as important. A study found mixing-point and total-masking settings equally effective, so the quieter one wins on every other count.</p>
 <h2>Safe-listening limits</h2>
@@ -417,10 +417,10 @@ learn({
 // ===== TRUST PAGES =====
 const trust = (o) => PAGES.push(Object.assign({ type: 'trust' }, o));
 trust({
-  path: 'about/', title: 'About Softwave', description: 'Softwave is a free, privacy-first tinnitus sound studio: masking sounds, a mixer, frequency tools, sleep mode and calm visuals. Independent, no account.',
-  h1: 'About Softwave',
+  path: 'about/', title: 'About Find My Quiet Sound', description: 'Find My Quiet Sound is a free, privacy-first tinnitus sound studio: masking sounds, a mixer, frequency tools, sleep mode and calm visuals. Independent, no account.',
+  h1: 'About Find My Quiet Sound',
   body: `
-<p>Softwave is a free web app for people with tinnitus who want comfortable background sound. It is built around one idea: <strong>everyone experiences tinnitus differently, so everyone’s comfortable sound is different too.</strong> Softwave makes trying, comparing and shaping sounds easy, keeps every level low, and helps you keep what you find.</p>
+<p>Find My Quiet Sound is a free web app for people with tinnitus who want comfortable background sound. It is built around one idea: <strong>everyone experiences tinnitus differently, so everyone’s comfortable sound is different too.</strong> Find My Quiet Sound makes trying, comparing and shaping sounds easy, keeps every level low, and helps you keep what you find.</p>
 <h2>What it is</h2>
 <ul><li>A <a href="/tinnitus-sound-generator/">sound generator</a> with fourteen synthesised sounds that loop seamlessly.</li><li>A <a href="/tinnitus-sound-mixer/">mixer</a>, a <a href="/tinnitus-frequency-generator/">frequency generator</a>, a guided <a href="/tinnitus-sound-matching/">sound-matching</a> tool and <a href="/tinnitus-sleep-sounds/">Sleep Mode</a>.</li><li>Visual Focus — calm visuals to watch while listening.</li><li>The Lab — personal sound discovery: compare sounds two at a time, paint or sculpt your own, and build sessions; each experiment carries a plain-English "why are we testing this?" note and an evidence label.</li></ul>
 <h2>What it is not</h2>
@@ -428,13 +428,13 @@ trust({
 <h2>How it is made</h2>
 <p>Everything is generated on your device with the Web Audio API and HTML Canvas. There are no audio files to download and no server; your favourites and settings stay in your browser. The source is open at <a href="https://github.com/debra-lang/softwave" rel="noopener">github.com/debra-lang/softwave</a>.</p>
 <h2>Independence</h2>
-<p>Softwave does not sell hearing aids, supplements, courses or "neuromodulation" programmes, and it has no affiliate links. Guidance on this site is written from the sources listed on <a href="/research-and-sources/">Research &amp; Sources</a>; where evidence is limited, the page says so.</p>
+<p>Find My Quiet Sound does not sell hearing aids, supplements, courses or "neuromodulation" programmes, and it has no affiliate links. Guidance on this site is written from the sources listed on <a href="/research-and-sources/">Research &amp; Sources</a>; where evidence is limited, the page says so.</p>
 <p><a href="/contact/">Contact</a> · <a href="/privacy/">Privacy</a> · <a href="/safe-listening/">Safe listening</a></p>`,
 });
 trust({
-  path: 'how-it-works/', title: 'How Softwave Works — Sounds, Mixing, Frequency Tools and Safety',
-  description: 'How Softwave generates tinnitus sounds in the browser, how mixing and the frequency tools work, and the safety rules every feature follows.',
-  h1: 'How Softwave works',
+  path: 'how-it-works/', title: 'How Find My Quiet Sound Works — Sounds, Mixing, Frequency Tools and Safety',
+  description: 'How Find My Quiet Sound generates tinnitus sounds in the browser, how mixing and the frequency tools work, and the safety rules every feature follows.',
+  h1: 'How Find My Quiet Sound works',
   body: `
 <h2>Sound generation</h2>
 <p>White noise is random samples; pink and brown noise are white noise passed through filters so that energy falls with frequency. Loops are generated with a pre-roll cross-fade so the last sample flows into the first — no click, no gap. Nature sounds are layers of filtered noise with slow modulation and small random events (rain droplets, fire crackles, bird calls, crickets), so they never repeat exactly.</p>
@@ -450,17 +450,17 @@ trust({
 <p>No account, no server, no analytics that can identify you. Settings, favourites and experiment feedback live in your browser’s local storage. See <a href="/privacy/">Privacy</a>.</p>`,
 });
 trust({
-  path: 'research-and-sources/', title: 'Research & Sources Behind Softwave',
-  description: 'The guidelines, reviews and studies that inform Softwave’s guidance and experiments, with evidence levels and what each source does and does not support.',
+  path: 'research-and-sources/', title: 'Research & Sources Behind Find My Quiet Sound',
+  description: 'The guidelines, reviews and studies that inform Find My Quiet Sound’s guidance and experiments, with evidence levels and what each source does and does not support.',
   h1: 'Research &amp; sources',
   body: `
-<p>Softwave’s guidance is written from the sources below. The app does not claim to treat tinnitus; each experiment shows its own evidence level. Last reviewed ${REVIEWED}.</p>
+<p>Find My Quiet Sound’s guidance is written from the sources below. The app does not claim to treat tinnitus; each experiment shows its own evidence level. Last reviewed ${REVIEWED}.</p>
 <h2>In plain English</h2>
 <ul>
 <li><strong>What sound masking is.</strong> Adding a steady, pleasant external sound so that tinnitus is partly covered and easier to ignore. It manages the experience; it does not change the tinnitus itself.</li>
 <li><strong>What is reasonably established.</strong> Tinnitus is common and usually linked to the hearing system; a hearing evaluation is the standard first step. Sound at a low level is widely used, low-risk, and valued by many people; clinical guidelines say it <em>may</em> be offered for bothersome tinnitus. Counselling approaches such as CBT have the best evidence for reducing distress. Slow breathing is well supported for relaxation.</li>
 <li><strong>What is still uncertain.</strong> Whether any particular sound (white, pink, brown, nature) is better than another; whether sound alone reduces tinnitus severity over the long term; notched sound, pulsed tones and "neuromodulation" patterns (mixed or inconclusive trials); and everything we label experimental here.</li>
-<li><strong>Why individual preference matters.</strong> In the studies that compared sounds, responses varied widely between people and preference predicted whether someone kept using a sound. That is why Softwave is built around discovery and comparison rather than one recommended sound.</li>
+<li><strong>Why individual preference matters.</strong> In the studies that compared sounds, responses varied widely between people and preference predicted whether someone kept using a sound. That is why Find My Quiet Sound is built around discovery and comparison rather than one recommended sound.</li>
 <li><strong>Why experiments are labelled experimental.</strong> When the evidence for an idea is limited, mixed, or borrowed from another field, the label says so, and the experiment asks only how it felt to you. That feedback stays on your device.</li>
 </ul>
 <h2>Guidelines and organisations</h2>
@@ -477,11 +477,11 @@ trust({
 });
 trust({
   path: 'safe-listening/', title: 'Safe Listening with Tinnitus Sounds',
-  description: 'Safe listening with tinnitus sounds: the lowest helpful level, WHO headphone limits, breaks, speakers at night, and how Softwave’s defaults protect hearing.',
+  description: 'Safe listening with tinnitus sounds: the lowest helpful level, WHO headphone limits, breaks, speakers at night, and how Find My Quiet Sound’s defaults protect hearing.',
   h1: 'Safe listening',
   body: `
 <ul>
-<li><strong>Start low.</strong> Use the lowest comfortable listening level that gives you the experience you want. You do not need to completely cover your tinnitus. Louder is not necessarily better. Softwave starts every sound low and fades it in.</li>
+<li><strong>Start low.</strong> Use the lowest comfortable listening level that gives you the experience you want. You do not need to completely cover your tinnitus. Louder is not necessarily better. Find My Quiet Sound starts every sound low and fades it in.</li>
 <li><strong>Take breaks.</strong> Pause during longer listening sessions, and stop if the sound causes discomfort or makes your tinnitus feel worse.</li>
 <li><strong>Headphone time.</strong> The WHO-ITU safe-listening standard suggests personal audio around 80 dB or less for no more than 40 hours a week (75 dB for children). A device’s volume percentage does not reliably correspond to decibels, so the practical rule stays the lowest comfortable level.</li>
 <li><strong>Speakers are fine</strong> — often better for all-night use.</li>
@@ -493,20 +493,20 @@ ${disclaimer}`,
   sources: ['who', 'nidcd', 'ata'],
 });
 trust({
-  path: 'medical-disclaimer/', title: 'Medical Disclaimer — Softwave',
-  description: 'Softwave is a sound-masking and relaxation tool, not a medical device. It does not diagnose, treat or cure tinnitus. When to see a professional.',
+  path: 'medical-disclaimer/', title: 'Medical Disclaimer — Find My Quiet Sound',
+  description: 'Find My Quiet Sound is a sound-masking and relaxation tool, not a medical device. It does not diagnose, treat or cure tinnitus. When to see a professional.',
   h1: 'Medical disclaimer',
   body: `
 <p>This app is designed for sound masking, relaxation, and tinnitus management support. It does not diagnose, treat, or cure tinnitus and is not a substitute for professional medical care.</p>
 <p>Nothing on this site is medical advice. Experimental features are exploratory tools for relaxation, attention, sound personalisation and tinnitus management support; they are not proven treatments and may not work for everyone. The frequency and matching tools are not hearing tests.</p>
 <h2>When to talk to a professional</h2>
 <p>See a doctor, audiologist or ENT specialist if your tinnitus is new or changed suddenly; is persistent (around six months or more) or distressing; is in one ear only; comes with hearing difficulty, fullness or dizziness; pulses with your heartbeat; started after an injury; or is affecting sleep, mood or concentration. A hearing evaluation is the usual first step.</p>
-<p>Softwave has no medical staff and makes no claims of clinical review. Sources used for guidance are listed on <a href="/research-and-sources/">Research &amp; Sources</a>.</p>`,
+<p>Find My Quiet Sound has no medical staff and makes no claims of clinical review. Sources used for guidance are listed on <a href="/research-and-sources/">Research &amp; Sources</a>.</p>`,
   sources: ['aao', 'nidcd'],
 });
 trust({
-  path: 'privacy/', title: 'Privacy — Softwave',
-  description: 'Softwave works without an account and does not collect hearing or health data. What is stored in your browser, what is not collected, and how to clear it.',
+  path: 'privacy/', title: 'Privacy — Find My Quiet Sound',
+  description: 'Find My Quiet Sound works without an account and does not collect hearing or health data. What is stored in your browser, what is not collected, and how to clear it.',
   h1: 'Privacy',
   body: `
 <h2>What we store</h2>
@@ -519,34 +519,34 @@ trust({
 <p>None at present. If privacy-respecting, cookie-free page statistics are added in future (counts of visits and which tools are used — never health information), this page will say so.</p>`,
 });
 trust({
-  path: 'contact/', title: 'Contact — Softwave',
-  description: 'How to report a problem, suggest a sound or experiment, or ask about Softwave.',
+  path: 'contact/', title: 'Contact — Find My Quiet Sound',
+  description: 'How to report a problem, suggest a sound or experiment, or ask about Find My Quiet Sound.',
   h1: 'Contact',
   body: `
-<p>Softwave is an independent project. The best place for bug reports and suggestions is the open-source repository:</p>
+<p>Find My Quiet Sound is an independent project. The best place for bug reports and suggestions is the open-source repository:</p>
 <p><a class="btn btn-primary" href="https://github.com/debra-lang/softwave/issues" rel="noopener">Open an issue on GitHub</a></p>
 <p>Please do not include personal health information in public issues. For medical questions, talk to a doctor or audiologist — see <a href="/medical-disclaimer/">when to talk to a professional</a>.</p>`,
 });
 
 trust({
-  path: 'premium/', title: 'Softwave Premium — Personal Find My Sound',
-  description: 'What stays free in Softwave and what Softwave Premium will include: Find My Sound, your sound profile, Frequency Painting, Sound Sculptor, generative sound, Sound Space and journeys. Free during the beta.',
+  path: 'premium/', title: 'Find My Quiet Sound Premium — Personal Find My Sound',
+  description: 'What stays free in Find My Quiet Sound and what Find My Quiet Sound Premium will include: Find My Sound, your sound profile, Frequency Painting, Sound Sculptor, generative sound, Sound Space and journeys. Free during the beta.',
   h1: 'Free and Premium',
   body: `
-<p><strong>Everything is free during the beta.</strong> This page explains what will stay free and what the personalisation layer — Softwave Premium — will include, so there are no surprises later.</p>
+<p><strong>Everything is free during the beta.</strong> This page explains what will stay free and what the personalisation layer — Find My Quiet Sound Premium — will include, so there are no surprises later.</p>
 <h2>Always free</h2>
 <ul><li>White, pink and brown noise, gentle static and soft hiss</li><li>Rain, ocean, flowing water, waterfall, forest, wind, fan, fireplace and night sounds</li><li>The mixer (up to five layers, balance, saved mixes)</li><li>The frequency generator and Find My Tinnitus Sound</li><li>Visual Focus and Focus Mode, the breathing circle, Attention Focus</li><li>Sleep Mode with timers and fade-out</li><li>Sound Morph and Build My Session</li><li>Works offline, no account, no tracking of your hearing</li></ul>
-<h2>Softwave Premium — discover and build your personal sound experience</h2>
+<h2>Find My Quiet Sound Premium — discover and build your personal sound experience</h2>
 <ul><li><strong>Find My Sound</strong> — the guided A/B journey to your preferred sound, and the profile it builds</li><li><strong>Sound Sculptor</strong> and <strong>Frequency Painting</strong> — shape your own sounds and keep them</li><li><strong>Generative Sound</strong> — sounds that never quite repeat</li><li><strong>Sound Space</strong> — place sounds around you</li><li><strong>Adaptive Sound Journeys</strong> and <strong>Sound + Visual Journeys</strong></li><li>Unlimited saved sounds and experiences, and recommendations built from your own preferences</li></ul>
 <p>Premium is about personalisation, not "more noise". Anything you save while it is free stays yours.</p>
 <h2>Accounts</h2>
-<p>You do not need an account to use Softwave; everything is kept on your device. An optional free account to keep your sounds across devices is planned; it will never ask for hearing or health information.</p>`,
+<p>You do not need an account to use Find My Quiet Sound; everything is kept on your device. An optional free account to keep your sounds across devices is planned; it will never ask for hearing or health information.</p>`,
 });
 
 // Learn index
 PAGES.push({
   path: 'learn/', type: 'index',
-  title: 'Learn: Tinnitus Sounds, Masking, Frequency & Sleep | Softwave',
+  title: 'Learn: Tinnitus Sounds, Masking, Frequency & Sleep | Find My Quiet Sound',
   description: 'Plain-language, sourced guides to tinnitus masking, noise colours, sound generators, tinnitus frequency and matching, sleep, volume and headphones.',
   h1: 'Learn',
   intro: 'Short, sourced answers to the questions people ask about sound and tinnitus. Each article is dated, cites its sources, and links to the tool it describes. None of it is medical advice.',

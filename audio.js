@@ -176,7 +176,7 @@
       } catch (e) { }
       if ('mediaSession' in navigator) {
         try {
-          navigator.mediaSession.metadata = new MediaMetadata({ title: 'Softwave', artist: 'Sound for tinnitus comfort', album: 'Softwave' });
+          navigator.mediaSession.metadata = new MediaMetadata({ title: 'Find My Quiet Sound', artist: 'Sound for tinnitus comfort', album: 'Find My Quiet Sound' });
           navigator.mediaSession.setActionHandler('play', () => this.playAll());
           navigator.mediaSession.setActionHandler('pause', () => this.pauseAll());
           navigator.mediaSession.setActionHandler('stop', () => this.stopAll());
