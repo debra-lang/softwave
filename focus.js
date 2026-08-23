@@ -57,7 +57,7 @@
   }
   const mix = (a, b, t) => a + (b - a) * t;
 
-  add({ id: 'ocean', name: 'Ocean Waves', cat: 'Nature', desc: 'Slow rolling swells at dusk.', make() {
+  add({ id: 'ocean', featured: true, name: 'Ocean Waves', cat: 'Nature', desc: 'Slow rolling swells at dusk.', make() {
     let t = 0; const tex = new NoiseTex(96, 54); const horizon = 0.42;
     return { draw(ctx, w, h, e) { t += e.dt * e.speed * 0.45;
       // sky with dusk gradient and a low sun
@@ -68,7 +68,8 @@
       // sea: perspective rows of swell, far rows compressed
       const seaTop = h * horizon; const sg = ctx.createLinearGradient(0, seaTop, 0, h); sg.addColorStop(0, rgb(lerpC([127, 176, 216], [16, 30, 70], tm))); sg.addColorStop(1, rgb(lerpC([47, 111, 158], [5, 12, 32], tm))); ctx.fillStyle = sg; ctx.fillRect(0, seaTop, w, h - seaTop);
       const rows = 26;
-      for (let k = 0; k < rows; k++) { const p = k / rows; const depth = p * p; const y0 = seaTop + depth * (h - seaTop); const amp = 2 + depth * 22 * (1 + e.level * 0.6); const sp = (0.8 + depth * 0.6); ctx.beginPath();
+      const deep = e.sound ? 1 - e.sound.colour : 0.55;
+      for (let k = 0; k < rows; k++) { const p = k / rows; const depth = p * p; const y0 = seaTop + depth * (h - seaTop); const amp = 2 + depth * (14 + deep * 18) * (1 + e.level * 0.6); const sp = (0.55 + (1 - deep) * 0.5 + depth * 0.6); ctx.beginPath();
         for (let x = 0; x <= w; x += 6) { const u = x / w; const y = y0 + Math.sin(u * 9 / (0.4 + depth) + t * sp + k * 1.3) * amp + Math.sin(u * 23 - t * 0.7 * sp + k) * amp * 0.3 + (fbm(u * 3 + k, t * 0.2, k) - 0.5) * amp * 1.2; ctx.lineTo(x, y); }
         ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.closePath();
         const L = (45 + depth * 14) * (1 - tm * 0.7) + 6; ctx.fillStyle = `hsla(${206 + depth * 6},${60 - tm * 10}%,${L}%,${0.55 + depth * 0.4})`; ctx.fill();
@@ -125,7 +126,7 @@
       ctx.fillStyle = d ? 'rgba(180,230,190,0.45)' : 'rgba(255,255,240,0.7)'; for (const lf of leaves) { lf.x += lf.s * e.dt * e.speed; lf.y += (Math.sin(t * 1.2 + lf.ph) * 0.004 + 0.006) * e.dt * e.speed * 4; if (lf.x > 1.05 || lf.y > 1) { lf.x = -0.05; lf.y = Math.random() * 0.5; } ctx.beginPath(); ctx.ellipse(lf.x * w, lf.y * h, 3, 1.6, Math.sin(t + lf.ph), 0, TAU); ctx.fill(); }
     } }; } });
 
-  add({ id: 'nightsky', name: 'Night Sky', cat: 'Nature', desc: 'Stars turning very slowly overhead.', make() {
+  add({ id: 'nightsky', featured: true, name: 'Night Sky', cat: 'Nature', desc: 'Stars turning very slowly overhead.', make() {
     let t = 0; const tex = new NoiseTex(128, 72); const stars = Array.from({ length: 420 }, () => { const m = Math.random(); return { a: Math.random() * TAU, r: Math.random(), sz: m < 0.85 ? rnd(1.1, 0.3) : rnd(2.4, 1.2), ph: Math.random() * TAU, col: m < 0.6 ? '235,240,255' : m < 0.8 ? '255,240,215' : m < 0.92 ? '200,215,255' : '255,200,180' }; }); let shoot = null, texDone = false;
     return { draw(ctx, w, h, e) { t += e.dt * e.speed;
       sky(ctx, w, h, '#02041a', '#0a1238'); const cx = w * 0.5, cy = h * 1.15, R = Math.hypot(w, h);
@@ -172,7 +173,7 @@
       ctx.fillStyle = d ? 'rgba(150,210,230,0.18)' : 'rgba(230,250,255,0.35)'; ctx.fillRect(0, h * 0.9, w, h * 0.1);
     } }; } });
 
-  add({ id: 'rainwindow', name: 'Rain on a Window', cat: 'Nature', desc: 'Drops gathering and sliding down glass.', make() {
+  add({ id: 'rainwindow', featured: true, name: 'Rain on a Window', cat: 'Nature', desc: 'Drops gathering and sliding down glass.', make() {
     let t = 0; const drops = Array.from({ length: 55 }, () => ({ x: Math.random(), y: Math.random(), r: rnd(5, 2), v: 0, w: 0 })); const dots = Array.from({ length: 220 }, () => ({ x: Math.random(), y: Math.random(), r: rnd(1.6, 0.5) })); const bokeh = Array.from({ length: 12 }, () => ({ x: Math.random(), y: rnd(0.8, 0.1), r: rnd(0.14, 0.05), h: rnd(60, 20) })); const trails = [];
     return { draw(ctx, w, h, e) { t += e.dt * e.speed; const sc = Math.max(1, Math.min(w, h) / 420);
       sky(ctx, w, h, isDark() ? '#0f1424' : '#8a99b3', isDark() ? '#070a14' : '#4c5d7c');
@@ -181,8 +182,9 @@
       ctx.fillStyle = 'rgba(255,255,255,0.18)'; for (const d of dots) { ctx.beginPath(); ctx.arc(d.x * w, d.y * h, d.r, 0, TAU); ctx.fill(); }
       // wet trails left by sliding drops, fading slowly
       for (let i = trails.length - 1; i >= 0; i--) { const tr = trails[i]; tr.a -= e.dt * 0.04 * Math.max(e.speed, 0.2); if (tr.a <= 0) { trails.splice(i, 1); continue; } ctx.strokeStyle = `rgba(255,255,255,${tr.a * 0.35})`; ctx.lineWidth = tr.w * sc; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(tr.x * w, tr.y0 * h); ctx.lineTo(tr.x * w, tr.y1 * h); ctx.stroke(); }
+      const rainK = e.sound ? 0.6 + e.sound.colour * 0.8 : 1;
       for (const d of drops) {
-        if (d.v === 0 && Math.random() < 0.0035 * e.speed) { d.v = rnd(0.22, 0.08); d.w = d.r * 0.9; trails.push({ x: d.x, y0: d.y, y1: d.y, w: d.w, a: 1, ref: d }); }
+        if (d.v === 0 && Math.random() < 0.0035 * e.speed * rainK) { d.v = rnd(0.22, 0.08); d.w = d.r * 0.9; trails.push({ x: d.x, y0: d.y, y1: d.y, w: d.w, a: 1, ref: d }); }
         if (d.v > 0) { d.y += d.v * e.dt * e.speed; d.v *= (1 - 0.35 * e.dt * e.speed); const tr = trails.find(q => q.ref === d); if (tr) tr.y1 = d.y; if (d.v < 0.02) { d.v = 0; } }
         if (d.y > 1.05) { d.y = rnd(0.3, -0.05); d.x = Math.random(); d.v = 0; trails.forEach(q => { if (q.ref === d) q.ref = null; }); }
         const x = d.x * w, y = d.y * h; const r = d.r * sc; const len = r * (1.2 + d.v * 12);
@@ -246,7 +248,8 @@
         if (!opts.noAuto) { auto += e.dt * e.speed; if (auto > 4) { auto = 0; rings.push({ x: Math.random(), y: Math.random(), t: 0 }); } }
         for (const tp of e.taps) if (tp.id > lastTap) { lastTap = tp.id; rings.push({ x: tp.x, y: tp.y, t: 0 }); }
         if (opts.reactive && e.level > 0.55 && t - lastLevelBurst > 1.2) { lastLevelBurst = t; rings.push({ x: rnd(0.8, 0.2), y: rnd(0.8, 0.2), t: 0 }); }
-        for (let i = rings.length - 1; i >= 0; i--) { const r = rings[i]; r.t += e.dt * Math.max(e.speed, 0.3); if (r.t > 6) { rings.splice(i, 1); continue; } for (let k = 0; k < 3; k++) { const rad = (r.t - k * 0.35) * Math.min(w, h) * 0.12; if (rad <= 0) continue; ctx.beginPath(); ctx.arc(r.x * w, r.y * h, rad, 0, TAU); ctx.strokeStyle = `rgba(${isDark() ? '180,220,255' : '255,255,255'},${Math.max(0, 0.6 - r.t * 0.1 - k * 0.12)})`; ctx.lineWidth = 2.5 - k * 0.6; ctx.stroke(); } }
+        const deep = e.sound ? 1 - e.sound.colour : 0.5; const rate = 0.6 + (1 - deep) * 0.8; const size = Math.min(w, h) * (0.14 + deep * 0.1);
+        for (let i = rings.length - 1; i >= 0; i--) { const r = rings[i]; r.t += e.dt * Math.max(e.speed, 0.3) * rate; if (r.t > 7) { rings.splice(i, 1); continue; } for (let k = 0; k < 4; k++) { const rad = (r.t - k * 0.4) * size; if (rad <= 0) continue; ctx.beginPath(); ctx.arc(r.x * w, r.y * h, rad, 0, TAU); const a = Math.max(0, 0.55 - r.t * 0.08 - k * 0.1); ctx.strokeStyle = `rgba(${isDark() ? '180,220,255' : '255,255,255'},${a})`; ctx.lineWidth = (3.5 + deep * 3 - k * 0.7); ctx.stroke(); } }
         for (let k = 0; k < 4; k++) { ctx.beginPath(); for (let x = 0; x <= w; x += 10) ctx.lineTo(x, h * (0.2 + k * 0.2) + Math.sin(x * 0.008 + t * 0.5 + k) * 10); ctx.strokeStyle = `rgba(${isDark() ? '140,200,255' : '255,255,255'},0.08)`; ctx.lineWidth = 30; ctx.stroke(); }
         if (rings.length === 0 && opts.hint) { ctx.fillStyle = isDark() ? 'rgba(200,220,255,0.5)' : 'rgba(20,50,80,0.45)'; ctx.font = `500 ${Math.max(14, w * 0.018)}px Manrope, sans-serif`; ctx.textAlign = 'center'; ctx.fillText('Touch the water', w / 2, h * 0.5); }
       } }; } };
@@ -345,7 +348,7 @@
     } }; } });
 
   // ===== BREATHING =====
-  add({ id: 'breathing', name: 'Breathing Circle', cat: 'Breathing', desc: 'A circle that grows as you breathe in and settles as you breathe out.', make() {
+  add({ id: 'breathing', featured: true, name: 'Breathing Circle', cat: 'Breathing', desc: 'A circle that grows as you breathe in and settles as you breathe out.', make() {
     let t = 0; return { draw(ctx, w, h, e) { const k = P.breathPeriod ? P.breathPeriod / 12 : 1; const IN = 4 * k, HOLD = 1 * k, OUT = 6 * k, REST = 1 * k, CYC = IN + HOLD + OUT + REST; t += e.dt * (e.still ? 0 : Math.max(e.speed, 0.6)); const p = t % CYC; let s, label;
       if (p < IN) { const q = p / IN; s = q * q * (3 - 2 * q); label = 'Breathe in'; } else if (p < IN + HOLD) { s = 1; label = 'Breathe in'; } else if (p < IN + HOLD + OUT) { const q = (p - IN - HOLD) / OUT; s = 1 - q * q * (3 - 2 * q); label = 'Breathe out'; } else { s = 0; label = 'Breathe out'; }
       sky(ctx, w, h, isDark() ? '#090c1c' : '#f3f5fb', isDark() ? '#0e1332' : '#e3e8f6'); const cx = w / 2, cy = h / 2, R = Math.min(w, h) * (0.16 + s * 0.16);
@@ -353,6 +356,35 @@
       ctx.beginPath(); ctx.arc(cx, cy, Math.min(w, h) * 0.34, 0, TAU); ctx.strokeStyle = isDark() ? 'rgba(200,215,255,0.12)' : 'rgba(60,100,220,0.12)'; ctx.lineWidth = 1; ctx.stroke();
       if (e.breathText) { ctx.fillStyle = isDark() ? 'rgba(230,236,255,0.9)' : 'rgba(20,30,60,0.8)'; ctx.font = `600 ${Math.max(18, Math.min(w, h) * 0.045)}px Manrope, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(label, cx, cy); ctx.textBaseline = 'alphabetic'; }
     } }; } });
+
+  // ===== PREMIUM ENVIRONMENTS (Visual Focus redesign) =====
+  // e.sound: { colour 0..1, warm, moving, nature } of the dominant sound — every environment reads it subtly.
+  const sndColour = e => (e.sound ? e.sound.colour : 0.45);
+
+  add({ id: 'float', name: 'Float', cat: 'Abstract', featured: true, desc: 'Soft particles drifting through depth — some close, some far.', make() {
+    let t = 0; const layers = [0.35, 0.65, 1].map((z, li) => ({ z, ps: Array.from({ length: li === 2 ? 14 : li === 1 ? 26 : 40 }, () => ({ x: Math.random(), y: Math.random(), ph: Math.random() * TAU, s: 0.6 + Math.random() * 0.8 })) }));
+    return { draw(ctx, w, h, e) { t += e.dt * e.speed * 0.6; const c = sndColour(e); const fine = 0.5 + c * 0.9;   // bright sounds → finer particles
+      sky(ctx, w, h, isDark() ? '#090c1a' : '#f2f2f6', isDark() ? '#121a36' : '#e4e7f3');
+      glow(ctx, w * 0.5, h * 0.45, w * 0.55, isDark() ? 'rgba(120,150,230,A)' : 'rgba(120,150,230,A)', isDark() ? 0.10 : 0.14);
+      for (const L of layers) for (const p of L.ps) { p.y -= e.dt * e.speed * 0.012 * L.z; p.x += Math.sin(t * 0.4 + p.ph) * 0.0006 * L.z; if (p.y < -0.1) { p.y = 1.1; p.x = Math.random(); } const r = (2 + L.z * 14) * p.s / fine * (1 + e.level * 0.3); const a = (0.12 + L.z * 0.35) * (0.7 + 0.3 * Math.sin(t + p.ph)); glow(ctx, p.x * w, p.y * h, r * 2.4, isDark() ? 'rgba(190,205,255,A)' : 'rgba(80,110,210,A)', a * 0.5); ctx.fillStyle = isDark() ? `rgba(220,230,255,${a})` : `rgba(70,100,200,${a * 0.8})`; ctx.beginPath(); ctx.arc(p.x * w, p.y * h, r, 0, TAU); ctx.fill(); }
+    } }; } });
+
+  add({ id: 'flow', name: 'Abstract Flow', cat: 'Abstract', featured: true, desc: 'Liquid, silk-like forms that keep evolving without repeating.', make() {
+    let t = 0; const tex = new NoiseTex(96, 54); const ribbons = Array.from({ length: 7 }, (_, i) => ({ ph: i * 0.9, y: 0.2 + i * 0.1, hue: i * 9 }));
+    return { draw(ctx, w, h, e) { t += e.dt * e.speed * 0.25; const c = sndColour(e); const warm = e.sound ? e.sound.warm : 0;
+      const base = isDark() ? [8, 11, 26] : [244, 242, 247]; ctx.fillStyle = `rgb(${base.join(',')})`; ctx.fillRect(0, 0, w, h);
+      tex.render((u, v) => { const n = fbm(u * 2.2 + t * 0.35, v * 2.2 - t * 0.2, t * 0.15, 4); const n2 = fbm(u * 4 - t * 0.25 + 3, v * 3 + t * 0.3, t * 0.1 + 2, 3); const k = Math.pow(Math.max(0, n - 0.28) * 1.5, 1.4); const hue = 220 - warm * 40 + n2 * 50 + (c - 0.5) * 30; const s = isDark() ? 55 : 60, l = isDark() ? 45 + n2 * 20 : 75; const [r, g, b] = hsl(hue, s, l); return [r, g, b, k * (isDark() ? 170 : 120)]; }, 2);
+      ctx.save(); ctx.filter = 'blur(14px)'; tex.draw(ctx, w, h, 1, isDark() ? 'lighter' : 'source-over'); ctx.restore();
+      ctx.save(); ctx.globalCompositeOperation = isDark() ? 'lighter' : 'multiply'; ctx.lineCap = 'round';
+      for (const rb of ribbons) { ctx.beginPath(); for (let x = 0; x <= w; x += 8) { const u = x / w; const y = h * rb.y + Math.sin(u * 3 + t * 1.2 + rb.ph) * h * 0.12 * (1 + e.level * 0.5) + (fbm(u * 2 + rb.ph, t * 0.5, rb.ph, 3) - 0.5) * h * 0.22; ctx.lineTo(x, y); } ctx.strokeStyle = `hsla(${225 - warm * 40 + rb.hue},70%,${isDark() ? 70 : 55}%,${isDark() ? 0.16 : 0.12})`; ctx.lineWidth = 18 + (1 - c) * 22; ctx.stroke(); ctx.strokeStyle = `hsla(${225 + rb.hue},80%,${isDark() ? 85 : 45}%,${isDark() ? 0.25 : 0.18})`; ctx.lineWidth = 1.2; ctx.stroke(); }
+      ctx.restore();
+    } }; } });
+  function hsl(h, s, l) { s /= 100; l /= 100; const k = n => (n + h / 30) % 12; const a = s * Math.min(l, 1 - l); const f = n => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1))); return [Math.round(255 * f(0)), Math.round(255 * f(8)), Math.round(255 * f(4))]; }
+
+  add({ id: 'soundfield', name: 'Sound Field', cat: 'Sound Reactive', featured: true, reactive: true, desc: 'The Softwave Sound Field itself, filling the screen.', make() {
+    let field = null, lastIds = ''; return { draw(ctx, w, h, e) { if (!window.SoftwaveField) return; if (!field || field.c !== ctx.canvas) { field = new SoftwaveField.Field(ctx.canvas); field.dpr = 1; field.low = true; } const ids = engine.activeList().map(s => ({ id: s.id, volume: s.volume, params: (s.id === 'sculpt' || s.id.startsWith('disco')) ? engine.getSculpt(s.id) : null })); const key = ids.map(i => i.id).join(); if (key !== lastIds) { field.set(ids); lastIds = key; } field.w = w; field.h = h; field.setLevel(e.level, 0); field.last = field.last || performance.now(); field.resizeSkip = true;
+      // draw into the focus canvas directly (already sized by the focus loop)
+      sky(ctx, w, h, isDark() ? '#0b0f1d' : '#f5f4f0', isDark() ? '#0e1424' : '#ecebe6'); const save = field.resize; field.resize = () => true; field.ctx = ctx; field.draw(performance.now()); field.resize = save; } }; } });
 
   // ===== EXPERIMENT VISUALS (opened from The Lab) =====
   add({ id: 'target', name: 'Attention Target', cat: 'Lab', hidden: true, desc: 'Follow one slow object; the sound follows it too.', make() {
@@ -427,7 +459,8 @@
     const raw = engine.isPlaying ? engine.getLevels(spec) : 0; if (engine.isPlaying) engine.getWave(wave); else { spec.fill(0); wave.fill(128); }
     smoothLevel += (clamp(raw * 6, 0, 1) - smoothLevel) * 0.08;
     let speed = MOTION[S.motion]; if (S.reduced) speed = Math.min(speed, 0.25); if (S.paused) speed = 0; speed *= (1 - P.slow * 0.7);
-    return { dt, speed, level: smoothLevel, spec, wave, freq: engine.tone && engine.tone.playing ? engine.tone.freq : null, pointer, taps, breathText: S.breathText, reduced: S.reduced, still: S.motion === 'still' || S.paused };
+    const sound = window.softwaveSound ? softwaveSound() : null;
+    return { dt, speed, level: smoothLevel, spec, wave, freq: engine.tone && engine.tone.playing ? engine.tone.freq : null, pointer, taps, breathText: S.breathText, reduced: S.reduced, still: S.motion === 'still' || S.paused, sound };
   }
 
   // ---------- preview cards ----------
@@ -436,14 +469,35 @@
   let lastPrev = 0;
   function previewLoop(now) {
     requestAnimationFrame(previewLoop);
-    if (document.hidden || !$('#view-focus') || $('#view-focus').hidden || !$('#focus-screen').hidden) return;
-    if (now - lastPrev < 66) return; const dt = (now - lastPrev) / 1000; lastPrev = now;
+    const chooserOpen = !$('#visual-chooser').hidden;
+    if (document.hidden || !$('#focus-screen').hidden || (!chooserOpen && (!$('#view-focus') || $('#view-focus').hidden))) return;
+    if (now - lastPrev < 50) return; const dt = (now - lastPrev) / 1000; lastPrev = now;
     const env = makeEnv({ x: 0.5, y: 0.5, on: false, down: false }, [], dt);
     previews.forEach((p, c) => { if (!p.visible) return; p.inst.draw(c.getContext('2d'), c.width, c.height, env); });
+    if (stage && stageInst && stage.offsetParent !== null) { const r = stage.getBoundingClientRect(); const dpr = 1; if (stage.width !== Math.round(r.width)) { stage.width = Math.round(r.width); stage.height = Math.round(r.height); } stageInst.draw(stage.getContext('2d'), stage.width, stage.height, env); }
   }
   requestAnimationFrame(previewLoop);
 
+  const FEATURED = ['ocean', 'rainwindow', 'nightsky', 'float', 'ripple', 'flow', 'breathing', 'soundfield'];
+  let stageInst = null, stageId = null; const stage = $('#env-stage-canvas');
+  function renderStage() { if (!stage) return; const v = byId[S.visual]; if (!v) return; if (stageId !== v.id) { stageInst = v.make(); stageId = v.id; } $('#env-stage-name').textContent = v.name; $('#env-stage-desc').textContent = v.desc; const names = engine.activeList().map(s => engine.def(s.id).name); $('#env-stage-sound').textContent = (names.length ? 'with ' + names.join(' + ') : 'choose a sound, or enter and pick one inside') + ' · movement ' + S.motion; $$('.env-tile').forEach(t => t.classList.toggle('active', t.dataset.id === v.id)); }
+  function renderMosaic() {
+    const host = $('#env-mosaic'); if (!host) return; host.innerHTML = '';
+    FEATURED.forEach((id, i) => { const v = byId[id]; if (!v) return; const t = document.createElement('button'); t.className = 'env-tile' + (i < 2 ? ' big' : '') + (v.id === S.visual ? ' active' : ''); t.dataset.id = id; t.setAttribute('aria-label', `${v.name}: ${v.desc}`);
+      t.innerHTML = `<canvas width="360" height="240" aria-hidden="true"></canvas><span class="env-tile-name">${v.name}</span>`; const c = $('canvas', t); previews.set(c, { inst: v.make(), visible: false }); io.observe(c);
+      t.addEventListener('click', () => { setVisual(id); renderStage(); $('#env-stage').scrollIntoView({ behavior: 'smooth', block: 'center' }); }); t.addEventListener('dblclick', () => { setVisual(id); enterFocus(); }); host.appendChild(t); });
+  }
+  // "What do you want to focus on?" chooser (from Sounds → Add visual). Sound keeps playing.
+  function openChooser() {
+    const ch = $('#visual-chooser'); ch.hidden = false; document.body.style.overflow = 'hidden'; const host = $('#chooser-list'); host.innerHTML = '';
+    ['ocean', 'rainwindow', 'nightsky', 'float', 'ripple', 'flow'].forEach(id => { const v = byId[id]; const b = document.createElement('button'); b.className = 'chooser-tile'; b.innerHTML = `<canvas width="300" height="200" aria-hidden="true"></canvas><span>${v.name}</span>`; const c = $('canvas', b); previews.set(c, { inst: v.make(), visible: true }); b.addEventListener('click', () => { closeChooser(); setVisual(id); enterFocus(true); }); host.appendChild(b); });
+    $('.chooser-tile', host).focus();
+  }
+  function closeChooser() { const ch = $('#visual-chooser'); ch.hidden = true; document.body.style.overflow = ''; $$('#chooser-list canvas').forEach(c => previews.delete(c)); }
+  $('#chooser-close').addEventListener('click', closeChooser); $('#visual-chooser').addEventListener('keydown', e => { if (e.key === 'Escape') closeChooser(); });
+  $('#env-enter').addEventListener('click', () => enterFocus());
   function renderLibrary() {
+    renderMosaic(); renderStage();
     const host = $('#visual-library'); host.innerHTML = '';
     CATS.forEach(cat => {
       const sec = document.createElement('section'); sec.className = 'vis-cat';
@@ -460,24 +514,24 @@
       host.appendChild(sec);
     });
   }
-  function setVisual(id) { if (!byId[id]) return; S.visual = id; app.store.set('visual', id); $$('.vis-card').forEach(c => c.classList.toggle('active', c.dataset.id === id)); $('#current-visual-name').textContent = byId[id].name; if (focus.inst && focus.visualId !== id) focus.load(id); }
+  function setVisual(id) { if (!byId[id]) return; S.visual = id; app.store.set('visual', id); $$('.vis-card').forEach(c => c.classList.toggle('active', c.dataset.id === id)); const cv = $('#current-visual-name'); if (cv) cv.textContent = byId[id].name; if (focus.inst && focus.visualId !== id) focus.load(id); renderStage(); }
 
   // ---------- pairings ----------
   const PAIRINGS = [
-    { id: 'oceanescape', name: 'Ocean Escape', visual: 'ocean', mix: [{ id: 'ocean', volume: 0.6 }, { id: 'brown', volume: 0.25 }], blurb: 'Slow waves · Ocean + soft brown noise' },
-    { id: 'rainwindowp', name: 'Rain Window', visual: 'rainwindow', mix: [{ id: 'rain', volume: 0.55 }, { id: 'pink', volume: 0.25 }], blurb: 'Rain on glass · Rain + gentle pink noise' },
-    { id: 'fireside', name: 'Fireplace', visual: 'fireplace', mix: [{ id: 'fire', volume: 0.6 }, { id: 'pink', volume: 0.2 }], blurb: 'Low flames · Fireplace + soft broadband' },
-    { id: 'floating', name: 'Floating', visual: 'particles', mix: [{ id: 'brown', volume: 0.55 }], blurb: 'Drifting particles · Brown noise' },
-    { id: 'deepfocus', name: 'Deep Focus', visual: 'circles', mix: [{ id: 'pink', volume: 0.5 }], blurb: 'Expanding circles · Pink noise' },
-    { id: 'night', name: 'Night', visual: 'nightsky', mix: [{ id: 'night', volume: 0.45 }, { id: 'brown', volume: 0.4 }], blurb: 'Slow stars · Night ambience + brown noise' },
+    { id: 'deepocean', name: 'Deep Ocean', visual: 'ocean', mix: [{ id: 'brown', volume: 0.5 }, { id: 'ocean', volume: 0.35 }], blurb: 'Brown noise · Ocean' },
+    { id: 'rainwindowp', name: 'Rain Window', visual: 'rainwindow', mix: [{ id: 'pink', volume: 0.45 }, { id: 'rain', volume: 0.35 }], blurb: 'Pink noise · Rain Window' },
+    { id: 'nightfloat', name: 'Night Float', visual: 'nightsky', mix: [{ id: 'brown', volume: 0.5 }, { id: 'night', volume: 0.2 }], blurb: 'Brown noise · Night Sky' },
+    { id: 'softripple', name: 'Soft Ripple', visual: 'ripple', mix: [{ id: 'pink', volume: 0.5 }], blurb: 'Pink noise · Ripple' },
+    { id: 'deepfocus', name: 'Deep Focus', visual: 'flow', mix: null, blurb: 'Your personal sound · Abstract Flow' },
+    { id: 'fireside', name: 'Fireside', visual: 'fireplace', mix: [{ id: 'fire', volume: 0.55 }, { id: 'brown', volume: 0.25 }], blurb: 'Fireplace · low flames' },
   ];
   function renderPairings() {
     const host = $('#pairings'); host.innerHTML = '';
     PAIRINGS.forEach(p => {
       const v = byId[p.visual]; const el = document.createElement('div'); el.className = 'pair-card';
-      el.innerHTML = `<canvas width="320" height="180" aria-hidden="true"></canvas><div class="pair-body"><div class="pair-name">${p.name}</div><div class="pair-rows"><div><span class="lbl">Visual</span>${v.name}</div><div><span class="lbl">Sound</span>${p.mix.map(m => engine.def(m.id).name).join(' + ')}</div></div><button class="btn btn-primary btn-sm">Start</button></div>`;
+      el.innerHTML = `<canvas width="320" height="180" aria-hidden="true"></canvas><div class="pair-body"><div class="pair-name">${p.name}</div><div class="pair-rows"><div><span class="lbl">Visual</span>${v.name}</div><div><span class="lbl">Sound</span>${p.mix ? p.mix.map(m => engine.def(m.id).name).join(' + ') : 'Your personal sound (from Sound Discovery)'}</div></div><button class="btn btn-primary btn-sm">Try this</button></div>`;
       const c = $('canvas', el); previews.set(c, { inst: v.make(), visible: false }); io.observe(c);
-      $('button', el).addEventListener('click', async () => { setVisual(p.visual); await app.loadPreset({ name: p.name, mix: p.mix, master: 0.35 }); enterFocus(); });
+      $('button', el).addEventListener('click', async () => { setVisual(p.visual); const mix = p.mix || (window.softwaveProfile && softwaveProfile.mix()) || [{ id: 'pink', volume: 0.45 }]; await app.loadPreset({ name: p.name, mix, master: 0.35 }); enterFocus(true); });
       host.appendChild(el);
     });
   }
@@ -500,7 +554,7 @@
     let form = $('#fav-form'); if (form) { form.remove(); return; }
     form = document.createElement('form'); form.id = 'fav-form'; form.className = 'inline-form';
     form.innerHTML = `<label class="sr-only" for="fav-name">Name</label><input id="fav-name" class="select" maxlength="40" value="My Focus" style="min-width:200px"><button type="submit" class="btn btn-primary btn-sm">Save</button><button type="button" class="btn btn-ghost btn-sm" data-cancel>Cancel</button>`;
-    $('#fav-save').after(form); const inp = $('#fav-name', form); inp.focus(); inp.select(); $('[data-cancel]', form).addEventListener('click', () => form.remove());
+    $('#env-stage').after(form); const inp = $('#fav-name', form); inp.focus(); inp.select(); $('[data-cancel]', form).addEventListener('click', () => form.remove());
     form.addEventListener('submit', e => { e.preventDefault(); const favs = app.store.get('combos', []); favs.push({ name: inp.value.trim() || 'My Focus', mix: engine.snapshot(), master: engine.masterVolume, visual: S.visual, motion: S.motion, timer: engine.timer.durationMin || 0 }); app.store.set('combos', favs); form.remove(); renderFavs(); app.toast('Saved on this device'); });
   });
 
@@ -535,8 +589,9 @@
     // drift the pointer effect off when idle
   }
   function showControls() { screen.classList.remove('idle'); clearTimeout(focus.hideT); focus.hideT = setTimeout(() => { if (!$('#focus-panel').classList.contains('open')) screen.classList.add('idle'); }, 4500); }
-  async function enterFocus() {
+  async function enterFocus(transition) {
     if (!screen.hidden) return;
+    if (transition) { document.body.classList.add('entering'); await new Promise(r => setTimeout(r, 520)); document.body.classList.remove('entering'); }
     focus.load(S.visual); screen.hidden = false; document.body.style.overflow = 'hidden'; resize(); focus.last = performance.now(); loop(focus.last);
     if (window.softwaveBg) window.softwaveBg.running = false;
     updateFocusBar(); showControls(); syncSettings(); $('#focus-exit').focus();
@@ -557,7 +612,7 @@
     if (window.softwaveBg) { window.softwaveBg.running = true; window.softwaveBg.loop(); }
   }
   $('#focus-exit').addEventListener('click', exitFocus);
-  $('#focus-enter').addEventListener('click', enterFocus);
+  const fe = $('#focus-enter'); if (fe) fe.addEventListener('click', () => enterFocus());
   $('#focus-fullscreen').addEventListener('click', () => { if (document.fullscreenElement) document.exitFullscreen(); else screen.requestFullscreen && screen.requestFullscreen().catch(() => { }); });
   $('#focus-pause-visual').addEventListener('click', e => { S.paused = !S.paused; e.currentTarget.setAttribute('aria-pressed', S.paused); e.currentTarget.textContent = S.paused ? 'Resume visual' : 'Pause visual'; syncSettings(); });
   screen.addEventListener('keydown', e => { if (e.key === 'Escape') { if ($('#focus-panel').classList.contains('open')) closePanel(); else exitFocus(); } });
@@ -578,7 +633,7 @@
     const t = engine.timer; $('#focus-timer-label').textContent = t.endsAt ? `${Math.max(0, Math.ceil((t.endsAt - Date.now()) / 60000))} min` : 'Timer';
     $$('#focus-panel [data-min]').forEach(x => x.setAttribute('aria-checked', String(+x.dataset.min === (t.durationMin || 0))));
   }
-  engine.on(type => { if (!screen.hidden && ['sounds', 'state', 'tone', 'timer', 'master'].includes(type)) updateFocusBar(); });
+  engine.on(type => { if (!screen.hidden && ['sounds', 'state', 'tone', 'timer', 'master'].includes(type)) updateFocusBar(); if (type === 'sounds') renderStage(); });
   $('#focus-play').addEventListener('click', () => app.togglePlay());
   $('#focus-vol').addEventListener('input', e => app.setMaster(+e.target.value / 100, true));
 
@@ -610,7 +665,7 @@
   $('#freq-visualizer').addEventListener('click', async () => { if (!(engine.tone && engine.tone.playing)) $('#freq-play').click(); setVisual('frequency'); enterFocus(); });
 
   // expose for app
-  window.softwaveFocus = { enterFocus, exitFocus, setVisual, crossfadeTo, visuals: V.filter(v => !v.hidden), allVisuals: V, setParam: (k, v) => { P[k] = v; }, getParam: () => P };
+  window.softwaveFocus = { enterFocus, exitFocus, setVisual, crossfadeTo, openChooser, visuals: V.filter(v => !v.hidden), allVisuals: V, setParam: (k, v) => { P[k] = v; }, getParam: () => P };
 
   // ---------- init ----------
   renderLibrary(); renderPairings(); renderFavs(); syncSettings(); if (window.softwaveProfile) softwaveProfile.refresh();

@@ -776,3 +776,47 @@ body[data-atmo="dark"] #atmo { opacity: 1; background: radial-gradient(90% 60% a
 .nav-back { flex-shrink: 0; }
 .nav-back[hidden] { display: none; }
 @media (max-width: 640px) { .nav-back { order: 0; } .topbar .brand { order: -1; } }
+
+/* =====================================================================
+   VISUAL FOCUS — environments, not cards
+   ===================================================================== */
+.focus-view .hero.compact { margin-bottom: 18px; }
+.env-stage { position: relative; width: min(100%, 1100px); margin: 0 auto; aspect-ratio: 16 / 8; border-radius: 34px; overflow: hidden; background: var(--bg-2); box-shadow: 0 30px 80px rgba(0, 0, 0, .25); }
+:root[data-theme="dark"] .env-stage { box-shadow: 0 30px 90px rgba(0, 0, 0, .6); }
+.env-stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.env-stage-ui { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-start; padding: clamp(18px, 4vw, 40px); background: linear-gradient(180deg, transparent 45%, rgba(0, 0, 0, .45)); color: #fff; text-shadow: 0 2px 12px rgba(0, 0, 0, .5); }
+.env-stage-name { font-size: clamp(2rem, 5vw, 3.4rem); font-weight: 600; letter-spacing: -0.03em; line-height: 1; }
+.env-stage-desc { margin-top: 6px; max-width: 46ch; opacity: .9; }
+.env-stage-sound { font-size: .78rem; letter-spacing: .14em; text-transform: uppercase; opacity: .8; margin-top: 8px; }
+.env-stage-actions { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+.env-stage-actions .btn-ghost { color: #fff; border-color: rgba(255, 255, 255, .35); background: rgba(0, 0, 0, .25); backdrop-filter: blur(8px); }
+.env-mosaic { display: grid; grid-template-columns: repeat(4, 1fr); grid-auto-rows: 150px; gap: 12px; margin: 14px auto 22px; width: min(100%, 1100px); }
+.env-tile { position: relative; border: 0; padding: 0; border-radius: 22px; overflow: hidden; cursor: pointer; background: var(--bg-2); box-shadow: var(--shadow); transition: transform .3s cubic-bezier(.2,.8,.2,1), box-shadow .3s; font: inherit; color: #fff; text-align: left; }
+.env-tile.big { grid-column: span 2; grid-row: span 2; }
+.env-tile canvas { position: absolute; inset: 0; width: 100%; height: 100%; transition: transform 1.2s ease; }
+.env-tile:hover canvas { transform: scale(1.04); }
+.env-tile:hover { transform: translateY(-3px); }
+.env-tile.active { box-shadow: 0 0 0 3px var(--accent), var(--shadow); }
+.env-tile-name { position: absolute; left: 14px; bottom: 12px; font-weight: 700; font-size: 1rem; text-shadow: 0 1px 8px rgba(0, 0, 0, .6); }
+.env-tile.big .env-tile-name { font-size: 1.3rem; left: 18px; bottom: 16px; }
+.focus-settings-open { justify-content: center; border-top: 0; padding-top: 0; margin: 6px auto 10px; }
+.more-visuals { margin-top: 26px; }
+.more-visuals summary { cursor: pointer; list-style: none; }
+.more-visuals summary::-webkit-details-marker { display: none; }
+.more-visuals summary::after { content: " ▾"; color: var(--muted); }
+.more-visuals[open] summary::after { content: " ▴"; }
+.chooser { position: fixed; inset: 0; z-index: 53; display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--bg) 78%, transparent); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); animation: fadeUp .3s ease both; padding: 20px; }
+.chooser[hidden] { display: none; }
+.chooser-inner { width: min(920px, 100%); text-align: center; position: relative; }
+.chooser-inner .h1 { font-size: clamp(1.6rem, 4vw, 2.6rem); }
+.chooser-close { position: absolute; top: -6px; right: 0; }
+.chooser-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 18px; }
+.chooser-tile { position: relative; border: 0; padding: 0; aspect-ratio: 3 / 2; border-radius: 20px; overflow: hidden; cursor: pointer; background: var(--bg-2); box-shadow: var(--shadow); color: #fff; font: inherit; font-weight: 700; transition: transform .3s cubic-bezier(.2,.8,.2,1); }
+.chooser-tile:hover { transform: scale(1.03); }
+.chooser-tile canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.chooser-tile span { position: absolute; left: 14px; bottom: 12px; font-size: 1.05rem; text-shadow: 0 1px 8px rgba(0, 0, 0, .6); }
+body.entering #field { transform: scale(1.6); opacity: 0; transition: transform .55s cubic-bezier(.2,.8,.2,1), opacity .5s; }
+#field { transition: transform .55s cubic-bezier(.2,.8,.2,1), opacity .5s; }
+.focus-screen { background: radial-gradient(120% 80% at 50% 20%, #111a36 0%, #070a16 70%); }
+:root:not([data-theme="dark"]) .focus-screen { background: radial-gradient(120% 80% at 50% 20%, #f3f1ec 0%, #d9d9e2 70%); }
+@media (max-width: 760px) { .env-stage { aspect-ratio: 4 / 5; border-radius: 26px; } .env-mosaic { grid-template-columns: repeat(2, 1fr); grid-auto-rows: 120px; } .env-tile.big { grid-column: span 2; grid-row: span 1; } .chooser-list { grid-template-columns: repeat(2, 1fr); } .env-stage-actions .btn-lg { padding: 12px 22px; } }

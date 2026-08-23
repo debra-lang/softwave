@@ -31,7 +31,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=22">
+  <link rel="stylesheet" href="styles.css?v=24">
   <script type="application/ld+json">
   {"@context":"https://schema.org","@graph":[
     {"@type":"Organization","@id":"https://debra-lang.github.io/softwave/#org","name":"Softwave","url":"https://debra-lang.github.io/softwave/","logo":"https://debra-lang.github.io/softwave/icons/icon-512.png","sameAs":["https://github.com/debra-lang/softwave"]},
@@ -150,57 +150,66 @@
     </section>
 
     <!-- ============ VISUAL FOCUS ============ -->
-    <section id="view-focus" class="view" aria-labelledby="focus-title" hidden>
-      <div class="hero">
-        <h2 class="h1" id="focus-title">Visual Focus</h2>
-        <p class="lead">Something calm to look at while you listen. Pick a sound, pick a visual, then let Focus Mode take over the screen.</p>
-        <p class="hint">An optional way to relax and rest your attention. It is not a treatment &mdash; just a more pleasant place to be.</p>
+    <section id="view-focus" class="view focus-view" aria-labelledby="focus-title" hidden>
+      <div class="hero compact">
+        <h2 class="h1" id="focus-title">Choose where to focus.</h2>
+        <p class="lead">Pair your sound with a calm visual environment.</p>
       </div>
 
-      <div class="card focus-setup">
-        <div class="focus-setup-grid">
-          <div>
-            <div class="label-sm">Sound</div>
-            <div id="focus-setup-sound" class="setup-value">No sound yet</div>
-            <a href="#sounds" data-view="sounds" class="btn btn-ghost btn-sm">Choose sound</a>
+      <div class="env-stage" id="env-stage">
+        <canvas id="env-stage-canvas" aria-hidden="true"></canvas>
+        <div class="env-stage-ui">
+          <div class="env-stage-name" id="env-stage-name">Ocean Waves</div>
+          <div class="env-stage-desc" id="env-stage-desc"></div>
+          <div class="env-stage-sound" id="env-stage-sound"></div>
+          <div class="env-stage-actions">
+            <button id="env-enter" class="btn btn-primary btn-lg">Enter</button>
+            <button id="fav-save" class="btn btn-ghost">Save environment</button>
           </div>
-          <div>
-            <div class="label-sm">Visual</div>
-            <div id="current-visual-name" class="setup-value">Ocean Waves</div>
-            <a href="#visual-library-title" class="btn btn-ghost btn-sm" data-scroll>Choose below</a>
-            <p id="visual-profile-suggest" class="muted small" hidden></p>
-            <p id="visual-profile-suggest" class="muted small" hidden></p>
-          </div>
-          <div class="setup-cta">
-            <button id="focus-enter" class="btn btn-primary btn-lg">Enter Focus Mode</button>
-            <button id="fav-save" class="btn btn-secondary btn-sm">Save this combination</button>
-          </div>
-        </div>
-        <div class="focus-settings">
-          <div class="setting">
-            <span class="label-sm">Visual movement</span>
-            <div class="seg" role="radiogroup" aria-label="Visual movement">
-              <button role="radio" aria-checked="false" data-motion="still">Still</button>
-              <button role="radio" aria-checked="true" data-motion="low">Low</button>
-              <button role="radio" aria-checked="false" data-motion="medium">Medium</button>
-              <button role="radio" aria-checked="false" data-motion="high">High</button>
-            </div>
-          </div>
-          <label class="switch"><input id="reduce-motion" type="checkbox"><span class="track" aria-hidden="true"></span><span>Reduce motion</span></label>
-          <label class="switch"><input id="breath-text" type="checkbox" checked><span class="track" aria-hidden="true"></span><span>Show &ldquo;Breathe in / out&rdquo; text</span></label>
         </div>
       </div>
+      <p id="visual-profile-suggest" class="muted small" hidden style="text-align:center"></p>
 
-      <h2 class="row-title">Visual + sound pairings</h2>
-      <p class="muted">One tap sets both. You can change either one afterwards.</p>
+      <div class="env-mosaic" id="env-mosaic" aria-label="Environments"></div>
+
+      <div class="focus-settings focus-settings-open">
+        <div class="setting">
+          <span class="label-sm">Movement</span>
+          <div class="seg" role="radiogroup" aria-label="Visual movement">
+            <button role="radio" aria-checked="false" data-motion="still">Still</button>
+            <button role="radio" aria-checked="true" data-motion="low">Low</button>
+            <button role="radio" aria-checked="false" data-motion="medium">Medium</button>
+            <button role="radio" aria-checked="false" data-motion="high">High</button>
+          </div>
+        </div>
+        <label class="switch"><input id="reduce-motion" type="checkbox"><span class="track" aria-hidden="true"></span><span>Reduce motion</span></label>
+        <label class="switch"><input id="breath-text" type="checkbox" checked><span class="track" aria-hidden="true"></span><span>Show &ldquo;Breathe in / out&rdquo; text</span></label>
+        <span id="current-visual-name" class="sr-only">Ocean Waves</span>
+        <span id="focus-setup-sound" class="sr-only"></span>
+      </div>
+
+      <h2 class="row-title">Environments to try</h2>
+      <p class="muted">One tap sets both sound and visual. Change either afterwards.</p>
       <div id="pairings" class="pair-grid"></div>
 
-      <h2 class="row-title">My experiences</h2>
+      <h2 class="row-title">My environments</h2>
       <div id="fav-list" class="fav-grid"></div>
 
-      <h2 class="row-title" id="visual-library-title">Visual library</h2>
-      <div id="visual-library"></div>
+      <details class="more-visuals">
+        <summary><h2 class="row-title" id="visual-library-title" style="display:inline">All visuals</h2> <span class="muted small">— nature, abstract, sound-reactive, interactive, breathing</span></summary>
+        <div id="visual-library"></div>
+      </details>
     </section>
+
+    <!-- What do you want to focus on? (from Sounds → Add visual) -->
+    <div id="visual-chooser" class="chooser" hidden role="dialog" aria-modal="true" aria-labelledby="chooser-title">
+      <div class="chooser-inner">
+        <button id="chooser-close" class="btn btn-ghost btn-sm chooser-close">Not now</button>
+        <h2 id="chooser-title" class="h1">What do you want to focus on?</h2>
+        <p class="muted">Your sound keeps playing. Pick a place to rest your eyes.</p>
+        <div id="chooser-list" class="chooser-list"></div>
+      </div>
+    </div>
 
     <!-- ============ MIXER ============ -->
     <section id="view-mixer" class="view" aria-labelledby="mixer-title" hidden>
@@ -605,7 +614,7 @@
   <script src="audio.js?v=17" defer></script>
   <script src="visuals.js?v=19" defer></script>
   <script src="field.js?v=2" defer></script>
-  <script src="app.js?v=22" defer></script>
-  <script src="focus.js?v=24" defer></script>
+  <script src="app.js?v=24" defer></script>
+  <script src="focus.js?v=26" defer></script>
 </body>
 </html>
