@@ -111,6 +111,8 @@
     const groups = [...new Set(engine.defs().map(d => d.group))];
     groups.forEach(g => {
       const h = document.createElement('h2'); h.className = 'group-title'; h.textContent = g; host.appendChild(h);
+      if (g === 'Broadband') { const l = document.createElement('p'); l.className = 'group-learn muted small'; l.innerHTML = 'Not sure which to pick? <a href="learn/white-vs-pink-vs-brown-noise/">White vs pink vs brown noise for tinnitus →</a>'; host.appendChild(l); }
+      if (g === 'Nature') { const l = document.createElement('p'); l.className = 'group-learn muted small'; l.innerHTML = '<a href="learn/nature-sounds-vs-noise-for-tinnitus/">Nature sounds vs noise — which should you use? →</a>'; host.appendChild(l); }
       const grid = document.createElement('div'); grid.className = 'sound-grid'; grid.setAttribute('role', 'list');
       engine.defs().filter(d => d.group === g).forEach(d => {
         const card = document.createElement('div'); card.className = 'sound-card'; card.style.setProperty('--hue', d.hue); card.dataset.id = d.id; card.setAttribute('role', 'listitem');
@@ -222,7 +224,7 @@
     $('#sleep-sounds').textContent = names.join(' · ');
     const fs = $('#focus-setup-sound'); if (fs) fs.textContent = names.length ? names.join(' + ') : 'No sound yet';
     bg.setMode(engine.isActive('rain') ? 'rain' : 'calm');
-    document.title = names.length ? `${names[0]}${names.length > 1 ? ' +' + (names.length - 1) : ''} — Softwave` : 'Softwave — Find a comfortable sound for tinnitus';
+    document.title = names.length ? `${names[0]}${names.length > 1 ? ' +' + (names.length - 1) : ''} — Softwave` : 'Softwave — Free Tinnitus Sound Generator & Masking Sounds';
   }
   let lastIds = new Set();
   engine.on((type, data) => {
@@ -387,4 +389,10 @@
   // ---------- init ----------
   renderSounds(); renderPresets(); renderMixer([]); updatePlayer();
   showView((location.hash || '#sounds').slice(1));
+  // Deep links from the static pages: ?sound=<id> highlights a sound; ?preset=<id> highlights a preset.
+  (function deepLinks() {
+    const q = new URLSearchParams(location.search); const sid = q.get('sound'), pid = q.get('preset');
+    if (sid && engine.def(sid) && !engine.def(sid).lab) { store.set('welcomed', true); welcome.hidden = true; showView('sounds'); const card = $(`.sound-card[data-id="${sid}"]`); if (card) { card.classList.add('highlight'); setTimeout(() => { card.scrollIntoView({ behavior: 'smooth', block: 'center' }); $('.card-btn', card).focus(); toast(`Tap ${engine.def(sid).name} to play it — it starts quietly.`, 4000); }, 250); } }
+    if (pid) { const p = PRESETS.find(x => x.id === pid); if (p) { store.set('welcomed', true); welcome.hidden = true; showView('sounds'); setTimeout(() => { const chip = $(`#presets [data-preset="${pid}"]`); if (chip) { chip.classList.add('active'); chip.focus(); toast(`Tap “${p.name}” to start the preset.`, 4000); } }, 250); } }
+  })();
 })();

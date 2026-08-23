@@ -52,7 +52,7 @@ body {
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 :focus-visible { outline: 3px solid var(--ring); outline-offset: 3px; border-radius: 10px; }
 h1, h2, h3 { margin: 0 0 .35em; line-height: 1.15; letter-spacing: -0.015em; }
-h1 { font-size: clamp(2rem, 4.5vw, 3.2rem); font-weight: 800; }
+h1, .h1 { font-size: clamp(2rem, 4.5vw, 3.2rem); font-weight: 800; margin: 0 0 .35em; line-height: 1.15; letter-spacing: -0.015em; }
 h2 { font-size: 1.25rem; font-weight: 700; }
 p { margin: 0 0 .8em; }
 .lead { font-size: clamp(1.05rem, 1.6vw, 1.25rem); color: var(--muted); max-width: 46ch; }
@@ -487,3 +487,17 @@ input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.12); }
 :root[data-theme="dark"] .add-pills .add-pill .ico { color: hsl(var(--hue) 80% 75%); }
 .add-pills .add-pill:disabled { opacity: .45; cursor: default; }
 .add-pills .add-pill.adding { opacity: .6; border-color: var(--accent); }
+
+/* SEO / static-page hooks inside the app */
+.skip-link { position: absolute; left: -999px; top: 8px; background: var(--accent); color: #fff; padding: 10px 14px; border-radius: 10px; z-index: 100; text-decoration: none; font-weight: 700; }
+.skip-link:focus { left: 8px; }
+.group-learn { margin: -8px 0 12px; }
+.group-learn a { color: var(--accent); text-decoration: none; font-weight: 600; }
+.group-learn a:hover { text-decoration: underline; }
+.about-tool { margin: 48px auto 10px; max-width: 960px; padding: clamp(18px, 3vw, 28px); border-radius: var(--radius); border: 1px solid var(--border); background: var(--card); box-shadow: var(--shadow); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+.about-tool h2 { font-size: 1.25rem; text-wrap: balance; }
+.about-tool h3 { font-size: .95rem; margin-bottom: 4px; }
+.about-tool p { color: var(--muted); font-size: .95rem; }
+.about-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; margin: 14px 0; }
+.about-tool a { color: var(--accent); }
+.sound-card.highlight { border-color: var(--accent); box-shadow: 0 0 0 4px var(--ring), var(--shadow); }

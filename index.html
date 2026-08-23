@@ -3,8 +3,22 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Softwave — Find a comfortable sound for tinnitus</title>
-  <meta name="description" content="Softwave is a calm sound studio for tinnitus comfort: broadband noise, nature sounds, a frequency generator, a sound mixer and a sleep timer. Sound masking and relaxation — not a medical treatment.">
+  <title>Softwave — Free Tinnitus Sound Generator & Masking Sounds</title>
+  <meta name="description" content="Free tinnitus sound generator: white, pink and brown noise, rain, ocean and more. Mix up to five sounds, explore frequencies, set a sleep timer. No account, works offline.">
+  <link rel="canonical" href="https://debra-lang.github.io/softwave/">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Softwave">
+  <meta property="og:title" content="Softwave — Free Tinnitus Sound Generator">
+  <meta property="og:description" content="Masking sounds, a five-layer mixer, a frequency generator, guided sound matching, sleep timer and calm visuals. Free, no account, works offline.">
+  <meta property="og:url" content="https://debra-lang.github.io/softwave/">
+  <meta property="og:image" content="https://debra-lang.github.io/softwave/og-image.png">
+  <meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Softwave — free tinnitus sound generator">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Softwave — Free Tinnitus Sound Generator">
+  <meta name="twitter:description" content="Masking sounds, mixer, frequency tools, sleep timer and calm visuals for tinnitus comfort. Free, no account.">
+  <meta name="twitter:image" content="https://debra-lang.github.io/softwave/og-image.png">
   <meta name="theme-color" content="#0b1020" media="(prefers-color-scheme: dark)">
   <meta name="theme-color" content="#f4f6fb" media="(prefers-color-scheme: light)">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -18,15 +32,25 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@graph":[
+    {"@type":"Organization","@id":"https://debra-lang.github.io/softwave/#org","name":"Softwave","url":"https://debra-lang.github.io/softwave/","logo":"https://debra-lang.github.io/softwave/icons/icon-512.png","sameAs":["https://github.com/debra-lang/softwave"]},
+    {"@type":"WebSite","@id":"https://debra-lang.github.io/softwave/#website","url":"https://debra-lang.github.io/softwave/","name":"Softwave","description":"Free tinnitus sound generator: masking sounds, mixer, frequency tools, sleep mode and calm visuals.","publisher":{"@id":"https://debra-lang.github.io/softwave/#org"},"inLanguage":"en"},
+    {"@type":"WebApplication","@id":"https://debra-lang.github.io/softwave/#app","name":"Softwave — Tinnitus Sound Studio","url":"https://debra-lang.github.io/softwave/","applicationCategory":"HealthApplication","operatingSystem":"Any (web browser)","browserRequirements":"Requires JavaScript and Web Audio","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"isAccessibleForFree":true,"description":"A free tinnitus sound generator with white, pink and brown noise, nature sounds, a five-channel mixer, a frequency generator, guided sound matching, sleep timer with fade-out, and calm visuals. Sound masking and relaxation — not a medical treatment.","featureList":["14 synthesised, seamless sounds","Mixer with up to 5 layers and L/R balance","Frequency generator 20 Hz – 16 kHz","Guided tinnitus sound matching","Sleep timer with gradual fade","Visual Focus mode","Works offline, installable, no account"],"screenshot":"https://debra-lang.github.io/softwave/og-image.png","publisher":{"@id":"https://debra-lang.github.io/softwave/#org"}},
+    {"@type":"WebPage","@id":"https://debra-lang.github.io/softwave/","url":"https://debra-lang.github.io/softwave/","name":"Softwave — Free Tinnitus Sound Generator","isPartOf":{"@id":"https://debra-lang.github.io/softwave/#website"},"about":{"@id":"https://debra-lang.github.io/softwave/#app"},"dateModified":"2026-08-22"}
+  ]}
+  </script>
+
 </head>
 <body>
+  <a class="skip-link" href="#main">Skip to content</a>
   <canvas id="bg" aria-hidden="true"></canvas>
 
   <!-- First-time welcome -->
   <div id="welcome" class="welcome" role="dialog" aria-modal="true" aria-labelledby="welcome-title" hidden>
     <div class="welcome-card">
       <div class="logo-mark" aria-hidden="true"><span></span><span></span><span></span></div>
-      <h1 id="welcome-title">Welcome to Softwave</h1>
+      <h2 class="h1" id="welcome-title">Welcome to Softwave</h2>
       <p class="lead">A calm space to find sounds that make tinnitus less noticeable.</p>
       <ol class="steps">
         <li><span class="step-num">1</span><div><strong>Choose a sound</strong><p>Try several sounds and see which feels most comfortable.</p></div></li>
@@ -78,13 +102,24 @@
       </div>
 
       <div id="sound-groups"></div>
+
+      <section class="about-tool" aria-labelledby="about-tool-title">
+        <h2 id="about-tool-title">A free tinnitus sound generator for masking, relaxation and sleep</h2>
+        <p>Softwave plays steady, seamless sounds that can make ringing, buzzing or hissing in the ears less noticeable. Choose from white, pink and brown noise, gentle static, rain, ocean waves, flowing water, a waterfall, forest, wind, a fan, a fireplace and night sounds. Every sound is generated live in your browser, so nothing loops with a click and nothing needs to download.</p>
+        <div class="about-grid">
+          <div><h3>What it does</h3><p>Layer up to five sounds in the <a href="#mixer" data-view="mixer">mixer</a>, explore a <a href="#frequency" data-view="frequency">frequency generator</a>, try guided <a href="#match" data-view="match">tinnitus sound matching</a>, set a <a href="#sleep" data-view="sleep">sleep timer with gradual fade-out</a>, and watch calm <a href="#focus" data-view="focus">visuals</a> while you listen.</p></div>
+          <div><h3>Who it is for</h3><p>People with tinnitus who want an easy, free way to add a comfortable background sound — at a desk, in a quiet room or at bedtime. It works with speakers, headphones or a pillow speaker, on phones, tablets and computers.</p></div>
+          <div><h3>How to start</h3><p>Tap a sound, keep the level low — just enough to blend with the tinnitus — and try others until one feels comfortable. There is no single sound that works for everyone.</p></div>
+        </div>
+        <p class="muted small">Sound masking and relaxation — not a medical treatment. Read <a href="learn/tinnitus-sound-masking/">what tinnitus masking is</a>, compare <a href="learn/white-vs-pink-vs-brown-noise/">white, pink and brown noise</a>, or browse all <a href="learn/">guides</a>. <a href="tinnitus-sound-generator/">More about the sound generator</a> · <a href="about/">About Softwave</a>.</p>
+      </section>
     </section>
 
 
     <!-- ============ VISUAL FOCUS ============ -->
     <section id="view-focus" class="view" aria-labelledby="focus-title" hidden>
       <div class="hero">
-        <h1 id="focus-title">Visual Focus</h1>
+        <h2 class="h1" id="focus-title">Visual Focus</h2>
         <p class="lead">Something calm to look at while you listen. Pick a sound, pick a visual, then let Focus Mode take over the screen.</p>
         <p class="hint">An optional way to relax and rest your attention. It is not a treatment &mdash; just a more pleasant place to be.</p>
       </div>
@@ -135,7 +170,7 @@
     <!-- ============ MIXER ============ -->
     <section id="view-mixer" class="view" aria-labelledby="mixer-title" hidden>
       <div class="hero compact">
-        <h1 id="mixer-title">Sound Mixer</h1>
+        <h2 class="h1" id="mixer-title">Sound Mixer</h2>
         <p class="lead">Blend up to five sounds. Each has its own level and left/right balance.</p>
       </div>
       <div class="mixer-toolbar">
@@ -160,7 +195,7 @@
     <!-- ============ FREQUENCY ============ -->
     <section id="view-frequency" class="view" aria-labelledby="freq-title" hidden>
       <div class="hero compact">
-        <h1 id="freq-title">Frequency Generator</h1>
+        <h2 class="h1" id="freq-title">Frequency Generator</h2>
         <p class="lead">Generate a continuous tone and shape it to your liking. Start quiet.</p>
       </div>
       <div class="freq-panel card">
@@ -213,7 +248,7 @@
     <!-- ============ FIND MY SOUND ============ -->
     <section id="view-match" class="view" aria-labelledby="match-title" hidden>
       <div class="hero compact">
-        <h1 id="match-title">Find My Tinnitus Sound</h1>
+        <h2 class="h1" id="match-title">Find My Tinnitus Sound</h2>
         <p class="lead">If you're comfortable doing so, use these controls to find a tone that sounds similar to your tinnitus. Keep the volume low and comfortable.</p>
       </div>
       <div class="card match-card">
@@ -287,7 +322,7 @@
     <!-- ============ SLEEP ============ -->
     <section id="view-sleep" class="view" aria-labelledby="sleep-title" hidden>
       <div class="hero compact">
-        <h1 id="sleep-title">Sleep Mode</h1>
+        <h2 class="h1" id="sleep-title">Sleep Mode</h2>
         <p class="lead">A darker, simpler screen with a timer that fades the sound away gently.</p>
       </div>
       <div class="card sleep-card">
@@ -318,7 +353,7 @@
     <section id="view-lab" class="view lab-view" aria-labelledby="lab-title" hidden>
       <div class="hero compact">
         <div class="lab-eyebrow">Experiments</div>
-        <h1 id="lab-title">Try new ways of interacting with sound, attention, and visual focus.</h1>
+        <h2 class="h1" id="lab-title">Try new ways of interacting with sound, attention, and visual focus.</h2>
         <p class="lead">These experimental tools are optional and are not medical treatments.</p>
       </div>
       <div class="lab-notice">
@@ -364,7 +399,7 @@
     <!-- ============ LEARN ============ -->
     <section id="view-learn" class="view" aria-labelledby="learn-title" hidden>
       <div class="hero compact">
-        <h1 id="learn-title">Listen well</h1>
+        <h2 class="h1" id="learn-title">Listen well</h2>
         <p class="lead">A few simple principles from tinnitus and hearing-health organisations.</p>
       </div>
       <div class="learn-grid">
@@ -399,6 +434,19 @@
         <article class="card">
           <h2>Privacy</h2>
           <p>Softwave works without an account. Your favourites, presets and settings are stored only on this device. Nothing about your hearing is collected or sent anywhere, and the optional "Find My Sound" result is saved only if you choose to.</p>
+        </article>
+        <article class="card">
+          <h2>Guides</h2>
+          <ul class="bullets">
+            <li><a href="learn/tinnitus-sound-masking/">What is tinnitus masking?</a></li>
+            <li><a href="learn/white-vs-pink-vs-brown-noise/">White vs pink vs brown noise for tinnitus</a></li>
+            <li><a href="learn/find-a-comfortable-tinnitus-masking-sound/">How to find a comfortable masking sound</a></li>
+            <li><a href="learn/tinnitus-and-sleep/">Using sound at night</a></li>
+            <li><a href="learn/tinnitus-frequency/">Understanding tinnitus frequency</a></li>
+            <li><a href="learn/how-loud-should-tinnitus-masking-be/">How loud should masking sound be?</a></li>
+            <li><a href="learn/">All guides →</a></li>
+          </ul>
+          <p class="muted small"><a href="about/">About</a> · <a href="how-it-works/">How it works</a> · <a href="research-and-sources/">Research &amp; sources</a> · <a href="privacy/">Privacy</a> · <a href="contact/">Contact</a></p>
         </article>
         <article class="card disclaimer">
           <h2>Important</h2>
@@ -506,10 +554,10 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script src="audio.js"></script>
-  <script src="visuals.js"></script>
-  <script src="app.js"></script>
-  <script src="focus.js"></script>
-  <script src="lab.js"></script>
+  <script src="audio.js" defer></script>
+  <script src="visuals.js" defer></script>
+  <script src="app.js" defer></script>
+  <script src="focus.js" defer></script>
+  <script src="lab.js" defer></script>
 </body>
 </html>

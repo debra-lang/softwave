@@ -34,3 +34,15 @@ a soft limiter prevents spikes when layering, and a warning shows above 75% mast
 
 Sources used for guidance copy: NIDCD, American Tinnitus Association, AAO-HNS Clinical Practice
 Guideline: Tinnitus (2014), WHO-ITU safe-listening standard.
+
+## SEO pages and measurement
+- `site-content.js` + `build-site.js` generate the crawlable landing pages (`/tinnitus-sound-generator/` …), the Learn library (`/learn/...`),
+  trust pages, `sitemap.xml`, `robots.txt`, `404.html` and `og-image.png`. Run `node build-site.js` after editing content, then commit.
+- `SEO-AUDIT.md` — audit, keyword/intent map and competitor notes. `RESEARCH.md` — evidence notes for experiments.
+- **Search Console / Bing Webmaster:** paste the verification tokens into `VERIFY` in `build-site.js`, rebuild, deploy, then submit
+  `https://debra-lang.github.io/softwave/sitemap.xml` in both consoles. Bing: run `node indexnow.js` after each deploy (key file is committed).
+- **Analytics:** none installed. To add cookie-free page stats, put the snippet in `ANALYTICS` in `build-site.js` (static pages) and in `index.html`;
+  never log health information, tinnitus frequencies or matching results.
+- **What to watch:** impressions/clicks/queries per page and CTR in Search Console; indexed pages (sitemap report); Core Web Vitals (CrUX);
+  engagement with the tool (e.g. a single "sound played" event counter if analytics are added).
+- Moving to a custom domain: change `SITE`/`BASE` in `build-site.js`, the canonical/OG URLs in `index.html`, `HOST`/`BASE` in `indexnow.js`, rebuild.

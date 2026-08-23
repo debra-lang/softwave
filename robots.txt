@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://debra-lang.github.io/softwave/sitemap.xml

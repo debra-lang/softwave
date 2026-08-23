@@ -1,0 +1,48 @@
+/* Softwave — static page layout (tool, learn and trust pages). Reuses tokens from styles.css. */
+.site-page { padding-bottom: 0; }
+.skip-link { position: absolute; left: -999px; top: 8px; background: var(--accent); color: #fff; padding: 10px 14px; border-radius: 10px; z-index: 100; }
+.skip-link:focus { left: 8px; }
+.site-main { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: clamp(18px, 3vw, 36px) clamp(14px, 3vw, 32px) 40px; }
+.crumbs ol { list-style: none; display: flex; flex-wrap: wrap; gap: 6px; padding: 0; margin: 0 0 18px; font-size: .85rem; color: var(--muted); }
+.crumbs li + li::before { content: "›"; margin-right: 6px; }
+.crumbs a { color: var(--muted); }
+.crumbs a:hover { color: var(--accent); }
+.prose { font-size: 1.05rem; line-height: 1.65; }
+.prose .page-head { margin-bottom: 22px; }
+.prose .eyebrow { font-size: .75rem; text-transform: uppercase; letter-spacing: .14em; font-weight: 800; color: var(--accent-2); margin: 0 0 6px; }
+.prose h1 { font-size: clamp(1.9rem, 4vw, 2.8rem); text-wrap: balance; margin-bottom: 10px; }
+.prose h2 { font-size: 1.35rem; margin: 30px 0 8px; text-wrap: balance; }
+.prose h3 { font-size: 1.05rem; margin: 18px 0 4px; }
+.prose p, .prose li { max-width: 70ch; }
+.prose ul, .prose ol { padding-left: 22px; }
+.prose li { margin-bottom: 6px; }
+.prose a { color: var(--accent); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+.prose a.btn { text-decoration: none; }
+.prose a.btn-primary, .try-box a.btn-primary { color: #fff; }
+.prose table { border-collapse: collapse; width: 100%; margin: 10px 0 16px; font-size: .95rem; }
+.prose th, .prose td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.prose th { font-size: .78rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.prose .table-wrap, .prose table { overflow-x: auto; display: block; }
+.try-box { margin: 22px 0 26px; padding: 18px 20px; border-radius: var(--radius); background: var(--card); border: 1px solid var(--border); box-shadow: var(--shadow); backdrop-filter: blur(12px); }
+.try-box h2 { margin: 0 0 10px; font-size: 1.05rem; }
+.try-box ul { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 10px; }
+.try-box li { display: flex; flex-direction: column; gap: 4px; }
+.try-box p { margin: 10px 0 0; }
+.faq h3 { margin-top: 16px; }
+.sources { margin-top: 30px; padding-top: 16px; border-top: 1px solid var(--border); }
+.sources h2 { font-size: 1rem; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin: 0 0 8px; }
+.sources ol { font-size: .9rem; color: var(--muted); }
+.disclaimer-line { border-left: 3px solid var(--accent-2); padding: 8px 12px; margin: 22px 0; font-size: .92rem; color: var(--muted); background: var(--accent-soft); border-radius: 0 10px 10px 0; }
+.learn-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; margin: 18px 0 10px; }
+.learn-card { display: flex; flex-direction: column; gap: 6px; padding: 18px; border-radius: var(--radius); background: var(--card); border: 1px solid var(--border); box-shadow: var(--shadow); text-decoration: none !important; color: var(--text); transition: transform .2s, border-color .2s; }
+.learn-card:hover { transform: translateY(-2px); border-color: var(--accent); }
+.learn-card h2 { margin: 0; font-size: 1.05rem; }
+.learn-card p { margin: 0; color: var(--muted); font-size: .9rem; }
+.link-list { columns: 2; gap: 24px; }
+.site-footer { position: relative; z-index: 1; max-width: 1180px; margin: 30px auto 0; padding: 26px clamp(14px, 3vw, 32px) 40px; border-top: 1px solid var(--border); color: var(--muted); font-size: .9rem; }
+.site-footer-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 22px; }
+.site-footer ul { list-style: none; padding: 0; margin: 6px 0 0; display: flex; flex-direction: column; gap: 5px; }
+.site-footer a { color: var(--text); text-decoration: none; }
+.site-footer a:hover { color: var(--accent); }
+.site-footer-note { margin-top: 22px; font-size: .82rem; max-width: 80ch; }
+@media (max-width: 600px) { .link-list { columns: 1; } }
