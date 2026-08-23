@@ -442,11 +442,11 @@
   }
   // "What do you want to focus on?" chooser (from Sounds → Add visual). Sound keeps playing.
   function openChooser() {
-    const ch = $('#visual-chooser'); ch.hidden = false; document.body.style.overflow = 'hidden'; const host = $('#chooser-list'); host.innerHTML = '';
+    const ch = $('#visual-chooser'); ch.hidden = false; ch.style.display = ''; document.body.style.overflow = 'hidden'; const host = $('#chooser-list'); host.innerHTML = '';
     ['ocean', 'rainwindow', 'nightsky', 'float', 'ripple', 'flow'].forEach(id => { const v = byId[id]; const b = document.createElement('button'); b.className = 'chooser-tile'; b.innerHTML = `<canvas width="300" height="200" aria-hidden="true"></canvas><span>${v.name}</span>`; const c = $('canvas', b); previews.set(c, { inst: v.make(), visible: true }); b.addEventListener('click', () => { closeChooser(); setVisual(id); enterViaTransition(id); }); host.appendChild(b); });
     $('.chooser-tile', host).focus();
   }
-  function closeChooser() { const ch = $('#visual-chooser'); ch.hidden = true; document.body.style.overflow = ''; $$('#chooser-list canvas').forEach(c => previews.delete(c)); }
+  function closeChooser() { const ch = $('#visual-chooser'); ch.hidden = true; ch.style.display = 'none'; document.body.style.overflow = ''; $$('#chooser-list canvas').forEach(c => previews.delete(c)); }
   $('#chooser-close').addEventListener('click', closeChooser); $('#visual-chooser').addEventListener('keydown', e => { if (e.key === 'Escape') closeChooser(); });
   $('#env-enter').addEventListener('click', () => enterFocus());
   function renderLibrary() {

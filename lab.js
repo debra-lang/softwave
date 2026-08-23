@@ -161,6 +161,10 @@
   function renderProfile() {
     const pr = profile(); const el = $('#lab-profile'); if (!el) return;
     let fp = $('.profile-fp', el.parentElement); if (!fp) { fp = document.createElement('div'); fp.className = 'profile-fp'; fp.innerHTML = '<canvas aria-label="Your sound fingerprint — an abstract picture of your preferences"></canvas>'; el.parentElement.insertBefore(fp, el); liveShape($('canvas', fp), () => { const pp = profileParams(); return { p: pp ? Object.assign({}, pp, { nature: profile().nature }) : Object.assign(DEF(), { colour: 0.45, width: 0.5 }), live: false, speed: 0.6, scale: 0.4 }; }); }
+    if (!pr.rounds) {
+      el.innerHTML = `<p class="muted">Your sound preferences will appear here after you complete Find My Sound.</p><div class="btn-row"><button class="btn btn-primary btn-sm" data-p="find">Help Me Find My Sound</button></div>`;
+      $('[data-p="find"]', el).addEventListener('click', () => openExperiment('discovery')); return;
+    }
     el.innerHTML = `${pr.rounds ? `<p>You seem to prefer:</p><ul class="bullets">${pr.lines.map(l => `<li>${l}</li>`).join('')}</ul><p class="muted small">Learned from ${pr.rounds} comparison${pr.rounds === 1 ? '' : 's'} in Find My Sound.</p>` : `<p>Nothing learned yet. Run <strong>Help Me Find My Sound</strong> — about ten quick comparisons — and Find My Quiet Sound will summarise what you preferred here.</p>`}
       <div class="btn-row"><button class="btn btn-primary btn-sm" data-p="play" ${pr.rounds ? '' : 'disabled'}>Play my sound</button><button class="btn btn-secondary btn-sm" data-p="sound" ${pr.rounds ? '' : 'disabled'}>Fine tune</button><button class="btn btn-secondary btn-sm" data-p="visual" ${pr.rounds ? '' : 'disabled'}>Add visual</button><button class="btn btn-secondary btn-sm" data-p="sleep" ${pr.rounds ? '' : 'disabled'}>Build sleep session</button><button class="btn btn-ghost btn-sm" data-p="explore">Try another experiment</button></div>
       <p class="muted small">A sound preference profile — not a hearing profile, not a diagnosis. Built only from your own taps; stored only on this device. <button class="btn btn-ghost btn-sm" data-p="clear">Clear</button></p>`;

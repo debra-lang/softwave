@@ -68,7 +68,7 @@
   function ensureLab() {
     if (window.softwaveLab) return Promise.resolve();
     if (labPromise) return labPromise;
-    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=30'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
+    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=31'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
     return labPromise;
   }
   window.softwaveEnsureLab = ensureLab;
@@ -488,7 +488,7 @@
   // ---------- Back: closes any open overlay first, then steps back through views ----------
   function goBack() {
     if (transit.active) { clearTransit(); }
-    const overlays = [['#visual-chooser', () => { const ch = $('#visual-chooser'); ch.hidden = true; document.body.style.overflow = ''; }], ['#now', () => closeNow()], ['#focus-screen', () => window.softwaveFocus && softwaveFocus.exitFocus()], ['#eyes-screen', () => window.softwaveLab && softwaveLab.stop()], ['#sleep-screen', () => exitSleep()], ['#lab-detail', () => { if (window.softwaveLab && softwaveLab.isRunning()) softwaveLab.stop('Experiment stopped'); const d = $('#lab-detail'); d.hidden = true; d.innerHTML = ''; }]];
+    const overlays = [['#visual-chooser', () => { const ch = $('#visual-chooser'); ch.hidden = true; ch.style.display = 'none'; document.body.style.overflow = ''; }], ['#now', () => closeNow()], ['#focus-screen', () => window.softwaveFocus && softwaveFocus.exitFocus()], ['#eyes-screen', () => window.softwaveLab && softwaveLab.stop()], ['#sleep-screen', () => exitSleep()], ['#lab-detail', () => { if (window.softwaveLab && softwaveLab.isRunning()) softwaveLab.stop('Experiment stopped'); const d = $('#lab-detail'); d.hidden = true; d.innerHTML = ''; }]];
     for (const [sel, close] of overlays) { const el = $(sel); if (el && !el.hidden) { close(); return; } }
     if (history.length > 1 && location.hash && location.hash !== '#sounds') history.back(); else showView('sounds');
   }
@@ -510,7 +510,11 @@
   let deferredPrompt = null;
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; $('#install-btn').hidden = false; });
   $('#install-btn').addEventListener('click', async () => { if (!deferredPrompt) return; deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; $('#install-btn').hidden = true; });
-  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => { }));
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').then(reg => { try { reg.update(); } catch (_) { } }).catch(() => { });
+    // when a new version takes control, reload once so nobody is left on a stale shell (never while sound is playing)
+    let reloaded = false; navigator.serviceWorker.addEventListener('controllerchange', () => { if (reloaded || !navigator.serviceWorker.controller) return; reloaded = true; if (!engine.isPlaying) location.reload(); });
+  });
 
   window.softwaveApp = { loadPreset, setMaster, togglePlay, toast, store, PRESETS, paintRange, showView, renderPresets };
 
