@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
+<title>Softwave — design concepts (internal)</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{--ink:#e9edf8;--mute:#9aa5c6;--bg:#0a0e1c}
+  *{box-sizing:border-box}body{margin:0;font-family:Manrope,system-ui,sans-serif;background:#111521;color:var(--ink);padding:40px 24px}
+  h1{font-weight:800;font-size:2rem;margin:0 0 6px}h2{font-size:1.2rem;margin:46px 0 8px;letter-spacing:.02em}p.note{color:var(--mute);max-width:80ch;margin:0 0 14px}
+  .row{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:18px}
+  .shot{position:relative;border-radius:20px;overflow:hidden;min-height:300px;box-shadow:0 20px 50px rgba(0,0,0,.45)}
+  .shot canvas{position:absolute;inset:0;width:100%;height:100%}
+  .lab{position:absolute;top:12px;left:12px;font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;font-weight:800;padding:4px 10px;border-radius:999px;background:rgba(0,0,0,.45);color:#fff;z-index:3}
+  .ui{position:relative;z-index:2;padding:36px 30px;min-height:300px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center}
+  .A{background:linear-gradient(180deg,#f7f6f2,#eef0f6);color:#141a2e}.A .m{color:#6a7390}
+  .B{background:radial-gradient(120% 80% at 70% 20%,#16305a 0%,#0a1226 55%,#070a16 100%)}.B .m{color:#a9b6d8}
+  .C{background:linear-gradient(180deg,#0b0f19,#0d1322)}.C .m{color:#8fa0c8}
+  .brand{font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;font-weight:800;opacity:.75}
+  .hl{font-size:2.3rem;font-weight:800;line-height:1.05;margin:10px 0 8px;letter-spacing:-.02em;text-wrap:balance}
+  .A .hl{font-weight:700}.B .hl{font-weight:300;font-size:2.6rem}.C .hl{font-weight:600}
+  .btn{display:inline-block;padding:12px 26px;border-radius:999px;font-weight:700;margin:16px 6px 0;font-size:.95rem}
+  .A .p{background:#141a2e;color:#fff}.A .s{border:1px solid #c9cfdd;color:#141a2e}
+  .B .p{background:rgba(255,255,255,.92);color:#0a1226}.B .s{border:1px solid rgba(255,255,255,.35);color:#fff}
+  .C .p{background:linear-gradient(135deg,#7c9cff,#6fd1e0);color:#0b1020}.C .s{border:1px solid rgba(255,255,255,.2);color:#dfe6ff;backdrop-filter:blur(8px)}
+  .player{display:flex;flex-direction:column;align-items:center;gap:10px}
+  .orb{width:150px;height:150px;border-radius:50%;display:grid;place-items:center;position:relative}
+  .orb .core{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;font-size:1.3rem}
+  .A .core{background:#141a2e;color:#fff}.B .core{background:rgba(255,255,255,.9);color:#0a1226}.C .core{background:#7c9cff;color:#0b1020}
+  .vol{width:220px;height:4px;border-radius:2px;background:rgba(127,127,127,.3);position:relative;margin-top:8px}.vol i{position:absolute;left:0;top:0;height:100%;width:38%;border-radius:2px;background:currentColor}
+  .small{font-size:.78rem;letter-spacing:.1em;text-transform:uppercase;opacity:.7}
+  .cmp{border-radius:14px;padding:16px 18px;background:#171c2b;margin-top:10px;font-size:.92rem;line-height:1.5}
+  .cmp b{color:#fff}
+  .glass{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(12px);border-radius:16px;padding:14px 18px}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:8px}.chip{padding:6px 12px;border-radius:999px;font-size:.8rem;font-weight:700;background:rgba(127,140,200,.18)}
+  .grid7 .shot{min-height:380px}
+  .sl{width:260px;margin:10px auto 0;display:flex;align-items:center;gap:10px;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;opacity:.8}.sl i{flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,.25);position:relative}.sl i::after{content:"";position:absolute;top:-6px;left:58%;width:15px;height:15px;border-radius:50%;background:#fff;box-shadow:0 0 0 4px rgba(255,255,255,.2)}
+  .two{display:flex;gap:24px;justify-content:center;margin-top:8px}.two>div{display:flex;flex-direction:column;align-items:center;gap:6px}
+  .fp{display:flex;align-items:center;gap:18px;text-align:left}.fp ul{margin:0;padding-left:18px;line-height:1.6;font-size:.95rem}
+  .cur{filter:saturate(.6);opacity:.9}
+  .current-img{width:100%;display:block;border-radius:20px}
+</style></head>
+<body>
+<h1>Softwave — visual direction</h1>
+<p class="note">Internal concept page (not indexed). Three directions for the hero and the player, then the hybrid applied to seven screens. All mockups below are live canvas/CSS, not images.</p>
+
+<h2>1 · Three directions — homepage hero</h2>
+<div class="row">
+  <div class="shot A"><span class="lab">A · Quiet luxury</span><canvas data-viz="rings" data-dark="0"></canvas><div class="ui"><div class="brand">Softwave</div><div class="hl">Your tinnitus is personal.<br>Your sound should be too.</div><div class="m">Explore sounds, compare what feels comfortable, and discover your personal sound environment.</div><div><span class="btn p">Start listening</span><span class="btn s">Help me find my sound</span></div></div></div>
+  <div class="shot B"><span class="lab">B · Immersive ambient</span><canvas data-viz="waves"></canvas><div class="ui"><div class="brand">Softwave</div><div class="hl">Find your quiet.</div><div class="m">Your tinnitus is personal. Your sound should be too.</div><div><span class="btn p">Start listening</span><span class="btn s">Help me find my sound</span></div></div></div>
+  <div class="shot C"><span class="lab">C · Modern sound lab</span><canvas data-viz="field"></canvas><div class="ui"><div class="brand">Softwave · sound studio</div><div class="hl">Shape the sound you want to hear.</div><div class="m">Compare, sculpt and save a sound that is yours.</div><div><span class="btn p">Start listening</span><span class="btn s">Open the Lab</span></div></div></div>
+</div>
+<div class="cmp"><b>Read:</b> A is calm and trustworthy but risks feeling generic; B carries the most emotion and makes "enter your sound environment" literal; C is the right personality for the Lab but too technical for a first screen. <b>Hybrid:</b> A's typography and restraint on the homepage, B's living sound field behind it (large, slow, translucent — never competing with text), C reserved for the Lab.</div>
+
+<h2>2 · Three directions — active sound player</h2>
+<div class="row">
+  <div class="shot A"><span class="lab">A</span><div class="ui player"><div class="orb"><canvas data-viz="orb" data-sound="brown" data-dark="0"></canvas><div class="core">❚❚</div></div><div class="hl" style="font-size:1.4rem;margin:4px 0 0">Brown Noise</div><div class="small">Deep · warm · steady</div><div class="vol" style="color:#141a2e"><i></i></div><div class="small" style="margin-top:10px">Timer · Visual · Mixer · Save</div></div></div>
+  <div class="shot B"><span class="lab">B</span><canvas data-viz="waves" data-sound="brown"></canvas><div class="ui player"><div class="orb"><canvas data-viz="orb" data-sound="brown"></canvas><div class="core">❚❚</div></div><div class="hl" style="font-size:1.4rem;margin:4px 0 0;font-weight:400">Brown Noise</div><div class="small">Deep · warm · steady</div><div class="vol" style="color:#fff"><i></i></div><div class="small" style="margin-top:10px">Timer · Visual · Mixer · Save</div></div></div>
+  <div class="shot C"><span class="lab">C</span><canvas data-viz="field"></canvas><div class="ui player"><div class="glass player"><div class="orb"><canvas data-viz="orb" data-sound="brown"></canvas><div class="core">❚❚</div></div><div class="hl" style="font-size:1.3rem;margin:4px 0 0">Brown Noise</div><div class="small">Deep · warm · steady</div><div class="vol" style="color:#7c9cff"><i></i></div></div></div></div>
+</div>
+<div class="cmp"><b>Hybrid for the player:</b> the orb from B (sound field breathing with the audio, personality per sound) inside the quiet layout of A; the glass panel from C is reserved for floating controls over visuals.</div>
+
+<h2>3 · Hybrid applied — seven samples</h2>
+<div class="row grid7">
+  <div class="shot B"><span class="lab">1 · Homepage hero (dark)</span><canvas data-viz="waves"></canvas><div class="ui"><div class="brand">Personal sound discovery for tinnitus</div><div class="hl" style="font-weight:700">Find your quiet.</div><div class="m">Your tinnitus is personal. Your sound should be too.</div><div><span class="btn p">Start listening</span><span class="btn s">Help me find my sound</span></div></div></div>
+  <div class="shot B"><span class="lab">2 · Active sound player</span><canvas data-viz="waves" data-sound="ocean"></canvas><div class="ui player"><div class="orb" style="width:190px;height:190px"><canvas data-viz="orb" data-sound="ocean"></canvas><div class="core">❚❚</div></div><div class="hl" style="font-size:1.5rem;margin:6px 0 0;font-weight:500">Ocean Waves</div><div class="small">Slow · horizontal · deep</div><div class="vol" style="color:#fff"><i></i></div><div class="small" style="margin-top:10px">Timer · Visual · Mixer · Save</div></div></div>
+  <div class="shot C"><span class="lab">3 · Sound Discovery A / B</span><canvas data-viz="field"></canvas><div class="ui"><div class="two"><div><div class="orb"><canvas data-viz="orb" data-params='{"colour":0.2,"warm":-0.5,"width":0.3}'></canvas><div class="core">A</div></div><div class="small">Sound A</div></div><div><div class="orb"><canvas data-viz="orb" data-params='{"colour":0.8,"warm":0.4,"width":0.8,"smooth":0.5}'></canvas><div class="core" style="background:rgba(255,255,255,.12);color:#fff">B</div></div><div class="small">Sound B</div></div></div><div class="hl" style="font-size:1.2rem;margin:16px 0 6px;font-weight:600">Which feels more comfortable?</div><div><span class="btn s">A</span><span class="btn s">No difference</span><span class="btn s">B</span></div></div></div>
+  <div class="shot B"><span class="lab">4 · Visual Focus — Ocean</span><canvas data-viz="ocean"></canvas><div class="ui" style="justify-content:flex-end;align-items:stretch"><div class="glass" style="display:flex;gap:10px;justify-content:center;font-size:.8rem;font-weight:700">▶ &nbsp; ━━━●━━ &nbsp; Sound · Visual · Timer · Movement · Exit</div></div></div>
+  <div class="shot C"><span class="lab">5 · The Lab</span><canvas data-viz="field"></canvas><div class="ui" style="align-items:flex-start;text-align:left"><div class="brand">The Lab</div><div class="hl" style="font-weight:600">Explore sound differently.</div><div class="glass" style="margin-top:12px;width:100%;display:flex;align-items:center;gap:18px"><div class="orb" style="width:90px;height:90px;flex-shrink:0"><canvas data-viz="orb" data-params='{"colour":0.45,"rich":0.5,"width":0.5}'></canvas></div><div><div class="small" style="color:#8fe0b4">Recommended starting point</div><div style="font-weight:800;font-size:1.15rem">Sound Discovery</div><div class="m" style="font-size:.88rem">Not sure what sound works for you? Let Softwave help you discover it.</div><span class="btn p" style="margin:8px 0 0;padding:9px 18px">Start</span></div></div><div class="chips"><span class="chip">Discover</span><span class="chip">Explore</span><span class="chip">Focus</span><span class="chip">Journeys</span></div></div></div>
+  <div class="shot C"><span class="lab">6 · Frequency Painting</span><canvas data-viz="paint"></canvas><div class="ui" style="justify-content:space-between;align-items:stretch"><div class="hl" style="font-size:1.2rem;font-weight:600;text-align:left">Paint the sound you want to hear.</div><div style="display:flex;justify-content:space-between;font-size:.7rem;letter-spacing:.12em;opacity:.7"><span>LOW</span><span>HIGH</span></div></div></div>
+  <div class="shot A"><span class="lab">7 · My Sound Profile</span><div class="ui fp" style="justify-content:center"><div class="orb" style="width:170px;height:170px;flex-shrink:0"><canvas data-viz="orb" data-dark="0" data-params='{"colour":0.25,"warm":-0.5,"smooth":-0.3,"moving":0.3,"nature":"rain"}'></canvas></div><div><div class="brand">My sound profile</div><ul><li>Warm</li><li>Deep</li><li>Smooth</li><li>Gentle movement</li><li>Nature preference: rain</li></ul><div class="small" style="margin-top:8px;opacity:.6">A preference profile, not a hearing profile</div></div></div></div>
+</div>
+<div class="cmp"><b>Against the current UI:</b> the current site communicates the same things with bordered cards, one accent and a small reactive background. The hybrid adds (1) a living sound field and a typographic hero, (2) an orb player with per-sound personality, (3) sound objects instead of letters in Discovery, (4) the Lab as a darker studio with a featured Discovery panel, (5) a painterly frequency canvas, (6) a sound fingerprint for the profile, and (7) cards without hard borders — the same functionality, a recognisably Softwave look.</div>
+
+<script src="visuals.js?v=18"></script>
+<script>
+(function(){
+  const SV=window.SoftwaveVisuals; const cv=[...document.querySelectorAll('canvas[data-viz]')]; let t=0;
+  cv.forEach(c=>{const r=c.parentElement.getBoundingClientRect(); c.width=Math.max(10,Math.round(r.width)); c.height=Math.max(10,Math.round(r.height));});
+  function waves(ctx,w,h,sound){ const p=SV.paramsFor(sound||'pink'); const hue=SV.hueFor(p); for(let k=0;k<4;k++){ctx.beginPath(); const base=h*(0.45+k*0.14); const amp=(14+k*9)*(1+(1-p.colour)*0.8); for(let x=0;x<=w;x+=6){ctx.lineTo(x, base+Math.sin(x*0.004+t*(0.35+k*0.08)+k)*amp+Math.sin(x*0.011-t*0.3)*amp*0.4);} ctx.lineTo(w,h);ctx.lineTo(0,h);ctx.closePath(); ctx.fillStyle=`hsla(${hue+k*6},70%,60%,${0.09-k*0.015})`; ctx.fill();} }
+  function field(ctx,w,h){ ctx.strokeStyle='rgba(140,170,255,0.07)'; ctx.lineWidth=1; for(let x=0;x<w;x+=28){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke();} for(let y=0;y<h;y+=28){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();} for(let k=0;k<3;k++){ctx.beginPath(); for(let x=0;x<=w;x+=5){const u=x/w; const y=h*0.75-Math.exp(-Math.pow((u-0.3-k*0.2)*6,2))*h*0.35*(1+0.1*Math.sin(t+k))-Math.sin(u*20+t)*4; ctx.lineTo(x,y);} ctx.strokeStyle=`hsla(${220+k*20},80%,70%,${0.35-k*0.08})`; ctx.lineWidth=1.5; ctx.stroke();} }
+  function ocean(ctx,w,h){ const g=ctx.createLinearGradient(0,0,0,h); g.addColorStop(0,'#0a1330'); g.addColorStop(0.4,'#2a3a6a'); g.addColorStop(0.42,'#173a5e'); g.addColorStop(1,'#071226'); ctx.fillStyle=g; ctx.fillRect(0,0,w,h); for(let k=0;k<14;k++){const p=k/14,d=p*p; const y0=h*0.42+d*h*0.58; ctx.beginPath(); for(let x=0;x<=w;x+=6){const u=x/w; ctx.lineTo(x,y0+Math.sin(u*9/(0.4+d)+t*(0.8+d*0.6)+k*1.3)*(2+d*18));} ctx.lineTo(w,h);ctx.lineTo(0,h);ctx.closePath(); ctx.fillStyle=`hsla(${206+d*6},55%,${14+d*18}%,${0.55+d*0.4})`; ctx.fill();} }
+  function paint(ctx,w,h){ const pts=[0.5,0.62,0.72,0.8,0.78,0.64,0.5,0.42,0.5,0.62,0.55,0.4,0.3]; ctx.beginPath(); ctx.moveTo(0,h); for(let i=0;i<pts.length;i++){const x=i/(pts.length-1)*w; const y=h*(0.92-pts[i]*0.6)+Math.sin(t*0.6+i)*4; i?ctx.lineTo(x,y):ctx.lineTo(x,y);} ctx.lineTo(w,h); ctx.closePath(); const g=ctx.createLinearGradient(0,0,w,0); g.addColorStop(0,'rgba(111,209,224,0.55)'); g.addColorStop(1,'rgba(124,156,255,0.55)'); ctx.fillStyle=g; ctx.fill(); ctx.strokeStyle='rgba(255,255,255,0.7)'; ctx.lineWidth=2; ctx.stroke(); }
+  function loop(){ t+=0.016; cv.forEach(c=>{const ctx=c.getContext('2d'); const w=c.width,h=c.height; ctx.clearRect(0,0,w,h); const v=c.dataset.viz; const dark=c.dataset.dark!=='0'; if(v==='waves')waves(ctx,w,h,c.dataset.sound); if(v==='field')field(ctx,w,h); if(v==='ocean')ocean(ctx,w,h); if(v==='paint')paint(ctx,w,h); if(v==='rings'){for(let i=0;i<4;i++){ctx.beginPath();ctx.arc(w*0.5,h*0.5,(60+i*70)*(1+0.02*Math.sin(t+i)),0,Math.PI*2);ctx.strokeStyle=`rgba(60,90,180,${0.12-i*0.025})`;ctx.lineWidth=1.5;ctx.stroke();}} if(v==='orb'){const p=c.dataset.params?SV.paramsFor(null,JSON.parse(c.dataset.params)):SV.paramsFor(c.dataset.sound); SV.soundShape(ctx,w,h,p,t,0.25+0.1*Math.sin(t),{dark,scale:0.42});} }); requestAnimationFrame(loop);} loop();
+})();
+</script>
+</body></html>

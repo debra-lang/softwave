@@ -50,7 +50,7 @@
     $$('.nav a').forEach(a => a.classList.toggle('active', a.dataset.view === name));
     if (location.hash !== '#' + name) history.replaceState(null, '', '#' + name);
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    bg.setMode(engine.isActive('rain') ? 'rain' : 'calm');
+    bg.setMode(name === 'lab' ? 'lab' : engine.isActive('rain') ? 'rain' : 'calm');
   }
   document.addEventListener('click', e => {
     const sc = e.target.closest('[data-scroll]'); if (sc) { e.preventDefault(); const tgt = $(sc.getAttribute('href')); tgt && tgt.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
@@ -64,7 +64,7 @@
   function ensureLab() {
     if (window.softwaveLab) return Promise.resolve();
     if (labPromise) return labPromise;
-    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=18'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
+    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=19'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
     return labPromise;
   }
   window.softwaveEnsureLab = ensureLab;
@@ -122,6 +122,7 @@
 
   const openDiscovery = async () => { showView('lab'); try { await ensureLab(); window.softwaveLab.open('discovery'); } catch (e) { toast(e.message); } };
   $('#home-discover').addEventListener('click', openDiscovery); $('#home-tool-discover').addEventListener('click', openDiscovery);
+  $('#home-start').addEventListener('click', async () => { if (engine.activeList().length) { await engine.playAll(); openNow(); return; } await loadPreset(PRESETS[0]); openNow(); });
 
   // ---------- Sound preference profile, available app-wide (read-only summary; the Lab owns the details) ----------
   const DIMS = ['colour', 'warm', 'deep', 'smooth', 'soft', 'width', 'moving', 'rich', 'mod'];
@@ -255,7 +256,7 @@
     $('#sleep-now-list').textContent = names.length ? names.join(' + ') : 'Nothing yet — pick a preset below or choose sounds.';
     $('#sleep-sounds').textContent = names.join(' · ');
     const fs = $('#focus-setup-sound'); if (fs) fs.textContent = names.length ? names.join(' + ') : 'No sound yet';
-    bg.setMode(engine.isActive('rain') ? 'rain' : 'calm');
+    if (!$('#view-lab').hidden) bg.setMode('lab'); else bg.setMode(engine.isActive('rain') ? 'rain' : 'calm');
     document.title = names.length ? `${names[0]}${names.length > 1 ? ' +' + (names.length - 1) : ''} — Softwave` : 'Softwave — Free Tinnitus Sound Generator & Masking Sounds';
   }
   let lastIds = new Set();
@@ -402,6 +403,29 @@
   const warm = () => { engine.prepare(); document.removeEventListener('pointerdown', warm); document.removeEventListener('keydown', warm); };
   document.addEventListener('pointerdown', warm, { passive: true }); document.addEventListener('keydown', warm);
 
+  // ---------- sound environment, orb player and Now Playing ----------
+  const SV = window.SoftwaveVisuals;
+  function dominant() { const l = engine.activeList(); if (!l.length) return null; return l.slice().sort((x, y) => y.volume - x.volume)[0].id; }
+  function dominantParams() { const l = engine.activeList(); if (!l.length) return SV.paramsFor('pink'); const top = l.slice().sort((x, y) => y.volume - x.volume); const base = SV.paramsFor(top[0].id, top[0].id === 'sculpt' || top[0].id.startsWith('disco') ? engine.getSculpt(top[0].id) : null); if (top[1]) { const p2 = SV.paramsFor(top[1].id); base.nature = base.nature !== 'none' ? base.nature : p2.nature; base.rich = Math.min(1, base.rich + 0.25); } return base; }
+  function describeSound(p) { const b = []; b.push(p.colour < 0.33 ? 'Deep' : p.colour < 0.67 ? 'Balanced' : 'Bright'); if (p.warm < -0.25) b.push('Warm'); if (p.warm > 0.25) b.push('Airy'); if (p.moving > 0.3 || p.mod > 0.3) b.push('Moving'); else b.push('Steady'); if (p.nature !== 'none') b.push(engine.def(p.nature) ? engine.def(p.nature).name : p.nature); return b.join(' · '); }
+  const orbs = [['#player-orb', 0.44], ['#now-canvas', 0.4]]; let orbT = 0, orbLast = 0; const orbSpec = new Uint8Array(512);
+  function orbLoop(now) { requestAnimationFrame(orbLoop); if (document.hidden || now - orbLast < 33) return; const dt = Math.min(0.05, (now - orbLast) / 1000); orbLast = now; orbT += dt * (engine.isPlaying ? 1 : 0.35); const lv = engine.isPlaying ? Math.min(1, engine.getLevels(orbSpec) * 6) : 0; const p = dominantParams();
+    for (const [sel, scale] of orbs) { const c = $(sel); if (!c || c.offsetParent === null) continue; const r = c.getBoundingClientRect(); if (!r.width) continue; const dpr = Math.min(devicePixelRatio || 1, 2); if (c.width !== Math.round(r.width * dpr)) { c.width = Math.round(r.width * dpr); c.height = Math.round(r.height * dpr); } const ctx = c.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, r.width, r.height); SV.soundShape(ctx, r.width, r.height, p, orbT, lv, { scale, glow: sel === '#now-canvas' }); } }
+  requestAnimationFrame(orbLoop);
+  function syncEnvironment() { const id = dominant(); bg.setEnv(id); document.body.dataset.sound = id || ''; const p = dominantParams(); const names = engine.activeList().map(s => engine.def(s.id).name); $('#now-name').textContent = names.length ? names.join(' + ') : 'Nothing playing'; $('#now-desc').textContent = names.length ? describeSound(p) : 'Choose a sound to begin'; const on = engine.isPlaying; $('#now-orb').setAttribute('aria-pressed', on); $('#now-orb').setAttribute('aria-label', on ? 'Pause' : 'Play'); }
+  engine.on(type => { if (['sounds', 'state', 'tone', 'master'].includes(type)) syncEnvironment(); if (type === 'master') { const v = $('#now-vol'); v.value = Math.round(engine.masterVolume * 100); paintRange(v); $('#now-vol-out').textContent = v.value + '%'; } });
+  function openNow() { $('#now').hidden = false; syncEnvironment(); $('#now-orb').focus(); }
+  function closeNow() { $('#now').hidden = true; }
+  $('#player-title').addEventListener('click', () => { if (engine.activeList().length) openNow(); });
+  $('#player-title').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (engine.activeList().length) openNow(); } });
+  $('#now-close').addEventListener('click', closeNow);
+  $('#now').addEventListener('keydown', e => { if (e.key === 'Escape') closeNow(); });
+  $('#now-orb').addEventListener('click', async e => { const b = e.currentTarget; b.classList.add('pressed'); setTimeout(() => b.classList.remove('pressed'), 400); await togglePlay(); syncEnvironment(); });
+  $('#player-toggle').addEventListener('click', e => { const b = e.currentTarget; b.classList.add('pressed'); setTimeout(() => b.classList.remove('pressed'), 400); });
+  $('#now-vol').addEventListener('input', e => setMaster(+e.target.value / 100, true));
+  $$('[data-now]').forEach(b => b.addEventListener('click', () => { const k = b.dataset.now; closeNow(); if (k === 'timer') showView('sleep'); if (k === 'visual') { showView('focus'); } if (k === 'mixer') showView('mixer'); if (k === 'save') { showView('mixer'); setTimeout(() => { const s = $('#mix-save'); s.classList.add('saved-pop'); s.click(); s.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 200); } }));
+  document.addEventListener('click', e => { if (e.target.closest('#fav-save, #mix-save, [data-save], [data-save-session], [data-r="save"]')) { const b = e.target.closest('button'); b.classList.add('saved-pop'); setTimeout(() => b.classList.remove('saved-pop'), 520); } }, true);
+
   // ---------- keyboard shortcuts ----------
   document.addEventListener('keydown', e => {
     if (e.target.matches('input, select, textarea')) return;
@@ -428,6 +452,7 @@
   (function deepLinks() {
     const q = new URLSearchParams(location.search); const sid = q.get('sound'), pid = q.get('preset');
     if (q.get('exp')) { store.set('welcomed', true); welcome.hidden = true; showView('lab'); }
+    if (q.get('now')) { store.set('welcomed', true); welcome.hidden = true; openNow(); loadPreset(PRESETS.find(p => p.id === q.get('now')) || PRESETS[0]); }
     if (sid && engine.def(sid) && !engine.def(sid).lab) { store.set('welcomed', true); welcome.hidden = true; showView('sounds'); const card = $(`.sound-card[data-id="${sid}"]`); if (card) { card.classList.add('highlight'); setTimeout(() => { card.scrollIntoView({ behavior: 'smooth', block: 'center' }); $('.card-btn', card).focus(); toast(`Tap ${engine.def(sid).name} to play it — it starts quietly.`, 4000); }, 250); } }
     if (pid) { const p = PRESETS.find(x => x.id === pid); if (p) { store.set('welcomed', true); welcome.hidden = true; showView('sounds'); setTimeout(() => { const chip = $(`#presets [data-preset="${pid}"]`); if (chip) { chip.classList.add('active'); chip.focus(); toast(`Tap “${p.name}” to start the preset.`, 4000); } }, 250); } }
   })();

@@ -2,3 +2,4 @@ User-agent: *
 Allow: /
 
 Sitemap: https://debra-lang.github.io/softwave/sitemap.xml
+Disallow: /design-concepts.html
