@@ -506,3 +506,9 @@ input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.12); }
 .lab-view h1, .lab-view .h1, .lab-card h3, .lab-detail h2, .lab-detail h3, .lab-view .row-title, .lab-hist h3, .lab-profile-card h2, .lab-why summary, .lab-result h3 { color: var(--lab); }
 .lab-view .lab-notice strong, .lab-view .lab-notice em { color: var(--lab); }
 .lab-card .lab-what { color: var(--text); }
+
+/* Experiments tab: always green, even when not selected */
+.nav a.nav-lab { color: #2f8a5a; }
+.nav a.nav-lab:hover { color: #2f8a5a; background: rgba(111,211,154,.14); }
+:root[data-theme="dark"] .nav a.nav-lab { color: #8fe0b4; }
+:root[data-theme="dark"] .nav a.nav-lab:hover { color: #9fe6bd; }
