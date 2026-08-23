@@ -482,7 +482,7 @@ trust({
   body: `
 <ul>
 <li><strong>Start low.</strong> Use the lowest comfortable listening level that gives you the experience you want. You do not need to completely cover your tinnitus. Louder is not necessarily better. Find My Quiet Sound starts every sound low and fades it in.</li>
-<li><strong>Take breaks.</strong> Pause during longer listening sessions, and stop if the sound causes discomfort or makes your tinnitus feel worse.</li>
+<li><strong>Take breaks.</strong> Pause during longer listening sessions. If a sound causes discomfort or seems to make your tinnitus worse, stop using it and lower the volume before trying again.</li>
 <li><strong>Headphone time.</strong> The WHO-ITU safe-listening standard suggests personal audio around 80 dB or less for no more than 40 hours a week (75 dB for children). A device’s volume percentage does not reliably correspond to decibels, so the practical rule stays the lowest comfortable level.</li>
 <li><strong>Speakers are fine</strong> — often better for all-night use.</li>
 <li><strong>Sound sensitivity (hyperacusis):</strong> stay at the quietest setting, and seek a clinician’s plan if everyday sounds hurt.</li>
