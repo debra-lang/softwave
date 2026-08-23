@@ -336,7 +336,7 @@
   add(envVisual('float', 'Float', 'Soft particles on several depth planes, drifting with a gentle parallax.', 'Abstract'));
   add({ id: 'soundfield', name: 'Sound Field', cat: 'Sound Reactive', featured: true, reactive: true, desc: 'The Softwave Sound Field itself, filling the screen.', make() {
     let field = null; return { draw(ctx, w, h, e) { const F = SF(); if (!F) return; if (!field || field.c !== ctx.canvas) { field = new F.Field(ctx.canvas); field.fullscreen = true; field.spot = null; }
-      const ids = engine.activeList().map(sn => ({ id: sn.id, volume: sn.volume, params: (sn.id === 'sculpt' || sn.id.startsWith('disco')) ? engine.getSculpt(sn.id) : null })); field.set(ids); field.setPlaying(engine.isPlaying && !e.still); field.setLevel(e.level, 0); let lo = 0; for (let i = 1; i < 10; i++) lo += e.spec[i]; field.setLow(lo / (9 * 255));
+      const ids = engine.activeList().map(sn => ({ id: sn.id, volume: sn.volume, params: (sn.id === 'sculpt' || sn.id.startsWith('disco')) ? engine.getSculpt(sn.id) : null })); field.set(ids); field.setPlaying(engine.isPlaying && !e.still); field.speedK = e.still ? 0 : e.speed / 0.4; field.setLevel(e.level, 0); let lo = 0; for (let i = 1; i < 10; i++) lo += e.spec[i]; field.setLow(lo / (9 * 255));
       field.resize = function () { this.w = w; this.h = h; this.rect = { left: 0, top: 0 }; return true; }; field.draw(performance.now()); } }; } });
 
   // ===== EXPERIMENT VISUALS (opened from The Lab) =====

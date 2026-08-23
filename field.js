@@ -221,7 +221,7 @@
       const T = this.target; for (const k in T) { if (Array.isArray(T[k])) this.P[k] = (this.P[k] || T[k]).map((v, i) => lerp(v, T[k][i], 0.03)); else if (typeof T[k] === 'number') this.P[k] = lerp(this.P[k] == null ? T[k] : this.P[k], T[k], 0.03); else this.P[k] = T[k]; }
       const P = this.P; const tint = dark ? P.tint : P.light;
       this.morph += (this.morphTarget - this.morph) * (red ? 0.08 : 0.028); if (Math.abs(this.morphTarget - this.morph) < 0.002) this.morph = this.morphTarget;
-      const motion = red ? 0.06 : (0.3 + 0.7 * this.alive);
+      const motion = (red ? 0.06 : (0.3 + 0.7 * this.alive)) * (this.speedK == null ? 1 : this.speedK);   // speedK: Visual Focus movement setting
       const dt = tick(now, motion * P.speed * (1 - this.low * 0.25));
       const t = clock.t, e = ease(this.morph), W = this.w, H = this.h, ctx = this.ctx;
       const { cx, cy, R } = this.geometry();
