@@ -38,7 +38,7 @@
   const root = document.documentElement;
   function applyTheme(t) { root.dataset.theme = t; store.set('theme', t); }
   const qTheme = new URLSearchParams(location.search).get('theme');
-  applyTheme(qTheme || store.get('theme', matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+  applyTheme(qTheme || store.get('theme', 'dark'));   // dark by default; the toggle (or ?theme=) overrides and is remembered
   $('#theme-toggle').addEventListener('click', () => applyTheme(root.dataset.theme === 'dark' ? 'light' : 'dark'));
 
   // ---------- views ----------
