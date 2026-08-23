@@ -5,8 +5,10 @@
 const fs = require('fs'), path = require('path'), zlib = require('zlib');
 const { PAGES, SRC, REVIEWED, disclaimer, tryBox } = require('./site-content');
 
-const SITE = 'https://findmyquietsound.com';    // origin
-const BASE = '/';                               // path prefix
+// Switch LIVE_DOMAIN to true when findmyquietsound.com DNS is set up (and re-add the CNAME file).
+const LIVE_DOMAIN = false;
+const SITE = LIVE_DOMAIN ? 'https://findmyquietsound.com' : 'https://debra-lang.github.io';
+const BASE = LIVE_DOMAIN ? '/' : '/softwave/';
 const ORIGIN = SITE + BASE.replace(/\/$/, '');  // https://debra-lang.github.io/softwave
 const VERIFY = { google: '', bing: '' };        // paste verification tokens here when you have them
 const ANALYTICS = '';                           // optional cookie-free analytics snippet (off)

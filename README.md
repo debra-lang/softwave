@@ -40,7 +40,7 @@ Guideline: Tinnitus (2014), WHO-ITU safe-listening standard.
   trust pages, `sitemap.xml`, `robots.txt`, `404.html` and `og-image.png`. Run `node build-site.js` after editing content, then commit.
 - `SEO-AUDIT.md` — audit, keyword/intent map and competitor notes. `RESEARCH.md` — evidence notes for experiments.
 - **Search Console / Bing Webmaster:** paste the verification tokens into `VERIFY` in `build-site.js`, rebuild, deploy, then submit
-  `https://findmyquietsound.com/sitemap.xml` in both consoles. Bing: run `node indexnow.js` after each deploy (key file is committed).
+  `https://debra-lang.github.io/softwave/sitemap.xml` in both consoles. Bing: run `node indexnow.js` after each deploy (key file is committed).
 - **Analytics:** none installed. To add cookie-free page stats, put the snippet in `ANALYTICS` in `build-site.js` (static pages) and in `index.html`;
   never log health information, tinnitus frequencies or matching results.
 - **What to watch:** impressions/clicks/queries per page and CTR in Search Console; indexed pages (sitemap report); Core Web Vitals (CrUX);
