@@ -1126,3 +1126,9 @@ html[data-theme="dark"] .lab-view { --lab-bg-a: #0f1320; --lab-bg-b: #090b12; }
 .disc-wrap .ab-obj .lbl, .disc-wrap .ab-obj[aria-pressed="true"] .lbl { position: absolute; left: 50%; top: 100%; transform: translate(-50%, 4px); width: auto; height: auto; background: transparent; color: var(--sf-ink); font-family: var(--sf-display); font-weight: 300; font-size: 1.6rem; letter-spacing: .1em; }
 .disc-wrap .ab-obj:disabled { opacity: .35; }
 .disc-wrap .ab-switch { margin-bottom: 44px; }
+
+/* light mode: keep the app's original cool, airy light atmosphere — the stage is transparent over it, and the field carries more colour */
+:root:not([data-theme="dark"]) .sf-stage, :root:not([data-theme="dark"]) .lab-hero { background: transparent; }
+:root:not([data-theme="dark"]) .sf-stage::after, :root:not([data-theme="dark"]) .lab-hero::after { display: none; }
+:root:not([data-theme="dark"]) .sf-hero .brand-eyebrow, :root:not([data-theme="dark"]) .field-desc { color: rgba(31,29,26,.55); }
+:root:not([data-theme="dark"]) .sound-card { opacity: .78; } :root:not([data-theme="dark"]) .sound-card.active { opacity: 1; }

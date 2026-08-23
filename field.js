@@ -25,13 +25,13 @@
   // flow: radial | lateral | down | up | drift | horizontal
   const BASE = { depth: 0.6, speed: 0.8, scale: 0.6, texture: 0.4, density: 0.5, flow: 'radial', softness: 0.8, energy: 0.5, warmth: 0.3, rings: 8, amp: 0.09, harm: [3, 5, 2], wave: 1.3, squash: 1, rotate: 0, mist: 0 };
   const PERSONA = {
-    white:     { geo: 'particles', depth: 0.45, speed: 1.1, scale: 0.3, texture: 0.9, density: 0.8, flow: 'drift', softness: 0.7, energy: 0.5, warmth: 0.1, rings: 11, amp: 0.04, harm: [6, 9, 4], wave: 2.4, tint: [150, 170, 200], light: [90, 110, 150], words: 'Fine • Airy • Even' },
-    pink:      { geo: 'ribbons', depth: 0.55, speed: 0.9, scale: 0.55, texture: 0.5, density: 0.5, flow: 'lateral', softness: 0.85, energy: 0.5, warmth: 0.45, rings: 8, amp: 0.12, harm: [3, 5, 2], wave: 1.6, tint: [205, 160, 185], light: [150, 90, 130], words: 'Balanced • Soft • Smooth' },
-    brown:     { geo: 'rings', depth: 0.95, speed: 0.55, scale: 1, texture: 0.2, density: 0.3, flow: 'radial', softness: 0.9, energy: 0.6, warmth: 0.85, rings: 7, amp: 0.15, harm: [2, 3, 1], wave: 1.0, tint: [200, 165, 125], light: [125, 90, 60], words: 'Deep • Warm • Steady' },
+    white:     { geo: 'particles', depth: 0.45, speed: 1.1, scale: 0.3, texture: 0.9, density: 0.8, flow: 'drift', softness: 0.7, energy: 0.5, warmth: 0.1, rings: 11, amp: 0.04, harm: [6, 9, 4], wave: 2.4, tint: [150, 170, 200], light: [85, 115, 170], words: 'Fine • Airy • Even' },
+    pink:      { geo: 'ribbons', depth: 0.55, speed: 0.9, scale: 0.55, texture: 0.5, density: 0.5, flow: 'lateral', softness: 0.85, energy: 0.5, warmth: 0.45, rings: 8, amp: 0.12, harm: [3, 5, 2], wave: 1.6, tint: [205, 160, 185], light: [170, 90, 140], words: 'Balanced • Soft • Smooth' },
+    brown:     { geo: 'rings', depth: 0.95, speed: 0.55, scale: 1, texture: 0.2, density: 0.3, flow: 'radial', softness: 0.9, energy: 0.6, warmth: 0.85, rings: 7, amp: 0.15, harm: [2, 3, 1], wave: 1.0, tint: [200, 165, 125], light: [150, 100, 55], words: 'Deep • Warm • Steady' },
     static:    { geo: 'particles', depth: 0.4, speed: 0.8, scale: 0.28, texture: 1, density: 0.7, flow: 'drift', softness: 0.6, energy: 0.45, warmth: 0.2, rings: 10, amp: 0.035, harm: [5, 8, 3], wave: 2.2, tint: [160, 170, 185], light: [95, 105, 125], words: 'Soft • Textured • Even' },
     hiss:      { geo: 'particles', depth: 0.35, speed: 0.7, scale: 0.22, texture: 0.7, density: 0.5, flow: 'drift', softness: 0.95, energy: 0.35, warmth: 0.05, rings: 12, amp: 0.03, harm: [7, 10, 4], wave: 2.6, tint: [170, 190, 210], light: [100, 120, 145], words: 'Airy • High • Smooth' },
-    rain:      { geo: 'trails', depth: 0.6, speed: 1.0, scale: 0.4, texture: 0.6, density: 0.6, flow: 'down', softness: 0.8, energy: 0.5, warmth: 0.2, rings: 9, amp: 0.045, harm: [5, 8, 3], wave: 2.0, tint: [140, 175, 195], light: [70, 110, 140], words: 'Soft • Vertical • Steady' },
-    ocean:     { geo: 'rings', depth: 0.85, speed: 0.6, scale: 1, texture: 0.2, density: 0.3, flow: 'horizontal', softness: 0.9, energy: 0.55, warmth: 0.3, rings: 6, amp: 0.13, harm: [2, 4, 3], wave: 0.9, squash: 0.66, tint: [120, 180, 200], light: [60, 120, 150], words: 'Wide • Slow • Spacious' },
+    rain:      { geo: 'trails', depth: 0.6, speed: 1.0, scale: 0.4, texture: 0.6, density: 0.6, flow: 'down', softness: 0.8, energy: 0.5, warmth: 0.2, rings: 9, amp: 0.045, harm: [5, 8, 3], wave: 2.0, tint: [140, 175, 195], light: [60, 120, 165], words: 'Soft • Vertical • Steady' },
+    ocean:     { geo: 'rings', depth: 0.85, speed: 0.6, scale: 1, texture: 0.2, density: 0.3, flow: 'horizontal', softness: 0.9, energy: 0.55, warmth: 0.3, rings: 6, amp: 0.13, harm: [2, 4, 3], wave: 0.9, squash: 0.66, tint: [120, 180, 200], light: [40, 130, 165], words: 'Wide • Slow • Spacious' },
     stream:    { geo: 'streams', depth: 0.5, speed: 1.0, scale: 0.5, texture: 0.5, density: 0.6, flow: 'lateral', softness: 0.8, energy: 0.55, warmth: 0.25, rings: 8, amp: 0.08, harm: [4, 6, 3], wave: 1.8, tint: [130, 185, 190], light: [60, 120, 130], words: 'Fluid • Light • Moving' },
     waterfall: { geo: 'trails', depth: 0.7, speed: 1.2, scale: 0.6, texture: 0.8, density: 1, flow: 'down', softness: 0.7, energy: 0.7, warmth: 0.15, rings: 8, amp: 0.04, harm: [5, 7, 3], wave: 2.2, mist: 0.8, tint: [165, 190, 205], light: [85, 120, 145], words: 'Full • Downward • Textured' },
     forest:    { geo: 'motes', depth: 0.7, speed: 0.5, scale: 0.6, texture: 0.4, density: 0.25, flow: 'drift', softness: 0.9, energy: 0.35, warmth: 0.45, rings: 7, amp: 0.09, harm: [3, 2, 5], wave: 1.2, tint: [150, 185, 150], light: [70, 110, 80], words: 'Organic • Quiet • Spacious' },
@@ -169,7 +169,7 @@
       ctx.closePath();
       const depth = 0.55 + 0.45 * bi;
       const geoK = P.geo === 'rings' ? 1 : 0.7;
-      if (e < 0.999) { ctx.globalAlpha = 1 - e; ctx.fillStyle = rgba(tint, (dark ? 0.045 : 0.04) * ringA * depth * geoK); ctx.fill(); ctx.strokeStyle = rgba(dark ? mix3(tint, [255, 255, 255], 0.35) : tint, (dark ? 0.28 : 0.34) * (0.45 + 0.55 * depth) * ringA * geoK); ctx.lineWidth = 1.5 - i / MAX_RINGS; ctx.stroke(); }
+      if (e < 0.999) { ctx.globalAlpha = 1 - e; ctx.fillStyle = rgba(tint, (dark ? 0.045 : 0.085) * ringA * depth * geoK); ctx.fill(); ctx.strokeStyle = rgba(dark ? mix3(tint, [255, 255, 255], 0.35) : tint, (dark ? 0.28 : 0.5) * (0.45 + 0.55 * depth) * ringA * geoK); ctx.lineWidth = 1.5 - i / MAX_RINGS; ctx.stroke(); }
       if (e > 0.001) { const wc = mix3(far, near, bi); ctx.globalAlpha = e * (0.82 + 0.18 * bi); ctx.fillStyle = rgba(wc, 1); ctx.fill(); ctx.globalAlpha = e; ctx.strokeStyle = dark ? `rgba(170,210,235,${0.10 + 0.1 * (1 - bi)})` : 'rgba(255,255,255,0.35)'; ctx.lineWidth = 1; ctx.stroke(); }
       ctx.globalAlpha = 1;
     }
@@ -229,7 +229,7 @@
       const o = { cx, cy, R, W, H, t, life, alive: this.alive, level: this.level, low: this.low, vol, P, tint, dark, e, rawMorph: this.morph, grow: 1 + 0.38 * ease(clamp(this.morph * 2.2, 0, 1)), reduce: red };
       ctx.clearRect(0, 0, W, H);
       if (this.fullscreen || opts.atmosphere) { const bgA = dark ? ['#12141c', '#0a0c12'] : ['#f6f3ec', '#ebe6dc']; const g0 = ctx.createRadialGradient(cx, cy, R * 0.2, cx, cy, Math.max(W, H) * 0.9); g0.addColorStop(0, bgA[0]); g0.addColorStop(1, bgA[1]); ctx.fillStyle = g0; ctx.fillRect(0, 0, W, H); }
-      let g = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 2.0); g.addColorStop(0, rgba(tint, (dark ? 0.10 : 0.12) * (0.7 + 0.3 * this.alive))); g.addColorStop(1, rgba(tint, 0)); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      let g = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 2.0); g.addColorStop(0, rgba(tint, (dark ? 0.10 : 0.2) * (0.7 + 0.3 * this.alive))); g.addColorStop(1, rgba(tint, 0)); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
       const envIsOcean = this.envId === 'ocean';
       if (e > 0.001 && envIsOcean) drawOceanAtmosphere(ctx, W, H, o, e);
       const st = { t, life, alive: this.alive, level: this.level, low: this.low, dark, tint, P, reduce: red };
@@ -238,7 +238,7 @@
       if (P.geo !== 'rings' && layerAlpha > 0.01) { ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R * o.grow * 1.02, 0, TAU); ctx.clip(); layer(ctx, cx, cy, R * o.grow, st, layerAlpha); ctx.restore(); }
       if (e > 0.001 && envIsOcean) drawOceanLight(ctx, W, H, o, e);
       if (e > 0.001 && !envIsOcean) { if (!this.envInst) this.envInst = sharedEnvironment(this.envId); ctx.globalAlpha = e; this.envInst.draw(ctx, W, H, envState(this, dt, opts.env)); ctx.globalAlpha = 1; }
-      if (e < 0.999) { ctx.globalAlpha = 1 - e; g = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.5); g.addColorStop(0, rgba(tint, (dark ? 0.18 : 0.2) * (0.55 + this.alive * 0.45))); g.addColorStop(1, rgba(tint, 0)); ctx.fillStyle = g; ctx.fillRect(cx - R, cy - R, R * 2, R * 2); ctx.globalAlpha = 1; }
+      if (e < 0.999) { ctx.globalAlpha = 1 - e; g = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.5); g.addColorStop(0, rgba(tint, (dark ? 0.18 : 0.3) * (0.55 + this.alive * 0.45))); g.addColorStop(1, rgba(tint, 0)); ctx.fillStyle = g; ctx.fillRect(cx - R, cy - R, R * 2, R * 2); ctx.globalAlpha = 1; }
     }
   }
 
@@ -250,8 +250,8 @@
       const c = this.c, r = c.getBoundingClientRect(); if (!r.width) return; const dpr = Math.min(devicePixelRatio || 1, 1.5); if (c.width !== Math.round(r.width * dpr)) { c.width = Math.round(r.width * dpr); c.height = Math.round(r.height * dpr); }
       const x = c.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, 0, 0); const w = r.width, h = r.height; const dt = this.last ? Math.min(0.05, (now - this.last) / 1000) : 0.016; this.last = now; const mo = reduced() ? 0.1 : 1; this.t += dt * (0.5 + this.level) * mo;
       const P = personaFor(this.id, this.params), dark = isDark(), tint = dark ? P.tint : P.light, t = this.t;
-      x.clearRect(0, 0, w, h); x.fillStyle = dark ? 'rgba(18,21,29,0.92)' : 'rgba(234,229,219,0.92)'; x.fillRect(0, 0, w, h);
-      x.strokeStyle = rgba(tint, dark ? 0.6 : 0.7); x.fillStyle = rgba(tint, dark ? 0.6 : 0.7); x.lineWidth = 1.2;
+      x.clearRect(0, 0, w, h); x.fillStyle = dark ? 'rgba(18,21,29,0.92)' : 'rgba(244,246,250,0.92)'; x.fillRect(0, 0, w, h);
+      x.strokeStyle = rgba(tint, dark ? 0.6 : 0.8); x.fillStyle = rgba(tint, dark ? 0.6 : 0.8); x.lineWidth = 1.2;
       const geo = P.geo;
       if (geo === 'particles' || geo === 'motes' || geo === 'points') { const n = geo === 'points' ? 14 : geo === 'motes' ? 24 : 60; for (let i = 0; i < n; i++) { const px = ((hash(i) * w + t * 6 * (0.5 + hash(i, 2)) * (geo === 'points' ? 0.15 : 1)) % w), py = ((hash(i, 1) * h + Math.sin(t * 0.7 + i) * 5) % h + h) % h; x.globalAlpha = 0.3 + 0.5 * hash(i, 3); x.beginPath(); x.arc(px, py, geo === 'points' ? 0.9 + hash(i, 4) * 1.4 : geo === 'motes' ? 1.4 : 1.1, 0, TAU); x.fill(); } x.globalAlpha = 1; }
       else if (geo === 'ribbons' || geo === 'streams') { for (let r2 = 0; r2 < 4; r2++) { x.beginPath(); for (let px = 0; px <= w; px += 5) { const py = h / 2 + Math.sin(px / w * (geo === 'streams' ? 5 : 6) + t * 0.8 + r2) * h * 0.2 + (r2 - 1.5) * h * 0.16; px ? x.lineTo(px, py) : x.moveTo(px, py); } x.stroke(); } }
