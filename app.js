@@ -44,11 +44,13 @@
   // ---------- views ----------
   const views = ['sounds', 'focus', 'lab', 'mixer', 'frequency', 'match', 'sleep', 'learn'];
   function showView(name, opts = {}) {
+    // #find = the Find My Sound feature (lives in the Lab): show the Lab and open it directly
+    if (name === 'find') { const wanted = opts.push === false ? 'replace' : 'push'; showView('lab', { push: false, keepHash: true }); if (location.hash !== '#find') { if (wanted === 'replace') history.replaceState(null, '', '#find'); else history.pushState(null, '', '#find'); } $$('.nav a').forEach(a => a.classList.toggle('active', a.dataset.view === 'find')); ensureLab().then(() => { if (window.softwaveLab) softwaveLab.open('discovery'); }).catch(() => { }); return; }
     if (!views.includes(name)) name = 'sounds';
     if (name === 'lab') ensureLab();
     views.forEach(v => { const el = $('#view-' + v); el.hidden = v !== name; el.classList.toggle('active', v === name); });
     $$('.nav a').forEach(a => a.classList.toggle('active', a.dataset.view === name));
-    if (location.hash !== '#' + name) { if (opts.push === false) history.replaceState(null, '', '#' + name); else history.pushState(null, '', '#' + name); }
+    if (!opts.keepHash && location.hash !== '#' + name) { if (opts.push === false) history.replaceState(null, '', '#' + name); else history.pushState(null, '', '#' + name); }
     const back = $('#nav-back'); if (back) back.hidden = name === 'sounds';
     window.scrollTo({ top: 0, behavior: 'smooth' });
     bg.setMode(name === 'lab' ? 'lab' : engine.isActive('rain') ? 'rain' : 'calm');
