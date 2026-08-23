@@ -1132,3 +1132,8 @@ html[data-theme="dark"] .lab-view { --lab-bg-a: #0f1320; --lab-bg-b: #090b12; }
 :root:not([data-theme="dark"]) .sf-stage::after, :root:not([data-theme="dark"]) .lab-hero::after { display: none; }
 :root:not([data-theme="dark"]) .sf-hero .brand-eyebrow, :root:not([data-theme="dark"]) .field-desc { color: rgba(31,29,26,.55); }
 :root:not([data-theme="dark"]) .sound-card { opacity: .78; } :root:not([data-theme="dark"]) .sound-card.active { opacity: 1; }
+/* phone: the Focus panel is a scrollable sheet that always fits the screen */
+@media (max-width: 640px) {
+  .focus-screen .focus-panel { position: fixed; left: 8px; right: 8px; width: auto; transform: none; bottom: calc(8px + env(safe-area-inset-bottom, 0px)); top: auto; max-height: calc(100dvh - 72px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; z-index: 7; padding-bottom: 22px; }
+  .focus-screen .focus-panel-head { position: sticky; top: 0; z-index: 1; padding: 4px 0 6px; background: var(--sf-glass-strong); margin: -4px 0 4px; }
+}
