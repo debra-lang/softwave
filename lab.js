@@ -196,7 +196,7 @@
           <div data-result></div></div>`;
         $$('[data-sw]', host).forEach(b => b.addEventListener('click', () => ctx.switchTo && ctx.switchTo(b.dataset.sw)));
         ctx.sides = { A: { params: DEF(), nature: 'none' }, B: { params: DEF(), nature: 'none' } }; ctx.side = 'A';
-        $$('[data-sw]', host).forEach(b => liveShape($('canvas', b), () => ({ p: Object.assign({}, ctx.sides[b.dataset.sw].params, { nature: ctx.sides[b.dataset.sw].nature }), live: ctx.side === b.dataset.sw, scale: 0.42 })));
+        $$('[data-sw]', host).forEach(b => liveShape($('canvas', b), () => { const isRun = running && running.exp.id === 'discovery'; return { p: Object.assign({}, ctx.sides[b.dataset.sw].params, b.dataset.sw === 'B' && !isRun ? { colour: 0.7, warm: 0.3, moving: 0.35 } : {}, { nature: ctx.sides[b.dataset.sw].nature }), live: isRun ? ctx.side === b.dataset.sw : true, speed: isRun ? 1 : 0.6, scale: 0.42 }; }));   // before Start both forms breathe quietly (B previews a contrasting character) so the stage is never empty
         $$('[data-pick]', host).forEach(b => b.addEventListener('click', () => ctx.answer && ctx.answer(b.dataset.pick)));
       },
       async start(ctx) {

@@ -68,7 +68,7 @@
   function ensureLab() {
     if (window.softwaveLab) return Promise.resolve();
     if (labPromise) return labPromise;
-    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=27'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
+    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=28'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
     return labPromise;
   }
   window.softwaveEnsureLab = ensureLab;

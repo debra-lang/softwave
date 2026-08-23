@@ -1139,3 +1139,5 @@ html[data-theme="dark"] .lab-view { --lab-bg-a: #0f1320; --lab-bg-b: #090b12; }
 }
 /* phone: A and B side by side, "No difference" underneath */
 @media (max-width: 560px) { .disc-wrap [data-pick="same"] { order: 3; flex-basis: 100%; margin-top: 4px; } .disc-wrap [data-pick="A"], .disc-wrap [data-pick="B"] { flex: 1 1 40%; } }
+
+.disc-wrap .ab-obj:disabled { opacity: .72; }
