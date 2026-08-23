@@ -57,29 +57,6 @@
   }
   const mix = (a, b, t) => a + (b - a) * t;
 
-  add({ id: 'ocean', featured: true, name: 'Ocean Waves', cat: 'Nature', desc: 'Slow rolling swells at dusk.', make() {
-    let t = 0; const tex = new NoiseTex(96, 54); const horizon = 0.42;
-    return { draw(ctx, w, h, e) { t += e.dt * e.speed * 0.45;
-      // sky with dusk gradient and a low sun
-      const tm = P.time; const lerpC = (a, b, k) => a.map((v, i) => Math.round(v + (b[i] - v) * k)); const rgb = c => `rgb(${c.join(',')})`; const day = [[150, 196, 240], [226, 236, 248], [250, 226, 200]], dusk = [[24, 34, 86], [120, 90, 120], [250, 180, 140]], night = [[6, 10, 28], [14, 20, 50], [30, 34, 70]]; const pick = (i) => tm < 0.5 ? lerpC(day[i], dusk[i], tm * 2) : lerpC(dusk[i], night[i], (tm - 0.5) * 2);
-      const g = ctx.createLinearGradient(0, 0, 0, h * horizon); const d = isDark(); g.addColorStop(0, rgb(pick(0))); g.addColorStop(0.75, rgb(pick(1))); g.addColorStop(1, rgb(pick(2))); ctx.fillStyle = g; ctx.fillRect(0, 0, w, h * horizon);
-      const sx = w * 0.68, sy = h * (horizon - 0.18 + tm * 0.16); const sunA = Math.max(0, 1 - Math.max(0, tm - 0.55) * 3); glow(ctx, sx, sy, w * 0.22, 'rgba(255,215,170,A)', 0.55 * sunA); ctx.fillStyle = `rgba(255,236,210,${sunA})`; ctx.beginPath(); ctx.arc(sx, sy, Math.min(w, h) * 0.035, 0, TAU); ctx.fill();
-      if (tm > 0.6) { const sa = (tm - 0.6) * 2.5; ctx.fillStyle = `rgba(235,240,255,${0.8 * sa})`; for (let i = 0; i < 90; i++) { const x = ((i * 977) % 1000) / 1000 * w, y = ((i * 613) % 1000) / 1000 * h * horizon * 0.9; ctx.beginPath(); ctx.arc(x, y, (i % 3) * 0.4 + 0.5, 0, TAU); ctx.fill(); } }
-      // sea: perspective rows of swell, far rows compressed
-      const seaTop = h * horizon; const sg = ctx.createLinearGradient(0, seaTop, 0, h); sg.addColorStop(0, rgb(lerpC([127, 176, 216], [16, 30, 70], tm))); sg.addColorStop(1, rgb(lerpC([47, 111, 158], [5, 12, 32], tm))); ctx.fillStyle = sg; ctx.fillRect(0, seaTop, w, h - seaTop);
-      const rows = 26;
-      const deep = e.sound ? 1 - e.sound.colour : 0.55;
-      for (let k = 0; k < rows; k++) { const p = k / rows; const depth = p * p; const y0 = seaTop + depth * (h - seaTop); const amp = 2 + depth * (14 + deep * 18) * (1 + e.level * 0.6); const sp = (0.55 + (1 - deep) * 0.5 + depth * 0.6); ctx.beginPath();
-        for (let x = 0; x <= w; x += 6) { const u = x / w; const y = y0 + Math.sin(u * 9 / (0.4 + depth) + t * sp + k * 1.3) * amp + Math.sin(u * 23 - t * 0.7 * sp + k) * amp * 0.3 + (fbm(u * 3 + k, t * 0.2, k) - 0.5) * amp * 1.2; ctx.lineTo(x, y); }
-        ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.closePath();
-        const L = (45 + depth * 14) * (1 - tm * 0.7) + 6; ctx.fillStyle = `hsla(${206 + depth * 6},${60 - tm * 10}%,${L}%,${0.55 + depth * 0.4})`; ctx.fill();
-        // foam crest highlight
-        ctx.strokeStyle = `hsla(200,50%,${d ? 60 : 92}%,${0.05 + depth * 0.18})`; ctx.lineWidth = 1 + depth * 2; ctx.stroke(); }
-      // sun path shimmer on the water
-      tex.render((u, v) => { const n = fbm(u * 16 + t * 0.6, v * 30 - t * 2.2, 1, 2); const band = Math.exp(-Math.pow((u - 0.68) / (0.05 + v * 0.14), 2)); const a = Math.max(0, n - 0.58) * 5 * band * (1 - v * 0.5); return [255, 225, 180, Math.min(255, a * 255)]; }, 2);
-      ctx.save(); ctx.beginPath(); ctx.rect(0, seaTop, w, h - seaTop); ctx.clip(); tex.draw(ctx, w, h, d ? 0.55 : 0.7, 'lighter'); ctx.restore();
-    } }; } });
-
   add({ id: 'clouds', name: 'Drifting Clouds', cat: 'Nature', desc: 'Soft clouds moving across a quiet sky.', make() {
     let t = 0; const tex = new NoiseTex(128, 72); return { draw(ctx, w, h, e) { t += e.dt * e.speed * 0.05; const d = isDark();
       sky(ctx, w, h, d ? '#0c1633' : '#7fb3ea', d ? '#1c2c57' : '#cfe3fa');
@@ -126,20 +103,6 @@
       ctx.fillStyle = d ? 'rgba(180,230,190,0.45)' : 'rgba(255,255,240,0.7)'; for (const lf of leaves) { lf.x += lf.s * e.dt * e.speed; lf.y += (Math.sin(t * 1.2 + lf.ph) * 0.004 + 0.006) * e.dt * e.speed * 4; if (lf.x > 1.05 || lf.y > 1) { lf.x = -0.05; lf.y = Math.random() * 0.5; } ctx.beginPath(); ctx.ellipse(lf.x * w, lf.y * h, 3, 1.6, Math.sin(t + lf.ph), 0, TAU); ctx.fill(); }
     } }; } });
 
-  add({ id: 'nightsky', featured: true, name: 'Night Sky', cat: 'Nature', desc: 'Stars turning very slowly overhead.', make() {
-    let t = 0; const tex = new NoiseTex(128, 72); const stars = Array.from({ length: 420 }, () => { const m = Math.random(); return { a: Math.random() * TAU, r: Math.random(), sz: m < 0.85 ? rnd(1.1, 0.3) : rnd(2.4, 1.2), ph: Math.random() * TAU, col: m < 0.6 ? '235,240,255' : m < 0.8 ? '255,240,215' : m < 0.92 ? '200,215,255' : '255,200,180' }; }); let shoot = null, texDone = false;
-    return { draw(ctx, w, h, e) { t += e.dt * e.speed;
-      sky(ctx, w, h, '#02041a', '#0a1238'); const cx = w * 0.5, cy = h * 1.15, R = Math.hypot(w, h);
-      if (!texDone) { tex.render((u, v) => { const band = Math.exp(-Math.pow((v - 0.5 + (u - 0.5) * 0.6) * 5, 2)); const n = fbm(u * 5, v * 5, 2, 5); const n2 = fbm(u * 12 + 3, v * 12, 5, 3); const a = band * Math.max(0, n - 0.38) * 1.8 * (0.5 + n2 * 0.7); const dust = band * Math.max(0, 0.5 - n2) * 1.4; return [190 + 30 * n2, 195 + 25 * n, 235, Math.max(0, a - dust * 0.6) * 90]; }); texDone = true; }
-      ctx.save(); ctx.translate(cx, cy); ctx.rotate(t * 0.004); ctx.translate(-cx, -cy); ctx.globalAlpha = 0.8; ctx.filter = 'blur(3px)'; ctx.drawImage(tex.c, -w * 0.3, -h * 0.9, w * 1.6, h * 2); ctx.restore();
-      glow(ctx, w * 0.3, h * 0.4, w * 0.25, 'rgba(120,90,200,A)', 0.04);
-      for (const s of stars) { const a = s.a + t * 0.004; const x = cx + Math.cos(a) * s.r * R, y = cy + Math.sin(a) * s.r * R; if (y > h * 0.9 || x < 0 || x > w) continue; const tw = 0.55 + Math.sin(t * (0.3 + s.sz * 0.2) + s.ph) * 0.3; ctx.fillStyle = `rgba(${s.col},${tw})`; ctx.beginPath(); ctx.arc(x, y, s.sz, 0, TAU); ctx.fill(); if (s.sz > 1.8) glow(ctx, x, y, s.sz * 4, `rgba(${s.col},A)`, 0.25 * tw); }
-      if (!e.reduced && !shoot && Math.random() < 0.0012 * e.speed) shoot = { x: rnd(0.8, 0.2), y: rnd(0.4, 0.05), p: 0 };
-      if (shoot) { shoot.p += e.dt * e.speed * 0.4; const x = shoot.x * w + shoot.p * 140, y = shoot.y * h + shoot.p * 70; const g = ctx.createLinearGradient(x - 60, y - 30, x, y); g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(1, `rgba(255,255,255,${0.7 * (1 - shoot.p)})`); ctx.strokeStyle = g; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(x - 60, y - 30); ctx.lineTo(x, y); ctx.stroke(); if (shoot.p > 1) shoot = null; }
-      // treeline silhouette
-      ctx.fillStyle = '#03050f'; ctx.beginPath(); ctx.moveTo(0, h); for (let x = 0; x <= w; x += 12) { const n = fbm(x / w * 6, 2, 0, 3); ctx.lineTo(x, h * 0.86 + n * h * 0.08 - (x % 24 === 0 ? 8 : 0)); } ctx.lineTo(w, h); ctx.fill();
-    } }; } });
-
   add({ id: 'underwater', name: 'Underwater', cat: 'Nature', desc: 'Light rippling through deep blue water.', make() {
     let t = 0; const tex = new NoiseTex(112, 64); const bubbles = Array.from({ length: 40 }, () => ({ x: Math.random(), y: Math.random(), r: rnd(5, 1.5), s: rnd(0.08, 0.03), ph: Math.random() * 6 })); const motes = Array.from({ length: 60 }, () => ({ x: Math.random(), y: Math.random(), r: rnd(1.4, 0.5) })); const plants = Array.from({ length: 9 }, (_, i) => ({ x: (i + Math.random()) / 9, hgt: rnd(0.4, 0.18), w: rnd(9, 4) }));
     return { draw(ctx, w, h, e) { t += e.dt * e.speed;
@@ -171,26 +134,6 @@
       mist.render((u, v) => { const n = fbm(u * 3 + t * 0.1, v * 2 - t * 0.35, t * 0.2, 3); const a = Math.max(0, n - 0.3) * 1.5 * Math.pow(v, 1.4); return [235, 248, 255, a * 200]; }, 2);
       ctx.save(); ctx.globalAlpha = 0.85; ctx.drawImage(mist.c, 0, h * 0.45, w, h * 0.55); ctx.restore();
       ctx.fillStyle = d ? 'rgba(150,210,230,0.18)' : 'rgba(230,250,255,0.35)'; ctx.fillRect(0, h * 0.9, w, h * 0.1);
-    } }; } });
-
-  add({ id: 'rainwindow', featured: true, name: 'Rain on a Window', cat: 'Nature', desc: 'Drops gathering and sliding down glass.', make() {
-    let t = 0; const drops = Array.from({ length: 55 }, () => ({ x: Math.random(), y: Math.random(), r: rnd(5, 2), v: 0, w: 0 })); const dots = Array.from({ length: 220 }, () => ({ x: Math.random(), y: Math.random(), r: rnd(1.6, 0.5) })); const bokeh = Array.from({ length: 12 }, () => ({ x: Math.random(), y: rnd(0.8, 0.1), r: rnd(0.14, 0.05), h: rnd(60, 20) })); const trails = [];
-    return { draw(ctx, w, h, e) { t += e.dt * e.speed; const sc = Math.max(1, Math.min(w, h) / 420);
-      sky(ctx, w, h, isDark() ? '#0f1424' : '#8a99b3', isDark() ? '#070a14' : '#4c5d7c');
-      for (const b of bokeh) glow(ctx, b.x * w + Math.sin(t * 0.1 + b.h) * 10, b.y * h, b.r * w, `hsla(${b.h + 180},60%,70%,A)`, isDark() ? 0.22 : 0.28);
-      // fine mist of droplets that never move
-      ctx.fillStyle = 'rgba(255,255,255,0.18)'; for (const d of dots) { ctx.beginPath(); ctx.arc(d.x * w, d.y * h, d.r, 0, TAU); ctx.fill(); }
-      // wet trails left by sliding drops, fading slowly
-      for (let i = trails.length - 1; i >= 0; i--) { const tr = trails[i]; tr.a -= e.dt * 0.04 * Math.max(e.speed, 0.2); if (tr.a <= 0) { trails.splice(i, 1); continue; } ctx.strokeStyle = `rgba(255,255,255,${tr.a * 0.35})`; ctx.lineWidth = tr.w * sc; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(tr.x * w, tr.y0 * h); ctx.lineTo(tr.x * w, tr.y1 * h); ctx.stroke(); }
-      const rainK = e.sound ? 0.6 + e.sound.colour * 0.8 : 1;
-      for (const d of drops) {
-        if (d.v === 0 && Math.random() < 0.0035 * e.speed * rainK) { d.v = rnd(0.22, 0.08); d.w = d.r * 0.9; trails.push({ x: d.x, y0: d.y, y1: d.y, w: d.w, a: 1, ref: d }); }
-        if (d.v > 0) { d.y += d.v * e.dt * e.speed; d.v *= (1 - 0.35 * e.dt * e.speed); const tr = trails.find(q => q.ref === d); if (tr) tr.y1 = d.y; if (d.v < 0.02) { d.v = 0; } }
-        if (d.y > 1.05) { d.y = rnd(0.3, -0.05); d.x = Math.random(); d.v = 0; trails.forEach(q => { if (q.ref === d) q.ref = null; }); }
-        const x = d.x * w, y = d.y * h; const r = d.r * sc; const len = r * (1.2 + d.v * 12);
-        const g = ctx.createRadialGradient(x - r * 0.3, y - r * 0.3, 0, x, y, r * 1.2); g.addColorStop(0, 'rgba(255,255,255,0.75)'); g.addColorStop(0.5, 'rgba(220,235,255,0.35)'); g.addColorStop(1, 'rgba(200,220,255,0.08)');
-        ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(x, y, r, len, 0, 0, TAU); ctx.fill(); ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = 0.8; ctx.stroke();
-      }
     } }; } });
 
   add({ id: 'river', name: 'Flowing River', cat: 'Nature', desc: 'Water gliding past, glints drifting by.', make() {
@@ -254,7 +197,6 @@
         if (rings.length === 0 && opts.hint) { ctx.fillStyle = isDark() ? 'rgba(200,220,255,0.5)' : 'rgba(20,50,80,0.45)'; ctx.font = `500 ${Math.max(14, w * 0.018)}px Manrope, sans-serif`; ctx.textAlign = 'center'; ctx.fillText('Touch the water', w / 2, h * 0.5); }
       } }; } };
   }
-  add(rippleVisual({ id: 'ripple', name: 'Liquid Ripples', cat: 'Abstract', desc: 'Ripples spreading across still water. Tap to add your own.' }));
 
   add({ id: 'geometric', name: 'Slow Geometry', cat: 'Abstract', desc: 'Shapes turning and transforming.', make() {
     let t = 0; return { draw(ctx, w, h, e) { t += e.dt * e.speed * 0.12; sky(ctx, w, h, isDark() ? '#0b0f1f' : '#f7f7fb', isDark() ? '#0b0f1f' : '#f7f7fb'); const cx = w / 2, cy = h / 2, R = Math.min(w, h) * 0.38;
@@ -361,14 +303,6 @@
   // e.sound: { colour 0..1, warm, moving, nature } of the dominant sound — every environment reads it subtly.
   const sndColour = e => (e.sound ? e.sound.colour : 0.45);
 
-  add({ id: 'float', name: 'Float', cat: 'Abstract', featured: true, desc: 'Soft particles drifting through depth — some close, some far.', make() {
-    let t = 0; const layers = [0.35, 0.65, 1].map((z, li) => ({ z, ps: Array.from({ length: li === 2 ? 14 : li === 1 ? 26 : 40 }, () => ({ x: Math.random(), y: Math.random(), ph: Math.random() * TAU, s: 0.6 + Math.random() * 0.8 })) }));
-    return { draw(ctx, w, h, e) { t += e.dt * e.speed * 0.6; const c = sndColour(e); const fine = 0.5 + c * 0.9;   // bright sounds → finer particles
-      sky(ctx, w, h, isDark() ? '#090c1a' : '#f2f2f6', isDark() ? '#121a36' : '#e4e7f3');
-      glow(ctx, w * 0.5, h * 0.45, w * 0.55, isDark() ? 'rgba(120,150,230,A)' : 'rgba(120,150,230,A)', isDark() ? 0.10 : 0.14);
-      for (const L of layers) for (const p of L.ps) { p.y -= e.dt * e.speed * 0.012 * L.z; p.x += Math.sin(t * 0.4 + p.ph) * 0.0006 * L.z; if (p.y < -0.1) { p.y = 1.1; p.x = Math.random(); } const r = (2 + L.z * 14) * p.s / fine * (1 + e.level * 0.3); const a = (0.12 + L.z * 0.35) * (0.7 + 0.3 * Math.sin(t + p.ph)); glow(ctx, p.x * w, p.y * h, r * 2.4, isDark() ? 'rgba(190,205,255,A)' : 'rgba(80,110,210,A)', a * 0.5); ctx.fillStyle = isDark() ? `rgba(220,230,255,${a})` : `rgba(70,100,200,${a * 0.8})`; ctx.beginPath(); ctx.arc(p.x * w, p.y * h, r, 0, TAU); ctx.fill(); }
-    } }; } });
-
   add({ id: 'flow', name: 'Abstract Flow', cat: 'Abstract', featured: true, desc: 'Liquid, silk-like forms that keep evolving without repeating.', make() {
     let t = 0; const tex = new NoiseTex(96, 54); const ribbons = Array.from({ length: 7 }, (_, i) => ({ ph: i * 0.9, y: 0.2 + i * 0.1, hue: i * 9 }));
     return { draw(ctx, w, h, e) { t += e.dt * e.speed * 0.25; const c = sndColour(e); const warm = e.sound ? e.sound.warm : 0;
@@ -381,10 +315,29 @@
     } }; } });
   function hsl(h, s, l) { s /= 100; l /= 100; const k = n => (n + h / 30) % 12; const a = s * Math.min(l, 1 - l); const f = n => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1))); return [Math.round(255 * f(0)), Math.round(255 * f(8)), Math.round(255 * f(4))]; }
 
+
+  // ===== PREMIUM ENVIRONMENTS — shared with the Sound Field (SoftwaveField). Persona-adaptive, one instance per id. =====
+  const SF = () => window.SoftwaveField;
+  function sharedEnvironment(id) { return SF().sharedEnvironment(id); }
+  let personaKey = '', personaCache = null;
+  function currentPersona() { const l = engine.activeList(); const key = l.map(x => x.id + ':' + Math.round(x.volume * 10)).join(); if (key !== personaKey || !personaCache) { personaKey = key; personaCache = SF().blend(l.map(sn => ({ id: sn.id, volume: sn.volume, params: (sn.id === 'sculpt' || sn.id.startsWith('disco')) ? engine.getSculpt(sn.id) : null }))); } return personaCache; }
+  const smoothP = {}; function smoothPersona() { const T = currentPersona(); for (const k in T) { if (Array.isArray(T[k])) smoothP[k] = (smoothP[k] || T[k]).map((v, i) => lerp(v, T[k][i], 0.03)); else if (typeof T[k] === 'number') smoothP[k] = lerp(smoothP[k] == null ? T[k] : smoothP[k], T[k], 0.03); else smoothP[k] = T[k]; } return smoothP; }
+  let lowS = 0;
+  function stateFrom(e) {
+    const F = SF(); const P = smoothPersona(); let lo = 0; for (let i = 1; i < 10; i++) lo += e.spec[i]; lo /= 9 * 255; lowS += (lo - lowS) * 0.04;
+    const rate = e.still ? 0 : e.speed * P.speed; const dt = F.tick(performance.now(), rate);
+    return { t: F.clock.t, dt: dt * (e.still ? 0 : e.speed), dark: isDark(), P, tint: isDark() ? P.tint : P.light, level: e.level, low: lowS, alive: engine.isPlaying ? 1 : 0.6, reduce: e.reduced, speed: e.still ? 0 : e.speed, pointer: e.pointer, taps: e.taps, breathText: e.breathText };
+  }
+  const envVisual = (id, name, desc, cat) => ({ id, name, cat: cat || 'Nature', featured: true, desc, make() { return { draw(ctx, w, h, e) { if (!SF()) return; sharedEnvironment(id).draw(ctx, w, h, stateFrom(e)); } }; } });
+  add(envVisual('ocean', 'Ocean', 'Broad, slow water under a low light. Deeper sounds make it larger and slower.'));
+  add(envVisual('rainwindow', 'Rain Window', 'Translucent rain on glass, depth planes and an occasional ripple.'));
+  add(envVisual('nightsky', 'Night Sky', 'Deep layered space, very slow lights, lots of room.'));
+  add(envVisual('ripple', 'Ripple', 'A wide field of slow ripples. Tap to add your own; deep sounds make them larger.', 'Abstract'));
+  add(envVisual('float', 'Float', 'Soft particles on several depth planes, drifting with a gentle parallax.', 'Abstract'));
   add({ id: 'soundfield', name: 'Sound Field', cat: 'Sound Reactive', featured: true, reactive: true, desc: 'The Softwave Sound Field itself, filling the screen.', make() {
-    let field = null, lastIds = ''; return { draw(ctx, w, h, e) { if (!window.SoftwaveField) return; if (!field || field.c !== ctx.canvas) { field = new SoftwaveField.Field(ctx.canvas); field.dpr = 1; field.low = true; } const ids = engine.activeList().map(s => ({ id: s.id, volume: s.volume, params: (s.id === 'sculpt' || s.id.startsWith('disco')) ? engine.getSculpt(s.id) : null })); const key = ids.map(i => i.id).join(); if (key !== lastIds) { field.set(ids); lastIds = key; } field.w = w; field.h = h; field.setLevel(e.level, 0); field.last = field.last || performance.now(); field.resizeSkip = true;
-      // draw into the focus canvas directly (already sized by the focus loop)
-      sky(ctx, w, h, isDark() ? '#0b0f1d' : '#f5f4f0', isDark() ? '#0e1424' : '#ecebe6'); const save = field.resize; field.resize = () => true; field.ctx = ctx; field.draw(performance.now()); field.resize = save; } }; } });
+    let field = null; return { draw(ctx, w, h, e) { const F = SF(); if (!F) return; if (!field || field.c !== ctx.canvas) { field = new F.Field(ctx.canvas); field.fullscreen = true; field.spot = null; }
+      const ids = engine.activeList().map(sn => ({ id: sn.id, volume: sn.volume, params: (sn.id === 'sculpt' || sn.id.startsWith('disco')) ? engine.getSculpt(sn.id) : null })); field.set(ids); field.setPlaying(engine.isPlaying && !e.still); field.setLevel(e.level, 0); let lo = 0; for (let i = 1; i < 10; i++) lo += e.spec[i]; field.setLow(lo / (9 * 255));
+      field.resize = function () { this.w = w; this.h = h; this.rect = { left: 0, top: 0 }; return true; }; field.draw(performance.now()); } }; } });
 
   // ===== EXPERIMENT VISUALS (opened from The Lab) =====
   add({ id: 'target', name: 'Attention Target', cat: 'Lab', hidden: true, desc: 'Follow one slow object; the sound follows it too.', make() {
@@ -490,7 +443,7 @@
   // "What do you want to focus on?" chooser (from Sounds → Add visual). Sound keeps playing.
   function openChooser() {
     const ch = $('#visual-chooser'); ch.hidden = false; document.body.style.overflow = 'hidden'; const host = $('#chooser-list'); host.innerHTML = '';
-    ['ocean', 'rainwindow', 'nightsky', 'float', 'ripple', 'flow'].forEach(id => { const v = byId[id]; const b = document.createElement('button'); b.className = 'chooser-tile'; b.innerHTML = `<canvas width="300" height="200" aria-hidden="true"></canvas><span>${v.name}</span>`; const c = $('canvas', b); previews.set(c, { inst: v.make(), visible: true }); b.addEventListener('click', () => { closeChooser(); setVisual(id); enterFocus(true); }); host.appendChild(b); });
+    ['ocean', 'rainwindow', 'nightsky', 'float', 'ripple', 'flow'].forEach(id => { const v = byId[id]; const b = document.createElement('button'); b.className = 'chooser-tile'; b.innerHTML = `<canvas width="300" height="200" aria-hidden="true"></canvas><span>${v.name}</span>`; const c = $('canvas', b); previews.set(c, { inst: v.make(), visible: true }); b.addEventListener('click', () => { closeChooser(); setVisual(id); enterViaTransition(id); }); host.appendChild(b); });
     $('.chooser-tile', host).focus();
   }
   function closeChooser() { const ch = $('#visual-chooser'); ch.hidden = true; document.body.style.overflow = ''; $$('#chooser-list canvas').forEach(c => previews.delete(c)); }
@@ -573,10 +526,10 @@
   });
 
   // ---------- FOCUS MODE ----------
-  const screen = $('#focus-screen'), canvas = $('#focus-canvas'), ctx = canvas.getContext('2d');
+  const screen = $('#focus-screen'), canvas = $('#focus-canvas'), ctx = canvas.getContext('2d', { alpha: false });   // opaque: every visual paints its own background; far cheaper to composite
   const focus = { inst: null, visualId: null, last: 0, hideT: null, raf: null, pointer: { x: 0.5, y: 0.5, on: false, down: false }, taps: [], tapId: 0, wake: null,
     load(id) { this.visualId = id; this.inst = byId[id].make(); this.taps = []; $('#focus-visual-name').textContent = byId[id].name; $('#focus-breath-row').hidden = id !== 'breathing'; } };
-  function resize() { const dpr = Math.min(devicePixelRatio || 1, 1.5); const w = innerWidth, h = innerHeight; canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr); canvas.style.width = w + 'px'; canvas.style.height = h + 'px'; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); focus.w = w; focus.h = h; }
+  function resize() { const w = innerWidth, h = innerHeight; let dpr = Math.min(devicePixelRatio || 1, 1.5); if (w * h * dpr * dpr > 2.4e6) dpr = Math.min(dpr, Math.max(1, Math.sqrt(2.4e6 / (w * h)))); canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr); canvas.style.width = w + 'px'; canvas.style.height = h + 'px'; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); focus.w = w; focus.h = h; }
   addEventListener('resize', () => { if (!screen.hidden) resize(); });
   function loop(now) {
     if (screen.hidden) return; focus.raf = requestAnimationFrame(loop);
@@ -589,7 +542,10 @@
     // drift the pointer effect off when idle
   }
   function showControls() { screen.classList.remove('idle'); clearTimeout(focus.hideT); focus.hideT = setTimeout(() => { if (!$('#focus-panel').classList.contains('open')) screen.classList.add('idle'); }, 4500); }
-  async function enterFocus(transition) {
+  let enteredVia = null;
+  function enterViaTransition(id) { if (window.softwaveTransition && !$('#view-sounds').hidden) { enteredVia = id; window.softwaveTransition.to(id, () => enterFocus(false, true)); } else enterFocus(true); }
+  async function enterFocus(transition, fromTransition) {
+    if (!fromTransition) enteredVia = null;
     if (!screen.hidden) return;
     if (transition) { document.body.classList.add('entering'); await new Promise(r => setTimeout(r, 520)); document.body.classList.remove('entering'); }
     focus.load(S.visual); screen.hidden = false; document.body.style.overflow = 'hidden'; resize(); focus.last = performance.now(); loop(focus.last);
@@ -606,6 +562,7 @@
   }
   function exitFocus() {
     if (engine.ctx) engine.resetMasterShape(); P.dim = 0; P.slow = 0; P.time = 0.5;
+    if (enteredVia && window.softwaveTransition) { const id = enteredVia; enteredVia = null; window.softwaveTransition.back(id); }
     screen.hidden = true; document.body.style.overflow = ''; cancelAnimationFrame(focus.raf); closePanel();
     if (document.fullscreenElement) document.exitFullscreen().catch(() => { });
     if (focus.wake) { focus.wake.release().catch(() => { }); focus.wake = null; }
@@ -665,7 +622,7 @@
   $('#freq-visualizer').addEventListener('click', async () => { if (!(engine.tone && engine.tone.playing)) $('#freq-play').click(); setVisual('frequency'); enterFocus(); });
 
   // expose for app
-  window.softwaveFocus = { enterFocus, exitFocus, setVisual, crossfadeTo, openChooser, visuals: V.filter(v => !v.hidden), allVisuals: V, setParam: (k, v) => { P[k] = v; }, getParam: () => P };
+  window.softwaveFocus = { enterFocus, exitFocus, enterViaTransition, setVisual, crossfadeTo, openChooser, visuals: V.filter(v => !v.hidden), allVisuals: V, setParam: (k, v) => { P[k] = v; }, getParam: () => P };
 
   // ---------- init ----------
   renderLibrary(); renderPairings(); renderFavs(); syncSettings(); if (window.softwaveProfile) softwaveProfile.refresh();

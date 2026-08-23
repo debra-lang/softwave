@@ -411,12 +411,13 @@
 
   // ---------- Softwave Sound Field (the active sound as the visual centrepiece) ----------
   const FIELD = window.SoftwaveField; const fieldMain = FIELD ? new FIELD.Field($('#field-canvas')) : null; const fieldBig = FIELD ? new FIELD.Field($('#now-canvas')) : null;
+  if (fieldMain) { fieldMain.spot = $('#field'); fieldBig.fullscreen = true; }
   const fieldSpec = new Uint8Array(512); let fieldLast = 0; let fieldVisible = true;
   new IntersectionObserver(en => { fieldVisible = en[0].isIntersecting; }).observe($('#field'));
   const tileVisible = new Map(); const tileIO = new IntersectionObserver(ens => ens.forEach(en => tileVisible.set(en.target, en.isIntersecting)), { rootMargin: '80px' });
   function fieldIds() { return engine.activeList().map(sn => ({ id: sn.id, volume: sn.volume, params: (sn.id === 'sculpt' || sn.id.startsWith('disco')) ? engine.getSculpt(sn.id) : null })); }
-  function fieldLoop(now) { requestAnimationFrame(fieldLoop); if (!FIELD || document.hidden) return; const lv = engine.isPlaying ? Math.min(1, engine.getLevels(fieldSpec) * 6) : 0; const bal = engine.activeList().reduce((acc, sn) => acc + sn.balance, 0); const immersed = !$('#now').hidden;
-    if (immersed) { fieldBig.setLevel(lv, bal); fieldBig.draw(now); } else if (fieldVisible && !$('#view-sounds').hidden) { fieldMain.setLevel(lv, bal); fieldMain.draw(now); }
+  function fieldLoop(now) { requestAnimationFrame(fieldLoop); if (!FIELD || document.hidden) return; const playing = !!engine.isPlaying; const lv = playing ? Math.min(1, engine.getLevels(fieldSpec) * 6) : 0; let lo = 0; if (playing) { for (let i = 1; i < 10; i++) lo += fieldSpec[i]; lo /= 9 * 255; } const bal = engine.activeList().reduce((acc, sn) => acc + sn.balance, 0); const immersed = !$('#now').hidden; const focusOpen = !$('#focus-screen').hidden && !transit.active;
+    if (immersed) { fieldBig.setPlaying(playing); fieldBig.setLevel(lv, bal); fieldBig.setLow(lo); fieldBig.draw(now); } else if (!focusOpen && (transit.active || (fieldVisible && !$('#view-sounds').hidden))) { fieldMain.setPlaying(playing); fieldMain.setLevel(lv, bal); fieldMain.setLow(lo); fieldMain.draw(now); }
     if (now - fieldLast > 80 && !$('#view-sounds').hidden && !immersed) { fieldLast = now; tilePreviews.forEach((pv, card) => { if (!tileVisible.has(card)) { tileIO.observe(card); tileVisible.set(card, false); return; } if (!tileVisible.get(card)) return; const hot = card.classList.contains('active') || card.matches(':hover'); pv.setLevel(hot ? 0.5 : 0.15, 0); pv.draw(now); }); } }
   requestAnimationFrame(fieldLoop);
   function syncField() {
@@ -428,10 +429,25 @@
     $('#field-controls').hidden = !any; const core = $('#field-core'); core.classList.toggle('idle', !any); core.setAttribute('aria-pressed', playing); core.setAttribute('aria-label', !any ? 'Choose a sound to begin' : playing ? 'Pause' : 'Play');
     $('#field').dataset.state = !any ? 'idle' : playing ? 'playing' : 'paused';
     const v = $('#field-vol'); v.value = Math.round(engine.masterVolume * 100); paintRange(v); $('#field-vol-out').textContent = v.value + '%';
-    const t = engine.timer; $('#field-timer-label').textContent = t.endsAt ? `${Math.max(1, Math.ceil((t.endsAt - Date.now()) / 60000))} min` : '30 min';
+    const t = engine.timer; $('#field-timer-label').textContent = t.endsAt ? `Timer · ${Math.max(1, Math.ceil((t.endsAt - Date.now()) / 60000))} min` : 'Timer';
     const atmo = !any ? '' : ['brown', 'fire', 'cabin', 'thunder', 'city'].includes(top.id) ? 'warm' : ['night'].includes(top.id) ? 'dark' : ['rain', 'waterfall', 'static', 'hiss', 'white'].includes(top.id) ? 'muted' : 'cool'; document.body.dataset.atmo = atmo;
   }
   engine.on(type => { if (['sounds', 'state', 'master', 'timer', 'tone'].includes(type)) syncField(); });
+  // ---------- Sound → Visual → Environment (the signature transition) ----------
+  const transit = { active: false, timer: null };
+  const REDUCE = () => FIELD && FIELD.reduced();
+  function transitionTo(visualId, done) {
+    if (!fieldMain) { done && done(); return; }
+    clearTimeout(transit.timer); transit.active = true; document.body.classList.add('transit'); const cv = $('#field-canvas'); cv.classList.add('fs'); fieldMain.fullscreen = true; fieldMain.spot = $('#field');
+    fieldMain.setEnvironment(visualId); fieldMain.morph = 0; fieldMain.morphTarget = 1;
+    transit.timer = setTimeout(() => { done && done(); requestAnimationFrame(() => requestAnimationFrame(() => { transit.active = false; document.body.classList.remove('transit'); cv.classList.remove('fs'); fieldMain.fullscreen = false; fieldMain.morph = 0; fieldMain.morphTarget = 0; })); }, REDUCE() ? 450 : 1700);
+  }
+  function transitionBack(visualId) {
+    if (!fieldMain) return; clearTimeout(transit.timer); transit.active = true; document.body.classList.add('transit'); const cv = $('#field-canvas'); cv.classList.add('fs'); fieldMain.fullscreen = true;
+    fieldMain.setEnvironment(visualId); fieldMain.morph = 1; fieldMain.morphTarget = 0; if (location.hash !== '#sounds') showView('sounds', { push: false }); scrollTo({ top: 0, behavior: 'instant' });
+    transit.timer = setTimeout(() => { transit.active = false; document.body.classList.remove('transit'); cv.classList.remove('fs'); fieldMain.fullscreen = false; fieldMain.morph = 0; }, REDUCE() ? 450 : 1600);
+  }
+  window.softwaveTransition = { to: transitionTo, back: transitionBack, get active() { return transit.active; } };
   $('#field-core').addEventListener('click', async e => { const b = e.currentTarget; b.classList.add('pressed'); setTimeout(() => b.classList.remove('pressed'), 450); if (!engine.activeList().length) { $('#sound-groups').scrollIntoView({ behavior: 'smooth', block: 'start' }); return; } await togglePlay(); syncField(); });
   $('#field-vol').addEventListener('input', e => setMaster(+e.target.value / 100, true));
   $$('[data-fa]').forEach(b => b.addEventListener('click', () => { const k = b.dataset.fa; if (k === 'timer') { const cur = engine.timer.durationMin || 0; const next = cur === 0 ? 30 : cur === 30 ? 60 : cur === 60 ? 90 : 0; engine.setTimer(next, true); toast(next ? `Timer: ${next} minutes with gentle fade` : 'Timer off'); } if (k === 'visual') { if (window.softwaveFocus) softwaveFocus.openChooser(); else showView('focus'); } if (k === 'mixer') showView('mixer'); if (k === 'save') { showView('mixer'); setTimeout(() => { $('#mix-save').click(); $('#mix-save').scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 150); } if (k === 'immerse') openNow(); }));
@@ -498,7 +514,7 @@
     const q = new URLSearchParams(location.search); const sid = q.get('sound'), pid = q.get('preset');
     if (q.get('exp')) { store.set('welcomed', true); welcome.hidden = true; showView('lab'); }
     if (q.get('snap') && fieldMain) { fieldMain.snap(); fieldBig.snap(); }
-    if (q.get('demo') && fieldMain && engine.def(q.get('demo'))) { const id = q.get('demo'); store.set('welcomed', true); welcome.hidden = true; fieldMain.snap(); fieldMain.set([{ id, volume: 0.6 }]); $('#field-name').textContent = engine.def(id).name; $('#field-desc').textContent = (FIELD.DESC[id] || ''); $('#field-controls').hidden = false; $('#field-core').classList.remove('idle'); $('#field-core').setAttribute('aria-pressed', 'true'); $('#field').dataset.state = 'playing'; document.body.dataset.atmo = ['brown', 'fire'].includes(id) ? 'warm' : id === 'night' ? 'dark' : ['rain', 'white'].includes(id) ? 'muted' : 'cool'; fieldMain.level = 0.3; }
+    if (q.get('demo') && fieldMain && engine.def(q.get('demo'))) { const id = q.get('demo'); store.set('welcomed', true); welcome.hidden = true; fieldMain.set([{ id, volume: 0.6 }]); fieldMain.snap(); fieldMain.playing = true; $('#field-name').textContent = engine.def(id).name; $('#field-desc').textContent = (FIELD.DESC[id] || ''); $('#field-controls').hidden = false; $('#field-core').classList.remove('idle'); $('#field-core').setAttribute('aria-pressed', 'true'); $('#field').dataset.state = 'playing'; document.body.dataset.atmo = ['brown', 'fire'].includes(id) ? 'warm' : id === 'night' ? 'dark' : ['rain', 'white'].includes(id) ? 'muted' : 'cool'; fieldMain.level = 0.3; }
     if (q.get('play') && engine.def(q.get('play'))) { store.set('welcomed', true); welcome.hidden = true; loadPreset({ name: engine.def(q.get('play')).name, mix: [{ id: q.get('play'), volume: 0.6 }], master: 0.35 }); }
     if (q.get('now')) { store.set('welcomed', true); welcome.hidden = true; openNow(); loadPreset(PRESETS.find(p => p.id === q.get('now')) || PRESETS[0]); }
     if (sid && engine.def(sid) && !engine.def(sid).lab) { store.set('welcomed', true); welcome.hidden = true; showView('sounds'); const card = $(`.sound-card[data-id="${sid}"]`); if (card) { card.classList.add('highlight'); setTimeout(() => { card.scrollIntoView({ behavior: 'smooth', block: 'center' }); $('.card-btn', card).focus(); toast(`Tap ${engine.def(sid).name} to play it — it starts quietly.`, 4000); }, 250); } }

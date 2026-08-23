@@ -31,7 +31,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=24">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400&display=swap">
+  <link rel="stylesheet" href="styles.css?v=25">
   <script type="application/ld+json">
   {"@context":"https://schema.org","@graph":[
     {"@type":"Organization","@id":"https://debra-lang.github.io/softwave/#org","name":"Softwave","url":"https://debra-lang.github.io/softwave/","logo":"https://debra-lang.github.io/softwave/icons/icon-512.png","sameAs":["https://github.com/debra-lang/softwave"]},
@@ -92,34 +93,37 @@
 
     <!-- ============ SOUNDS ============ -->
     <section id="view-sounds" class="view active" aria-labelledby="sounds-title">
-      <div class="hero hero-compact">
-        <p class="brand-eyebrow">Personal Sound Discovery for Tinnitus</p>
-        <h1 id="sounds-title">Find Your Sound</h1>
-        <p class="lead">Your tinnitus is personal. Your sound should be too.</p>
-      </div>
-
-      <div class="field-wrap" id="field-wrap">
-        <div class="field" id="field">
-          <canvas id="field-canvas" aria-hidden="true"></canvas>
-          <button id="field-core" class="field-core" aria-label="Choose a sound to begin" aria-pressed="false">
-            <span class="field-idle">Choose<br>a sound</span>
-            <svg class="ico-play" viewBox="0 0 24 24" width="34" height="34" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>
-            <svg class="ico-pause" viewBox="0 0 24 24" width="34" height="34" aria-hidden="true"><path d="M7 5h4v14H7zM13 5h4v14h-4z" fill="currentColor"/></svg>
-          </button>
+      <div class="sf-stage" id="sf-stage">
+        <canvas id="field-canvas" aria-hidden="true"></canvas>
+        <div class="hero hero-compact sf-hero">
+          <p class="brand-eyebrow">Personal sound discovery for tinnitus</p>
+          <h1 id="sounds-title">Find Your Sound</h1>
+          <p class="lead">Your tinnitus is personal. Your sound should be too.</p>
         </div>
-        <div class="field-name" id="field-name" aria-live="polite">Ready when you are</div>
-        <div class="field-desc" id="field-desc">Tap any sound below — or <button class="linklike" id="field-discover">help me find my sound</button></div>
-        <div class="field-controls" id="field-controls" hidden>
-          <div class="field-vol"><label for="field-vol" class="sr-only">Volume</label><input id="field-vol" type="range" min="0" max="100" value="35"><output id="field-vol-out">35%</output></div>
-          <div class="field-actions">
-            <button class="fa" data-fa="timer"><span class="fa-ico">◷</span><span id="field-timer-label">30 min</span></button>
-            <button class="fa" data-fa="visual"><span class="fa-ico">◌</span>Add visual</button>
-            <button class="fa" data-fa="mixer"><span class="fa-ico">≡</span>Mixer</button>
-            <button class="fa" data-fa="save"><span class="fa-ico">♡</span>Save</button>
-            <button class="fa fa-immerse" data-fa="immerse"><span class="fa-ico">⤢</span>Immerse</button>
+        <div class="field-wrap" id="field-wrap">
+          <div class="field" id="field">
+            <button id="field-core" class="field-core" aria-label="Choose a sound to begin" aria-pressed="false">
+              <span class="field-idle">Choose<br>a sound</span>
+              <svg class="ico-play" viewBox="0 0 24 24" width="34" height="34" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>
+              <svg class="ico-pause" viewBox="0 0 24 24" width="34" height="34" aria-hidden="true"><path d="M7 5h4v14H7zM13 5h4v14h-4z" fill="currentColor"/></svg>
+            </button>
+          </div>
+          <div class="field-name" id="field-name" aria-live="polite">Ready when you are</div>
+          <div class="field-desc" id="field-desc">Tap any sound below — or <button class="linklike" id="field-discover">help me find my sound</button></div>
+          <div class="field-controls" id="field-controls" hidden>
+            <div class="field-vol"><label for="field-vol" class="sr-only">Volume</label><input id="field-vol" type="range" min="0" max="100" value="35"><output id="field-vol-out">35%</output></div>
+            <div class="field-actions">
+              <button class="fa" data-fa="timer"><span id="field-timer-label">Timer</span></button>
+              <button class="fa" data-fa="visual">Add Visual</button>
+              <button class="fa" data-fa="mixer">Mixer</button>
+              <button class="fa" data-fa="save">Save</button>
+            </div>
+            <button class="fa fa-immerse" data-fa="immerse">Immerse</button>
           </div>
         </div>
       </div>
+
+      <div id="sound-groups" class="sound-library" aria-label="Sound library"></div>
 
       <div class="presets-row" aria-label="Quick presets">
         <h2 class="row-title">One-tap presets</h2>
@@ -127,7 +131,6 @@
         <div id="my-sounds-row" hidden><h2 class="row-title">My sounds</h2><div id="my-sounds" class="chips" role="list"></div></div>
       </div>
 
-      <div id="sound-groups"></div>
 
       <div class="two-tools two-tools-low" aria-label="Two ways to explore">
         <button class="two-tool" id="home-tool-discover"><strong>Help Me Find My Sound</strong><span>Compare different sounds and discover which ones you personally prefer.</span></button>
@@ -612,9 +615,9 @@
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script src="audio.js?v=18" defer></script>
-  <script src="visuals.js?v=19" defer></script>
-  <script src="field.js?v=2" defer></script>
-  <script src="app.js?v=25" defer></script>
-  <script src="focus.js?v=27" defer></script>
+  <script src="visuals.js?v=20" defer></script>
+  <script src="field.js?v=3" defer></script>
+  <script src="app.js?v=26" defer></script>
+  <script src="focus.js?v=28" defer></script>
 </body>
 </html>

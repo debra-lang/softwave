@@ -43,6 +43,8 @@
     loop() {
       if (!this.running) return;
       requestAnimationFrame(() => this.loop());
+      // The page atmosphere is slow-moving: 20 fps is plenty, and it leaves the frame budget to the Sound Field (audio first).
+      const nowT = performance.now(); if (this._lastT && nowT - this._lastT < 48) return; this._lastT = nowT;
       const ctx = this.ctx, w = this.w, h = this.h;
       const lv = this.engine.isPlaying ? this.engine.getLevels(this.freq) : 0;
       this.level += (lv - this.level) * 0.06;
