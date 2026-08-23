@@ -84,7 +84,8 @@
     // personality follows the selected sound smoothly
     const T = SOUNDS[S.sound]; for (const k of ['rings', 'amp', 'speed', 'harm', 'wave', 'tint', 'light']) { if (Array.isArray(T[k])) S.P[k] = S.P[k].map((v, i) => lerp(v, T[k][i], 0.03)); else S.P[k] = lerp(S.P[k], T[k], 0.03); }
 
-    const motion = S.reduce ? 0.06 : (0.18 + 0.82 * S.alive);
+    const life = 0.38 + 0.62 * S.alive;                         // idle breathes quietly; playing is clearly more awake
+    const motion = S.reduce ? 0.06 : (0.3 + 0.7 * S.alive);
     S.t += dt * motion * S.P.speed * (1 - S.low * 0.25);       // deeper sound → slower
     const e = ease(S.morph), P = S.P, vol = engine.masterVolume;
     const { cx, cy, R } = fieldRect();
@@ -107,8 +108,9 @@
     }
 
     // --- rings ⇄ bands
-    const breathe = 1 + (0.035 * Math.sin(S.t * 0.5) * S.alive + S.low * 0.07) * (S.reduce ? 0.3 : 1);
-    const ampK = (0.55 + 0.45 * S.alive) * (0.8 + vol * 0.4) * (1 + S.level * 0.6);
+    const breathe = 1 + (0.03 * Math.sin(S.t * 0.5) * life + S.low * 0.07) * (S.reduce ? 0.3 : 1);
+    const ampK = (0.6 + 0.55 * S.alive) * (0.8 + vol * 0.4) * (1 + S.level * 0.6);
+    const grow = 1 + 0.38 * ease(clamp(S.morph * 2.2, 0, 1));      // the field expands first, then transforms
     const nR = Math.round(P.rings);
     const far = dark ? [16, 32, 52] : [186, 208, 222], near = dark ? [5, 11, 20] : [104, 146, 176];
     for (let i = 0; i < MAX_RINGS; i++) {
@@ -116,8 +118,8 @@
       const f = (i + 1) / Math.max(1, nR);                          // 0..1 outer→inner index share
       const idx = MAX_RINGS - 1 - i;                                // draw order: outer first
       const k = MAX_RINGS - 1 - idx; // = i
-      const rr = R * (0.16 + 0.84 * Math.pow(1 - i / Math.max(1, nR - 1), 0.85)) * breathe * (1 + 0.03 * Math.sin(S.t * 0.33 + i * 1.9) * S.alive);  // ring i: large → small, each breathing slightly apart
-      const dx = R * 0.04 * Math.sin(S.t * 0.3 + i * 1.7) * S.alive, dy = R * 0.035 * Math.cos(S.t * 0.26 + i * 2.3) * S.alive;   // slow drift gives depth
+      const rr = R * (0.16 + 0.84 * Math.pow(1 - i / Math.max(1, nR - 1), 0.85)) * breathe * grow * (1 + 0.035 * Math.sin(S.t * 0.33 + i * 1.9) * life);  // ring i: large → small, each breathing slightly apart
+      const dx = R * 0.045 * Math.sin(S.t * 0.3 + i * 1.7) * life, dy = R * 0.04 * Math.cos(S.t * 0.26 + i * 2.3) * life;   // slow drift separates the layers (depth)
       // band geometry for this ring (ocean): far (high) for large rings, near (low) for small rings
       const bi = i / Math.max(1, nR - 1);                           // 0 far → 1 near
       const hz = H * 0.42, yb = hz + (H - hz) * Math.pow(bi, 1.35) * 1.02 + 4;
@@ -143,7 +145,8 @@
       }
       ctx.closePath();
       // colour: translucent tinted ring ⇄ solid layered water
-      const fieldFill = rgba(tint, (dark ? 0.04 : 0.04) * ringA), fieldStroke = rgba(dark ? mix3(tint, [255, 255, 255], 0.35) : tint, (dark ? 0.26 : 0.32) * (1 - i / MAX_RINGS * 0.5) * ringA);
+      const depth = 0.55 + 0.45 * (i / Math.max(1, nR - 1));    // inner rings nearer
+      const fieldFill = rgba(tint, (dark ? 0.045 : 0.04) * ringA * depth), fieldStroke = rgba(dark ? mix3(tint, [255, 255, 255], 0.35) : tint, (dark ? 0.28 : 0.34) * (0.45 + 0.55 * depth) * ringA);
       const wc = mix3(far, near, bi);
       if (e < 0.999) { ctx.fillStyle = fieldFill; ctx.globalAlpha = 1 - e; ctx.fill(); ctx.strokeStyle = fieldStroke; ctx.lineWidth = 1.5 - i / MAX_RINGS; ctx.stroke(); }
       if (e > 0.001) { ctx.globalAlpha = e * (0.82 + 0.18 * bi); ctx.fillStyle = rgba(wc, 1); ctx.fill(); ctx.globalAlpha = e; ctx.strokeStyle = dark ? `rgba(170,210,235,${0.10 + 0.1 * (1 - bi)})` : `rgba(255,255,255,${0.35})`; ctx.lineWidth = 1; ctx.stroke(); }
@@ -158,7 +161,7 @@
       ctx.globalAlpha = 1;
     }
     // --- centre glow behind the play control (field only)
-    if (e < 0.999) { ctx.globalAlpha = 1 - e; g = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.5); g.addColorStop(0, rgba(tint, (dark ? 0.18 : 0.2) * (0.4 + S.alive * 0.6))); g.addColorStop(1, rgba(tint, 0)); ctx.fillStyle = g; ctx.fillRect(cx - R, cy - R, R * 2, R * 2); ctx.globalAlpha = 1; }
+    if (e < 0.999) { ctx.globalAlpha = 1 - e; g = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.5); g.addColorStop(0, rgba(tint, (dark ? 0.18 : 0.2) * (0.55 + S.alive * 0.45))); g.addColorStop(1, rgba(tint, 0)); ctx.fillStyle = g; ctx.fillRect(cx - R, cy - R, R * 2, R * 2); ctx.globalAlpha = 1; }
 
     // previews (15 fps)
     if (now - prevLast > 66) { prevLast = now; drawPreviews(now / 1000); }
