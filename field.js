@@ -140,7 +140,7 @@
     const { cx, cy, R, W, H, P, tint, dark } = o; const e = o.e;
     const breathe = 1 + (0.03 * Math.sin(o.t * 0.5) * o.life + o.low * 0.07) * (o.reduce ? 0.3 : 1);
     const ampK = (0.6 + 0.55 * o.alive) * (0.8 + o.vol * 0.4) * (1 + o.level * 0.6) * (o.reduce ? 0.5 : 1);
-    const nR = Math.round(P.rings);
+    const nR = Math.round(P.rings); const NP = o.pts || PTS;
     const far = dark ? [16, 32, 52] : [186, 208, 222], near = dark ? [5, 11, 20] : [104, 146, 176];
     const hz = H * 0.42; const sq = lerp(P.squash || 1, 1, e);
     const rot = (P.rotate || 0) * o.t * o.life;
@@ -152,13 +152,13 @@
       const bi = i / Math.max(1, nR - 1); const yb = hz + (H - hz) * Math.pow(bi, 1.35) * 1.02 + 4;
       const bandAmp = H * (0.010 + 0.04 * bi) * (0.7 + o.alive * 0.5 + o.low * 0.6) * (0.6 + P.scale * 0.5) * (o.reduce ? 0.35 : 1);
       ctx.beginPath();
-      for (let p = 0; p <= PTS; p++) {
-        const th = Math.PI + (p / PTS) * TAU + rot;
+      for (let p = 0; p <= NP; p++) {
+        const th = Math.PI + (p / NP) * TAU + rot;
         const d = 1 + P.amp * ampK * (0.5 * Math.sin(H0 * th + o.t * 0.5 + i * 1.3) + 0.32 * Math.sin(H1 * th - o.t * 0.37 + i * 2.1) + 0.25 * Math.sin(H2 * th + o.t * 0.23 - i * 0.7) + 0.22 * Math.sin(th + o.t * 0.15 + i * 2.9));
         const fx = cx + dx + Math.cos(th) * rr * d, fy = cy + dy + Math.sin(th) * rr * d * sq;
         let x = fx, y = fy;
         if (e > 0.001) {
-          const top = p <= PTS / 2; const u = top ? p / (PTS / 2) : 1 - (p - PTS / 2) / (PTS / 2);
+          const top = p <= NP / 2; const u = top ? p / (NP / 2) : 1 - (p - NP / 2) / (NP / 2);
           const ox = top ? (-0.15 + 1.3 * u) * W : (-0.22 + 1.44 * u) * W; const ph = u * TAU * (0.9 + P.wave * 0.2);
           const wv = bandAmp * (Math.sin(ph * 1.2 + o.t * 0.35 * (1 + bi * 0.4) + i) + 0.5 * Math.sin(ph * 2.7 - o.t * 0.22 + i * 1.7) + 0.3 * Math.sin(ph * 0.6 + o.t * 0.12));
           const oy = top ? yb + wv : Math.min(H + 80, yb + (H - yb) * 0.55 + 90) + wv * 0.6;
