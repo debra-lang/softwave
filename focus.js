@@ -653,7 +653,7 @@
     const grid = document.createElement('div'); grid.className = 'pane-sounds';
     engine.defs().forEach(d => { const on = engine.isActive(d.id); const b = document.createElement('button'); b.className = 'pane-sound' + (on ? ' on' : ''); b.setAttribute('aria-pressed', on); b.innerHTML = `<span class="ico">${d.icon}</span>${d.name}`; b.addEventListener('click', async () => { const ok = await engine.toggleSound(d.id, 0.5); if (ok === false) app.toast('Up to 5 sounds at once'); renderSoundPane(); }); grid.appendChild(b); });
     host.appendChild(grid);
-    const foot = document.createElement('div'); foot.className = 'btn-row'; foot.innerHTML = '<button class="btn btn-ghost btn-sm" id="pane-stop">Stop all</button>'; host.appendChild(foot); $('#pane-stop', foot).addEventListener('click', () => { engine.stopAll(); renderSoundPane(); });
+    const foot = document.createElement('div'); foot.className = 'btn-row'; foot.innerHTML = '<button class="btn btn-ghost btn-sm" id="pane-stop">Stop all</button>'; host.appendChild(foot); $('#pane-stop', foot).addEventListener('click', () => { (window.softwaveStopAll || engine.stopAll.bind(engine))(); renderSoundPane(); });
   }
   function renderVisualPane() {
     const host = $('[data-pane="visual"] .pane-body'); host.innerHTML = '';

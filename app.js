@@ -66,7 +66,7 @@
   function ensureLab() {
     if (window.softwaveLab) return Promise.resolve();
     if (labPromise) return labPromise;
-    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=21'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
+    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=22'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
     return labPromise;
   }
   window.softwaveEnsureLab = ensureLab;
@@ -206,7 +206,7 @@
   }
   function panLabel(b) { if (Math.abs(b) < 0.05) return 'Centre'; return (b < 0 ? 'L ' : 'R ') + Math.round(Math.abs(b) * 100) + '%'; }
   $('#mix-play').addEventListener('click', () => togglePlay());
-  $('#mix-stop').addEventListener('click', () => { engine.stopAll(); toast('All sounds stopped'); });
+  $('#mix-stop').addEventListener('click', () => { stopEverything(); toast('All sounds stopped'); });
   $('#mix-reset').addEventListener('click', () => { engine.activeList().forEach(s => { engine.setVolume(s.id, 0.5); engine.setBalance(s.id, 0); }); setMaster(0.35); renderMixer(engine.activeList()); syncCards(engine.activeList()); toast('Levels reset'); });
   $('#mix-save').addEventListener('click', () => {
     const list = engine.activeList(); if (!list.length) return toast('Add some sounds first');
@@ -246,7 +246,9 @@
     else toast('Choose a sound to begin');
   }
   $('#player-toggle').addEventListener('click', togglePlay);
-  $('#player-stop').addEventListener('click', () => engine.stopAll());
+  function stopEverything() { if (window.softwaveLab && softwaveLab.isRunning()) softwaveLab.stop(); engine.stopAll(); }
+  window.softwaveStopAll = stopEverything;
+  $('#player-stop').addEventListener('click', stopEverything);
   function updatePlayer() {
     const list = engine.activeList();
     const playing = engine.isPlaying;
@@ -462,7 +464,7 @@
 
   // ---------- Back: closes any open overlay first, then steps back through views ----------
   function goBack() {
-    const overlays = [['#visual-chooser', () => { const ch = $('#visual-chooser'); ch.hidden = true; document.body.style.overflow = ''; }], ['#now', () => closeNow()], ['#focus-screen', () => window.softwaveFocus && softwaveFocus.exitFocus()], ['#eyes-screen', () => window.softwaveLab && softwaveLab.stop()], ['#sleep-screen', () => exitSleep()], ['#lab-detail', () => { const d = $('#lab-detail'); d.hidden = true; d.innerHTML = ''; }]];
+    const overlays = [['#visual-chooser', () => { const ch = $('#visual-chooser'); ch.hidden = true; document.body.style.overflow = ''; }], ['#now', () => closeNow()], ['#focus-screen', () => window.softwaveFocus && softwaveFocus.exitFocus()], ['#eyes-screen', () => window.softwaveLab && softwaveLab.stop()], ['#sleep-screen', () => exitSleep()], ['#lab-detail', () => { if (window.softwaveLab && softwaveLab.isRunning()) softwaveLab.stop('Experiment stopped'); const d = $('#lab-detail'); d.hidden = true; d.innerHTML = ''; }]];
     for (const [sel, close] of overlays) { const el = $(sel); if (el && !el.hidden) { close(); return; } }
     if (history.length > 1 && location.hash && location.hash !== '#sounds') history.back(); else showView('sounds');
   }

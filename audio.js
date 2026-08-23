@@ -245,8 +245,8 @@
       e.gain.gain.cancelScheduledValues(t);
       e.gain.gain.setValueAtTime(e.gain.gain.value, t);
       e.gain.gain.linearRampToValueAtTime(0, t + FADE_OUT);
-      e.timers.forEach(clearTimeout);
-      const nodes = e.nodes;
+      e.timers.forEach(clearTimeout); if (e._tex) { clearInterval(e._tex); e._tex = null; }
+      const nodes = e.nodes.concat(e.sculpt ? e.sculpt.lfos : []); if (e.sculpt) e.sculpt.lfos = [];
       setTimeout(() => { nodes.forEach(n => { try { n.stop && n.stop(); } catch (_) { } try { n.disconnect(); } catch (_) { } }); try { e.gain.disconnect(); } catch (_) { } }, FADE_OUT * 1000 + 60);
       this.active.delete(id);
       if (!this.isPlaying) this._keepAlive(false);
