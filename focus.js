@@ -507,6 +507,7 @@
     $$('#reduce-motion, #focus-reduce').forEach(c => c.checked = S.reduced);
     $$('#breath-text, #focus-breath-text').forEach(c => c.checked = S.breathText);
     $('#current-visual-name').textContent = byId[S.visual].name;
+    const ml = $('#focus-motion-label'); if (ml) ml.textContent = 'Movement: ' + (S.paused ? 'Paused' : S.motion.charAt(0).toUpperCase() + S.motion.slice(1)) + (S.reduced ? ' · Reduced' : '');
   }
   document.addEventListener('click', e => { const b = e.target.closest('[data-motion]'); if (!b) return; S.motion = b.dataset.motion; app.store.set('motion', S.motion); syncSettings(); });
   document.addEventListener('change', e => {
@@ -548,7 +549,7 @@
   $('#focus-exit').addEventListener('click', exitFocus);
   $('#focus-enter').addEventListener('click', enterFocus);
   $('#focus-fullscreen').addEventListener('click', () => { if (document.fullscreenElement) document.exitFullscreen(); else screen.requestFullscreen && screen.requestFullscreen().catch(() => { }); });
-  $('#focus-pause-visual').addEventListener('click', e => { S.paused = !S.paused; e.currentTarget.setAttribute('aria-pressed', S.paused); e.currentTarget.textContent = S.paused ? 'Resume visual' : 'Pause visual'; });
+  $('#focus-pause-visual').addEventListener('click', e => { S.paused = !S.paused; e.currentTarget.setAttribute('aria-pressed', S.paused); e.currentTarget.textContent = S.paused ? 'Resume visual' : 'Pause visual'; syncSettings(); });
   screen.addEventListener('keydown', e => { if (e.key === 'Escape') { if ($('#focus-panel').classList.contains('open')) closePanel(); else exitFocus(); } });
   // pointer / touch interactions on the canvas
   const toNorm = ev => ({ x: ev.clientX / focus.w, y: ev.clientY / focus.h });

@@ -517,7 +517,9 @@
           <button role="radio" aria-checked="true" data-min="0">Off</button>
         </div>
         <p class="muted small">Sound fades out gently before the timer ends.</p>
-        <h2>Visual movement</h2>
+      </div>
+      <div class="focus-pane" data-pane="motion" hidden><h2>Visual movement</h2>
+        <p class="muted small">How much the visual moves. Still keeps it almost completely static.</p>
         <div class="seg" role="radiogroup" aria-label="Visual movement">
           <button role="radio" aria-checked="false" data-motion="still">Still</button>
           <button role="radio" aria-checked="true" data-motion="low">Low</button>
@@ -538,6 +540,7 @@
       <button class="btn btn-ghost btn-sm" data-open-pane="sound">Change sound</button>
       <button class="btn btn-ghost btn-sm" data-open-pane="visual">Change visual</button>
       <button class="btn btn-ghost btn-sm" data-open-pane="timer"><span id="focus-timer-label">Timer</span></button>
+      <button class="btn btn-ghost btn-sm" data-open-pane="motion"><span id="focus-motion-label">Movement: Low</span></button>
     </div>
   </div>
 
@@ -557,7 +560,7 @@
   <script src="audio.js?v=15" defer></script>
   <script src="visuals.js?v=15" defer></script>
   <script src="app.js?v=15" defer></script>
-  <script src="focus.js?v=18" defer></script>
+  <script src="focus.js?v=19" defer></script>
   <script src="lab.js?v=15" defer></script>
 </body>
 </html>
