@@ -339,5 +339,5 @@
   function makeEnvironment(id) { return (ENV[id] || ENV.generic)(); }
   const shared = {}; function sharedEnvironment(id) { return shared[id] || (shared[id] = makeEnvironment(id)); }
 
-  global.SoftwaveField = { Field, Preview, PERSONA, DESC, personaFor, blend, clock, tick, makeEnvironment, sharedEnvironment, environments: Object.keys(ENV), drawRings, envState, LOW, isDark, reduced };
+  global.SoftwaveField = { Field, Preview, PERSONA, DESC, LAYERS, personaFor, blend, clock, tick, makeEnvironment, sharedEnvironment, environments: Object.keys(ENV), drawRings, envState, LOW, isDark, reduced };
 })(window);
