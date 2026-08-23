@@ -876,15 +876,15 @@ body.transit .sf-hero, body.transit .field-wrap, body.transit .topbar, body.tran
 html[data-theme="dark"] .sound-library .group-title { color: rgba(238,240,244,.42); }
 .sound-library .group-learn { margin: -2px 0 8px; }
 .sound-grid { display: flex; flex-wrap: wrap; gap: 6px 18px; }
-.sound-card, .sound-card:hover, .sound-card.active { background: transparent; box-shadow: none; border: 0; padding: 8px 6px 10px; min-height: 0; width: 112px; opacity: .62; transition: opacity .35s; }
+.sound-card, .sound-card:hover, .sound-card.active { background: transparent; box-shadow: none; border: 0; padding: 8px 6px 10px; min-height: 0; width: 132px; opacity: .62; transition: opacity .35s; }
 .sound-card:hover { opacity: .9; } .sound-card.active { opacity: 1; }
 .sound-card .card-btn { gap: 10px; }
-.tile-preview { width: 92px; height: 60px; border-radius: 14px; transform: none; transition: transform .5s cubic-bezier(.2,.8,.2,1), box-shadow .5s; overflow: hidden; }
+.tile-preview { width: 108px; height: 70px; border-radius: 14px; transform: none; transition: transform .5s cubic-bezier(.2,.8,.2,1), box-shadow .5s; overflow: hidden; }
 .tile-preview canvas { border-radius: 14px; }
 .sound-card:hover .tile-preview { transform: scale(1.04); }
 .sound-card.active .tile-preview { transform: scale(1.1); box-shadow: 0 0 0 1px var(--sf-accent), 0 16px 40px rgba(0,0,0,.3); }
 .sound-card .name { font-weight: 500; font-size: .84rem; letter-spacing: .02em; }
-.sound-card .desc { font-size: .62rem; letter-spacing: .06em; text-transform: none; color: var(--sf-ink-3); margin-top: -6px; max-width: 100px; line-height: 1.25; }
+.sound-card .desc { font-size: .62rem; letter-spacing: .06em; text-transform: none; color: var(--sf-ink-3); margin-top: -6px; max-width: 118px; line-height: 1.25; }
 html[data-theme="dark"] .sound-card .desc { color: rgba(238,240,244,.42); }
 .sound-card .vol { width: 100%; margin-top: 6px; }
 .sound-card .vol input[type="range"] { height: 2px; }
@@ -947,7 +947,7 @@ html[data-theme="dark"] .row-title { color: rgba(238,240,244,.42); }
   .field-actions { gap: 18px; }
   .sound-grid { gap: 2px 8px; justify-content: flex-start; }
   .sound-card { width: calc(33.33% - 6px); padding: 8px 2px 10px; }
-  .tile-preview { width: 84px; height: 56px; }
+  .tile-preview { width: 97px; height: 65px; max-width: 100%; }
   .focus-screen .focus-top { top: auto; bottom: 124px; }
   .focus-visual-name { font-size: 2.2rem; }
 }
