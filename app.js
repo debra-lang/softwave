@@ -139,6 +139,7 @@
   window.softwaveProfile = { params: profileParams, mix: profileMix, visual: profileVisual, refresh: renderProfileHooks };
 
   // ---------- sound cards ----------
+  const tilePreviews = new Map();
   function renderSounds() {
     const host = $('#sound-groups'); host.innerHTML = '';
     const groups = [...new Set(engine.defs().map(d => d.group))];
@@ -149,16 +150,16 @@
       const grid = document.createElement('div'); grid.className = 'sound-grid'; grid.setAttribute('role', 'list');
       engine.defs().filter(d => d.group === g).forEach(d => {
         const card = document.createElement('div'); card.className = 'sound-card'; card.style.setProperty('--hue', d.hue); card.dataset.id = d.id; card.setAttribute('role', 'listitem');
+        const FD = (window.SoftwaveField && window.SoftwaveField.DESC[d.id]) || d.desc;
         card.innerHTML = `
-          <div class="art"></div>
-          <div class="waves"><span></span><span></span></div>
-          <span class="state">Playing</span>
-          <button class="card-btn" aria-pressed="false" aria-label="${d.name}: ${d.desc}"><span class="icon" aria-hidden="true">${d.icon}</span><span class="name">${d.name}</span><span class="desc">${d.desc}</span></button>
+          <button class="card-btn" aria-pressed="false" aria-label="${d.name}: ${FD}"><span class="tile-preview" aria-hidden="true"><canvas class="tile-canvas"></canvas></span><span class="name">${d.name}</span><span class="desc">${FD}</span></button>
           <div class="vol"><label class="sr-only" for="vol-${d.id}">${d.name} volume</label><input id="vol-${d.id}" type="range" min="0" max="100" value="60"><output>60%</output></div>`;
         const btn = $('.card-btn', card);
-        Object.assign(btn.style, { all: 'unset', display: 'flex', flexDirection: 'column', gap: '8px', cursor: 'pointer', flex: '1', position: 'relative' });
+        if (window.SoftwaveField) { const pv = new SoftwaveField.Preview($('.tile-canvas', card), d.id); tilePreviews.set(card, pv); }
         btn.addEventListener('click', async () => {
+          const wasActive = engine.isActive(d.id);
           const ok = await engine.toggleSound(d.id, (+$('input', card).value) / 100);
+          if (!wasActive && ok !== false && innerWidth < 700 && !$('#field').getBoundingClientRect().bottom > 0) { $('#field-wrap').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
           if (ok === false) toast(`You can layer up to ${MAX_ACTIVE} sounds. Turn one off to add another.`);
         });
         const slider = $('input', card);
@@ -249,6 +250,7 @@
     const playing = engine.isPlaying;
     const names = list.map(s => engine.def(s.id).name);
     if (engine.tone && engine.tone.playing) names.push(`Tone ${fmt(engine.tone.freq)} Hz`);
+    $('#player').classList.toggle('player-hidden', !names.length);
     $('#player-title').textContent = names.length ? names.join(' + ') : 'Nothing playing';
     $('#player-sub').textContent = names.length ? (playing ? 'Playing · keep it low and comfortable' : 'Paused') : 'Choose a sound to begin';
     const t = $('#player-toggle'); t.setAttribute('aria-pressed', playing); t.setAttribute('aria-label', playing ? 'Pause' : 'Play');
@@ -403,19 +405,48 @@
   const warm = () => { engine.prepare(); document.removeEventListener('pointerdown', warm); document.removeEventListener('keydown', warm); };
   document.addEventListener('pointerdown', warm, { passive: true }); document.addEventListener('keydown', warm);
 
+  // ---------- Softwave Sound Field (the active sound as the visual centrepiece) ----------
+  const FIELD = window.SoftwaveField; const fieldMain = FIELD ? new FIELD.Field($('#field-canvas')) : null; const fieldBig = FIELD ? new FIELD.Field($('#now-canvas')) : null;
+  const fieldSpec = new Uint8Array(512); let fieldLast = 0; let fieldVisible = true;
+  new IntersectionObserver(en => { fieldVisible = en[0].isIntersecting; }).observe($('#field'));
+  const tileVisible = new Map(); const tileIO = new IntersectionObserver(ens => ens.forEach(en => tileVisible.set(en.target, en.isIntersecting)), { rootMargin: '80px' });
+  function fieldIds() { return engine.activeList().map(sn => ({ id: sn.id, volume: sn.volume, params: (sn.id === 'sculpt' || sn.id.startsWith('disco')) ? engine.getSculpt(sn.id) : null })); }
+  function fieldLoop(now) { requestAnimationFrame(fieldLoop); if (!FIELD || document.hidden) return; const lv = engine.isPlaying ? Math.min(1, engine.getLevels(fieldSpec) * 6) : 0; const bal = engine.activeList().reduce((acc, sn) => acc + sn.balance, 0); const immersed = !$('#now').hidden;
+    if (immersed) { fieldBig.setLevel(lv, bal); fieldBig.draw(now); } else if (fieldVisible && !$('#view-sounds').hidden) { fieldMain.setLevel(lv, bal); fieldMain.draw(now); }
+    if (now - fieldLast > 80 && !$('#view-sounds').hidden && !immersed) { fieldLast = now; tilePreviews.forEach((pv, card) => { if (!tileVisible.has(card)) { tileIO.observe(card); tileVisible.set(card, false); return; } if (!tileVisible.get(card)) return; const hot = card.classList.contains('active') || card.matches(':hover'); pv.setLevel(hot ? 0.5 : 0.15, 0); pv.draw(now); }); } }
+  requestAnimationFrame(fieldLoop);
+  function syncField() {
+    const ids = fieldIds(); if (fieldMain) { fieldMain.set(ids); fieldBig.set(ids); }
+    const names = engine.activeList().map(sn => engine.def(sn.id).name); const playing = engine.isPlaying; const any = ids.length > 0;
+    const top = engine.activeList().slice().sort((x, y) => y.volume - x.volume)[0]; const desc = any ? (ids.length > 1 ? names.slice(1).join(' + ') + ' layered' : (FIELD && FIELD.DESC[top.id]) || engine.def(top.id).desc) : '';
+    $('#field-name').textContent = any ? names[0] : 'Ready when you are'; $('#field-desc').innerHTML = any ? desc : 'Tap any sound below — or <button class="linklike" id="field-discover">help me find my sound</button>';
+    const fd = $('#field-discover'); if (fd) fd.addEventListener('click', openDiscovery);
+    $('#field-controls').hidden = !any; const core = $('#field-core'); core.classList.toggle('idle', !any); core.setAttribute('aria-pressed', playing); core.setAttribute('aria-label', !any ? 'Choose a sound to begin' : playing ? 'Pause' : 'Play');
+    $('#field').dataset.state = !any ? 'idle' : playing ? 'playing' : 'paused';
+    const v = $('#field-vol'); v.value = Math.round(engine.masterVolume * 100); paintRange(v); $('#field-vol-out').textContent = v.value + '%';
+    const t = engine.timer; $('#field-timer-label').textContent = t.endsAt ? `${Math.max(1, Math.ceil((t.endsAt - Date.now()) / 60000))} min` : '30 min';
+    const atmo = !any ? '' : ['brown', 'fire', 'cabin', 'thunder', 'city'].includes(top.id) ? 'warm' : ['night'].includes(top.id) ? 'dark' : ['rain', 'waterfall', 'static', 'hiss', 'white'].includes(top.id) ? 'muted' : 'cool'; document.body.dataset.atmo = atmo;
+  }
+  engine.on(type => { if (['sounds', 'state', 'master', 'timer', 'tone'].includes(type)) syncField(); });
+  $('#field-core').addEventListener('click', async e => { const b = e.currentTarget; b.classList.add('pressed'); setTimeout(() => b.classList.remove('pressed'), 450); if (!engine.activeList().length) { $('#sound-groups').scrollIntoView({ behavior: 'smooth', block: 'start' }); return; } await togglePlay(); syncField(); });
+  $('#field-vol').addEventListener('input', e => setMaster(+e.target.value / 100, true));
+  $$('[data-fa]').forEach(b => b.addEventListener('click', () => { const k = b.dataset.fa; if (k === 'timer') { const cur = engine.timer.durationMin || 0; const next = cur === 0 ? 30 : cur === 30 ? 60 : cur === 60 ? 90 : 0; engine.setTimer(next, true); toast(next ? `Timer: ${next} minutes with gentle fade` : 'Timer off'); } if (k === 'visual') showView('focus'); if (k === 'mixer') showView('mixer'); if (k === 'save') { showView('mixer'); setTimeout(() => { $('#mix-save').click(); $('#mix-save').scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 150); } if (k === 'immerse') openNow(); }));
+
   // ---------- sound environment, orb player and Now Playing ----------
   const SV = window.SoftwaveVisuals;
   function dominant() { const l = engine.activeList(); if (!l.length) return null; return l.slice().sort((x, y) => y.volume - x.volume)[0].id; }
   function dominantParams() { const l = engine.activeList(); if (!l.length) return SV.paramsFor('pink'); const top = l.slice().sort((x, y) => y.volume - x.volume); const base = SV.paramsFor(top[0].id, top[0].id === 'sculpt' || top[0].id.startsWith('disco') ? engine.getSculpt(top[0].id) : null); if (top[1]) { const p2 = SV.paramsFor(top[1].id); base.nature = base.nature !== 'none' ? base.nature : p2.nature; base.rich = Math.min(1, base.rich + 0.25); } return base; }
   function describeSound(p) { const b = []; b.push(p.colour < 0.33 ? 'Deep' : p.colour < 0.67 ? 'Balanced' : 'Bright'); if (p.warm < -0.25) b.push('Warm'); if (p.warm > 0.25) b.push('Airy'); if (p.moving > 0.3 || p.mod > 0.3) b.push('Moving'); else b.push('Steady'); if (p.nature !== 'none') b.push(engine.def(p.nature) ? engine.def(p.nature).name : p.nature); return b.join(' · '); }
-  const orbs = [['#player-orb', 0.44], ['#now-canvas', 0.4]]; let orbT = 0, orbLast = 0; const orbSpec = new Uint8Array(512);
+  const orbs = [['#player-orb', 0.44]]; let orbT = 0, orbLast = 0; const orbSpec = new Uint8Array(512);
   function orbLoop(now) { requestAnimationFrame(orbLoop); if (document.hidden || now - orbLast < 33) return; const dt = Math.min(0.05, (now - orbLast) / 1000); orbLast = now; orbT += dt * (engine.isPlaying ? 1 : 0.35); const lv = engine.isPlaying ? Math.min(1, engine.getLevels(orbSpec) * 6) : 0; const p = dominantParams();
     for (const [sel, scale] of orbs) { const c = $(sel); if (!c || c.offsetParent === null) continue; const r = c.getBoundingClientRect(); if (!r.width) continue; const dpr = Math.min(devicePixelRatio || 1, 2); if (c.width !== Math.round(r.width * dpr)) { c.width = Math.round(r.width * dpr); c.height = Math.round(r.height * dpr); } const ctx = c.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, r.width, r.height); SV.soundShape(ctx, r.width, r.height, p, orbT, lv, { scale, glow: sel === '#now-canvas' }); } }
   requestAnimationFrame(orbLoop);
   function syncEnvironment() { const id = dominant(); bg.setEnv(id); document.body.dataset.sound = id || ''; const p = dominantParams(); const names = engine.activeList().map(s => engine.def(s.id).name); $('#now-name').textContent = names.length ? names.join(' + ') : 'Nothing playing'; $('#now-desc').textContent = names.length ? describeSound(p) : 'Choose a sound to begin'; const on = engine.isPlaying; $('#now-orb').setAttribute('aria-pressed', on); $('#now-orb').setAttribute('aria-label', on ? 'Pause' : 'Play'); }
   engine.on(type => { if (['sounds', 'state', 'tone', 'master'].includes(type)) syncEnvironment(); if (type === 'master') { const v = $('#now-vol'); v.value = Math.round(engine.masterVolume * 100); paintRange(v); $('#now-vol-out').textContent = v.value + '%'; } });
-  function openNow() { $('#now').hidden = false; syncEnvironment(); $('#now-orb').focus(); }
-  function closeNow() { $('#now').hidden = true; }
+  let nowHideT; function nowShowUI() { $('#now').classList.remove('idle'); clearTimeout(nowHideT); nowHideT = setTimeout(() => $('#now').classList.add('idle'), 5000); }
+  function openNow() { $('#now').hidden = false; document.body.style.overflow = 'hidden'; syncEnvironment(); if (fieldBig) fieldBig.set(fieldIds()); nowShowUI(); $('#now-orb').focus(); }
+  function closeNow() { $('#now').hidden = true; document.body.style.overflow = ''; }
+  $('#now').addEventListener('pointermove', nowShowUI); $('#now').addEventListener('pointerdown', nowShowUI);
   $('#player-title').addEventListener('click', () => { if (engine.activeList().length) openNow(); });
   $('#player-title').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (engine.activeList().length) openNow(); } });
   $('#now-close').addEventListener('click', closeNow);
@@ -423,7 +454,7 @@
   $('#now-orb').addEventListener('click', async e => { const b = e.currentTarget; b.classList.add('pressed'); setTimeout(() => b.classList.remove('pressed'), 400); await togglePlay(); syncEnvironment(); });
   $('#player-toggle').addEventListener('click', e => { const b = e.currentTarget; b.classList.add('pressed'); setTimeout(() => b.classList.remove('pressed'), 400); });
   $('#now-vol').addEventListener('input', e => setMaster(+e.target.value / 100, true));
-  $$('[data-now]').forEach(b => b.addEventListener('click', () => { const k = b.dataset.now; closeNow(); if (k === 'timer') showView('sleep'); if (k === 'visual') { showView('focus'); } if (k === 'mixer') showView('mixer'); if (k === 'save') { showView('mixer'); setTimeout(() => { const s = $('#mix-save'); s.classList.add('saved-pop'); s.click(); s.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 200); } }));
+  $$('[data-now]').forEach(b => b.addEventListener('click', () => { const k = b.dataset.now; if (k === 'timer') { const cur = engine.timer.durationMin || 0; const next = cur === 0 ? 30 : cur === 30 ? 60 : cur === 60 ? 90 : 0; engine.setTimer(next, true); toast(next ? `Timer: ${next} minutes with gentle fade` : 'Timer off'); b.textContent = next ? `Timer · ${next} min` : 'Timer'; return; } closeNow(); if (k === 'change') { showView('sounds'); setTimeout(() => $('#sound-groups').scrollIntoView({ behavior: 'smooth', block: 'start' }), 150); } if (k === 'visual') { showView('focus'); if (window.softwaveFocus) softwaveFocus.enterFocus(); } }));
   document.addEventListener('click', e => { if (e.target.closest('#fav-save, #mix-save, [data-save], [data-save-session], [data-r="save"]')) { const b = e.target.closest('button'); b.classList.add('saved-pop'); setTimeout(() => b.classList.remove('saved-pop'), 520); } }, true);
 
   // ---------- keyboard shortcuts ----------
@@ -446,12 +477,15 @@
   window.softwaveApp = { loadPreset, setMaster, togglePlay, toast, store, PRESETS, paintRange, showView, renderPresets };
 
   // ---------- init ----------
-  renderSounds(); renderPresets(); renderMixer([]); updatePlayer(); renderProfileHooks();
+  renderSounds(); renderPresets(); renderMixer([]); updatePlayer(); renderProfileHooks(); if (window.SoftwaveField) syncField();
   showView((location.hash || '#sounds').slice(1));
   // Deep links from the static pages: ?sound=<id> highlights a sound; ?preset=<id> highlights a preset.
   (function deepLinks() {
     const q = new URLSearchParams(location.search); const sid = q.get('sound'), pid = q.get('preset');
     if (q.get('exp')) { store.set('welcomed', true); welcome.hidden = true; showView('lab'); }
+    if (q.get('snap') && fieldMain) { fieldMain.snap(); fieldBig.snap(); }
+    if (q.get('demo') && fieldMain && engine.def(q.get('demo'))) { const id = q.get('demo'); store.set('welcomed', true); welcome.hidden = true; fieldMain.snap(); fieldMain.set([{ id, volume: 0.6 }]); $('#field-name').textContent = engine.def(id).name; $('#field-desc').textContent = (FIELD.DESC[id] || ''); $('#field-controls').hidden = false; $('#field-core').classList.remove('idle'); $('#field-core').setAttribute('aria-pressed', 'true'); $('#field').dataset.state = 'playing'; document.body.dataset.atmo = ['brown', 'fire'].includes(id) ? 'warm' : id === 'night' ? 'dark' : ['rain', 'white'].includes(id) ? 'muted' : 'cool'; fieldMain.level = 0.3; }
+    if (q.get('play') && engine.def(q.get('play'))) { store.set('welcomed', true); welcome.hidden = true; loadPreset({ name: engine.def(q.get('play')).name, mix: [{ id: q.get('play'), volume: 0.6 }], master: 0.35 }); }
     if (q.get('now')) { store.set('welcomed', true); welcome.hidden = true; openNow(); loadPreset(PRESETS.find(p => p.id === q.get('now')) || PRESETS[0]); }
     if (sid && engine.def(sid) && !engine.def(sid).lab) { store.set('welcomed', true); welcome.hidden = true; showView('sounds'); const card = $(`.sound-card[data-id="${sid}"]`); if (card) { card.classList.add('highlight'); setTimeout(() => { card.scrollIntoView({ behavior: 'smooth', block: 'center' }); $('.card-btn', card).focus(); toast(`Tap ${engine.def(sid).name} to play it — it starts quietly.`, 4000); }, 250); } }
     if (pid) { const p = PRESETS.find(x => x.id === pid); if (p) { store.set('welcomed', true); welcome.hidden = true; showView('sounds'); setTimeout(() => { const chip = $(`#presets [data-preset="${pid}"]`); if (chip) { chip.classList.add('active'); chip.focus(); toast(`Tap “${p.name}” to start the preset.`, 4000); } }, 250); } }
