@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#080a11">
+<title>Softwave Lab — prototypes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400&family=Inter:wght@300;400;500&display=swap">
+<link rel="stylesheet" href="lab-proto.css?v=2">
+</head>
+<body data-exp="find" data-phase="entry">
+<canvas id="lab-bg" aria-hidden="true"></canvas>
+
+<header class="top">
+  <a class="wordmark" href="./#lab">Softwave <span>Lab</span></a>
+  <nav class="switch" aria-label="Prototype">
+    <a href="?find" data-exp="find">Find My Sound</a>
+    <a href="?paint" data-exp="paint">Frequency Painting</a>
+    <a href="?sculpt" data-exp="sculpt">Sound Sculptor</a>
+  </nav>
+  <div class="top-right">
+    <button id="motion-btn" class="pill" aria-pressed="false">Reduce motion</button>
+    <button id="theme-btn" class="pill icon" aria-label="Switch to light mode">☀</button>
+  </div>
+</header>
+
+<main id="stage">
+
+  <!-- ================= FIND MY SOUND ================= -->
+  <section class="exp" id="exp-find" hidden>
+    <div class="entry">
+      <p class="eyebrow">Find My Sound</p>
+      <h1>Your tinnitus is personal.<br>Your sound can be too.</h1>
+      <p class="lead">We’ll compare sounds gently and learn what you prefer. There are no right answers — only what feels comfortable to you.</p>
+      <button class="cta" data-begin="find">Begin</button>
+      <p class="fine">About ten comparisons · keep the volume low · nothing is uploaded</p>
+    </div>
+
+    <div class="run">
+      <div class="progress" id="find-progress" aria-live="polite"></div>
+      <p class="run-hint" id="find-hint">Tap a sound to listen. Switch as often as you like.</p>
+      <div class="ab">
+        <button class="obj" id="obj-a" data-side="A" aria-pressed="true" aria-label="Listen to sound A"><canvas aria-hidden="true"></canvas><span class="obj-label">A</span></button>
+        <button class="obj" id="obj-b" data-side="B" aria-pressed="false" aria-label="Listen to sound B"><canvas aria-hidden="true"></canvas><span class="obj-label">B</span></button>
+      </div>
+      <p class="question">Which feels more comfortable?</p>
+      <div class="choices">
+        <button class="choice" data-pick="A">A</button>
+        <button class="choice quiet" data-pick="same">No difference</button>
+        <button class="choice" data-pick="B">B</button>
+      </div>
+      <div class="vol-row"><label class="sr-only" for="find-vol">Volume</label><input type="range" id="find-vol" min="0" max="100" value="30"><span class="vol-note">Lowest comfortable level</span></div>
+    </div>
+
+    <div class="result">
+      <div class="fingerprint"><canvas id="fp-canvas" aria-label="A visual picture of your sound preferences"></canvas></div>
+      <p class="eyebrow">Your preferred sound</p>
+      <h2 id="find-words">Warm · Deep · Smooth</h2>
+      <div class="chips" id="find-chips"></div>
+      <p class="fine">A picture of what you preferred — not a measurement of your hearing, and not a diagnosis.</p>
+      <div class="actions">
+        <button class="act primary" data-act="listen">Listen</button>
+        <button class="act" data-act="tune">Fine tune</button>
+        <button class="act" data-act="save">Save</button>
+        <button class="act" data-act="visual">Add Visual</button>
+        <button class="act" data-act="sleep">Use for sleep</button>
+      </div>
+      <button class="linklike" data-act="again">Start again</button>
+    </div>
+  </section>
+
+  <!-- ================= FREQUENCY PAINTING ================= -->
+  <section class="exp" id="exp-paint" hidden>
+    <div class="entry">
+      <p class="eyebrow">Frequency Painting</p>
+      <h1>Paint the sound<br>you want to hear.</h1>
+      <p class="lead">Drag across the canvas. Build areas up, soften others, and hear the sound change as you paint.</p>
+      <button class="cta" data-begin="paint">Start painting</button>
+      <p class="fine">Left is low, right is high. Higher means more.</p>
+    </div>
+
+    <div class="run paint-run">
+      <div class="paint-wrap">
+        <canvas id="paint-canvas" aria-label="Frequency painting canvas. Drag to shape the sound; left is low, right is high."></canvas>
+        <div class="paint-axis"><span>Low</span><span>High</span></div>
+        <div class="paint-hz"><span>60 Hz</span><span>14 kHz</span></div>
+      </div>
+      <div class="tools" role="toolbar" aria-label="Painting tools">
+        <button class="tool" data-tool="paint" aria-pressed="true">Paint</button>
+        <button class="tool" data-tool="soften" aria-pressed="false">Soften</button>
+        <button class="tool" data-tool="smooth">Smooth</button>
+        <button class="tool" data-tool="undo">Undo</button>
+        <button class="tool" data-tool="reset">Reset</button>
+        <span class="tool-sep"></span>
+        <label class="toggle"><input type="checkbox" id="paint-live" checked><span>Hear while painting</span></label>
+        <button class="tool accent" id="paint-listen" hidden>Listen</button>
+      </div>
+      <details class="alt"><summary>Adjust without dragging</summary><div class="alt-grid" id="paint-alt"></div></details>
+      <div class="actions">
+        <button class="act primary" data-pact="listen">Listen</button>
+        <button class="act" data-pact="save">Save</button>
+        <button class="act" data-pact="visual">Add Visual</button>
+        <button class="act quiet" data-pact="continue">Continue painting</button>
+      </div>
+      <div class="vol-row"><label class="sr-only" for="paint-vol">Volume</label><input type="range" id="paint-vol" min="0" max="100" value="30"><span class="vol-note">Lowest comfortable level</span></div>
+    </div>
+  </section>
+
+  <!-- ================= SOUND SCULPTOR ================= -->
+  <section class="exp" id="exp-sculpt" hidden>
+    <div class="entry">
+      <p class="eyebrow">Sound Sculptor</p>
+      <h1>Shape how your<br>sound feels.</h1>
+      <p class="lead">No frequencies. No technical terms. Just move the sound until it feels right.</p>
+      <button class="cta" data-begin="sculpt">Start sculpting</button>
+      <p class="fine">Drag the sound itself, or use the controls below it.</p>
+    </div>
+
+    <div class="run sculpt-run">
+      <div class="sculpt-obj" id="sculpt-obj" tabindex="0" role="application" aria-label="Your sound. Drag sideways for warm to bright, up and down for deep to airy. Arrow keys also work."><canvas aria-hidden="true"></canvas><button class="core" id="sculpt-play" aria-label="Play" aria-pressed="false"><span class="ic-play"></span><span class="ic-pause"></span></button></div>
+      <p class="your-words" id="sculpt-words">Balanced · Soft · Steady</p>
+      <div class="dials" id="dials"></div>
+      <div class="textures" id="textures"><span class="eyebrow small">Texture</span></div>
+      <div class="actions">
+        <button class="act" data-sact="save">Save</button>
+        <button class="act" data-sact="visual">Add Visual</button>
+        <button class="act" data-sact="sleep">Use for sleep</button>
+        <button class="act quiet" data-sact="reset">Reset to neutral</button>
+      </div>
+      <div class="vol-row"><label class="sr-only" for="sculpt-vol">Volume</label><input type="range" id="sculpt-vol" min="0" max="100" value="30"><span class="vol-note">Lowest comfortable level</span></div>
+    </div>
+  </section>
+
+  <button class="pill exit" id="exit" hidden>← Lab</button>
+</main>
+
+<div id="toast" role="status" aria-live="polite"></div>
+<div id="saveform" class="sheet" hidden><label for="save-name">Name this sound</label><div class="save-row"><input id="save-name" type="text" maxlength="40"><button class="act primary" id="save-ok">Save</button><button class="act quiet" id="save-cancel">Cancel</button></div></div>
+
+<script src="audio.js?v=18"></script>
+<script src="field.js?v=5"></script>
+<script src="lab-proto.js?v=2"></script>
+</body>
+</html>
