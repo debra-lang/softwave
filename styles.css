@@ -83,7 +83,7 @@ p { margin: 0 0 .8em; }
 .nav a { padding: 8px 14px; border-radius: 999px; color: var(--muted); text-decoration: none; font-weight: 600; white-space: nowrap; transition: background .2s, color .2s; }
 .nav a:hover { color: var(--text); background: var(--accent-soft); }
 .nav a.active { color: var(--accent); background: var(--accent-soft); }
-.nav a.nav-lab.active { color: #2f8a5a; background: rgba(111,211,154,.18); }
+.nav a.nav-lab.active { color: #3cb37e; background: rgba(111,211,154,.18); }
 :root[data-theme="dark"] .nav a.nav-lab.active { color: #9fe6bd; }
 .topbar-actions { display: flex; gap: 8px; align-items: center; }
 .icon-btn { width: 42px; height: 42px; border-radius: 50%; border: 1px solid var(--border); background: var(--card); color: var(--text); display: grid; place-items: center; cursor: pointer; }
@@ -508,7 +508,7 @@ input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.12); }
 .lab-card .lab-what { color: var(--text); }
 
 /* Experiments tab: always green, even when not selected */
-.nav a.nav-lab { color: #2f8a5a; }
-.nav a.nav-lab:hover { color: #2f8a5a; background: rgba(111,211,154,.14); }
+.nav a.nav-lab { color: #3cb37e; font-weight: 700; }
+.nav a.nav-lab:hover { color: #3cb37e; background: rgba(111,211,154,.14); }
 :root[data-theme="dark"] .nav a.nav-lab { color: #8fe0b4; }
 :root[data-theme="dark"] .nav a.nav-lab:hover { color: #9fe6bd; }

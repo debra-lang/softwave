@@ -14,6 +14,7 @@ const VERIFY = { google: '', bing: '' };        // paste verification tokens her
 const ANALYTICS = '';                           // optional cookie-free analytics snippet (off)
 const INDEXNOW_KEY = 'a7c3e9f1b2d4486a9e0c5f7d3b1a6e2c';
 const LASTMOD = REVIEWED;
+const ASSET_V = '15';  // bump with sw.js CACHE when styles/scripts change
 
 const abs = (href) => href.startsWith('/') ? BASE + href.slice(1) : href;
 const fixLinks = (html) => html.replace(/href="\/(?!\/)/g, `href="${BASE}`);
@@ -63,8 +64,8 @@ ${p.type === 'article' ? `<meta property="article:published_time" content="${REV
 <link rel="manifest" href="${BASE}manifest.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="${BASE}styles.css">
-<link rel="stylesheet" href="${BASE}site.css">
+<link rel="stylesheet" href="${BASE}styles.css?v=${ASSET_V}">
+<link rel="stylesheet" href="${BASE}site.css?v=${ASSET_V}">
 ${theme}
 <script type="application/ld+json">${JSON.stringify({ '@context': 'https://schema.org', '@graph': jsonld })}</script>
 ${ANALYTICS}
