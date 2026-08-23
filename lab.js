@@ -483,12 +483,12 @@
   }
   function openExperiment(id) {
     const exp = byId[id]; if (!exp) return; const ctx = ctxFor(exp); const panel = $('#lab-detail'); panel.hidden = false; const f = fb()[exp.id] || {}; const isFav = favs().includes(exp.id);
-    panel.innerHTML = `<div class="lab-detail-inner"><button class="btn btn-ghost btn-sm" data-close>← Back to experiments</button>
+    panel.innerHTML = `<div class="lab-detail-inner"><button class="btn btn-ghost btn-sm" data-close>← Experiments</button>
       <div class="lab-card-head"><div><div class="lab-cat">${exp.cat} · from ${exp.from}${exp.premium ? ' · <span class="tag tag-prem">Premium preview — free during beta</span>' : ''}</div><h2>${exp.name}</h2></div><span class="ev ev-${exp.evidence}">${EV[exp.evidence]}</span></div>
       <dl class="lab-dl"><dt>What it does</dt><dd>${exp.what}</dd><dt>Why try it</dt><dd>${exp.why}</dd><dt>How to use it</dt><dd>${exp.how}</dd></dl>
       <details class="lab-why"><summary>Why are we testing this?</summary><p>${exp.whyTest}</p><p class="muted small">Not a medical treatment. Stop at any time with the Stop button below or in the player bar.</p></details>
       ${exp.customFirst ? '<div data-custom></div><div class="lab-settings" data-settings></div>' : '<div class="lab-settings" data-settings></div><div data-custom></div>'}
-      <div class="lab-run"><button class="btn btn-primary btn-lg" data-exp-start="${exp.id}">Start Experiment</button><button class="btn btn-ghost" data-stop>Stop</button><button class="btn btn-ghost" data-reset>Reset</button><button class="btn btn-secondary" data-fav aria-pressed="${isFav}">${isFav ? '★ Favourite' : '☆ Save as favourite'}</button></div>
+      <div class="lab-run"><button class="btn btn-primary btn-lg" data-exp-start="${exp.id}">Start Experiment</button><button class="btn btn-ghost" data-stop>Stop</button><button class="btn btn-ghost" data-reset>Reset</button><button class="btn btn-secondary" data-fav aria-pressed="${isFav}">${isFav ? '★ Favourite' : '☆ Favourite'}</button></div>
       <div class="lab-rate"><span class="label-sm">Rate this experiment</span><div class="seg" role="radiogroup" aria-label="Rating"><button role="radio" aria-checked="${f.rating === 'helpful'}" data-rate="helpful">Helpful</button><button role="radio" aria-checked="${f.rating === 'neutral'}" data-rate="neutral">Neutral</button><button role="radio" aria-checked="${f.rating === 'not'}" data-rate="not">Not for me</button></div></div>
       <div data-after></div></div>`;
     ctx.host = panel; if (exp.id === 'session') $('[data-settings]', panel).hidden = true; renderSettings(exp, ctx, $('[data-settings]', panel)); if (exp.custom && exp.buildUI) exp.buildUI(ctx, $('[data-custom]', panel));
@@ -496,7 +496,7 @@
     $('[data-exp-start]', panel).addEventListener('click', async () => { if (!gate(exp)) return; if (running && running.exp !== exp) stopRunning(); else if (running) return; if (exp.id === 'discovery') store.set('lab:discoveries', store.get('lab:discoveries', 0) + 1); await engine.init(); running = { exp, ctx }; setFb(exp.id, { tries: ((fb()[exp.id] || {}).tries || 0) + 1, last: Date.now() }); store.set('lab:settings:' + exp.id, ctx.s); updateRunningUI(); try { await Promise.race([exp.start(ctx), new Promise((_, rej) => setTimeout(() => rej(new Error('timed out — check that sound is allowed in your browser')), 12000))]); } catch (e) { console.error(e); app.toast('Could not start: ' + e.message, 5000); if (running && running.exp === exp) { running = null; } updateRunningUI(); } renderLists(); });
     $('[data-stop]', panel).addEventListener('click', () => { if (running && running.exp === exp) stopRunning('Stopped'); else { try { exp.stop && exp.stop(ctx); } catch (_) { } } engine.stopAll(); });   // Stop means stop: the experiment and its sound, in one press
     $('[data-reset]', panel).addEventListener('click', () => { if (running && running.exp === exp) stopRunning(); store.del('lab:settings:' + exp.id); delete ctxs[exp.id]; openExperiment(exp.id); app.toast('Settings reset'); });
-    $('[data-fav]', panel).addEventListener('click', e => { const l = favs(); const i = l.indexOf(exp.id); if (i >= 0) l.splice(i, 1); else l.push(exp.id); store.set('lab:favs', l); const on = i < 0; e.currentTarget.setAttribute('aria-pressed', on); e.currentTarget.textContent = on ? '★ Favourite' : '☆ Save as favourite'; renderLists(); });
+    $('[data-fav]', panel).addEventListener('click', e => { const l = favs(); const i = l.indexOf(exp.id); if (i >= 0) l.splice(i, 1); else l.push(exp.id); store.set('lab:favs', l); const on = i < 0; e.currentTarget.setAttribute('aria-pressed', on); e.currentTarget.textContent = on ? '★ Favourite' : '☆ Favourite'; renderLists(); });
     $$('[data-rate]', panel).forEach(b => b.addEventListener('click', () => { setFb(exp.id, { rating: b.dataset.rate }); $$('[data-rate]', panel).forEach(x => x.setAttribute('aria-checked', x === b)); renderLists(); renderProfile(); }));
     updateRunningUI(); panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
@@ -506,10 +506,12 @@
     const host = $('#lab-list'); host.innerHTML = '';
     CATS.forEach(([cat, blurb]) => { const sec = document.createElement('section'); sec.className = 'lab-group'; sec.innerHTML = `<h3 class="lab-group-title">${cat}</h3><p class="muted small">${blurb}</p><div class="lab-grid"></div>`; EXPERIMENTS.filter(e => e.cat === cat).forEach(e => $('.lab-grid', sec).appendChild(card(e))); host.appendChild(sec); });
     const f = fb(); const mk = (sel, ids, empty) => { const h = $(sel); if (!h) return; h.innerHTML = ''; if (!ids.length) { h.innerHTML = `<p class="muted small">${empty}</p>`; return; } ids.forEach(id => { const e = byId[id]; if (!e) return; const b = document.createElement('button'); b.className = 'chip'; b.innerHTML = `<strong>${e.name}</strong><span>${e.cat}</span>`; b.addEventListener('click', () => openExperiment(id)); h.appendChild(b); }); };
-    mk('#hist-recent', Object.entries(f).filter(([k, v]) => v.last && byId[k]).sort((a, b) => b[1].last - a[1].last).slice(0, 8).map(([k]) => k), 'Nothing tried yet.');
-    mk('#hist-favs', favs().filter(id => byId[id]), 'No favourites yet.');
-    mk('#hist-good', Object.entries(f).filter(([k, v]) => byId[k] && (v.rating === 'helpful' || v.comfort === 'more')).map(([k]) => k), 'Nothing rated helpful yet.');
-    mk('#hist-bad', Object.entries(f).filter(([k, v]) => byId[k] && (v.rating === 'not' || v.comfort === 'less' || v.again === 'no')).map(([k]) => k), 'Nothing marked "not for me".');
+    mk('#hist-recent', Object.entries(f).filter(([k, v]) => v.last && byId[k]).sort((a, b) => b[1].last - a[1].last).slice(0, 8).map(([k]) => k), '');
+    mk('#hist-favs', favs().filter(id => byId[id]), '');
+    mk('#hist-good', Object.entries(f).filter(([k, v]) => byId[k] && (v.rating === 'helpful' || v.comfort === 'more')).map(([k]) => k), '');
+    mk('#hist-bad', Object.entries(f).filter(([k, v]) => byId[k] && (v.rating === 'not' || v.comfort === 'less' || v.again === 'no')).map(([k]) => k), '');
+    // empty-state philosophy: no data ≠ broken-looking section. Hide empty groups; one quiet line when nothing has been tried yet.
+    const hist = $('.lab-hist'); if (hist) { let any = false; $$(':scope > div', hist).forEach(g => { const has = !!$('.chip', g); g.hidden = !has; if (has) any = true; }); let empty = $('.lab-hist-empty', hist.parentElement); if (!empty) { empty = document.createElement('p'); empty.className = 'muted small lab-hist-empty'; empty.textContent = 'Experiments you try will appear here.'; hist.parentElement.insertBefore(empty, hist); } empty.hidden = any; }
     updateRunningUI();
   }
   $('#lab-start-discovery').addEventListener('click', () => openExperiment('discovery'));

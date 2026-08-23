@@ -57,7 +57,7 @@ PAGES.push({
 <h2>Who it is for</h2>
 <p>People with tinnitus who want an easy, free way to add a comfortable background sound — at a desk, at night, or in a quiet room where the ringing feels loudest. It works with speakers, headphones or a pillow speaker, on phones, tablets and computers. It is not for diagnosing tinnitus, and it does not make tinnitus go away.</p>
 <h2>Why the sounds are generated, not recorded</h2>
-<p>Recorded loops have a seam the brain learns to expect. Find My Quiet Sound synthesises every sound in real time with the Web Audio API, so noise never repeats and nature scenes drift slowly — which many people find easier to tune out over long sessions. Everything runs on your device; nothing is uploaded.</p>
+<p>Recorded loops have a seam the brain learns to expect. Find My Quiet Sound synthesises every sound in real time with the Web Audio API, so noise never repeats and nature scenes drift slowly — which some people find easier to leave in the background over long sessions. Everything runs on your device; nothing is uploaded.</p>
 <h2>Frequently asked questions</h2>
 <div class="faq">
 <h3>Is this a treatment for tinnitus?</h3><p>No. Sound generators are a management tool. Clinical guidelines say sound therapy may be offered for bothersome tinnitus as a way to make it less noticeable and to support relaxation and sleep, alongside education and, where needed, counselling or hearing aids.</p>
@@ -99,7 +99,7 @@ for (const c of COLOUR_PAGES) {
     title: `${c.name} for Tinnitus: When It Helps & Free Player | Find My Quiet Sound`,
     description: `${c.name} for tinnitus: what it sounds like, who it tends to suit, how loud to set it, and a free seamless player.`,
     h1: `${c.name} for tinnitus`,
-    intro: `${c.name} has ${c.desc}. It is one of the most-used sounds for making tinnitus less noticeable, and it is often best for ${c.best}.`,
+    intro: `${c.name} has ${c.desc}. It is one of the most-used sounds for making tinnitus less noticeable, and it is often chosen for ${c.best}.`,
     try: [{ href: `/?sound=${c.id}`, label: `Play ${c.name.toLowerCase()}` }, { href: '/tinnitus-sound-mixer/', label: 'Layer it with other sounds' }],
     body: `
 <h2>What ${c.name.toLowerCase()} sounds like</h2>
@@ -155,7 +155,7 @@ PAGES.push({
 <h2>Why "approximate" is the honest word</h2>
 <p>Self-administered pitch matching agrees with clinic matching within half an octave about 70% of the time, and octave confusion is the usual reason for larger differences. Find My Tinnitus Sound includes an octave-check step for that reason. Neither tool determines the cause of tinnitus — only a professional can.</p>
 <h2>What to do with your region</h2>
-<ul><li>Pick masking sounds with energy near it (the tool suggests some).</li><li>Try <a href="/?exp=paint">Frequency Painting</a> in the Lab and draw a dip or a bump around your region.</li><li>Keep the level low throughout.</li></ul>`,
+<ul><li>Pick masking sounds with energy near it (the tool suggests some).</li><li>Try <a href="/?exp=paint">Frequency Painting</a> in Experiments and draw a dip or a bump around your region.</li><li>Keep the level low throughout.</li></ul>`,
   sources: ['pitch', 'ipod', 'ri', 'aao'],
 });
 
@@ -178,7 +178,7 @@ PAGES.push({
 <li><strong>Rainy Night</strong> — rain 55%, wind 30%, brown noise 20%.</li>
 </ul>
 <h2>Tips</h2>
-<ul><li>Set the master volume first, low, then shape the mix with the channel sliders.</li><li>Double-click a balance slider to re-centre it.</li><li>Saved mixes stay on your device; nothing is uploaded.</li><li>For a mix that changes slowly over time, see the Adaptive Sound Journey in the Lab.</li></ul>`,
+<ul><li>Set the master volume first, low, then shape the mix with the channel sliders.</li><li>Double-click a balance slider to re-centre it.</li><li>Saved mixes stay on your device; nothing is uploaded.</li><li>For a mix that changes slowly over time, see the Adaptive Sound Journey in Experiments.</li></ul>`,
   sources: ['ata', 'bbn'],
 });
 
@@ -279,7 +279,7 @@ learn({
 <h2>1. Describe your tinnitus first</h2>
 <p>Ringing (a pure tone), whistling (narrow), hissing (broad and high), or humming/buzzing (low)? High sounds blend with white noise, hiss, rain and waterfall; mid sounds with pink noise, streams and fans; low sounds with brown noise, ocean and wind. The <a href="/tinnitus-sound-matching/">sound matching</a> tool does this for you.</p>
 <h2>2. Compare at the same low level</h2>
-<p>Set the master volume low and leave it there. Switch between sounds rather than adjusting volume. <a href="/?exp=discovery">Find My Sound</a> in the Lab turns this into a guided A/B comparison.</p>
+<p>Set the master volume low and leave it there. Switch between sounds rather than adjusting volume. <a href="/?exp=discovery">Find My Sound</a> in Experiments turns this into a guided A/B comparison.</p>
 <h2>3. Find the mixing point</h2>
 <p>With your chosen sound, raise the level slowly until the tinnitus just starts to blend. That is your level.</p>
 <h2>4. Add texture if pure noise feels clinical</h2>
@@ -301,7 +301,7 @@ learn({
 <h2>Why it feels louder at night</h2>
 <p>Daytime sound partly masks tinnitus without effort. In a silent bedroom the contrast is at its maximum and there is nothing else to attend to. Earplugs increase the contrast; a soft sound reduces it.</p>
 <h2>What to play</h2>
-<p>Steady, eventless sounds: brown or pink noise, rain without thunder, ocean, a fan. Avoid music with structure and recordings with birds or surprises. If you like a more interesting sound to fall asleep to, let it simplify over time — the Adaptive Sound Journey in the Lab can end with a fade toward sleep.</p>
+<p>Steady, eventless sounds: brown or pink noise, rain without thunder, ocean, a fan. Avoid music with structure and recordings with birds or surprises. If you like a more interesting sound to fall asleep to, let it simplify over time — the Adaptive Sound Journey in Experiments can end with a fade toward sleep.</p>
 <h2>How loud</h2>
 <p>Quieter than you expect. It should fade into the background within about a minute. If you wake in the night and the sound is the first thing you notice, lower it.</p>
 <h2>Timer or all night?</h2>
@@ -386,7 +386,7 @@ learn({
 <h2>The mixing point</h2>
 <p>Raise the sound slowly from silence. The moment it begins to blend with the tinnitus — without hiding it and without being annoying — is the mixing point. Stop there. Find My Quiet Sound starts every sound quietly and fades it in so you can stop at that point.</p>
 <h2>Why not just cover it?</h2>
-<p>Total masking is louder, more tiring, and is thought to get in the way of habituation, the process by which the brain stops treating tinnitus as important. A study found mixing-point and total-masking settings equally effective, so the quieter one wins on every other count.</p>
+<p>Total masking is louder and more tiring, and clinicians who use tinnitus retraining therapy generally prefer a level where the sound blends with the tinnitus rather than covers it. One study found mixing-point and total-masking settings similarly effective, so the quieter setting is the sensible default. Individual experiences vary.</p>
 <h2>Safe-listening limits</h2>
 <p>The WHO-ITU safe-listening standard suggests personal audio around 80 dB or less for no more than 40 hours a week (75 dB for children). Masking sound set where it just blends is far below that; hours of loud headphone masking may not be. Device volume percentages do not map reliably to decibels — phones and headphones differ a lot — so the practical rule is: use the lowest comfortable level that gives you the experience you want, and take breaks.</p>
 <h2>Signs the level is too high</h2>
@@ -422,7 +422,7 @@ trust({
   body: `
 <p>Find My Quiet Sound is a free web app for people with tinnitus who want comfortable background sound. It is built around one idea: <strong>everyone experiences tinnitus differently, so everyone’s comfortable sound is different too.</strong> Find My Quiet Sound makes trying, comparing and shaping sounds easy, keeps every level low, and helps you keep what you find.</p>
 <h2>What it is</h2>
-<ul><li>A <a href="/tinnitus-sound-generator/">sound generator</a> with fourteen synthesised sounds that loop seamlessly.</li><li>A <a href="/tinnitus-sound-mixer/">mixer</a>, a <a href="/tinnitus-frequency-generator/">frequency generator</a>, a guided <a href="/tinnitus-sound-matching/">sound-matching</a> tool and <a href="/tinnitus-sleep-sounds/">Sleep Mode</a>.</li><li>Visual Focus — calm visuals to watch while listening.</li><li>The Lab — personal sound discovery: compare sounds two at a time, paint or sculpt your own, and build sessions; each experiment carries a plain-English "why are we testing this?" note and an evidence label.</li></ul>
+<ul><li>A <a href="/tinnitus-sound-generator/">sound generator</a> with fourteen synthesised sounds that loop seamlessly.</li><li>A <a href="/tinnitus-sound-mixer/">mixer</a>, a <a href="/tinnitus-frequency-generator/">frequency generator</a>, a guided <a href="/tinnitus-sound-matching/">sound-matching</a> tool and <a href="/tinnitus-sleep-sounds/">Sleep Mode</a>.</li><li>Visual Focus — calm visuals to watch while listening.</li><li>Experiments — personal sound discovery: compare sounds two at a time, paint or sculpt your own, and build sessions; each experiment carries a plain-English "why are we testing this?" note and an evidence label.</li></ul>
 <h2>What it is not</h2>
 <p>It is not a medical device, a hearing test or a treatment. It does not diagnose, treat or cure tinnitus. See the <a href="/medical-disclaimer/">medical disclaimer</a>.</p>
 <h2>How it is made</h2>
