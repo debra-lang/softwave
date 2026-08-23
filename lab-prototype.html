@@ -8,7 +8,7 @@
 <title>Softwave Lab — prototypes</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400&family=Inter:wght@300;400;500&display=swap">
-<link rel="stylesheet" href="lab-proto.css?v=2">
+<link rel="stylesheet" href="lab-proto.css?v=3">
 </head>
 <body data-exp="find" data-phase="entry">
 <canvas id="lab-bg" aria-hidden="true"></canvas>
@@ -42,6 +42,7 @@
       <div class="progress" id="find-progress" aria-live="polite"></div>
       <p class="run-hint" id="find-hint">Tap a sound to listen. Switch as often as you like.</p>
       <div class="ab">
+        <canvas id="ab-link" aria-hidden="true"></canvas>
         <button class="obj" id="obj-a" data-side="A" aria-pressed="true" aria-label="Listen to sound A"><canvas aria-hidden="true"></canvas><span class="obj-label">A</span></button>
         <button class="obj" id="obj-b" data-side="B" aria-pressed="false" aria-label="Listen to sound B"><canvas aria-hidden="true"></canvas><span class="obj-label">B</span></button>
       </div>
@@ -84,7 +85,7 @@
     <div class="run paint-run">
       <div class="paint-wrap">
         <canvas id="paint-canvas" aria-label="Frequency painting canvas. Drag to shape the sound; left is low, right is high."></canvas>
-        <div class="paint-axis"><span>Low</span><span>High</span></div>
+        <div class="paint-axis"><span>Low</span><span>Mid</span><span>High</span></div>
         <div class="paint-hz"><span>60 Hz</span><span>14 kHz</span></div>
       </div>
       <div class="tools" role="toolbar" aria-label="Painting tools">
@@ -119,7 +120,9 @@
     </div>
 
     <div class="run sculpt-run">
-      <div class="sculpt-obj" id="sculpt-obj" tabindex="0" role="application" aria-label="Your sound. Drag sideways for warm to bright, up and down for deep to airy. Arrow keys also work."><canvas aria-hidden="true"></canvas><button class="core" id="sculpt-play" aria-label="Play" aria-pressed="false"><span class="ic-play"></span><span class="ic-pause"></span></button></div>
+      <div class="sculpt-obj" id="sculpt-obj" tabindex="0" role="application" aria-label="Your sound. Drag up for brighter and airier, down for deeper and warmer; drag outward for wider, inward for more centred. Arrow keys do the same."><canvas aria-hidden="true"></canvas><button class="core" id="sculpt-play" aria-label="Play" aria-pressed="false"><span class="ic-play"></span><span class="ic-pause"></span></button></div>
+      <div class="sculpt-hint" id="sculpt-hint" hidden>Drag the sound.<br><span>Up / down changes its character. Outward / inward changes its space.</span></div>
+      <p class="eyebrow small" style="margin-top:6px">Your sound</p>
       <p class="your-words" id="sculpt-words">Balanced · Soft · Steady</p>
       <div class="dials" id="dials"></div>
       <div class="textures" id="textures"><span class="eyebrow small">Texture</span></div>
@@ -141,6 +144,6 @@
 
 <script src="audio.js?v=18"></script>
 <script src="field.js?v=5"></script>
-<script src="lab-proto.js?v=2"></script>
+<script src="lab-proto.js?v=3"></script>
 </body>
 </html>
