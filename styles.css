@@ -479,3 +479,11 @@ input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.12); }
 .eyes-screen .btn-ghost { color: #9aa3c4; border-color: #1d2742; background: #05070f; }
 @media (max-width: 900px) { .lab-two { grid-template-columns: 1fr; } }
 @media (max-width: 560px) { .lab-dl { grid-template-columns: 1fr; } .lab-dl dt { padding-top: 6px; } .tl-sound { grid-template-columns: 1fr; } .ab-switch .btn-xl { width: 110px; } .player-exp { display: none; } }
+
+/* mixer add pills */
+.add-pills .add-pill { background: var(--card); color: var(--text); border: 1px solid var(--border); box-shadow: var(--shadow); transition: transform .15s, border-color .2s, opacity .2s; }
+.add-pills .add-pill:hover:not(:disabled) { transform: translateY(-2px); border-color: hsl(var(--hue) 80% 60%); }
+.add-pills .add-pill .ico { color: hsl(var(--hue) 70% 45%); }
+:root[data-theme="dark"] .add-pills .add-pill .ico { color: hsl(var(--hue) 80% 75%); }
+.add-pills .add-pill:disabled { opacity: .45; cursor: default; }
+.add-pills .add-pill.adding { opacity: .6; border-color: var(--accent); }

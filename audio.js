@@ -44,56 +44,45 @@
     thunder: 1.0, city: 0.9, cabin: 0.8, chimes: 0.5, paint: 0.3, sculpt: 0.32, notched: 0.32,
   };
 
-  // ---------- buffer generators ----------
-  // Seamless loops: generate `n` extra "pre-roll" samples before the loop start,
-  // then equal-power crossfade the loop's tail into that pre-roll. The last
-  // sample of the loop therefore flows naturally into the first one, with
+  // ---------- buffer generators (run in a Web Worker so the UI never stalls) ----------
+  // Seamless loops: generate `n` extra "pre-roll" samples before the loop start, then equal-power
+  // crossfade the loop's tail into that pre-roll, so the last sample flows into the first with
   // continuous filter state — no click, no gap, even for brown noise.
-  function makeLoop(ctx, seconds, n, gen) {
-    const len = Math.floor(ctx.sampleRate * seconds);
-    const buf = ctx.createBuffer(2, len, ctx.sampleRate);
-    for (let c = 0; c < 2; c++) {
-      const x = new Float32Array(len + n);
-      gen(x);
-      const y = buf.getChannelData(c);
-      for (let i = 0; i < len - n; i++) y[i] = x[n + i];
-      for (let i = 0; i < n; i++) {
-        const t = i / n; const a = Math.cos(t * Math.PI / 2), b = Math.sin(t * Math.PI / 2);
-        y[len - n + i] = x[len + i] * a + x[i] * b;
+  const GEN_SRC = `
+    function makeLoop(sr, seconds, n, gen) {
+      const len = Math.floor(sr * seconds); const out = [];
+      for (let c = 0; c < 2; c++) {
+        const x = new Float32Array(len + n); gen(x); const y = new Float32Array(len);
+        for (let i = 0; i < len - n; i++) y[i] = x[n + i];
+        for (let i = 0; i < n; i++) { const t = i / n, a = Math.cos(t * Math.PI / 2), b = Math.sin(t * Math.PI / 2); y[len - n + i] = x[len + i] * a + x[i] * b; }
+        out.push(y);
       }
+      return out;
     }
-    return buf;
-  }
-  function whiteBuffer(ctx, seconds) {
-    return makeLoop(ctx, seconds, 2048, x => { for (let i = 0; i < x.length; i++) x[i] = Math.random() * 2 - 1; });
-  }
-  function pinkBuffer(ctx, seconds) {
-    return makeLoop(ctx, seconds, 16384, x => {
-      let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
-      for (let i = 0; i < x.length; i++) {
-        const w = Math.random() * 2 - 1;
-        b0 = 0.99886 * b0 + w * 0.0555179;
-        b1 = 0.99332 * b1 + w * 0.0750759;
-        b2 = 0.96900 * b2 + w * 0.1538520;
-        b3 = 0.86650 * b3 + w * 0.3104856;
-        b4 = 0.55000 * b4 + w * 0.5329522;
-        b5 = -0.7616 * b5 - w * 0.0168980;
-        x[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + w * 0.5362) * 0.11;
-        b6 = w * 0.115926;
-      }
+    function white(x) { for (let i = 0; i < x.length; i++) x[i] = Math.random() * 2 - 1; }
+    function pink(x) { let b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0; for (let i = 0; i < x.length; i++) { const w = Math.random()*2-1; b0=0.99886*b0+w*0.0555179; b1=0.99332*b1+w*0.0750759; b2=0.96900*b2+w*0.1538520; b3=0.86650*b3+w*0.3104856; b4=0.55000*b4+w*0.5329522; b5=-0.7616*b5-w*0.0168980; x[i]=(b0+b1+b2+b3+b4+b5+b6+w*0.5362)*0.11; b6=w*0.115926; } }
+    function brown(x) { let last = 0; for (let i = 0; i < x.length; i++) { const w = Math.random()*2-1; last = (last + 0.02*w)/1.02; x[i] = last*3.5; } let m = 0; for (let i = 0; i < x.length; i++) m += x[i]; m /= x.length; for (let i = 0; i < x.length; i++) x[i] -= m; }
+    self.onmessage = e => { const sr = e.data.sr; const res = { white: makeLoop(sr, 6, 2048, white), pink: makeLoop(sr, 8, 16384, pink), brown: makeLoop(sr, 10, 65536, brown) };
+      const transfer = []; Object.values(res).forEach(ch => ch.forEach(b => transfer.push(b.buffer))); self.postMessage(res, transfer); };
+  `;
+  function generateBuffers(ctx) {
+    const toBuffer = (chs) => { const b = ctx.createBuffer(2, chs[0].length, ctx.sampleRate); b.copyToChannel(chs[0], 0); b.copyToChannel(chs[1], 1); return b; };
+    return new Promise((resolve) => {
+      try {
+        const url = URL.createObjectURL(new Blob([GEN_SRC], { type: 'application/javascript' }));
+        const wk = new Worker(url);
+        wk.onmessage = e => { const r = e.data; resolve({ white: toBuffer(r.white), pink: toBuffer(r.pink), brown: toBuffer(r.brown) }); wk.terminate(); URL.revokeObjectURL(url); };
+        wk.onerror = () => { wk.terminate(); resolve(generateInline(ctx)); };
+        wk.postMessage({ sr: ctx.sampleRate });
+      } catch (_) { resolve(generateInline(ctx)); }
     });
   }
-  function brownBuffer(ctx, seconds) {
-    return makeLoop(ctx, seconds, 65536, x => {
-      let last = 0;
-      for (let i = 0; i < x.length; i++) {
-        const w = Math.random() * 2 - 1;
-        last = (last + 0.02 * w) / 1.02;
-        x[i] = last * 3.5;
-      }
-      let mean = 0; for (let i = 0; i < x.length; i++) mean += x[i]; mean /= x.length;
-      for (let i = 0; i < x.length; i++) x[i] -= mean;
-    });
+  function generateInline(ctx) {
+    // Fallback (no Worker support): same code on the main thread.
+    const self = {}; new Function('self', GEN_SRC)(self);
+    const toBuffer = (chs) => { const b = ctx.createBuffer(2, chs[0].length, ctx.sampleRate); b.copyToChannel(chs[0], 0); b.copyToChannel(chs[1], 1); return b; };
+    let out = null; self.postMessage = r => { out = { white: toBuffer(r.white), pink: toBuffer(r.pink), brown: toBuffer(r.brown) }; }; self.onmessage({ data: { sr: ctx.sampleRate } });
+    return out;
   }
 
   // ---------- engine ----------
@@ -122,7 +111,13 @@
     get isPlaying() { return this.ctx && this.ctx.state === 'running' && (this.active.size > 0 || (this.tone && this.tone.playing) || (this.matcher && this.matcher.playing)); }
 
     async init() {
-      if (this.ctx) { await this.resume(); return; }
+      if (this.ctx) { await this.resume(); await this._ready; return; }
+      if (this._initPromise) { await this._initPromise; await this.resume(); return; }
+      this._initPromise = this._init(); await this._initPromise;
+    }
+    // Warm up early (e.g. on the first touch) so the first sound starts instantly.
+    prepare() { if (!this.ctx && !this._initPromise) { this._initPromise = this._init(); } }
+    async _init() {
       const AC = global.AudioContext || global.webkitAudioContext;
       this.ctx = new AC({ latencyHint: 'playback' });
       const ctx = this.ctx;
@@ -148,9 +143,7 @@
       this.limiter.connect(this.analyser);
       this.analyser.connect(ctx.destination);
 
-      this.buffers.white = whiteBuffer(ctx, 6);
-      this.buffers.pink = pinkBuffer(ctx, 8);
-      this.buffers.brown = brownBuffer(ctx, 10);
+      this._ready = generateBuffers(ctx).then(b => { Object.assign(this.buffers, b); });
 
       ctx.onstatechange = () => {
         this.emit('state', ctx.state);
@@ -158,6 +151,7 @@
       this._setupBackground();
       await this.resume();
       this.setMasterVolume(this.masterVolume, true);
+      await this._ready;
     }
 
     async resume() {

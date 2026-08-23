@@ -162,12 +162,11 @@
       $('button', ch).addEventListener('click', () => engine.stopSound(s.id));
       host.appendChild(ch); $$('input', ch).forEach(paintRange);
     });
-    const sel = $('#mix-add'); sel.innerHTML = '<option value="">+ Add a sound…</option>';
-    engine.defs().filter(d => !engine.isActive(d.id)).forEach(d => { const o = document.createElement('option'); o.value = d.id; o.textContent = d.name; sel.appendChild(o); });
-    sel.disabled = list.length >= MAX_ACTIVE;
+    const add = $('#mix-add-list'); add.innerHTML = '';
+    const full = list.length >= MAX_ACTIVE; $('#mix-add-title').textContent = full ? `Up to ${MAX_ACTIVE} sounds — turn one off to add another` : 'Add a sound';
+    engine.defs().filter(d => !engine.isActive(d.id)).forEach(d => { const b = document.createElement('button'); b.className = 'pane-sound add-pill'; b.style.setProperty('--hue', d.hue); b.disabled = full; b.innerHTML = `<span class="ico" aria-hidden="true">${d.icon}</span>${d.name}`; b.setAttribute('aria-label', 'Add ' + d.name); b.addEventListener('click', async () => { b.disabled = true; b.classList.add('adding'); await engine.startSound(d.id, 0.5); }); add.appendChild(b); });
   }
   function panLabel(b) { if (Math.abs(b) < 0.05) return 'Centre'; return (b < 0 ? 'L ' : 'R ') + Math.round(Math.abs(b) * 100) + '%'; }
-  $('#mix-add').addEventListener('change', async e => { if (e.target.value) { await engine.startSound(e.target.value, 0.5); e.target.value = ''; } });
   $('#mix-play').addEventListener('click', () => togglePlay());
   $('#mix-stop').addEventListener('click', () => { engine.stopAll(); toast('All sounds stopped'); });
   $('#mix-reset').addEventListener('click', () => { engine.activeList().forEach(s => { engine.setVolume(s.id, 0.5); engine.setBalance(s.id, 0); }); setMaster(0.35); renderMixer(engine.activeList()); syncCards(engine.activeList()); toast('Levels reset'); });
@@ -361,6 +360,10 @@
     await engine.init(); // unlock audio on the user gesture (important for iOS)
     showView('sounds');
   });
+
+  // Pre-warm the audio engine on the first touch so the first sound starts without a stall.
+  const warm = () => { engine.prepare(); document.removeEventListener('pointerdown', warm); document.removeEventListener('keydown', warm); };
+  document.addEventListener('pointerdown', warm, { passive: true }); document.addEventListener('keydown', warm);
 
   // ---------- keyboard shortcuts ----------
   document.addEventListener('keydown', e => {
