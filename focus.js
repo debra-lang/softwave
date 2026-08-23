@@ -503,7 +503,7 @@
     });
   }
   document.addEventListener('softwave:profile', () => { if (window.softwaveProfile) softwaveProfile.refresh(); });
-  $('#fav-save').addEventListener('click', () => {
+  $('#fav-save').addEventListener('click', () => { if (window.softwaveMonetization) softwaveMonetization.track('environment_saved');
     let form = $('#fav-form'); if (form) { form.remove(); return; }
     form = document.createElement('form'); form.id = 'fav-form'; form.className = 'inline-form';
     form.innerHTML = `<label class="sr-only" for="fav-name">Name</label><input id="fav-name" class="select" maxlength="40" value="My Focus" style="min-width:200px"><button type="submit" class="btn btn-primary btn-sm">Save</button><button type="button" class="btn btn-ghost btn-sm" data-cancel>Cancel</button>`;

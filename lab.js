@@ -74,15 +74,22 @@
   let spaceHook = null; engine.on(t => { if (t === 'sounds' && spaceHook && running && running.exp.id === 'space') spaceHook(); });
   // Premium gate — OFF. When activated: every premium experiment still previews; Sound Discovery allows one full session free,
   // then saving the profile, repeated discoveries and premium experiments ask for Premium. Nothing already saved is ever removed.
-  const PREMIUM = { active: false, hasPremium: () => store.get('premium', false), freeDiscoveries: 1 };
-  function gate(exp) { if (!PREMIUM.active || !exp.premium || PREMIUM.hasPremium()) return true; if (exp.id === 'discovery' && (store.get('lab:discoveries', 0) < PREMIUM.freeDiscoveries)) return true; app.toast('Continue discovering your personalised sound with Premium — see Free & Premium below.', 5000); return false; }
+  // Access control lives in monetization.js (entitlements). During launch all-access, everything passes.
+  const M = () => window.softwaveMonetization;
+  const PREMIUM_TAG = () => (M() && M().LABELS.premiumTag) || 'Premium · free during launch';
+  function gate(exp) {
+    if (!M()) return true;
+    if (M().canUse('experiment:' + exp.id)) return true;
+    M().track('premium_feature_opened');
+    app.toast('This experiment is part of Premium — see Free & Premium below.', 5000); return false;
+  }
 
   // ---------- records ----------
   const fb = () => store.get('lab:feedback', {});
   const setFb = (id, patch) => { const all = fb(); all[id] = Object.assign({ tries: 0 }, all[id] || {}, patch); store.set('lab:feedback', all); };
   const favs = () => store.get('lab:favs', []);
   const mySounds = () => store.get('lab:sounds', []);
-  const saveSound = (snd) => { const l = mySounds(); l.push(snd); store.set('lab:sounds', l); app.renderPresetsRemount ? app.renderPresetsRemount() : (app.renderPresets && app.renderPresets()); };
+  const saveSound = (snd) => { if (M()) M().track('sound_saved'); const l = mySounds(); l.push(snd); store.set('lab:sounds', l); app.renderPresetsRemount ? app.renderPresetsRemount() : (app.renderPresets && app.renderPresets()); };
   const EV = { established: 'Well-studied principle', promising: 'Promising research', exploratory: 'Experimental — research is limited' };
 
   // ---------- runtime ----------
@@ -229,7 +236,7 @@
           $('[data-r="sleep"]', R).addEventListener('click', async () => { await engine.loadMix(soundMix(Object.assign({}, snd, { params: Object.assign({}, best.params, { moving: 0 }) }), 0.5)); engine.setTimer(60, true); app.showView('sleep'); app.toast('Sleep: 60-minute timer with gentle fade.'); });
           $('[data-r="visual"]', R).addEventListener('click', async () => { await engine.loadMix(soundMix(snd)); focus.setVisual(visualForProfile()); focus.enterFocus(); });
           $('[data-r="again"]', R).addEventListener('click', () => { stopRunning(); openExperiment('discovery'); });
-          renderProfile(); stopRunning(null, true);
+          renderProfile(); stopRunning(null, true); if (M()) { M().track('find_my_sound_completed'); M().track('sound_profile_created'); }
         };
         await next();
       },
@@ -270,7 +277,7 @@
         const renderSaved = () => { const h = $('[data-saved]', host); h.innerHTML = ''; mySounds().filter(s => s.type === 'paint').forEach(p => { const bt = document.createElement('button'); bt.className = 'chip'; bt.innerHTML = `<strong>${p.name}</strong>`; bt.addEventListener('click', () => { push(); ctx.curve = p.curve.slice(); draw(); engine.setPaint(ctx.curve); }); h.appendChild(bt); }); };
         renderSaved(); draw();
       },
-      async start(ctx) { safeMaster(); engine.setPaint(ctx.curve); engine.stopAll(); await engine.startSound('paint', 0.6); await engine.playAll(); },
+      async start(ctx) { safeMaster(); engine.setPaint(ctx.curve); engine.stopAll(); await engine.startSound('paint', 0.6); await engine.playAll(); if (M()) M().track('frequency_painting_used'); },
       stop() { if (engine.isActive('sculpt')) engine.stopSound('sculpt'); },
     },
     {
@@ -476,7 +483,7 @@
   const LIGHT_TINT = { discovery: [125, 90, 60], paint: [110, 90, 140], sculptor: [125, 90, 60], generative: [150, 120, 60], morph: [100, 95, 130], space: [60, 110, 140], attention: [150, 125, 70], svjourney: [60, 105, 140], journey: [90, 110, 135], session: [110, 100, 90] };
   function card(exp) {
     const f = fb()[exp.id] || {}; const el = document.createElement('button'); el.type = 'button'; el.className = 'lab-tile' + (exp.featured ? ' big' : '') + ((running && running.exp.id === exp.id) ? ' running' : ''); el.dataset.id = exp.id; el.setAttribute('aria-label', exp.name + ': ' + exp.what);
-    el.innerHTML = `<span class="lab-pv"><canvas aria-hidden="true"></canvas></span><span class="lab-tile-body"><span class="lab-cat">${exp.cat}${exp.premium ? ' · Premium preview' : ''}${favs().includes(exp.id) ? ' · ★' : ''}</span><span class="lab-tile-name">${exp.name}</span><span class="lab-tile-what">${exp.what.split(/(?<=\.)\s/)[0]}</span>${f.rating ? `<span class="lab-tile-you">You said: ${f.rating === 'helpful' ? 'helpful' : f.rating === 'not' ? 'not for me' : 'neutral'}</span>` : ''}</span>`;
+    el.innerHTML = `<span class="lab-pv"><canvas aria-hidden="true"></canvas></span><span class="lab-tile-body"><span class="lab-cat">${exp.cat}${exp.premium ? ' · ' + PREMIUM_TAG() : ''}${favs().includes(exp.id) ? ' · ★' : ''}</span><span class="lab-tile-name">${exp.name}</span><span class="lab-tile-what">${exp.what.split(/(?<=\.)\s/)[0]}</span>${f.rating ? `<span class="lab-tile-you">You said: ${f.rating === 'helpful' ? 'helpful' : f.rating === 'not' ? 'not for me' : 'neutral'}</span>` : ''}</span>`;
     liveShape($('.lab-pv canvas', el), () => ({ preview: exp.id, tint: isDark() ? TINT[exp.id] : LIGHT_TINT[exp.id] }));
     el.addEventListener('click', () => openExperiment(exp.id)); return el;
   }
@@ -488,7 +495,7 @@
   function openExperiment(id) {
     const exp = byId[id]; if (!exp) return; const ctx = ctxFor(exp); const panel = $('#lab-detail'); panel.hidden = false; const f = fb()[exp.id] || {}; const isFav = favs().includes(exp.id);
     panel.innerHTML = `<div class="lab-detail-inner"><button class="btn btn-ghost btn-sm" data-close>← Experiments</button>
-      <div class="lab-card-head"><div><div class="lab-cat">${exp.cat} · from ${exp.from}${exp.premium ? ' · <span class="tag tag-prem">Premium preview — free during beta</span>' : ''}</div><h2>${exp.name}</h2></div><span class="ev ev-${exp.evidence}">${EV[exp.evidence]}</span></div>
+      <div class="lab-card-head"><div><div class="lab-cat">${exp.cat} · from ${exp.from}${exp.premium ? ' · <span class="tag tag-prem">' + PREMIUM_TAG() + '</span>' : ''}</div><h2>${exp.name}</h2></div><span class="ev ev-${exp.evidence}">${EV[exp.evidence]}</span></div>
       <dl class="lab-dl"><dt>What it does</dt><dd>${exp.what}</dd><dt>Why try it</dt><dd>${exp.why}</dd><dt>How to use it</dt><dd>${exp.how}</dd></dl>
       <details class="lab-why"><summary>Why are we testing this?</summary><p>${exp.whyTest}</p><p class="muted small">Not a medical treatment. Stop at any time with the Stop button below or in the player bar.</p></details>
       ${exp.customFirst ? '<div data-custom></div><div class="lab-settings" data-settings></div>' : '<div class="lab-settings" data-settings></div><div data-custom></div>'}
