@@ -98,17 +98,27 @@
   // local testing only and is ignored the moment a backend-signed state exists.
   const store = { get(k, d) { try { const v = localStorage.getItem('softwave:' + k); return v === null ? d : JSON.parse(v); } catch (_) { return d; } }, set(k, v) { try { localStorage.setItem('softwave:' + k, JSON.stringify(v)); } catch (_) { } } };
 
+  // Server-authoritative state (set by cloud.js from the read-only billing row / GET /me).
+  // The browser renders it but cannot forge it: the billing table has no client write policies.
+  let serverState = null;
+  function setServerState(s) { serverState = s || null; }
+  const DEV_HOST = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
   function subscriptionState() {
     if (!FLAGS.MONETIZATION_ENABLED || FLAGS.LAUNCH_ALL_ACCESS) return 'launch_all_access';
-    const dev = store.get('dev:plan', null);           // test-only simulator (see simulate())
+    if (serverState) return serverState.state || 'none';                 // signed-in: server wins
+    const dev = DEV_HOST ? store.get('dev:plan', null) : null;           // simulator: dev hosts only
     if (dev) return dev.state || 'active';
-    // Real implementation: read the backend-issued, server-verified subscription state here.
     return 'none';
   }
   function currentPlan() {
     const state = subscriptionState();
     if (state === 'launch_all_access') return PLANS.PREMIUM_MONTHLY;   // launch: everyone effectively Premium
-    const dev = store.get('dev:plan', null);
+    if (serverState) {
+      const id = String(serverState.plan || 'free').toUpperCase();
+      const paid = ['active', 'trial', 'past_due', 'lifetime'].includes(serverState.state) || (serverState.state === 'cancelled' && serverState.periodEnd && new Date(serverState.periodEnd) > new Date());
+      return paid && PLANS[id] ? PLANS[id] : PLANS.FREE;
+    }
+    const dev = DEV_HOST ? store.get('dev:plan', null) : null;
     if (dev && PLANS[dev.plan]) {
       // cancelled/expired fall back to Free at period end; past_due keeps access during recovery
       if (dev.state === 'expired' || dev.state === 'none') return PLANS.FREE;
@@ -152,6 +162,7 @@
   // ---------------- dev-only plan simulator (test future paid mode without charging) ----------------
   // softwaveMonetization.simulate('free' | 'premium_monthly' | 'premium_annual' | 'lifetime' | 'trial' | 'cancelled' | 'past_due' | 'expired' | null)
   function simulate(kind) {
+    if (!DEV_HOST) return 'simulator is disabled outside development hosts';
     if (kind === null) { localStorage.removeItem('softwave:dev:plan'); return 'cleared'; }
     const map = {
       free: { plan: 'FREE', state: 'none' },
@@ -168,5 +179,5 @@
     store.set('dev:plan', map[kind]); return map[kind];
   }
 
-  global.softwaveMonetization = { FLAGS, PRICING, PLANS, FREE_ENTITLEMENTS, PREMIUM_ENTITLEMENTS, FEATURE_ENTITLEMENT, PREVIEWS, LABELS, subscriptionState, currentPlan, effectiveEntitlements, hasEntitlement, canUse, canCreateSavedItem, track, simulate };
+  global.softwaveMonetization = { FLAGS, PRICING, setServerState, PLANS, FREE_ENTITLEMENTS, PREMIUM_ENTITLEMENTS, FEATURE_ENTITLEMENT, PREVIEWS, LABELS, subscriptionState, currentPlan, effectiveEntitlements, hasEntitlement, canUse, canCreateSavedItem, track, simulate };
 })(window);

@@ -1150,3 +1150,16 @@ html[data-theme="dark"] .lab-view { --lab-bg-a: #0f1320; --lab-bg-b: #090b12; }
 @media (max-width: 640px) { .two-tools.section-block .two-tool { width: 100%; margin-right: 0; } }
 .lab-hist-empty { max-width: 980px; margin: 0 auto; }
 .lab-hist > div[hidden] { display: none; }
+
+/* optional account UI (inert unless cloud is configured) */
+.acct-pill { white-space: nowrap; }
+#acct-sheet { position: fixed; inset: 0; z-index: 70; background: rgba(5,7,12,.55); backdrop-filter: blur(6px); display: grid; place-items: center; padding: 18px; }
+#acct-sheet[hidden] { display: none; }
+.acct-card { width: min(460px, 94vw); border-radius: 24px; padding: 20px 22px; background: var(--sf-glass-strong); border: 1px solid var(--sf-line); box-shadow: 0 30px 80px rgba(0,0,0,.4); }
+.acct-card h2 { font-family: var(--sf-display); font-weight: 300; margin: 4px 0 6px; }
+.acct-card #acct-close { float: right; }
+.acct-row { display: flex; gap: 8px; margin: 10px 0; }
+.acct-row.wrap { flex-wrap: wrap; }
+.acct-row input { flex: 1; min-width: 150px; padding: 10px 14px; border-radius: 999px; border: 1px solid var(--sf-line); background: transparent; color: var(--sf-ink); font: inherit; }
+.acct-card .danger { color: #d66; }
+#acct-sync { color: var(--sf-ink-2); }
