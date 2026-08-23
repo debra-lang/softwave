@@ -39,15 +39,135 @@
   const P = { target: 'light', sync: true, haptic: false, soundTouch: false, breathPeriod: 0 };   // experiment parameters
 
   // ===== NATURE =====
+  // ===== Noise texture helper: fBm rendered at low resolution, drawn scaled (soft, fast) =====
+  const PERM = (() => { const p = new Uint8Array(512); const a = []; for (let i = 0; i < 256; i++) a[i] = i; for (let i = 255; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } for (let i = 0; i < 512; i++) p[i] = a[i & 255]; return p; })();
+  function vnoise(x, y, z) { // 3D value noise, smooth
+    const xi = Math.floor(x) & 255, yi = Math.floor(y) & 255, zi = Math.floor(z) & 255; const xf = x - Math.floor(x), yf = y - Math.floor(y), zf = z - Math.floor(z);
+    const u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf), w = zf * zf * (3 - 2 * zf);
+    const h = (a, b, c) => PERM[(PERM[(PERM[a] + b) & 511] + c) & 511] / 255;
+    const x1 = xi + 1, y1 = yi + 1, z1 = zi + 1;
+    const l = (a, b, t) => a + (b - a) * t;
+    return l(l(l(h(xi, yi, zi), h(x1, yi, zi), u), l(h(xi, y1, zi), h(x1, y1, zi), u), v), l(l(h(xi, yi, z1), h(x1, yi, z1), u), l(h(xi, y1, z1), h(x1, y1, z1), u), v), w);
+  }
+  function fbm(x, y, z, oct = 4) { let a = 0, amp = 0.5, f = 1, n = 0; for (let i = 0; i < oct; i++) { a += vnoise(x * f, y * f, z) * amp; n += amp; amp *= 0.5; f *= 2; } return a / n; }
+  class NoiseTex {
+    constructor(w, h) { this.w = w; this.h = h; this.c = document.createElement('canvas'); this.c.width = w; this.c.height = h; this.ctx = this.c.getContext('2d'); this.img = this.ctx.createImageData(w, h); this.frame = 0; }
+    render(fn, every = 1) { if ((this.frame++ % every) !== 0) return; const d = this.img.data; let i = 0; for (let y = 0; y < this.h; y++) for (let x = 0; x < this.w; x++) { const p = fn(x / this.w, y / this.h); d[i++] = p[0]; d[i++] = p[1]; d[i++] = p[2]; d[i++] = p[3]; } this.ctx.putImageData(this.img, 0, 0); }
+    draw(ctx, w, h, alpha = 1, op = 'source-over') { ctx.save(); ctx.globalAlpha = alpha; ctx.globalCompositeOperation = op; ctx.imageSmoothingEnabled = true; ctx.drawImage(this.c, 0, 0, w, h); ctx.restore(); }
+  }
+  const mix = (a, b, t) => a + (b - a) * t;
+
   add({ id: 'ocean', name: 'Ocean Waves', cat: 'Nature', desc: 'Slow rolling swells at dusk.', make() {
-    let t = 0; return { draw(ctx, w, h, e) { t += e.dt * e.speed * 0.5;
-      sky(ctx, w, h, isDark() ? '#0a1330' : '#dfe9f7', isDark() ? '#123a5c' : '#7fb0d8');
-      glow(ctx, w * 0.7, h * 0.22, w * 0.25, isDark() ? 'rgba(255,220,170,A)' : 'rgba(255,240,200,A)', 0.35);
-      for (let k = 0; k < 6; k++) { const base = h * (0.45 + k * 0.1); const amp = 6 + k * 5; ctx.beginPath();
-        for (let x = 0; x <= w; x += 6) { const y = base + Math.sin(x * 0.006 + t * (0.8 + k * 0.15) + k * 1.7) * amp + Math.sin(x * 0.017 - t * 0.5 + k) * amp * 0.35 + Math.sin(t * 0.25 + k) * 8; ctx.lineTo(x, y); }
+    let t = 0; const tex = new NoiseTex(96, 54); const horizon = 0.42;
+    return { draw(ctx, w, h, e) { t += e.dt * e.speed * 0.45;
+      // sky with dusk gradient and a low sun
+      const g = ctx.createLinearGradient(0, 0, 0, h * horizon); const d = isDark(); g.addColorStop(0, d ? '#0a1330' : '#cfe0f4'); g.addColorStop(0.75, d ? '#24305a' : '#f3d9c2'); g.addColorStop(1, d ? '#5a4a6a' : '#f9c9a0'); ctx.fillStyle = g; ctx.fillRect(0, 0, w, h * horizon);
+      const sx = w * 0.68, sy = h * (horizon - 0.06); glow(ctx, sx, sy, w * 0.22, d ? 'rgba(255,200,150,A)' : 'rgba(255,230,190,A)', 0.55); ctx.fillStyle = d ? '#ffe2c2' : '#fff2d8'; ctx.beginPath(); ctx.arc(sx, sy, Math.min(w, h) * 0.035, 0, TAU); ctx.fill();
+      // sea: perspective rows of swell, far rows compressed
+      const seaTop = h * horizon; const sg = ctx.createLinearGradient(0, seaTop, 0, h); sg.addColorStop(0, d ? '#1a2e55' : '#7fb0d8'); sg.addColorStop(1, d ? '#071226' : '#2f6f9e'); ctx.fillStyle = sg; ctx.fillRect(0, seaTop, w, h - seaTop);
+      const rows = 26;
+      for (let k = 0; k < rows; k++) { const p = k / rows; const depth = p * p; const y0 = seaTop + depth * (h - seaTop); const amp = 2 + depth * 22 * (1 + e.level * 0.6); const sp = (0.8 + depth * 0.6); ctx.beginPath();
+        for (let x = 0; x <= w; x += 6) { const u = x / w; const y = y0 + Math.sin(u * 9 / (0.4 + depth) + t * sp + k * 1.3) * amp + Math.sin(u * 23 - t * 0.7 * sp + k) * amp * 0.3 + (fbm(u * 3 + k, t * 0.2, k) - 0.5) * amp * 1.2; ctx.lineTo(x, y); }
         ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.closePath();
-        const l = isDark() ? 18 + k * 5 : 52 + k * 5; ctx.fillStyle = `hsla(${205 + k * 3},55%,${l}%,0.85)`; ctx.fill();
-        ctx.strokeStyle = `hsla(200,60%,${l + 30}%,${0.18 - k * 0.02})`; ctx.lineWidth = 2; ctx.stroke(); }
+        const L = d ? 14 + depth * 18 : 45 + depth * 14; ctx.fillStyle = `hsla(${206 + depth * 6},${d ? 55 : 60}%,${L}%,${0.55 + depth * 0.4})`; ctx.fill();
+        // foam crest highlight
+        ctx.strokeStyle = `hsla(200,50%,${d ? 60 : 92}%,${0.05 + depth * 0.18})`; ctx.lineWidth = 1 + depth * 2; ctx.stroke(); }
+      // sun path shimmer on the water
+      tex.render((u, v) => { const n = fbm(u * 16 + t * 0.6, v * 30 - t * 2.2, 1, 2); const band = Math.exp(-Math.pow((u - 0.68) / (0.05 + v * 0.14), 2)); const a = Math.max(0, n - 0.58) * 5 * band * (1 - v * 0.5); return [255, 225, 180, Math.min(255, a * 255)]; }, 2);
+      ctx.save(); ctx.beginPath(); ctx.rect(0, seaTop, w, h - seaTop); ctx.clip(); tex.draw(ctx, w, h, d ? 0.55 : 0.7, 'lighter'); ctx.restore();
+    } }; } });
+
+  add({ id: 'clouds', name: 'Drifting Clouds', cat: 'Nature', desc: 'Soft clouds moving across a quiet sky.', make() {
+    let t = 0; const tex = new NoiseTex(128, 72); return { draw(ctx, w, h, e) { t += e.dt * e.speed * 0.05; const d = isDark();
+      sky(ctx, w, h, d ? '#0c1633' : '#7fb3ea', d ? '#1c2c57' : '#cfe3fa');
+      if (!d) glow(ctx, w * 0.8, h * 0.15, w * 0.35, 'rgba(255,250,225,A)', 0.5);
+      tex.render((u, v) => { const n1 = fbm(u * 3.2 + t * 2.4, v * 2.2 + 0.3, t * 0.4, 5); const n2 = fbm(u * 6 + t * 4 + 7, v * 5, t * 0.7, 3); const c = Math.max(0, (n1 - 0.42) * 2.6 + (n2 - 0.5) * 0.6); const dens = Math.min(1, c) * (1 - Math.pow(Math.abs(v - 0.45) * 1.4, 2)); const shade = 0.75 + 0.25 * n2; const base = d ? 150 : 255; return [base * shade, (d ? 165 : 255) * shade, (d ? 210 : 255) * Math.min(1, shade + 0.05), dens * (d ? 170 : 235)]; }, 2);
+      tex.draw(ctx, w, h, 1);
+      const tex2 = tex; // second, faster thin layer for depth
+      ctx.save(); ctx.globalAlpha = 0.35; ctx.translate(-w * 0.1 * ((t * 3) % 1), h * 0.25); ctx.drawImage(tex2.c, 0, 0, w * 1.2, h * 0.9); ctx.restore();
+    } }; } });
+
+  add({ id: 'fireplace', name: 'Fireplace', cat: 'Nature', desc: 'Low flames and drifting embers.', make() {
+    let t = 0; const tex = new NoiseTex(72, 96); const embers = Array.from({ length: 40 }, () => ({ x: rnd(0.62, 0.38), y: rnd(0.78, 0.3), s: rnd(0.14, 0.05), r: rnd(2.2, 0.8), ph: Math.random() * 6 }));
+    return { draw(ctx, w, h, e) { t += e.dt * e.speed;
+      sky(ctx, w, h, '#07040a', '#1a0c06'); const base = h * 0.8;
+      // hearth stones
+      ctx.fillStyle = '#1c1410'; ctx.fillRect(w * 0.22, h * 0.25, w * 0.56, h * 0.6); for (let i = 0; i < 30; i++) { const bx = w * 0.22 + (i % 6) * w * 0.0933, by = h * 0.25 + Math.floor(i / 6) * h * 0.12; ctx.fillStyle = `hsl(20 18% ${11 + (i * 7) % 6}%)`; ctx.fillRect(bx + 2, by + 2, w * 0.0933 - 4, h * 0.12 - 4); }
+      ctx.fillStyle = '#050304'; ctx.fillRect(w * 0.28, h * 0.33, w * 0.44, h * 0.47);
+      // glow on the room
+      glow(ctx, w * 0.5, base - h * 0.1, w * 0.5, 'rgba(255,120,40,A)', 0.25 + e.level * 0.15 + Math.sin(t * 3) * 0.02);
+      // logs (behind the flames), rounded with a glowing underside
+      for (const [lx, ly, lw, a] of [[0.37, 0.775, 0.26, -0.07], [0.39, 0.75, 0.24, 0.09]]) { ctx.save(); ctx.translate(w * lx + w * lw / 2, h * ly); ctx.rotate(a); const lg = ctx.createLinearGradient(0, -h * 0.02, 0, h * 0.02); lg.addColorStop(0, '#3a1d0c'); lg.addColorStop(1, '#6a2c0a'); ctx.fillStyle = lg; ctx.beginPath(); ctx.roundRect(-w * lw / 2, -h * 0.02, w * lw, h * 0.04, h * 0.02); ctx.fill(); ctx.restore(); }
+      glow(ctx, w * 0.5, base - h * 0.03, w * 0.14, 'rgba(255,140,40,A)', 0.7 + Math.sin(t * 2.1) * 0.1);
+      // flames: noise-driven, rising; white-hot core → yellow → orange → transparent
+      tex.render((u, v) => { const x = (u - 0.5) * 2; const vv = 1 - v; const n = fbm(u * 4 + Math.sin(t) * 0.2, v * 6 - t * 2.4, t * 0.5, 4); const n2 = fbm(u * 9 + 3, v * 12 - t * 3.5, t, 2); const shape = Math.max(0, 1 - Math.abs(x) * (1.0 + vv * 1.8)) * Math.pow(1 - vv, 0.7); const f = shape * (0.5 + n * 1.1 + (n2 - 0.5) * 0.4) - vv * 0.3; const i = Math.max(0, Math.min(1, f * 1.5)); const core = Math.max(0, i - 0.88) * 8; return [255, 40 + 150 * i + 40 * core, 10 + 25 * i * i + 120 * core, Math.pow(i, 1.3) * 255]; }, 1);
+      ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.filter = 'blur(8px)'; ctx.globalAlpha = 0.35; ctx.drawImage(tex.c, w * 0.28, base - h * 0.46, w * 0.44, h * 0.5); ctx.filter = 'none'; ctx.globalAlpha = 1; ctx.drawImage(tex.c, w * 0.3, base - h * 0.44, w * 0.4, h * 0.47); ctx.restore();
+      // embers, kept inside the firebox
+      ctx.save(); ctx.beginPath(); ctx.rect(w * 0.28, h * 0.33, w * 0.44, h * 0.47); ctx.clip();
+      for (const m of embers) { m.y -= m.s * e.dt * e.speed; m.x += Math.sin(t * 1.5 + m.ph + m.y * 8) * 0.0007; if (m.y < 0.3) { m.y = rnd(0.78, 0.7); m.x = rnd(0.6, 0.4); } const a = Math.max(0, 1 - (0.78 - m.y) * 2.2); ctx.fillStyle = `rgba(255,${120 + Math.floor(a * 110)},50,${a})`; ctx.beginPath(); ctx.arc(m.x * w, m.y * h, m.r * (0.6 + a * 0.6), 0, TAU); ctx.fill(); }
+      ctx.restore();
+    } }; } });
+
+  add({ id: 'forest', name: 'Forest Breeze', cat: 'Nature', desc: 'Trees swaying gently in soft light.', make() {
+    let t = 0; const tex = new NoiseTex(96, 54); const layers = [0, 1, 2, 3].map(L => ({ trees: Array.from({ length: 10 + L * 4 }, (_, i) => ({ x: (i + Math.random() * 0.6) / (10 + L * 4), hgt: rnd(0.5, 0.3) * (1 - L * 0.12), wdt: rnd(0.07, 0.04) * (1 - L * 0.1), seed: Math.random() * 10 })) })); const leaves = Array.from({ length: 20 }, () => ({ x: Math.random(), y: Math.random(), s: rnd(0.04, 0.015), ph: Math.random() * 6 }));
+    const drawTree = (ctx, cx, top, ww, hh, col) => { ctx.fillStyle = col; const tiers = 5; for (let k = 0; k < tiers; k++) { const y = top + hh * k / tiers; const half = ww * (0.35 + k * 0.22); ctx.beginPath(); ctx.moveTo(cx, y); ctx.lineTo(cx - half, y + hh / tiers * 1.5); ctx.lineTo(cx + half, y + hh / tiers * 1.5); ctx.closePath(); ctx.fill(); } ctx.fillRect(cx - ww * 0.06, top + hh, ww * 0.12, hh * 0.25); };
+    return { draw(ctx, w, h, e) { t += e.dt * e.speed; const d = isDark();
+      sky(ctx, w, h, d ? '#0b1a16' : '#dfeecf', d ? '#06110d' : '#a9cf94');
+      // light rays
+      ctx.save(); ctx.globalCompositeOperation = d ? 'lighter' : 'source-over'; ctx.filter = 'blur(18px)'; for (let i = 0; i < 4; i++) { const x = w * (0.2 + i * 0.18) + Math.sin(t * 0.2 + i) * 15; const rg = ctx.createLinearGradient(x, 0, x + w * 0.12, h); rg.addColorStop(0, d ? 'rgba(120,200,150,0.10)' : 'rgba(255,250,215,0.35)'); rg.addColorStop(1, 'rgba(255,250,215,0)'); ctx.fillStyle = rg; ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x + w * 0.06, 0); ctx.lineTo(x + w * 0.22, h); ctx.lineTo(x + w * 0.04, h); ctx.fill(); } ctx.restore();
+      // far → near tree layers with mist between them
+      for (let L = 3; L >= 0; L--) { const lay = layers[L]; const L2 = L / 3; const light = d ? 9 + L2 * 12 : 20 + L2 * 26; const sat = d ? 28 : 32 + (1 - L2) * 10; const col = `hsl(${135 - L2 * 15} ${sat}% ${light}%)`;
+        for (const tr of lay.trees) { const sway = Math.sin(t * 0.5 + tr.seed) * 6 * (1 - L2 * 0.6) + Math.sin(t * 1.3 + tr.seed * 2) * 2; const hh = tr.hgt * h; const top = h * 0.95 - hh - L2 * h * 0.12; drawTree(ctx, tr.x * w + sway, top, tr.wdt * w, hh, col); }
+        if (L > 0) { tex.render((u, v) => { const n = fbm(u * 2.5 + t * 0.05 * (4 - L), v * 2 + L, t * 0.1, 4); const a = Math.pow(n, 2.2) * (0.4 + v * 0.8); return d ? [140, 190, 170, a * 120] : [235, 245, 230, a * 170]; }, 3); ctx.save(); ctx.filter = 'blur(10px)'; tex.draw(ctx, w, h, 0.9 - L2 * 0.3); ctx.restore(); } }
+      ctx.fillStyle = d ? '#06100b' : '#3f6f3c'; ctx.fillRect(0, h * 0.95, w, h * 0.05);
+      ctx.fillStyle = d ? 'rgba(180,230,190,0.45)' : 'rgba(255,255,240,0.7)'; for (const lf of leaves) { lf.x += lf.s * e.dt * e.speed; lf.y += (Math.sin(t * 1.2 + lf.ph) * 0.004 + 0.006) * e.dt * e.speed * 4; if (lf.x > 1.05 || lf.y > 1) { lf.x = -0.05; lf.y = Math.random() * 0.5; } ctx.beginPath(); ctx.ellipse(lf.x * w, lf.y * h, 3, 1.6, Math.sin(t + lf.ph), 0, TAU); ctx.fill(); }
+    } }; } });
+
+  add({ id: 'nightsky', name: 'Night Sky', cat: 'Nature', desc: 'Stars turning very slowly overhead.', make() {
+    let t = 0; const tex = new NoiseTex(128, 72); const stars = Array.from({ length: 420 }, () => { const m = Math.random(); return { a: Math.random() * TAU, r: Math.random(), sz: m < 0.85 ? rnd(1.1, 0.3) : rnd(2.4, 1.2), ph: Math.random() * TAU, col: m < 0.6 ? '235,240,255' : m < 0.8 ? '255,240,215' : m < 0.92 ? '200,215,255' : '255,200,180' }; }); let shoot = null, texDone = false;
+    return { draw(ctx, w, h, e) { t += e.dt * e.speed;
+      sky(ctx, w, h, '#02041a', '#0a1238'); const cx = w * 0.5, cy = h * 1.15, R = Math.hypot(w, h);
+      if (!texDone) { tex.render((u, v) => { const band = Math.exp(-Math.pow((v - 0.5 + (u - 0.5) * 0.6) * 5, 2)); const n = fbm(u * 5, v * 5, 2, 5); const n2 = fbm(u * 12 + 3, v * 12, 5, 3); const a = band * Math.max(0, n - 0.38) * 1.8 * (0.5 + n2 * 0.7); const dust = band * Math.max(0, 0.5 - n2) * 1.4; return [190 + 30 * n2, 195 + 25 * n, 235, Math.max(0, a - dust * 0.6) * 90]; }); texDone = true; }
+      ctx.save(); ctx.translate(cx, cy); ctx.rotate(t * 0.004); ctx.translate(-cx, -cy); ctx.globalAlpha = 0.8; ctx.filter = 'blur(3px)'; ctx.drawImage(tex.c, -w * 0.3, -h * 0.9, w * 1.6, h * 2); ctx.restore();
+      glow(ctx, w * 0.3, h * 0.4, w * 0.25, 'rgba(120,90,200,A)', 0.04);
+      for (const s of stars) { const a = s.a + t * 0.004; const x = cx + Math.cos(a) * s.r * R, y = cy + Math.sin(a) * s.r * R; if (y > h * 0.9 || x < 0 || x > w) continue; const tw = 0.55 + Math.sin(t * (0.3 + s.sz * 0.2) + s.ph) * 0.3; ctx.fillStyle = `rgba(${s.col},${tw})`; ctx.beginPath(); ctx.arc(x, y, s.sz, 0, TAU); ctx.fill(); if (s.sz > 1.8) glow(ctx, x, y, s.sz * 4, `rgba(${s.col},A)`, 0.25 * tw); }
+      if (!e.reduced && !shoot && Math.random() < 0.0012 * e.speed) shoot = { x: rnd(0.8, 0.2), y: rnd(0.4, 0.05), p: 0 };
+      if (shoot) { shoot.p += e.dt * e.speed * 0.4; const x = shoot.x * w + shoot.p * 140, y = shoot.y * h + shoot.p * 70; const g = ctx.createLinearGradient(x - 60, y - 30, x, y); g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(1, `rgba(255,255,255,${0.7 * (1 - shoot.p)})`); ctx.strokeStyle = g; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(x - 60, y - 30); ctx.lineTo(x, y); ctx.stroke(); if (shoot.p > 1) shoot = null; }
+      // treeline silhouette
+      ctx.fillStyle = '#03050f'; ctx.beginPath(); ctx.moveTo(0, h); for (let x = 0; x <= w; x += 12) { const n = fbm(x / w * 6, 2, 0, 3); ctx.lineTo(x, h * 0.86 + n * h * 0.08 - (x % 24 === 0 ? 8 : 0)); } ctx.lineTo(w, h); ctx.fill();
+    } }; } });
+
+  add({ id: 'underwater', name: 'Underwater', cat: 'Nature', desc: 'Light rippling through deep blue water.', make() {
+    let t = 0; const tex = new NoiseTex(112, 64); const bubbles = Array.from({ length: 40 }, () => ({ x: Math.random(), y: Math.random(), r: rnd(5, 1.5), s: rnd(0.08, 0.03), ph: Math.random() * 6 })); const motes = Array.from({ length: 60 }, () => ({ x: Math.random(), y: Math.random(), r: rnd(1.4, 0.5) })); const plants = Array.from({ length: 9 }, (_, i) => ({ x: (i + Math.random()) / 9, hgt: rnd(0.4, 0.18), w: rnd(9, 4) }));
+    return { draw(ctx, w, h, e) { t += e.dt * e.speed;
+      sky(ctx, w, h, '#0b4f86', '#03152b');
+      // caustics: two moving noise fields, ridged
+      tex.render((u, v) => { const n1 = fbm(u * 5 + t * 0.25, v * 5 - t * 0.15, t * 0.3, 3); const n2 = fbm(u * 5 - t * 0.2 + 9, v * 5 + t * 0.2, t * 0.25 + 4, 3); const r = 1 - Math.abs(n1 - n2) * 6; const a = Math.max(0, r) * (1 - v * 0.75); return [170, 230, 255, a * a * 200]; }, 2);
+      ctx.save(); ctx.globalCompositeOperation = 'lighter'; tex.draw(ctx, w, h, 0.55, 'lighter'); ctx.restore();
+      // god rays
+      ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.filter = 'blur(14px)'; for (let i = 0; i < 6; i++) { const x = w * (0.15 + i * 0.14) + Math.sin(t * 0.25 + i) * 30; const g = ctx.createLinearGradient(x, 0, x + 50, h); g.addColorStop(0, `rgba(150,215,255,${0.10 + Math.sin(t * 0.5 + i) * 0.03})`); g.addColorStop(1, 'rgba(150,215,255,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x + 50, 0); ctx.lineTo(x + 160, h); ctx.lineTo(x + 30, h); ctx.fill(); } ctx.restore();
+      // plants
+      for (const p of plants) { ctx.strokeStyle = 'rgba(18,80,62,0.85)'; ctx.lineWidth = p.w; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(p.x * w, h); for (let i = 1; i <= 10; i++) { const k = i / 10; ctx.lineTo(p.x * w + Math.sin(t * 0.7 + i * 0.5 + p.x * 6) * k * k * 28, h - p.hgt * h * k); } ctx.stroke(); }
+      ctx.fillStyle = 'rgba(210,235,255,0.35)'; for (const m of motes) { m.y -= 0.01 * e.dt * e.speed; m.x += Math.sin(t * 0.5 + m.y * 10) * 0.0003; if (m.y < 0) m.y = 1; ctx.beginPath(); ctx.arc(m.x * w, m.y * h, m.r, 0, TAU); ctx.fill(); }
+      for (const b of bubbles) { b.y -= b.s * e.dt * e.speed; b.x += Math.sin(t * 1.4 + b.ph) * 0.0006; if (b.y < -0.05) { b.y = 1.05; b.x = Math.random(); } const x = b.x * w, y = b.y * h; const g = ctx.createRadialGradient(x - b.r * 0.3, y - b.r * 0.3, 0, x, y, b.r); g.addColorStop(0, 'rgba(255,255,255,0.55)'); g.addColorStop(0.7, 'rgba(200,230,255,0.08)'); g.addColorStop(1, 'rgba(220,240,255,0.5)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, b.r, 0, TAU); ctx.fill(); }
+      // depth vignette
+      const vg = ctx.createRadialGradient(w / 2, h * 0.3, h * 0.3, w / 2, h * 0.5, h); vg.addColorStop(0, 'rgba(0,10,30,0)'); vg.addColorStop(1, 'rgba(0,10,30,0.55)'); ctx.fillStyle = vg; ctx.fillRect(0, 0, w, h);
+    } }; } });
+
+  add({ id: 'waterfall', name: 'Waterfall', cat: 'Nature', desc: 'A curtain of falling water and soft mist.', make() {
+    let t = 0; const tex = new NoiseTex(64, 128); const mist = new NoiseTex(80, 45); const drops = Array.from({ length: 60 }, () => ({ x: rnd(0.72, 0.28), y: Math.random(), s: rnd(1.1, 0.7), l: rnd(0.12, 0.04) }));
+    return { draw(ctx, w, h, e) { t += e.dt * e.speed; const d = isDark();
+      sky(ctx, w, h, d ? '#0b1a22' : '#d6e9ec', d ? '#0a2a30' : '#7fb0b5');
+      // rock walls with noise texture
+      for (const [rx, rw] of [[0, 0.28], [0.72, 0.28]]) { const g = ctx.createLinearGradient(rx * w, 0, (rx + rw) * w, 0); g.addColorStop(0, d ? '#0a1519' : '#4a6658'); g.addColorStop(1, d ? '#122228' : '#5f7d6c'); ctx.fillStyle = g; ctx.fillRect(rx * w, 0, rw * w, h); for (let i = 0; i < 40; i++) { const x = (rx + Math.random() * rw) * w, y = Math.random() * h; ctx.fillStyle = `rgba(${d ? '30,60,70' : '90,130,110'},${Math.random() * 0.35})`; ctx.beginPath(); ctx.ellipse(x, y, rnd(30, 8), rnd(12, 4), rnd(1), 0, TAU); ctx.fill(); } }
+      // the water curtain: vertical streaked noise scrolling down
+      tex.render((u, v) => { const n = fbm(u * 10, v * 3 - t * 2.5, 0, 3); const n2 = fbm(u * 30 + 5, v * 1.5 - t * 3.5, 1, 2); const edge = Math.min(1, Math.min(u, 1 - u) * 6); const a = (0.45 + n * 0.5) * edge * (0.7 + n2 * 0.5); return [225, 242, 250, Math.min(255, a * 255)]; }, 1);
+      ctx.save(); ctx.globalAlpha = 0.92; ctx.drawImage(tex.c, w * 0.28, 0, w * 0.44, h); ctx.restore();
+      for (const s of drops) { s.y += s.s * e.dt * e.speed * 0.8; if (s.y > 1.1) { s.y = -s.l; s.x = rnd(0.72, 0.28); } ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(s.x * w, s.y * h); ctx.lineTo(s.x * w + 1, (s.y + s.l) * h); ctx.stroke(); }
+      // plunge pool mist rising
+      mist.render((u, v) => { const n = fbm(u * 3 + t * 0.1, v * 2 - t * 0.35, t * 0.2, 3); const a = Math.max(0, n - 0.3) * 1.5 * Math.pow(v, 1.4); return [235, 248, 255, a * 200]; }, 2);
+      ctx.save(); ctx.globalAlpha = 0.85; ctx.drawImage(mist.c, 0, h * 0.45, w, h * 0.55); ctx.restore();
+      ctx.fillStyle = d ? 'rgba(150,210,230,0.18)' : 'rgba(230,250,255,0.35)'; ctx.fillRect(0, h * 0.9, w, h * 0.1);
     } }; } });
 
   add({ id: 'rainwindow', name: 'Rain on a Window', cat: 'Nature', desc: 'Drops gathering and sliding down glass.', make() {
@@ -77,65 +197,6 @@
       for (let k = 0; k < 10; k++) { const y0 = h * (0.38 + k * 0.065); ctx.beginPath(); for (let x = 0; x <= w; x += 8) ctx.lineTo(x, y0 + Math.sin(x * 0.02 - t * (1.2 + k * 0.1) + k) * 3 + Math.sin(x * 0.005 - t * 0.4) * 5); ctx.strokeStyle = `hsla(195,50%,${isDark() ? 45 : 85}%,${0.12})`; ctx.lineWidth = 1.5; ctx.stroke(); }
       ctx.strokeStyle = isDark() ? 'rgba(220,240,255,0.35)' : 'rgba(255,255,255,0.55)'; ctx.lineWidth = 1.5;
       for (const g of glints) { g.x += g.s * e.dt * e.speed * 0.6; if (g.x > 1.1) g.x = -0.1; ctx.beginPath(); ctx.moveTo(g.x * w, g.y * h); ctx.lineTo(g.x * w + g.l, g.y * h + Math.sin(t + g.y * 9) * 2); ctx.stroke(); }
-    } }; } });
-
-  add({ id: 'waterfall', name: 'Waterfall', cat: 'Nature', desc: 'A curtain of falling water and soft mist.', make() {
-    let t = 0; const streaks = Array.from({ length: 90 }, () => ({ x: rnd(0.72, 0.28), y: Math.random(), l: rnd(0.18, 0.05), s: rnd(0.9, 0.5), a: rnd(0.5, 0.15) })); const mist = Array.from({ length: 40 }, () => ({ x: rnd(0.9, 0.1), y: rnd(1, 0.7), r: rnd(50, 15), s: rnd(0.05, 0.01) }));
-    return { draw(ctx, w, h, e) { t += e.dt * e.speed;
-      sky(ctx, w, h, isDark() ? '#0b1a22' : '#d9ecef', isDark() ? '#0a2a30' : '#86b9bc');
-      ctx.fillStyle = isDark() ? '#0a1519' : '#4d6a5a'; ctx.fillRect(0, 0, w * 0.26, h); ctx.fillRect(w * 0.74, 0, w * 0.26, h);
-      for (const s of streaks) { s.y += s.s * e.dt * e.speed * 0.7; if (s.y > 1.1) { s.y = -s.l; s.x = rnd(0.72, 0.28); } ctx.strokeStyle = `rgba(235,248,255,${s.a})`; ctx.lineWidth = rnd(2, 1); ctx.beginPath(); ctx.moveTo(s.x * w, s.y * h); ctx.lineTo(s.x * w + 1, (s.y + s.l) * h); ctx.stroke(); }
-      for (const m of mist) { m.y -= m.s * e.dt * e.speed; if (m.y < 0.6) m.y = 1.05; glow(ctx, m.x * w, m.y * h, m.r, 'rgba(230,245,255,A)', 0.12); }
-    } }; } });
-
-  add({ id: 'fireplace', name: 'Fireplace', cat: 'Nature', desc: 'Low flames and drifting embers.', make() {
-    let t = 0; const embers = Array.from({ length: 30 }, () => ({ x: rnd(0.6, 0.4), y: Math.random(), s: rnd(0.12, 0.04), r: rnd(2.5, 1) }));
-    return { draw(ctx, w, h, e) { t += e.dt * e.speed;
-      sky(ctx, w, h, '#090605', '#1c0e07'); glow(ctx, w * 0.5, h * 0.8, w * 0.45, 'rgba(255,120,40,A)', 0.25 + e.level * 0.1);
-      const flame = (cx, base, fh, fw, hue, a, ph) => { ctx.beginPath(); ctx.moveTo(cx - fw, base); for (let i = 0; i <= 20; i++) { const p = i / 20; const wob = Math.sin(t * 2.2 + p * 6 + ph) * fw * 0.25 * p + Math.sin(t * 3.1 + ph * 2) * fw * 0.1 * p; ctx.lineTo(cx + wob - fw * (1 - p), base - fh * p); } for (let i = 20; i >= 0; i--) { const p = i / 20; const wob = Math.sin(t * 2.2 + p * 6 + ph) * fw * 0.25 * p; ctx.lineTo(cx + wob + fw * (1 - p), base - fh * p); } ctx.closePath(); const g = ctx.createLinearGradient(0, base, 0, base - fh); g.addColorStop(0, `hsla(${hue},100%,60%,${a})`); g.addColorStop(1, `hsla(${hue + 20},100%,70%,0)`); ctx.fillStyle = g; ctx.fill(); };
-      const base = h * 0.82; for (let i = 0; i < 5; i++) { const cx = w * (0.38 + i * 0.06); flame(cx, base, h * (0.22 + Math.sin(t * 1.3 + i) * 0.03), w * 0.05, 18 + i * 4, 0.75, i); flame(cx, base, h * (0.13 + Math.sin(t * 1.7 + i) * 0.02), w * 0.03, 45, 0.8, i + 3); }
-      ctx.fillStyle = '#241008'; ctx.fillRect(w * 0.3, base, w * 0.4, h * 0.03);
-      for (const m of embers) { m.y -= m.s * e.dt * e.speed; m.x += Math.sin(t + m.y * 10) * 0.0008; if (m.y < 0.1) { m.y = 0.82; m.x = rnd(0.6, 0.4); } ctx.fillStyle = `rgba(255,${150 + Math.floor(m.y * 80)},60,${0.8 - (0.82 - m.y)})`; ctx.beginPath(); ctx.arc(m.x * w, m.y * h, m.r, 0, TAU); ctx.fill(); }
-    } }; } });
-
-  add({ id: 'clouds', name: 'Drifting Clouds', cat: 'Nature', desc: 'Soft clouds moving across a quiet sky.', make() {
-    let t = 0; const cl = Array.from({ length: 9 }, (_, i) => ({ x: Math.random() * 1.4 - 0.2, y: rnd(0.7, 0.1), r: rnd(0.22, 0.1), s: rnd(0.02, 0.008), n: 3 + (i % 3) }));
-    return { draw(ctx, w, h, e) { t += e.dt * e.speed;
-      sky(ctx, w, h, isDark() ? '#101a3a' : '#9ec8f0', isDark() ? '#1b2b55' : '#e6f1fb');
-      for (const c of cl) { c.x += c.s * e.dt * e.speed; if (c.x > 1.3) c.x = -0.3; for (let i = 0; i < c.n; i++) glow(ctx, (c.x + i * c.r * 0.5) * w, c.y * h + Math.sin(i + t * 0.1) * 6, c.r * w * (0.8 + (i % 2) * 0.3), isDark() ? 'rgba(170,185,230,A)' : 'rgba(255,255,255,A)', isDark() ? 0.25 : 0.8); }
-    } }; } });
-
-  add({ id: 'forest', name: 'Forest Breeze', cat: 'Nature', desc: 'Trees swaying gently in soft light.', make() {
-    let t = 0; const trees = Array.from({ length: 14 }, (_, i) => ({ x: i / 13, hgt: rnd(0.55, 0.35), wdt: rnd(0.09, 0.05), d: i % 3 })); const leaves = Array.from({ length: 25 }, () => ({ x: Math.random(), y: Math.random(), s: rnd(0.05, 0.02) }));
-    return { draw(ctx, w, h, e) { t += e.dt * e.speed;
-      sky(ctx, w, h, isDark() ? '#0a1a14' : '#e8f2d8', isDark() ? '#06100b' : '#9cc48a');
-      glow(ctx, w * 0.3, h * 0.1, w * 0.5, isDark() ? 'rgba(120,200,150,A)' : 'rgba(255,250,210,A)', 0.35);
-      for (let layer = 2; layer >= 0; layer--) for (const tr of trees) { if (tr.d !== layer) continue; const sway = Math.sin(t * 0.6 + tr.x * 8) * 8 * (1 - layer * 0.3); const cx = tr.x * w + sway, top = h * (1 - tr.hgt) + layer * h * 0.08; const ww = tr.wdt * w; const l = isDark() ? 8 + layer * 6 : 22 + layer * 12; ctx.fillStyle = `hsl(${130 - layer * 10},35%,${l}%)`;
-        for (let k = 0; k < 3; k++) { ctx.beginPath(); ctx.moveTo(cx, top + k * ww * 0.9); ctx.lineTo(cx - ww * (0.6 + k * 0.3), top + ww * (1.6 + k * 0.9)); ctx.lineTo(cx + ww * (0.6 + k * 0.3), top + ww * (1.6 + k * 0.9)); ctx.closePath(); ctx.fill(); }
-        ctx.fillRect(cx - ww * 0.08, top + ww * 3, ww * 0.16, h); }
-      ctx.fillStyle = isDark() ? 'rgba(140,220,160,0.35)' : 'rgba(255,255,255,0.5)';
-      for (const lf of leaves) { lf.x += lf.s * e.dt * e.speed; lf.y += Math.sin(t + lf.x * 20) * 0.0006 * e.speed + 0.004 * e.dt * e.speed; if (lf.x > 1.05) { lf.x = -0.05; lf.y = Math.random() * 0.6; } ctx.beginPath(); ctx.arc(lf.x * w, lf.y * h, 1.8, 0, TAU); ctx.fill(); }
-    } }; } });
-
-  add({ id: 'nightsky', name: 'Night Sky', cat: 'Nature', desc: 'Stars turning very slowly overhead.', make() {
-    let t = 0; const stars = Array.from({ length: 260 }, () => ({ a: Math.random() * TAU, r: Math.random(), sz: rnd(1.6, 0.4), ph: Math.random() * TAU })); let shoot = null;
-    return { draw(ctx, w, h, e) { t += e.dt * e.speed;
-      sky(ctx, w, h, '#03061a', '#0c1538'); const cx = w * 0.5, cy = h * 1.1, R = Math.hypot(w, h);
-      const g = ctx.createLinearGradient(0, 0, w, h); g.addColorStop(0.3, 'rgba(120,140,220,0)'); g.addColorStop(0.5, 'rgba(150,170,240,0.12)'); g.addColorStop(0.7, 'rgba(120,140,220,0)'); ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
-      for (const s of stars) { const a = s.a + t * 0.004; const x = cx + Math.cos(a) * s.r * R, y = cy + Math.sin(a) * s.r * R; if (y > h || x < 0 || x > w) continue; const tw = 0.55 + Math.sin(t * 0.4 + s.ph) * 0.25; ctx.fillStyle = `rgba(235,240,255,${tw})`; ctx.beginPath(); ctx.arc(x, y, s.sz, 0, TAU); ctx.fill(); }
-      if (!e.reduced && !shoot && Math.random() < 0.0015 * e.speed) shoot = { x: rnd(0.8, 0.2), y: rnd(0.4, 0.05), p: 0 };
-      if (shoot) { shoot.p += e.dt * e.speed * 0.35; const x = shoot.x * w + shoot.p * 120, y = shoot.y * h + shoot.p * 60; ctx.strokeStyle = `rgba(255,255,255,${0.5 * (1 - shoot.p)})`; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(x - 40, y - 20); ctx.lineTo(x, y); ctx.stroke(); if (shoot.p > 1) shoot = null; }
-      ctx.fillStyle = '#05081c'; ctx.beginPath(); ctx.moveTo(0, h); for (let x = 0; x <= w; x += 30) ctx.lineTo(x, h * 0.88 + smoothNoise(x * 0.008, 1) * 40); ctx.lineTo(w, h); ctx.fill();
-    } }; } });
-
-  add({ id: 'underwater', name: 'Underwater', cat: 'Nature', desc: 'Light rippling through deep blue water.', make() {
-    let t = 0; const bubbles = Array.from({ length: 35 }, () => ({ x: Math.random(), y: Math.random(), r: rnd(5, 1.5), s: rnd(0.08, 0.03) })); const plants = Array.from({ length: 8 }, (_, i) => ({ x: i / 7, hgt: rnd(0.35, 0.15) }));
-    return { draw(ctx, w, h, e) { t += e.dt * e.speed;
-      sky(ctx, w, h, '#0a3a66', '#031428');
-      ctx.globalCompositeOperation = 'lighter'; for (let k = 0; k < 3; k++) { ctx.beginPath(); for (let x = 0; x <= w; x += 10) { const y = h * 0.12 + Math.sin(x * 0.01 + t * 0.6 + k * 2) * 25 + Math.sin(x * 0.023 - t * 0.4 + k) * 12 + k * 40; ctx.lineTo(x, y); } ctx.strokeStyle = 'rgba(140,210,255,0.07)'; ctx.lineWidth = 18; ctx.stroke(); } ctx.globalCompositeOperation = 'source-over';
-      for (let i = 0; i < 5; i++) { const x = w * (0.2 + i * 0.15) + Math.sin(t * 0.2 + i) * 20; const g = ctx.createLinearGradient(x, 0, x + 60, h); g.addColorStop(0, 'rgba(160,220,255,0.12)'); g.addColorStop(1, 'rgba(160,220,255,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x + 40, 0); ctx.lineTo(x + 140, h); ctx.lineTo(x + 20, h); ctx.fill(); }
-      for (const p of plants) { ctx.strokeStyle = 'rgba(20,90,70,0.8)'; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(p.x * w, h); for (let i = 1; i <= 8; i++) ctx.lineTo(p.x * w + Math.sin(t * 0.8 + i * 0.6 + p.x * 5) * i * 3, h - p.hgt * h * i / 8); ctx.stroke(); }
-      ctx.strokeStyle = 'rgba(200,235,255,0.45)'; ctx.lineWidth = 1; for (const b of bubbles) { b.y -= b.s * e.dt * e.speed; b.x += Math.sin(t * 1.2 + b.y * 12) * 0.0005; if (b.y < -0.05) { b.y = 1.05; b.x = Math.random(); } ctx.beginPath(); ctx.arc(b.x * w, b.y * h, b.r, 0, TAU); ctx.stroke(); }
     } }; } });
 
   // ===== ABSTRACT =====
