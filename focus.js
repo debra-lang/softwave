@@ -364,7 +364,7 @@
       if (P.sync && engine.ctx && t - lastSync > 0.02) { lastSync = t; engine.setMasterPan((x / w - 0.5) * 0.5, 0.4); engine.setMasterTone(3000 * Math.pow(6, 1 - y / h), 0.4); }
     } }; } });
 
-  add({ id: 'synced', name: 'Synced Scene', cat: 'Lab', hidden: true, desc: 'The scene takes its form from the sounds playing.', make() {
+  add({ id: 'synced', name: 'Synced Scene', cat: 'Sound Reactive', reactive: true, desc: 'Takes its form from what is playing: rain falls, ocean rolls, noise drifts; low sounds move large and slow, high sounds fine.', make() {
     let t = 0; const drops = Array.from({ length: 120 }, () => ({ x: Math.random(), y: Math.random(), s: rnd(0.5, 0.25), l: rnd(0.05, 0.02) })); const ps = Array.from({ length: 90 }, () => ({ x: Math.random(), y: Math.random(), ph: Math.random() * TAU, r: rnd(2.5, 1) })); const n = 32, vals = new Float32Array(n); let centroid = 0.5;
     return { draw(ctx, w, h, e) { t += e.dt * e.speed; bands(e, n, vals);
       let num = 0, den = 0; for (let i = 0; i < n; i++) { num += vals[i] * i; den += vals[i]; } centroid += ((den ? num / den / n : 0.5) - centroid) * 0.03;   // 0 = low-heavy, 1 = high-heavy
@@ -486,7 +486,7 @@
     if (!favs.length) host.innerHTML = '<p class="muted">Nothing saved yet. Set up a sound and a visual, then tap "Save this combination".</p>';
     favs.forEach((f, i) => {
       const el = document.createElement('div'); el.className = 'fav-card';
-      const lines = f.mix.map(m => `${engine.def(m.id).name} — ${Math.round(m.volume * 100)}%`); lines.push(`Visual — ${byId[f.visual] ? byId[f.visual].name : f.visual}`); lines.push(`Movement — ${f.motion[0].toUpperCase() + f.motion.slice(1)}`); if (f.timer) lines.push(`Timer — ${f.timer} minutes`);
+      const lines = f.mix.map(m => `${m.params ? 'Custom sound' : m.curve ? 'Painted sound' : engine.def(m.id).name} — ${Math.round(m.volume * 100)}%`); lines.push(`Visual — ${byId[f.visual] ? byId[f.visual].name : f.visual}`); lines.push(`Movement — ${f.motion[0].toUpperCase() + f.motion.slice(1)}`); if (f.timer) lines.push(`Timer — ${f.timer} minutes`);
       el.innerHTML = `<div class="fav-name">${f.name}</div><div class="fav-lines">${lines.map(l => `<div>${l}</div>`).join('')}</div><div class="btn-row"><button class="btn btn-primary btn-sm" data-start>Start</button><button class="btn btn-ghost btn-sm" data-del aria-label="Delete ${f.name}">Delete</button></div>`;
       $('[data-start]', el).addEventListener('click', async () => { S.motion = f.motion; app.store.set('motion', f.motion); syncSettings(); setVisual(f.visual); await app.loadPreset({ name: f.name, mix: f.mix, master: f.master }); engine.setTimer(f.timer || 0, true); enterFocus(); });
       $('[data-del]', el).addEventListener('click', () => { favs.splice(i, 1); app.store.set('combos', favs); renderFavs(); });
@@ -498,7 +498,7 @@
     form = document.createElement('form'); form.id = 'fav-form'; form.className = 'inline-form';
     form.innerHTML = `<label class="sr-only" for="fav-name">Name</label><input id="fav-name" class="select" maxlength="40" value="My Focus" style="min-width:200px"><button type="submit" class="btn btn-primary btn-sm">Save</button><button type="button" class="btn btn-ghost btn-sm" data-cancel>Cancel</button>`;
     $('#fav-save').after(form); const inp = $('#fav-name', form); inp.focus(); inp.select(); $('[data-cancel]', form).addEventListener('click', () => form.remove());
-    form.addEventListener('submit', e => { e.preventDefault(); const favs = app.store.get('combos', []); favs.push({ name: inp.value.trim() || 'My Focus', mix: engine.activeList().map(s => ({ id: s.id, volume: s.volume, balance: s.balance })), master: engine.masterVolume, visual: S.visual, motion: S.motion, timer: engine.timer.durationMin || 0 }); app.store.set('combos', favs); form.remove(); renderFavs(); app.toast('Saved on this device'); });
+    form.addEventListener('submit', e => { e.preventDefault(); const favs = app.store.get('combos', []); favs.push({ name: inp.value.trim() || 'My Focus', mix: engine.snapshot(), master: engine.masterVolume, visual: S.visual, motion: S.motion, timer: engine.timer.durationMin || 0 }); app.store.set('combos', favs); form.remove(); renderFavs(); app.toast('Saved on this device'); });
   });
 
   // ---------- settings UI ----------
@@ -538,6 +538,12 @@
     updateFocusBar(); showControls(); syncSettings(); $('#focus-exit').focus();
     try { if (navigator.wakeLock) focus.wake = await navigator.wakeLock.request('screen'); } catch (_) { }
     if (engine.activeList().length && !engine.isPlaying) engine.playAll();
+  }
+  // Cross-fade to another visual (journeys): fade to black, switch, fade back
+  function crossfadeTo(id) {
+    if (!byId[id] || screen.hidden) { setVisual(id); return; }
+    let veil = $('#focus-veil'); if (!veil) { veil = document.createElement('div'); veil.id = 'focus-veil'; veil.className = 'focus-veil'; screen.appendChild(veil); }
+    veil.classList.add('on'); setTimeout(() => { setVisual(id); setTimeout(() => veil.classList.remove('on'), 120); }, 1600);
   }
   function exitFocus() {
     if (engine.ctx) engine.resetMasterShape();
@@ -600,7 +606,7 @@
   $('#freq-visualizer').addEventListener('click', async () => { if (!(engine.tone && engine.tone.playing)) $('#freq-play').click(); setVisual('frequency'); enterFocus(); });
 
   // expose for app
-  window.softwaveFocus = { enterFocus, exitFocus, setVisual, visuals: V.filter(v => !v.hidden), allVisuals: V, setParam: (k, v) => { P[k] = v; }, getParam: () => P };
+  window.softwaveFocus = { enterFocus, exitFocus, setVisual, crossfadeTo, visuals: V.filter(v => !v.hidden), allVisuals: V, setParam: (k, v) => { P[k] = v; }, getParam: () => P };
 
   // ---------- init ----------
   renderLibrary(); renderPairings(); renderFavs(); syncSettings();

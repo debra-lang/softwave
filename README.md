@@ -18,9 +18,10 @@ Serve over HTTPS (or localhost) for the service worker / "Install app" to be ava
                5-channel mixer with per-sound volume/balance, limiter, frequency/tone generator, sleep timer with fade
 - `focus.js`   — Visual Focus: 32 procedural Canvas visuals (Nature / Abstract / Sound Reactive / Interactive / Focus Activities / Breathing),
                full-screen Focus Mode with auto-hiding controls, pairings, saved combinations, movement level + Reduce Motion
-- `lab.js`     — Experiments / The Lab: 29 optional experiments (adaptive journeys, living sound, morphing, frequency painting,
-               sculpting, notched + modulated sound, mixing-point finder, discovery/A-B learning, spatial + moving sound, timelines,
-               sleep journeys, eyes-closed mode…) with local feedback, history and a preference profile. See RESEARCH.md.
+- `lab.js`     — The Lab (lazy-loaded): 10 experiments in four groups — Discover (Sound Discovery A/B, Frequency Painting, Sound Sculptor),
+               Explore (Generative Sound, Sound Morph, Sound Space), Focus (Attention Focus, Sound + Visual Journey), Sessions (Adaptive
+               Sound Journey, Build My Session) — plus the preference profile, saved custom sounds, favourites, feedback and history.
+               See RESEARCH.md and REVIEW.md.
 - `visuals.js` — audio-reactive background (waves, rings, particles, rain) and tone spectrum visualiser
 - `app.js`    — UI, presets, Find My Sound wizard, local persistence (localStorage only), PWA install
 - `sw.js`, `manifest.webmanifest`, `icons/` — offline support and installability

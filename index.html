@@ -31,7 +31,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=15">
+  <link rel="stylesheet" href="styles.css?v=16">
   <script type="application/ld+json">
   {"@context":"https://schema.org","@graph":[
     {"@type":"Organization","@id":"https://debra-lang.github.io/softwave/#org","name":"Softwave","url":"https://debra-lang.github.io/softwave/","logo":"https://debra-lang.github.io/softwave/icons/icon-512.png","sameAs":["https://github.com/debra-lang/softwave"]},
@@ -94,11 +94,16 @@
         <h1 id="sounds-title">Find Your Sound</h1>
         <p class="lead">Explore different sounds and find the combination that makes your tinnitus less noticeable.</p>
         <p class="hint">Tap a sound to play it. Tap more to layer up to five. Keep the volume low and comfortable.</p>
+        <div class="discover-cta">
+          <button id="home-discover" class="btn btn-primary btn-lg">Help me find my sound</button>
+          <p class="muted small">Your tinnitus is personal. Your sound should be too. Compare sounds two at a time and discover what feels comfortable.</p>
+        </div>
       </div>
 
       <div class="presets-row" aria-label="Quick presets">
         <h2 class="row-title">One-tap presets</h2>
         <div id="presets" class="chips" role="list"></div>
+        <div id="my-sounds-row" hidden><h2 class="row-title">My sounds</h2><div id="my-sounds" class="chips" role="list"></div></div>
       </div>
 
       <div id="sound-groups"></div>
@@ -160,7 +165,7 @@
       <p class="muted">One tap sets both. You can change either one afterwards.</p>
       <div id="pairings" class="pair-grid"></div>
 
-      <h2 class="row-title">My combinations</h2>
+      <h2 class="row-title">My experiences</h2>
       <div id="fav-list" class="fav-grid"></div>
 
       <h2 class="row-title" id="visual-library-title">Visual library</h2>
@@ -250,6 +255,7 @@
       <div class="hero compact">
         <h2 class="h1" id="match-title">Find My Tinnitus Sound</h2>
         <p class="lead">If you're comfortable doing so, use these controls to find a tone that sounds similar to your tinnitus. Keep the volume low and comfortable.</p>
+        <p class="hint">This explores what your <em>tinnitus</em> sounds like. To discover which <em>masking sound</em> you prefer, use <a href="#lab" data-view="lab">Help me find my sound</a> instead.</p>
       </div>
       <div class="card match-card">
         <div class="match-step" data-step="1">
@@ -306,6 +312,9 @@
           </div>
         </div>
         <div class="match-step" data-step="4" hidden>
+          <h2>Octave check</h2>
+          <p class="muted small">Pitch matching often lands exactly one octave off. Compare your tone with the one below and above it, then keep the closest.</p>
+          <div class="btn-row" id="match-octave"></div>
           <h2>Sounds to try</h2>
           <p id="match-summary"></p>
           <div id="match-suggestions" class="suggest-grid"></div>
@@ -352,9 +361,11 @@
     <!-- ============ EXPERIMENTS / THE LAB ============ -->
     <section id="view-lab" class="view lab-view" aria-labelledby="lab-title" hidden>
       <div class="hero compact">
-        <div class="lab-eyebrow">Experiments</div>
-        <h2 class="h1" id="lab-title">Try new ways of interacting with sound, attention, and visual focus.</h2>
-        <p class="lead">These experimental tools are optional and are not medical treatments.</p>
+        <div class="lab-eyebrow">The Lab</div>
+        <h2 class="h1" id="lab-title">Not sure what sound works for you? Let us help you discover it.</h2>
+        <p class="lead">Personal sound discovery: compare, shape and save the sound that feels right to you — then build sessions around it.</p>
+        <button id="lab-start-discovery" class="btn btn-primary btn-xl">Start Sound Discovery</button>
+        <p class="hint">About ten quick comparisons. No account, no jargon, nothing uploaded.</p>
       </div>
       <div class="lab-notice">
         <strong>Experimental features</strong> are exploratory tools for relaxation, attention, sound personalization, and tinnitus management support. They are not proven treatments and may not work for everyone. Everything starts quiet, fades in and out, never raises your volume, and can be stopped instantly with <em>Stop</em>.
@@ -362,40 +373,28 @@
 
       <div id="lab-detail" class="lab-detail" hidden></div>
 
-      <div class="lab-two">
-        <div>
-          <h2 class="row-title">Recommended for you</h2>
-          <div id="lab-recommended" class="lab-grid"></div>
-        </div>
-        <aside class="card lab-profile-card">
-          <h2>Your sound profile</h2>
-          <div id="lab-profile"></div>
-        </aside>
-      </div>
+      <aside class="card lab-profile-card">
+        <h2>My sound profile</h2>
+        <div id="lab-profile"></div>
+      </aside>
 
-      <h2 class="row-title" id="thelab">The Lab</h2>
-      <p class="muted">The deeper page. Experiments are grouped by what they explore; <strong>New</strong> shows the most recent concepts.</p>
-      <div id="lab-cats" class="seg wrap" role="radiogroup" aria-label="Lab category">
-        <button role="radio" aria-checked="true" data-cat="All">All</button>
-        <button role="radio" aria-checked="false" data-cat="Sound">Sound</button>
-        <button role="radio" aria-checked="false" data-cat="Visual">Visual</button>
-        <button role="radio" aria-checked="false" data-cat="Immersive">Immersive</button>
-        <button role="radio" aria-checked="false" data-cat="Discovery">Discovery</button>
-        <button role="radio" aria-checked="false" data-cat="Sleep">Sleep</button>
-        <button role="radio" aria-checked="false" data-cat="New">New</button>
-      </div>
-      <p class="muted small lab-cat-desc"><span>Sound — experimental audio concepts.</span> <span>Visual — attention and visual tools.</span> <span>Immersive — sound + visual + spatial.</span> <span>Discovery — learning your preferences.</span> <span>Sleep — experimental night-time environments.</span></p>
-      <div id="lab-list" class="lab-grid"></div>
+      <h2 class="row-title" id="thelab">Experiments</h2>
+      <div id="lab-list"></div>
 
-      <h2 class="row-title">Experiment history</h2>
+      <h2 class="row-title">My discovery journey</h2>
       <div class="lab-hist">
         <div><h3>Recently tried</h3><div id="hist-recent" class="chips"></div></div>
         <div><h3>Favourites</h3><div id="hist-favs" class="chips"></div></div>
         <div><h3>Worked well for me</h3><div id="hist-good" class="chips"></div></div>
         <div><h3>Not for me</h3><div id="hist-bad" class="chips"></div></div>
       </div>
-    </section>
 
+      <div class="card premium-note">
+        <h2>Free and Premium</h2>
+        <p>The sound generator, mixer, frequency generator, Visual Focus, Sleep Mode and Attention Focus are free and will stay free. Experiments marked <span class="tag tag-prem">Premium preview</span> — Sound Discovery, your sound profile, Frequency Painting, Sound Sculptor, Generative Sound, Sound Space, Adaptive and Sound + Visual Journeys — are the personalisation layer that will become Softwave Premium. <strong>During the beta they are free to use.</strong> Nothing you save will be taken away.</p>
+        <p class="muted small"><a href="premium/">What Premium will include →</a></p>
+      </div>
+    </section>
     <!-- ============ LEARN ============ -->
     <section id="view-learn" class="view" aria-labelledby="learn-title" hidden>
       <div class="hero compact">
@@ -407,10 +406,11 @@
           <h2>Safe listening</h2>
           <ul class="bullets">
             <li><strong>Use the lowest level that helps.</strong> Sound therapy works best as a gentle background — partly covering the tinnitus, not overpowering it. Most people find a level just below or around their tinnitus most comfortable.</li>
-            <li><strong>Mind headphone time.</strong> The WHO safe-listening standard suggests keeping personal audio around 80 dB or below for no more than 40 hours a week. A good habit: keep your device volume around 60% or less.</li>
+            <li><strong>Mind headphone time.</strong> The WHO-ITU safe-listening standard suggests keeping personal audio around 80 dB or below for no more than 40 hours a week. A device’s volume percentage does not reliably map to decibels — different phones and headphones differ a lot — so the practical rule is: the lowest comfortable level that gives you the experience you want, with breaks.</li>
             <li><strong>Take breaks.</strong> Prolonged high-volume headphone use can harm hearing and may make tinnitus more noticeable.</li>
             <li><strong>Start quiet, adjust slowly.</strong> Softwave always starts sounds at a soft level and fades them in; raise volume gradually.</li>
             <li><strong>Speakers are fine.</strong> A speaker or a pillow speaker at night can be just as useful as headphones.</li>
+            <li><strong>Never try to drown the tinnitus out.</strong> Louder masking is not better masking; a sound that just blends is usually the most comfortable and the kindest to your hearing.</li>
           </ul>
         </article>
         <article class="card">
@@ -424,7 +424,7 @@
             <li><strong>pulses with your heartbeat</strong></li>
             <li>started after an injury, or is affecting sleep, mood or concentration</li>
           </ul>
-          <p>A hearing evaluation is the usual first step. Evidence-based options such as hearing aids, sound therapy and cognitive behavioural therapy are available, and professionals can help you choose.</p>
+          <p>A hearing evaluation is the usual first step. Options such as hearing aids, sound-based management and counselling approaches such as cognitive behavioural therapy are available, and professionals can help you choose.</p>
         </article>
         <article class="card">
           <h2>How sound can help</h2>
@@ -557,10 +557,9 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script src="audio.js?v=15" defer></script>
+  <script src="audio.js?v=16" defer></script>
   <script src="visuals.js?v=15" defer></script>
-  <script src="app.js?v=15" defer></script>
-  <script src="focus.js?v=20" defer></script>
-  <script src="lab.js?v=15" defer></script>
+  <script src="app.js?v=16" defer></script>
+  <script src="focus.js?v=21" defer></script>
 </body>
 </html>

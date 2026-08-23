@@ -28,8 +28,9 @@
     { id: 'cabin',     name: 'Cabin Hum',       group: 'Lab', lab: true, desc: 'Steady low aircraft-cabin ambience.',             icon: '✈', hue: 220 },
     { id: 'chimes',    name: 'Gentle Chimes',   group: 'Lab', lab: true, desc: 'Soft, never-repeating tones.',                    icon: '♪', hue: 45 },
     { id: 'paint',     name: 'Painted Noise',   group: 'Lab', lab: true, desc: 'Noise shaped by your drawing.',                   icon: '✎', hue: 300 },
-    { id: 'sculpt',    name: 'Sculpted Noise',  group: 'Lab', lab: true, desc: 'Noise shaped by plain-language controls.',        icon: '◈', hue: 160 },
-    { id: 'notched',   name: 'Notched Noise',   group: 'Lab', lab: true, desc: 'Broadband noise with a gap around one region.',   icon: '⊘', hue: 10 },
+    { id: 'sculpt',    name: 'My Sound',        group: 'Lab', lab: true, desc: 'A custom sound shaped by plain-language controls.', icon: '◈', hue: 160 },
+    { id: 'discoA',    name: 'Sound A',         group: 'Lab', lab: true, desc: 'Discovery candidate A.',                          icon: 'A', hue: 200 },
+    { id: 'discoB',    name: 'Sound B',         group: 'Lab', lab: true, desc: 'Discovery candidate B.',                          icon: 'B', hue: 320 },
   ];
 
   const MAX_ACTIVE = 5;
@@ -41,7 +42,7 @@
     white: 0.16, pink: 0.32, brown: 0.9, static: 0.22, hiss: 0.26,
     rain: 0.45, ocean: 0.85, stream: 0.4, waterfall: 0.38, forest: 0.6,
     wind: 0.8, fan: 0.5, fire: 0.9, night: 0.7,
-    thunder: 1.0, city: 0.9, cabin: 0.8, chimes: 0.5, paint: 0.3, sculpt: 0.32, notched: 0.32,
+    thunder: 1.0, city: 0.9, cabin: 0.8, chimes: 0.5, paint: 0.3, sculpt: 0.42, discoA: 0.42, discoB: 0.42,
   };
 
   // ---------- buffer generators (run in a Web Worker so the UI never stalls) ----------
@@ -100,7 +101,7 @@
       this.silentEl = null;
       this._timerId = null;
       this.timer = { endsAt: null, fade: true, durationMin: null };
-      this.lab = { paint: null, sculpt: { warm: 0, soft: 0, smooth: 0, deep: 0, moving: 0 }, notch: { freq: 4000, width: 1 } };
+      this.lab = { paint: null, sculpt: {}, params: { sculpt: Engine.defaultSculpt(), discoA: Engine.defaultSculpt(), discoB: Engine.defaultSculpt() } };
       this.variation = { amount: 0, rate: 1, timer: null };
     }
 
@@ -204,6 +205,9 @@
     def(id) { return SOUND_DEFS.find(d => d.id === id); }
     isActive(id) { return this.active.has(id); }
     activeList() { return [...this.active.entries()].map(([id, a]) => ({ id, volume: a.volume, balance: a.balance, name: this.def(id).name })); }
+    // Fast, click-free crossfade between two active sounds (A/B comparisons)
+    crossfade(fromId, toId, seconds = 0.18) { const a = this.active.get(fromId), b = this.active.get(toId); const t = this.ctx.currentTime; if (a) { a.gain.gain.cancelScheduledValues(t); a.gain.gain.setValueAtTime(a.gain.gain.value, t); a.gain.gain.linearRampToValueAtTime(0.00001, t + seconds); } if (b) { b.gain.gain.cancelScheduledValues(t); b.gain.gain.setValueAtTime(b.gain.gain.value, t); b.gain.gain.linearRampToValueAtTime(this._curve(b.volume) * b.trim, t + seconds); } }
+    muteQuick(id) { const e = this.active.get(id); if (!e) return; const t = this.ctx.currentTime; e.gain.gain.cancelScheduledValues(t); e.gain.gain.setValueAtTime(e.gain.gain.value, t); e.gain.gain.linearRampToValueAtTime(0.00001, t + 0.15); }
 
     async toggleSound(id, volume) {
       if (this.active.has(id)) this.stopSound(id);
@@ -324,11 +328,15 @@
       const keep = new Set(mix.map(m => m.id));
       [...this.active.keys()].forEach(id => { if (!keep.has(id)) this.stopSound(id); });
       for (const m of mix) {
+        if (m.params) this.setSculpt(m.params, m.id);
+        if (m.curve) this.setPaint(m.curve);
         if (this.active.has(m.id)) { this.setVolume(m.id, m.volume); this.setBalance(m.id, m.balance || 0); }
         else await this.startSound(m.id, m.volume, m.balance || 0);
       }
       await this.playAll();
     }
+    // Snapshot of the current mix including custom-sound parameters (for favourites / presets)
+    snapshot() { return this.activeList().map(s => { const o = { id: s.id, volume: s.volume, balance: s.balance }; if (['sculpt', 'discoA', 'discoB'].includes(s.id)) o.params = this.getSculpt(s.id); if (s.id === 'paint' && this.lab.paint) o.curve = this.lab.paint.slice(); return o; }); }
 
     // ---------- sound builders ----------
     _src(buffer, rate = 1) {
@@ -550,34 +558,47 @@
           for (let i = 0; i < 24; i++) { const f = 60 * Math.pow(14000 / 60, (i + 0.5) / 24); const bp = this._filter('bandpass', f, 2.2); const g = ctx.createGain(); g.gain.value = Math.pow(curve[i], 1.6) * (0.6 + i / 24); s.connect(bp); bp.connect(g); g.connect(sum); e.nodes.push(bp, g); e.bands.push(g); }
           break;
         }
-        case 'sculpt': {
-          const p = this.lab.sculpt; const s = this._src(B.pink);
-          const low = this._filter('lowshelf', 250); const high = this._filter('highshelf', 3500); const lp = this._filter('lowpass', 20000, 0.5); const hp = this._filter('highpass', 40, 0.5);
-          const g = ctx.createGain(); g.gain.value = 1; e.sculpt = { low, high, lp, hp, g, lfo: null };
-          this._chain(e, [s, hp, low, high, lp, g], out); this._applySculpt(e); break;
-        }
-        case 'notched': {
-          const n = this.lab.notch; const s = this._src(B.pink); const q = n.width >= 1 ? 0.7 : n.width >= 0.5 ? 1.4 : 2.8;
-          const a = this._filter('notch', n.freq, q); const b = this._filter('notch', n.freq, q); const c = this._filter('notch', n.freq, q); e.notches = [a, b, c];
-          this._chain(e, [s, a, b, c], out); break;
+        case 'sculpt': case 'discoA': case 'discoB': {
+          // Custom sound: three noise colours blended, tone-shaped, widened and gently moved.
+          const P = this.lab.params[id] || Engine.defaultSculpt(); const k = {};
+          k.src = { brown: this._src(B.brown), pink: this._src(B.pink), white: this._src(B.white) };
+          k.cg = { brown: ctx.createGain(), pink: ctx.createGain(), white: ctx.createGain() };
+          const sum = ctx.createGain(); sum.gain.value = 1;
+          for (const c of ['brown', 'pink', 'white']) { k.src[c].connect(k.cg[c]); k.cg[c].connect(sum); e.nodes.push(k.src[c], k.cg[c]); }
+          k.hp = this._filter('highpass', 40, 0.5); k.low = this._filter('lowshelf', 250); k.high = this._filter('highshelf', 3500); k.lp = this._filter('lowpass', 20000, 0.5);
+          k.rich = this._filter('bandpass', 1800, 1.4); k.richG = ctx.createGain(); k.richG.gain.value = 0; k.src.pink.connect(k.rich); k.rich.connect(k.richG); k.richG.connect(sum); e.nodes.push(k.rich, k.richG);
+          k.amp = ctx.createGain(); k.amp.gain.value = 1;
+          // stereo width: left direct, right through a short delay (decorrelation)
+          k.split = ctx.createGain(); k.delay = ctx.createDelay(0.05); k.delay.delayTime.value = 0; k.merge = ctx.createChannelMerger(2);
+          sum.connect(k.hp); k.hp.connect(k.low); k.low.connect(k.high); k.high.connect(k.lp); k.lp.connect(k.amp);
+          k.amp.connect(k.merge, 0, 0); k.amp.connect(k.delay); k.delay.connect(k.merge, 0, 1); k.merge.connect(out);
+          e.nodes.push(sum, k.hp, k.low, k.high, k.lp, k.amp, k.delay, k.merge);
+          k.lfos = []; e.sculpt = k; this._applySculpt(e, id, true); break;
         }
       }
     }
-    _applySculpt(e) {
-      const p = this.lab.sculpt, t = this.ctx.currentTime, k = e.sculpt; if (!k) return;
-      k.low.gain.setTargetAtTime(p.warm * -1 * 8 + p.deep * 7, t, 0.2);          // warmer = more low shelf (warm is -1..1, negative = warmer)
-      k.high.gain.setTargetAtTime(p.warm * 8 - p.deep * 5, t, 0.2);              // brighter = more high shelf
-      k.lp.frequency.setTargetAtTime(p.soft < 0 ? 20000 * Math.pow(2, p.soft * 2.5) : 20000, t, 0.2);   // softer = lower cutoff
-      k.hp.frequency.setTargetAtTime(p.deep < 0 ? 40 : 40 * Math.pow(2, p.deep * 3), t, 0.2);          // airy = remove lows
-      if (k.lfo) { try { k.lfo[0].stop(); k.lfo[0].disconnect(); k.lfo[1].disconnect(); } catch (_) { } k.lfo = null; }
-      if (p.moving > 0.05) { k.lfo = this._lfo(0.05 + p.moving * 0.12, p.moving * 0.25, k.g.gain, 1); e.nodes.push(...k.lfo); } else k.g.gain.setTargetAtTime(1, t, 0.2);
-      // texture: smooth <0 keeps it steady; textured >0 adds micro-variation handled by setVariation on this sound only
-      if (p.smooth > 0.05) { e._tex = setInterval(() => { if (!this.active.has('sculpt')) return clearInterval(e._tex); k.g.gain.setTargetAtTime(1 + (Math.random() * 2 - 1) * 0.25 * p.smooth, this.ctx.currentTime, 0.6); }, 900); e.timers.push(e._tex); }
-      else if (e._tex) { clearInterval(e._tex); e._tex = null; }
+    static defaultSculpt() { return { colour: 0.4, warm: 0, deep: 0, smooth: 0, soft: 0, width: 0.35, moving: 0, rich: 0, mod: 0 }; }
+    _applySculpt(e, id, immediate) {
+      const P = this.lab.params[id], k = e.sculpt, t = this.ctx.currentTime, tc = immediate ? 0.01 : 0.25; if (!k || !P) return;
+      // colour blend: 0 = brown, 0.5 = pink, 1 = white (equal-power crossfades between neighbours)
+      const c = Math.max(0, Math.min(1, P.colour)); const bw = c < 0.5 ? Math.cos(c * Math.PI) : 0, pw = Math.sin(Math.min(1, c * 2) * Math.PI / 2) * (c < 0.5 ? 1 : Math.cos((c - 0.5) * Math.PI)), ww = c > 0.5 ? Math.sin((c - 0.5) * Math.PI) : 0;
+      k.cg.brown.gain.setTargetAtTime(bw * 0.9, t, tc); k.cg.pink.gain.setTargetAtTime(pw * 0.32, t, tc); k.cg.white.gain.setTargetAtTime(ww * 0.16, t, tc);
+      k.low.gain.setTargetAtTime(-P.warm * 7 + Math.max(0, -P.deep) * 6, t, tc);                 // warmer = more lows
+      k.high.gain.setTargetAtTime(P.warm * 8 - Math.max(0, -P.deep) * 4, t, tc);                  // brighter = more highs
+      k.hp.frequency.setTargetAtTime(40 * Math.pow(2, Math.max(0, P.deep) * 3.2), t, tc);         // airy = remove lows
+      k.lp.frequency.setTargetAtTime(P.soft < 0 ? 20000 * Math.pow(2, P.soft * 2.6) : 20000, t, tc); // softer = lower cutoff
+      k.delay.delayTime.setTargetAtTime(P.width * 0.014, t, tc);                                   // wide = decorrelated right channel
+      k.richG.gain.setTargetAtTime(P.rich * 0.28, t, tc);
+      k.lfos.forEach(n => { try { n.stop && n.stop(); n.disconnect(); } catch (_) { } }); k.lfos = [];
+      const lfo = (rate, depth, param) => { const o = this.ctx.createOscillator(); o.type = 'sine'; o.frequency.value = rate; const g = this.ctx.createGain(); g.gain.value = depth; o.connect(g); g.connect(param); o.start(); k.lfos.push(o, g); };
+      if (P.moving > 0.03) { lfo(0.04 + P.moving * 0.1, P.moving * 2500, k.lp.frequency); lfo(0.07, P.moving * 500, k.rich.frequency); }
+      if (P.mod > 0.03) { k.amp.gain.setTargetAtTime(1 - P.mod * 0.18, t, tc); lfo(0.12 + P.mod * 0.1, P.mod * 0.18, k.amp.gain); } else k.amp.gain.setTargetAtTime(1, t, tc);
+      if (e._tex) { clearInterval(e._tex); e._tex = null; }
+      if (P.smooth > 0.05) { e._tex = setInterval(() => { if (!this.active.has(id)) return clearInterval(e._tex); k.amp.gain.setTargetAtTime((1 - P.mod * 0.18) * (1 + (Math.random() * 2 - 1) * 0.22 * P.smooth), this.ctx.currentTime, 0.5); }, 700); e.timers.push(e._tex); }
     }
-    setSculpt(params) { Object.assign(this.lab.sculpt, params); const e = this.active.get('sculpt'); if (e) this._applySculpt(e); }
+    setSculpt(params, id = 'sculpt') { this.lab.params[id] = Object.assign({}, Engine.defaultSculpt(), this.lab.params[id] || {}, params); const e = this.active.get(id); if (e) this._applySculpt(e, id, false); }
+    getSculpt(id = 'sculpt') { return Object.assign({}, this.lab.params[id] || Engine.defaultSculpt()); }
     setPaint(curve) { this.lab.paint = curve.slice(); const e = this.active.get('paint'); if (e && e.bands) e.bands.forEach((g, i) => g.gain.setTargetAtTime(Math.pow(curve[i], 1.6) * (0.6 + i / 24), this.ctx.currentTime, 0.15)); }
-    setNotch(freq, width) { Object.assign(this.lab.notch, { freq, width }); const e = this.active.get('notched'); if (e && e.notches) { const q = width >= 1 ? 0.7 : width >= 0.5 ? 1.4 : 2.8; e.notches.forEach(n => { n.frequency.setTargetAtTime(freq, this.ctx.currentTime, 0.1); n.Q.setTargetAtTime(q, this.ctx.currentTime, 0.1); }); } }
 
     // ---------- frequency generator ----------
     async toneStart(opts) {

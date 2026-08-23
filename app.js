@@ -45,6 +45,7 @@
   const views = ['sounds', 'focus', 'lab', 'mixer', 'frequency', 'match', 'sleep', 'learn'];
   function showView(name) {
     if (!views.includes(name)) name = 'sounds';
+    if (name === 'lab') ensureLab();
     views.forEach(v => { const el = $('#view-' + v); el.hidden = v !== name; el.classList.toggle('active', v === name); });
     $$('.nav a').forEach(a => a.classList.toggle('active', a.dataset.view === name));
     if (location.hash !== '#' + name) history.replaceState(null, '', '#' + name);
@@ -57,6 +58,16 @@
     e.preventDefault(); showView(a.dataset.view);
   });
   addEventListener('hashchange', () => showView(location.hash.slice(1)));
+
+  // Lazy-load The Lab (experiments) only when needed, so the homepage stays light.
+  let labPromise = null;
+  function ensureLab() {
+    if (window.softwaveLab) return Promise.resolve();
+    if (labPromise) return labPromise;
+    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=16'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
+    return labPromise;
+  }
+  window.softwaveEnsureLab = ensureLab;
 
   // ---------- background ----------
   const bg = new Background($('#bg'), engine); window.softwaveBg = bg;
@@ -87,6 +98,10 @@
       }
     };
     make($('#presets'), true); make($('#sleep-presets'), false);
+    const ms = store.get('lab:sounds', []); const row = $('#my-sounds-row'); const host = $('#my-sounds'); host.innerHTML = ''; row.hidden = !ms.length;
+    ms.forEach((snd, i) => { const b = document.createElement('button'); b.className = 'chip chip-mine'; b.setAttribute('role', 'listitem'); b.innerHTML = `<strong>★ ${snd.name}</strong><span>${snd.type === 'paint' ? 'Painted sound' : 'Custom sound'}${snd.nature && snd.nature !== 'none' ? ' + ' + engine.def(snd.nature).name.toLowerCase() : ''}</span>`;
+      b.addEventListener('click', async () => { const mix = [{ id: snd.type === 'paint' ? 'paint' : 'sculpt', volume: 0.55, balance: 0 }]; if (snd.type === 'paint') mix[0].curve = snd.curve; else mix[0].params = snd.params; if (snd.nature && snd.nature !== 'none') mix.push({ id: snd.nature, volume: snd.natureVol || 0.35, balance: 0 }); await loadPreset({ name: snd.name, mix, master: Math.min(engine.masterVolume, 0.45) }); });
+      const del = document.createElement('button'); del.className = 'chip-del'; del.setAttribute('aria-label', 'Delete ' + snd.name); del.textContent = '×'; del.addEventListener('click', e => { e.stopPropagation(); ms.splice(i, 1); store.set('lab:sounds', ms); renderPresets(); toast('Sound deleted'); }); b.appendChild(del); host.appendChild(b); });
     const saved = $('#saved-mixes'); saved.innerHTML = '';
     const custom = store.get('mixes', []);
     if (!custom.length) saved.innerHTML = '<p class="muted">Nothing saved yet. Build a mix and tap "Save as My Custom Mix".</p>';
@@ -104,6 +119,8 @@
     await engine.loadMix(p.mix);
     toast(`Playing “${p.name}” — adjust anything you like`);
   }
+
+  $('#home-discover').addEventListener('click', async () => { showView('lab'); try { await ensureLab(); window.softwaveLab.open('discovery'); } catch (e) { toast(e.message); } });
 
   // ---------- sound cards ----------
   function renderSounds() {
@@ -199,7 +216,7 @@
   let warned = false;
   masterEl.addEventListener('input', () => {
     const v = +masterEl.value / 100; setMaster(v, true);
-    if (v > 0.75 && !warned) { warned = true; toast('High level. The lowest comfortable volume usually works best — and protects your hearing.', 4000); }
+    if (v > 0.75 && !warned) { warned = true; toast('High level. The lowest comfortable level that still helps is usually best — louder is not better masking.', 4000); }
     if (v <= 0.75) warned = false;
   });
   setMaster(clamp(store.get('master', 0.35), 0, 0.6)); // never restore above a moderate level
@@ -319,6 +336,9 @@
       host.appendChild(card);
     });
     const saved = store.get('match'); $('#match-clear').hidden = !saved;
+    const oct = $('#match-octave'); oct.innerHTML = ''; const centre = M.freq;
+    [[0.5, 'Hear an octave lower'], [1, 'Hear my tone'], [2, 'Hear an octave higher']].forEach(([k, label]) => { const b = document.createElement('button'); b.className = 'btn btn-ghost btn-sm'; b.textContent = `${label} (${fmt(centre * k)} Hz)`; b.addEventListener('click', async () => { if (!(engine.tone && toneOwner === 'match')) { await engine.toneStart(Object.assign({}, M, { freq: centre * k })); await engine.playAll(); } else engine.toneUpdate({ freq: centre * k }); }); oct.appendChild(b); });
+    [[0.5, 'Lower is closer'], [2, 'Higher is closer']].forEach(([k, label]) => { const b = document.createElement('button'); b.className = 'btn btn-secondary btn-sm'; b.textContent = label; b.addEventListener('click', () => { setMFreq(centre * k); matchStop(); renderSuggestions(); toast(`Updated to about ${fmt(M.freq)} Hz`); }); oct.appendChild(b); });
   }
   $('#match-save').addEventListener('click', () => { store.set('match', { freq: M.freq, type: M.type, balance: M.balance, when: new Date().toISOString() }); $('#match-clear').hidden = false; toast('Saved on this device only. Nothing is sent anywhere.'); });
   $('#match-clear').addEventListener('click', () => { store.del('match'); $('#match-clear').hidden = true; toast('Saved result removed'); });
@@ -384,7 +404,7 @@
   $('#install-btn').addEventListener('click', async () => { if (!deferredPrompt) return; deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; $('#install-btn').hidden = true; });
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => { }));
 
-  window.softwaveApp = { loadPreset, setMaster, togglePlay, toast, store, PRESETS, paintRange, showView };
+  window.softwaveApp = { loadPreset, setMaster, togglePlay, toast, store, PRESETS, paintRange, showView, renderPresets };
 
   // ---------- init ----------
   renderSounds(); renderPresets(); renderMixer([]); updatePlayer();
@@ -392,6 +412,7 @@
   // Deep links from the static pages: ?sound=<id> highlights a sound; ?preset=<id> highlights a preset.
   (function deepLinks() {
     const q = new URLSearchParams(location.search); const sid = q.get('sound'), pid = q.get('preset');
+    if (q.get('exp')) { store.set('welcomed', true); welcome.hidden = true; showView('lab'); }
     if (sid && engine.def(sid) && !engine.def(sid).lab) { store.set('welcomed', true); welcome.hidden = true; showView('sounds'); const card = $(`.sound-card[data-id="${sid}"]`); if (card) { card.classList.add('highlight'); setTimeout(() => { card.scrollIntoView({ behavior: 'smooth', block: 'center' }); $('.card-btn', card).focus(); toast(`Tap ${engine.def(sid).name} to play it — it starts quietly.`, 4000); }, 250); } }
     if (pid) { const p = PRESETS.find(x => x.id === pid); if (p) { store.set('welcomed', true); welcome.hidden = true; showView('sounds'); setTimeout(() => { const chip = $(`#presets [data-preset="${pid}"]`); if (chip) { chip.classList.add('active'); chip.focus(); toast(`Tap “${p.name}” to start the preset.`, 4000); } }, 250); } }
   })();
