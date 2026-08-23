@@ -124,12 +124,14 @@
 
       <div id="sound-groups" class="sound-library" aria-label="Sound library"></div>
 
-      <div class="presets-row section-block" aria-label="Quick presets" hidden>
-        <h2 class="row-title">One-tap presets</h2>
-        <div id="presets" class="chips" role="list"></div>
-        <div id="my-sounds-row" hidden><h2 class="row-title">My sounds</h2><div id="my-sounds" class="chips" role="list"></div></div>
-      </div>
-
+      <div id="presets-slot"></div>
+      <template id="presets-template">
+        <div class="presets-row section-block" aria-label="Quick presets">
+          <h2 class="row-title">One-tap presets</h2>
+          <div id="presets" class="chips" role="list"></div>
+          <div id="my-sounds-row"><h2 class="row-title">My sounds</h2><div id="my-sounds" class="chips" role="list"></div></div>
+        </div>
+      </template>
 
       <div class="two-tools two-tools-low section-block" aria-label="Two ways to explore">
         <h2 class="row-title">Two ways to explore</h2>
@@ -206,15 +208,7 @@
       </div>
     </section>
 
-    <!-- What do you want to focus on? (from Sounds → Add visual) -->
-    <div id="visual-chooser" class="chooser" hidden style="display:none" role="dialog" aria-modal="true" aria-labelledby="chooser-title">
-      <div class="chooser-inner">
-        <button id="chooser-close" class="btn btn-ghost btn-sm chooser-close">Not now</button>
-        <h2 id="chooser-title" class="h1">Add a visual</h2>
-        <p class="muted">Pick an environment to enter — your sound keeps playing. Browse everything under Visual Focus.</p>
-        <div id="chooser-list" class="chooser-list"></div>
-      </div>
-    </div>
+
 
     <!-- ============ MIXER ============ -->
     <section id="view-mixer" class="view" aria-labelledby="mixer-title" hidden>
@@ -436,13 +430,7 @@
       <h2 class="row-title" id="thelab">Try an experiment</h2>
       <div id="lab-list"></div>
 
-      <h2 class="row-title" id="hist-title">Your experiments</h2>
-      <div class="lab-hist">
-        <div><h3>Recently tried</h3><div id="hist-recent" class="chips"></div></div>
-        <div><h3>Favourites</h3><div id="hist-favs" class="chips"></div></div>
-        <div><h3>Worked well for me</h3><div id="hist-good" class="chips"></div></div>
-        <div><h3>Not for me</h3><div id="hist-bad" class="chips"></div></div>
-      </div>
+      <div id="lab-hist-host"></div>
 
       <div class="card premium-note">
         <h2>Free and Premium</h2>
@@ -628,7 +616,7 @@
   <script src="audio.js?v=19" defer></script>
   <script src="visuals.js?v=20" defer></script>
   <script src="field.js?v=7" defer></script>
-  <script src="app.js?v=38" defer></script>
-  <script src="focus.js?v=34" defer></script>
+  <script src="app.js?v=39" defer></script>
+  <script src="focus.js?v=35" defer></script>
 </body>
 </html>

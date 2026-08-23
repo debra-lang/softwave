@@ -422,7 +422,7 @@
   let lastPrev = 0;
   function previewLoop(now) {
     requestAnimationFrame(previewLoop);
-    const chooserOpen = !$('#visual-chooser').hidden;
+    const vc = $('#visual-chooser'); const chooserOpen = !!vc && !vc.hidden;
     if (document.hidden || !$('#focus-screen').hidden || (!chooserOpen && (!$('#view-focus') || $('#view-focus').hidden))) return;
     if (now - lastPrev < 50) return; const dt = (now - lastPrev) / 1000; lastPrev = now;
     const env = makeEnv({ x: 0.5, y: 0.5, on: false, down: false }, [], dt);
@@ -440,14 +440,15 @@
       t.innerHTML = `<canvas width="360" height="240" aria-hidden="true"></canvas><span class="env-tile-name">${v.name}</span>`; const c = $('canvas', t); previews.set(c, { inst: v.make(), visible: false }); io.observe(c);
       t.addEventListener('click', () => { setVisual(id); renderStage(); $('#env-stage').scrollIntoView({ behavior: 'smooth', block: 'center' }); }); t.addEventListener('dblclick', () => { setVisual(id); enterFocus(); }); host.appendChild(t); });
   }
-  // "What do you want to focus on?" chooser (from Sounds → Add visual). Sound keeps playing.
-  function openChooser() {
+  // One selection system: "Add Visual" opens the Visual Focus chooser (the page itself). Sound keeps playing.
+  function openChooser() { app.showView('focus'); setTimeout(() => { const st = $('#env-stage'); st && st.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 250); }
+  function openChooserOld() {
     const ch = $('#visual-chooser'); ch.hidden = false; ch.style.display = ''; document.body.style.overflow = 'hidden'; const host = $('#chooser-list'); host.innerHTML = '';
     ['ocean', 'rainwindow', 'nightsky', 'float', 'ripple', 'flow'].forEach(id => { const v = byId[id]; const b = document.createElement('button'); b.className = 'chooser-tile'; b.innerHTML = `<canvas width="300" height="200" aria-hidden="true"></canvas><span>${v.name}</span>`; const c = $('canvas', b); previews.set(c, { inst: v.make(), visible: true }); b.addEventListener('click', () => { closeChooser(); setVisual(id); enterViaTransition(id); }); host.appendChild(b); });
     $('.chooser-tile', host).focus();
   }
-  function closeChooser() { const ch = $('#visual-chooser'); ch.hidden = true; ch.style.display = 'none'; document.body.style.overflow = ''; $$('#chooser-list canvas').forEach(c => previews.delete(c)); }
-  $('#chooser-close').addEventListener('click', closeChooser); $('#visual-chooser').addEventListener('keydown', e => { if (e.key === 'Escape') closeChooser(); });
+  function closeChooser() { const ch = $('#visual-chooser'); if (!ch) return; ch.hidden = true; document.body.style.overflow = ''; }
+  { const cc = $('#chooser-close'); if (cc) cc.addEventListener('click', closeChooser); const vc = $('#visual-chooser'); if (vc) vc.addEventListener('keydown', e => { if (e.key === 'Escape') closeChooser(); }); }
   $('#env-enter').addEventListener('click', () => enterFocus());
   function renderLibrary() {
     renderMosaic(); renderStage();

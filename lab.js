@@ -82,7 +82,7 @@
   const setFb = (id, patch) => { const all = fb(); all[id] = Object.assign({ tries: 0 }, all[id] || {}, patch); store.set('lab:feedback', all); };
   const favs = () => store.get('lab:favs', []);
   const mySounds = () => store.get('lab:sounds', []);
-  const saveSound = (snd) => { const l = mySounds(); l.push(snd); store.set('lab:sounds', l); app.renderPresets && app.renderPresets(); };
+  const saveSound = (snd) => { const l = mySounds(); l.push(snd); store.set('lab:sounds', l); app.renderPresetsRemount ? app.renderPresetsRemount() : (app.renderPresets && app.renderPresets()); };
   const EV = { established: 'Well-studied principle', promising: 'Promising research', exploratory: 'Experimental — research is limited' };
 
   // ---------- runtime ----------
@@ -162,7 +162,7 @@
     const pr = profile(); const el = $('#lab-profile'); if (!el) return;
     let fp = $('.profile-fp', el.parentElement); if (!fp) { fp = document.createElement('div'); fp.className = 'profile-fp'; fp.innerHTML = '<canvas aria-label="Your sound fingerprint — an abstract picture of your preferences"></canvas>'; el.parentElement.insertBefore(fp, el); liveShape($('canvas', fp), () => { const pp = profileParams(); return { p: pp ? Object.assign({}, pp, { nature: profile().nature }) : Object.assign(DEF(), { colour: 0.45, width: 0.5 }), live: false, speed: 0.6, scale: 0.4 }; }); }
     if (!pr.rounds) {
-      el.innerHTML = `<p class="muted">Your sound preferences will appear here after you complete Find My Sound.</p><div class="btn-row"><button class="btn btn-primary btn-sm" data-p="find">Help Me Find My Sound</button></div>`;
+      el.innerHTML = `<p class="muted">Complete Find My Sound to create your personal sound profile.</p><div class="btn-row"><button class="btn btn-primary btn-sm" data-p="find">Find My Sound</button></div>`;
       $('[data-p="find"]', el).addEventListener('click', () => openExperiment('discovery')); return;
     }
     el.innerHTML = `${pr.rounds ? `<p>You seem to prefer:</p><ul class="bullets">${pr.lines.map(l => `<li>${l}</li>`).join('')}</ul><p class="muted small">Learned from ${pr.rounds} comparison${pr.rounds === 1 ? '' : 's'} in Find My Sound.</p>` : `<p>Nothing learned yet. Run <strong>Help Me Find My Sound</strong> — about ten quick comparisons — and Find My Quiet Sound will summarise what you preferred here.</p>`}
@@ -327,7 +327,7 @@
       whyTest: 'A usability idea, not a clinical concept: does one dimension find a comfortable blend faster than a mixer?',
       settings: [{ key: 'pos', label: 'Continuum', type: 'range', min: 0, max: 100, scale: ['Brown', 'Pink', 'Rain'], fmt: v => v < 12 ? 'Brown noise' : v < 38 ? 'Brown + pink' : v < 62 ? 'Pink noise' : v < 88 ? 'Pink + rain' : 'Rain' }],
       defaults: { pos: 25 }, custom: true,
-      buildUI(ctx, host) { host.innerHTML = `<div class="btn-row"><button class="btn btn-secondary btn-sm" data-save>Save this blend</button></div>`; $('[data-save]', host).addEventListener('click', () => { const mixes = store.get('mixes', []); mixes.push({ name: 'Morph blend', mix: engine.snapshot().filter(m => m.volume > 0.01), master: engine.masterVolume }); store.set('mixes', mixes); app.renderPresets && app.renderPresets(); app.toast('Saved to your mixes.'); }); },
+      buildUI(ctx, host) { host.innerHTML = `<div class="btn-row"><button class="btn btn-secondary btn-sm" data-save>Save this blend</button></div>`; $('[data-save]', host).addEventListener('click', () => { const mixes = store.get('mixes', []); mixes.push({ name: 'Morph blend', mix: engine.snapshot().filter(m => m.volume > 0.01), master: engine.masterVolume }); store.set('mixes', mixes); app.renderPresetsRemount ? app.renderPresetsRemount() : (app.renderPresets && app.renderPresets()); app.toast('Saved to your mixes.'); }); },
       async start(ctx) { safeMaster(); engine.stopAll(); for (const id of ['brown', 'pink', 'rain']) await engine.startSound(id, 0.001); this.onSetting(ctx); await engine.playAll(); },
       onSetting(ctx) { if (!running || running.exp.id !== 'morph') return; const p = ctx.s.pos / 100; const tri = (c, w) => clamp(1 - Math.abs(p - c) / w, 0, 1); engine.setVolume('brown', 0.6 * tri(0, 0.5)); engine.setVolume('pink', 0.55 * tri(0.5, 0.5)); engine.setVolume('rain', 0.55 * tri(1, 0.5)); },
     },
@@ -509,13 +509,24 @@
   function renderLists() {
     const host = $('#lab-list'); host.innerHTML = '';
     CATS.forEach(([cat, blurb]) => { const sec = document.createElement('section'); sec.className = 'lab-group'; sec.innerHTML = `<h3 class="lab-group-title">${cat}</h3><p class="muted small">${blurb}</p><div class="lab-grid"></div>`; EXPERIMENTS.filter(e => e.cat === cat).forEach(e => $('.lab-grid', sec).appendChild(card(e))); host.appendChild(sec); });
-    const f = fb(); const mk = (sel, ids, empty) => { const h = $(sel); if (!h) return; h.innerHTML = ''; if (!ids.length) { h.innerHTML = `<p class="muted small">${empty}</p>`; return; } ids.forEach(id => { const e = byId[id]; if (!e) return; const b = document.createElement('button'); b.className = 'chip'; b.innerHTML = `<strong>${e.name}</strong><span>${e.cat}</span>`; b.addEventListener('click', () => openExperiment(id)); h.appendChild(b); }); };
-    mk('#hist-recent', Object.entries(f).filter(([k, v]) => v.last && byId[k]).sort((a, b) => b[1].last - a[1].last).slice(0, 8).map(([k]) => k), '');
-    mk('#hist-favs', favs().filter(id => byId[id]), '');
-    mk('#hist-good', Object.entries(f).filter(([k, v]) => byId[k] && (v.rating === 'helpful' || v.comfort === 'more')).map(([k]) => k), '');
-    mk('#hist-bad', Object.entries(f).filter(([k, v]) => byId[k] && (v.rating === 'not' || v.comfort === 'less' || v.again === 'no')).map(([k]) => k), '');
-    // empty-state philosophy: no data ≠ broken-looking section. Hide empty groups; one quiet line when nothing has been tried yet.
-    const hist = $('.lab-hist'); if (hist) { let any = false; $$(':scope > div', hist).forEach(g => { const has = !!$('.chip', g); g.hidden = !has; if (has) any = true; }); let empty = $('.lab-hist-empty', hist.parentElement); if (!empty) { empty = document.createElement('p'); empty.className = 'muted small lab-hist-empty'; empty.textContent = 'Experiments you try will appear here.'; hist.parentElement.insertBefore(empty, hist); } empty.hidden = any; }
+    // history: sections are rendered only when they contain data — no headings over blank space
+    const f = fb();
+    const groups = [
+      ['Recently tried', Object.entries(f).filter(([k, v]) => v.last && byId[k]).sort((a, b) => b[1].last - a[1].last).slice(0, 8).map(([k]) => k)],
+      ['Favourites', favs().filter(id => byId[id])],
+      ['Worked well for me', Object.entries(f).filter(([k, v]) => byId[k] && (v.rating === 'helpful' || v.comfort === 'more')).map(([k]) => k)],
+      ['Not for me', Object.entries(f).filter(([k, v]) => byId[k] && (v.rating === 'not' || v.comfort === 'less' || v.again === 'no')).map(([k]) => k)],
+    ].filter(([, ids]) => ids.length);
+    const hh = $('#lab-hist-host');
+    if (hh) {
+      hh.innerHTML = '';
+      if (groups.length) {
+        const title = document.createElement('h2'); title.className = 'row-title'; title.textContent = 'Your experiments'; hh.appendChild(title);
+        const wrap = document.createElement('div'); wrap.className = 'lab-hist';
+        groups.forEach(([name, ids]) => { const g = document.createElement('div'); g.innerHTML = `<h3>${name}</h3><div class="chips"></div>`; ids.forEach(id => { const e = byId[id]; const b = document.createElement('button'); b.className = 'chip'; b.innerHTML = `<strong>${e.name}</strong><span>${e.cat}</span>`; b.addEventListener('click', () => openExperiment(id)); $('.chips', g).appendChild(b); }); wrap.appendChild(g); });
+        hh.appendChild(wrap);
+      }
+    }
     updateRunningUI();
   }
   $('#lab-start-discovery').addEventListener('click', () => openExperiment('discovery'));
