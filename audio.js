@@ -22,6 +22,12 @@
     { id: 'fan',       name: 'Fan',            group: 'Environment',    desc: 'A familiar, steady room fan.',                       icon: '✣', hue: 250 },
     { id: 'fire',      name: 'Fireplace',      group: 'Environment',    desc: 'Low, warm glow with gentle crackles.',               icon: '♨', hue: 20 },
     { id: 'night',     name: 'Night Sounds',   group: 'Nature',    desc: 'Crickets and a light night breeze.',                 icon: '☾', hue: 265 },
+    { id: 'glassrain', name: 'Rain on Window', group: 'Water',     desc: 'Close, sheltered rain on glass.',                    icon: '◫', hue: 210 },
+    { id: 'lapping',   name: 'Lapping Water',  group: 'Water',     desc: 'Small, calm waves at a quiet shore.',                icon: '﹏', hue: 190 },
+    { id: 'crickets',  name: 'Crickets',       group: 'Nature',    desc: 'A calm evening field of soft crickets.',             icon: '∵', hue: 95 },
+    { id: 'cicadas',   name: 'Cicadas',        group: 'Nature',    desc: 'A smooth, layered summer chorus.',                   icon: '☰', hue: 55 },
+    { id: 'summernight', name: 'Summer Night', group: 'Nature',    desc: 'Warm night air, open and calm.',                     icon: '✧', hue: 285 },
+    { id: 'leaves',    name: 'Rustling Leaves', group: 'Nature',   desc: 'A gentle breeze moving through foliage.',            icon: '❦', hue: 120 },
     // Lab-only sources (not shown in the main library)
     { id: 'thunder',   name: 'Distant Thunder', group: 'Lab', lab: true, desc: 'Occasional far-off rumbles.',                      icon: '⛈', hue: 240 },
     { id: 'city',      name: 'Distant City',    group: 'Lab', lab: true, desc: 'A faraway urban hum.',                            icon: '⌂', hue: 280 },
@@ -42,6 +48,7 @@
     white: 0.16, pink: 0.32, brown: 0.9, static: 0.22, hiss: 0.26,
     rain: 0.45, ocean: 0.85, stream: 0.4, waterfall: 0.38, forest: 0.6,
     wind: 0.8, fan: 0.5, fire: 0.9, night: 0.7,
+    glassrain: 0.55, lapping: 0.8, crickets: 1.0, cicadas: 0.14, summernight: 0.6, leaves: 0.6,
     thunder: 1.0, city: 0.9, cabin: 0.8, chimes: 0.5, paint: 0.3, sculpt: 0.42, discoA: 0.42, discoB: 0.42,
   };
 
@@ -505,6 +512,209 @@
             this._chain(e, [o, am, env], out);
           };
           mk(4200, 28, 0.02); mk(4700, 31, 0.015); mk(3900, 22, 0.012);
+          break;
+        }
+        case 'crickets': {
+          // Living nature: a distant continuous cricket bed plus sparse individual chirps
+          // whose density drifts slowly. Every chirp level is capped well below the bed's
+          // long-term loudness, and everything passes a soft lowpass ceiling.
+          const s = this._src(B.pink); const bp = this._filter('bandpass', 480, 0.8); const g = ctx.createGain(); g.gain.value = 0.16;
+          e.nodes.push(...this._lfo(0.05, 0.06, g.gain, 0.16));
+          this._chain(e, [s, bp, g], out);
+          const soft = this._filter('lowpass', 5600, 0.6); soft.connect(out); e.nodes.push(soft);
+          const trill = (freq, rate, level) => {
+            const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = freq;
+            const am = ctx.createGain(); am.gain.value = 0.5;
+            const l = ctx.createOscillator(); l.type = 'square'; l.frequency.value = rate; const lg = ctx.createGain(); lg.gain.value = 0.5; l.connect(lg); lg.connect(am.gain);
+            const env = ctx.createGain(); env.gain.value = level;
+            e.nodes.push(...this._lfo(0.05 + Math.random() * 0.04, level * 0.5, env.gain, level));
+            o.start(); l.start(); e.nodes.push(l, lg);
+            this._chain(e, [o, am, env], soft);
+          };
+          trill(4250, 27, 0.010); trill(4680, 31, 0.007);
+          const chirpGain = ctx.createGain(); chirpGain.gain.value = 1; chirpGain.connect(soft); e.nodes.push(chirpGain);
+          let phase = Math.random() * 100;
+          const chirp = () => {
+            if (!this.active.has(id)) return;
+            phase += 1;
+            const density = 0.55 + 0.35 * Math.sin(phase * 0.09);   // slow drift in how busy the field feels
+            if (Math.random() < density) {
+              const t = ctx.currentTime;
+              const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = 4050 + Math.random() * 850;
+              const am = ctx.createGain(); am.gain.value = 0.5;
+              const l = ctx.createOscillator(); l.type = 'square'; l.frequency.value = 26 + Math.random() * 8;
+              const lg = ctx.createGain(); lg.gain.value = 0.5; l.connect(lg); lg.connect(am.gain);
+              const env = ctx.createGain(); const p = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
+              const lvl = 0.008 + Math.random() * 0.008; const dur = 0.35 + Math.random() * 0.7;
+              env.gain.setValueAtTime(0, t); env.gain.linearRampToValueAtTime(lvl, t + 0.08); env.gain.setValueAtTime(lvl, t + 0.08 + dur); env.gain.linearRampToValueAtTime(0, t + 0.23 + dur);
+              o.connect(am); am.connect(env);
+              if (p) { p.pan.value = (Math.random() * 2 - 1) * 0.55; env.connect(p); p.connect(chirpGain); } else env.connect(chirpGain);
+              o.start(t); l.start(t); o.stop(t + dur + 0.3); l.stop(t + dur + 0.3);
+              o.onended = () => { try { am.disconnect(); env.disconnect(); lg.disconnect(); if (p) p.disconnect(); } catch (_) { } };
+            }
+            e.timers.push(setTimeout(chirp, 900 + Math.random() * 2600));
+          };
+          e.timers.push(setTimeout(chirp, 600 + Math.random() * 900));
+          break;
+        }
+        case 'cicadas': {
+          // Two interleaved chorus layers — band-passed noise with a fast, shallow tymbal
+          // shimmer and slow opposing swells — under a firm high-frequency ceiling.
+          // Continuous by design: no discrete calls, nothing to startle.
+          const ceil = this._filter('lowpass', 7800, 0.7); const shelf = this._filter('highshelf', 6200); shelf.gain.value = -7;
+          ceil.connect(shelf); shelf.connect(out); e.nodes.push(ceil, shelf);
+          const layer = (freq, q, amRate, base, swellRate) => {
+            const s2 = this._src(B.white); const bp2 = this._filter('bandpass', freq, q);
+            const g2 = ctx.createGain(); g2.gain.value = base;
+            e.nodes.push(...this._lfo(amRate, base * 0.30, g2.gain, base));     // tymbal rhythm — texture, not pulsing
+            e.nodes.push(...this._lfo(swellRate, base * 0.35, g2.gain, base));  // slow chorus swell
+            this._chain(e, [s2, bp2, g2], ceil);
+          };
+          layer(5200, 2.2, 43, 0.5, 0.043);
+          layer(4100, 2.8, 57, 0.32, 0.061);
+          const s3 = this._src(B.pink); const bp3 = this._filter('bandpass', 1300, 0.9); const g3 = ctx.createGain(); g3.gain.value = 0.10;
+          e.nodes.push(...this._lfo(0.05, 0.03, g3.gain, 0.10));
+          this._chain(e, [s3, bp3, g3], out);
+          break;
+        }
+        case 'summernight': {
+          // A complete warm night: still air, an open band, the faintest breeze,
+          // crickets at a distance and — rarely — one very soft far-off insect.
+          const s = this._src(B.brown); const lp = this._filter('lowpass', 480, 0.7); const g = ctx.createGain(); g.gain.value = 0.3;
+          e.nodes.push(...this._lfo(0.03, 0.06, g.gain, 0.3));
+          this._chain(e, [s, lp, g], out);
+          const s2 = this._src(B.pink); const bp2 = this._filter('bandpass', 750, 0.7); const g2 = ctx.createGain(); g2.gain.value = 0.14;
+          e.nodes.push(...this._lfo(0.045, 0.05, g2.gain, 0.14));
+          this._chain(e, [s2, bp2, g2], out);
+          const s3 = this._src(B.pink); const bp3 = this._filter('bandpass', 340, 1.1); const g3 = ctx.createGain(); g3.gain.value = 0.06;
+          e.nodes.push(...this._lfo(0.021, 0.05, g3.gain, 0.06));
+          this._chain(e, [s3, bp3, g3], out);
+          const soft = this._filter('lowpass', 4300, 0.6); soft.connect(out); e.nodes.push(soft);
+          const trill = (freq, rate, level, breathe) => {
+            const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = freq;
+            const am = ctx.createGain(); am.gain.value = 0.5;
+            const l = ctx.createOscillator(); l.type = 'square'; l.frequency.value = rate; const lg = ctx.createGain(); lg.gain.value = 0.5; l.connect(lg); lg.connect(am.gain);
+            const env = ctx.createGain(); env.gain.value = level;
+            e.nodes.push(...this._lfo(breathe, level * 0.6, env.gain, level));
+            o.start(); l.start(); e.nodes.push(l, lg);
+            this._chain(e, [o, am, env], soft);
+          };
+          trill(4150, 25, 0.006, 0.045); trill(4550, 30, 0.0045, 0.06);
+          const far = () => {
+            if (!this.active.has(id)) return;
+            const t = ctx.currentTime;
+            const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = 2900 + Math.random() * 500;
+            const am = ctx.createGain(); am.gain.value = 0.5;
+            const l = ctx.createOscillator(); l.type = 'square'; l.frequency.value = 14 + Math.random() * 6;
+            const lg = ctx.createGain(); lg.gain.value = 0.5; l.connect(lg); lg.connect(am.gain);
+            const env = ctx.createGain(); const p = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
+            const lvl = 0.004 + Math.random() * 0.002; const dur = 0.6 + Math.random() * 1.2;
+            env.gain.setValueAtTime(0, t); env.gain.linearRampToValueAtTime(lvl, t + 0.25); env.gain.setValueAtTime(lvl, t + 0.25 + dur); env.gain.linearRampToValueAtTime(0, t + 0.55 + dur);
+            o.connect(am); am.connect(env);
+            if (p) { p.pan.value = (Math.random() * 2 - 1) * 0.4; env.connect(p); p.connect(soft); } else env.connect(soft);
+            o.start(t); l.start(t); o.stop(t + dur + 0.7); l.stop(t + dur + 0.7);
+            o.onended = () => { try { am.disconnect(); env.disconnect(); lg.disconnect(); if (p) p.disconnect(); } catch (_) { } };
+            e.timers.push(setTimeout(far, 9000 + Math.random() * 14000));
+          };
+          e.timers.push(setTimeout(far, 6000 + Math.random() * 8000));
+          break;
+        }
+        case 'glassrain': {
+          // Rain heard through glass: a darker, closer bed than open Rain, sparse round
+          // droplet taps on the pane, and the occasional drop running down it.
+          const s = this._src(B.pink); const hp = this._filter('highpass', 260, 0.6); const lp = this._filter('lowpass', 2100, 0.6);
+          const g = ctx.createGain(); g.gain.value = 0.65;
+          e.nodes.push(...this._lfo(0.09, 0.10, g.gain, 0.65));
+          this._chain(e, [s, hp, lp, g], out);
+          const s2 = this._src(B.pink); const hp2 = this._filter('highpass', 2400, 0.5); const lp2 = this._filter('lowpass', 6000, 0.5); const g2 = ctx.createGain(); g2.gain.value = 0.05;
+          e.nodes.push(...this._lfo(0.06, 0.02, g2.gain, 0.05));
+          this._chain(e, [s2, hp2, lp2, g2], out);
+          const tapGain = ctx.createGain(); tapGain.gain.value = 0.5; tapGain.connect(out); e.nodes.push(tapGain);
+          let ph = Math.random() * 100;
+          const tap = () => {
+            if (!this.active.has(id)) return;
+            ph += 1; const density = 0.65 + 0.3 * Math.sin(ph * 0.05);
+            if (Math.random() < density) {
+              const n = ctx.createBufferSource(); n.buffer = B.white;
+              const f = this._filter('bandpass', 850 + Math.random() * 1700, 8);
+              const gg = ctx.createGain(); const p = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
+              const t = ctx.currentTime;
+              gg.gain.setValueAtTime(0, t); gg.gain.linearRampToValueAtTime(0.10 + Math.random() * 0.14, t + 0.006); gg.gain.exponentialRampToValueAtTime(0.001, t + 0.05 + Math.random() * 0.09);
+              n.connect(f); f.connect(gg);
+              if (p) { p.pan.value = (Math.random() * 2 - 1) * 0.7; gg.connect(p); p.connect(tapGain); } else gg.connect(tapGain);
+              n.start(t, Math.random() * 5, 0.2); n.onended = () => { try { f.disconnect(); gg.disconnect(); if (p) p.disconnect(); } catch (_) { } };
+            }
+            e.timers.push(setTimeout(tap, 130 + Math.random() * 520));
+          };
+          tap();
+          const run = () => {
+            if (!this.active.has(id)) return;
+            const t = ctx.currentTime; const n = ctx.createBufferSource(); n.buffer = B.white;
+            const f = this._filter('bandpass', 1900, 10); const gg = ctx.createGain();
+            const dur = 0.5 + Math.random() * 0.6;
+            f.frequency.setValueAtTime(1700 + Math.random() * 500, t); f.frequency.exponentialRampToValueAtTime(650 + Math.random() * 250, t + dur);
+            gg.gain.setValueAtTime(0, t); gg.gain.linearRampToValueAtTime(0.05, t + dur * 0.3); gg.gain.linearRampToValueAtTime(0, t + dur);
+            n.connect(f); f.connect(gg); gg.connect(tapGain);
+            n.start(t, Math.random() * 5, dur + 0.05); n.onended = () => { try { f.disconnect(); gg.disconnect(); } catch (_) { } };
+            e.timers.push(setTimeout(run, 4000 + Math.random() * 9000));
+          };
+          e.timers.push(setTimeout(run, 2500 + Math.random() * 4000));
+          break;
+        }
+        case 'lapping': {
+          // A quiet shore: a constant gentle water bed, with small waves arriving at
+          // organic, overlapping intervals — each with its own size, tone and position.
+          const s = this._src(B.brown); const lp = this._filter('lowpass', 850, 0.7); const g = ctx.createGain(); g.gain.value = 0.22;
+          e.nodes.push(...this._lfo(0.07, 0.05, g.gain, 0.22));
+          this._chain(e, [s, lp, g], out);
+          const waveGain = ctx.createGain(); waveGain.gain.value = 1; waveGain.connect(out); e.nodes.push(waveGain);
+          const wave = () => {
+            if (!this.active.has(id)) return;
+            const t = ctx.currentTime;
+            const rise = 0.7 + Math.random() * 0.8, fall = 1.1 + Math.random() * 1.1;
+            const peak = 0.28 + Math.random() * 0.22;
+            const n = this._src(B.brown);
+            const f = this._filter('lowpass', 900 + Math.random() * 500, 0.8);
+            const gg = ctx.createGain(); const p = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
+            gg.gain.setValueAtTime(0, t); gg.gain.linearRampToValueAtTime(peak, t + rise); gg.gain.linearRampToValueAtTime(0, t + rise + fall);
+            n.connect(f); f.connect(gg);
+            if (p) { p.pan.value = (Math.random() * 2 - 1) * 0.45; gg.connect(p); p.connect(waveGain); } else gg.connect(waveGain);
+            // the little sparkle as the wave turns over
+            const s2 = this._src(B.pink); const f2 = this._filter('bandpass', 2100 + Math.random() * 700, 1.6); const g2 = ctx.createGain();
+            g2.gain.setValueAtTime(0, t); g2.gain.linearRampToValueAtTime(peak * 0.16, t + rise * 1.05); g2.gain.linearRampToValueAtTime(0, t + rise + fall * 0.7);
+            s2.connect(f2); f2.connect(g2); g2.connect(p || waveGain);
+            setTimeout(() => { try { n.stop(); s2.stop(); n.disconnect(); s2.disconnect(); f.disconnect(); f2.disconnect(); gg.disconnect(); g2.disconnect(); if (p) p.disconnect(); } catch (_) { } }, (rise + fall) * 1000 + 200);
+            e.timers.push(setTimeout(wave, (1.6 + Math.random() * 2.6) * 1000));
+          };
+          wave();
+          break;
+        }
+        case 'leaves': {
+          // Foliage, not forest: a papery leaf band that breathes with slow, soft gusts,
+          // fine leaf-flicker shimmer, and a movement that wanders through the canopy.
+          const s = this._src(B.pink); const hp = this._filter('highpass', 900, 0.6); const bp = this._filter('bandpass', 2400, 0.7); const lp = this._filter('lowpass', 7000, 0.6);
+          const gust = ctx.createGain(); gust.gain.value = 0.28;
+          const flutter = ctx.createGain(); flutter.gain.value = 1;
+          const drift = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
+          if (drift) { this._chain(e, [s, hp, bp, lp, gust, flutter, drift], out); }
+          else this._chain(e, [s, hp, bp, lp, gust, flutter], out);
+          e.nodes.push(...this._lfo(10.5, 0.13, flutter.gain, 1));
+          e.nodes.push(...this._lfo(3.3, 0.08, flutter.gain, 1));
+          const s2 = this._src(B.pink); const bp2 = this._filter('bandpass', 420, 0.9); const g2 = ctx.createGain(); g2.gain.value = 0.10;
+          e.nodes.push(...this._lfo(0.04, 0.05, g2.gain, 0.10));
+          this._chain(e, [s2, bp2, g2], out);
+          const blow = () => {
+            if (!this.active.has(id)) return;
+            const t = ctx.currentTime;
+            const up = 1.4 + Math.random() * 1.8, hold = 0.8 + Math.random() * 2.2, down = 2.0 + Math.random() * 2.2;
+            gust.gain.cancelScheduledValues(t); gust.gain.setValueAtTime(gust.gain.value, t);
+            gust.gain.linearRampToValueAtTime(0.5 + Math.random() * 0.35, t + up);
+            gust.gain.linearRampToValueAtTime(0.24 + Math.random() * 0.08, t + up + hold + down);
+            bp.frequency.setTargetAtTime(1900 + Math.random() * 1400, t, up);
+            if (drift) drift.pan.setTargetAtTime((Math.random() * 2 - 1) * 0.3, t, up + 1);
+            e.timers.push(setTimeout(blow, (up + hold + down + 1 + Math.random() * 5) * 1000));
+          };
+          e.timers.push(setTimeout(blow, 1200 + Math.random() * 2500));
           break;
         }
       }

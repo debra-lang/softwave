@@ -68,7 +68,7 @@
   function ensureLab() {
     if (window.softwaveLab) return Promise.resolve();
     if (labPromise) return labPromise;
-    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=33'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
+    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=34'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
     return labPromise;
   }
   window.softwaveEnsureLab = ensureLab;
@@ -83,6 +83,8 @@
     { id: 'focus', name: 'Focus', desc: 'Pink noise + subtle nature', mix: [{ id: 'pink', volume: 0.5 }, { id: 'forest', volume: 0.3 }], master: 0.35 },
     { id: 'ocean', name: 'Ocean', desc: 'Soft waves + broadband bed', mix: [{ id: 'ocean', volume: 0.6 }, { id: 'brown', volume: 0.25 }], master: 0.35 },
     { id: 'rainy', name: 'Rainy Night', desc: 'Rain + low ambience', mix: [{ id: 'rain', volume: 0.55 }, { id: 'wind', volume: 0.3 }, { id: 'brown', volume: 0.2 }], master: 0.35 },
+    { id: 'window', name: 'Rain on Window', desc: 'Close rain + deep bed', mix: [{ id: 'glassrain', volume: 0.55 }, { id: 'brown', volume: 0.22 }], master: 0.3 },
+    { id: 'summernight', name: 'Summer Night', desc: 'Warm night air + soft crickets', mix: [{ id: 'summernight', volume: 0.6 }], master: 0.32 },
   ];
   const presetsSlot = () => $('#presets-slot');
   function mountPresets() {
@@ -151,7 +153,7 @@
   const DIMS = ['colour', 'warm', 'deep', 'smooth', 'soft', 'width', 'moving', 'rich', 'mod'];
   function profileParams() { const p = store.get('lab:prefs2', { n: 0, sum: {}, natures: {} }); if (!p.n) return null; const out = {}; DIMS.forEach(d => out[d] = (p.sum[d] || 0) / p.n); const nat = Object.entries(p.natures || {}).sort((x, y) => y[1] - x[1])[0]; out.nature = nat ? nat[0] : 'none'; return out; }
   function profileMix(opts = {}) { const pp = profileParams(); if (!pp) return null; const params = Object.assign({}, pp); delete params.nature; if (opts.sleep) Object.assign(params, { colour: Math.min(params.colour, 0.45), soft: Math.min(params.soft, -0.2), moving: 0, mod: 0 }); const mix = [{ id: 'sculpt', volume: opts.sleep ? 0.5 : 0.55, balance: 0, params }]; const nature = pp.nature === 'none' ? (opts.sleep ? 'rain' : null) : pp.nature; if (nature) mix.push({ id: nature, volume: opts.sleep ? 0.25 : 0.3, balance: 0 }); return mix; }
-  function profileVisual() { const pp = profileParams(); const motion = store.get('motion', 'low'); const dark = root.dataset.theme === 'dark'; if (pp && pp.nature === 'rain') return 'rainwindow'; if (pp && pp.nature === 'ocean') return 'ocean'; if (pp && pp.nature === 'forest') return 'forest'; if (motion === 'still') return dark ? 'nightsky' : 'softlight'; return dark ? 'nightsky' : 'particles'; }
+  function profileVisual() { const pp = profileParams(); const motion = store.get('motion', 'low'); const dark = root.dataset.theme === 'dark'; if (pp && pp.nature === 'rain') return 'rainwindow'; if (pp && pp.nature === 'ocean') return 'ocean'; if (pp && pp.nature === 'forest') return 'forest'; if (pp && pp.nature === 'lapping') return 'ocean'; if (pp && (pp.nature === 'crickets')) return 'nightsky'; if (pp && pp.nature === 'leaves') return 'forest'; if (motion === 'still') return dark ? 'nightsky' : 'softlight'; return dark ? 'nightsky' : 'particles'; }
   function renderProfileHooks() {
     const pp = profileParams();
     const sleepRow = $('#sleep-profile-row'); if (sleepRow) sleepRow.hidden = !pp;

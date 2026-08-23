@@ -142,7 +142,7 @@
   // ---------- custom-sound helpers ----------
   const DIMS = ['colour', 'warm', 'deep', 'smooth', 'soft', 'width', 'moving', 'rich', 'mod'];
   const DIM_RANGE = { colour: [0, 1], warm: [-1, 1], deep: [-1, 1], smooth: [-1, 1], soft: [-1, 1], width: [0, 1], moving: [0, 1], rich: [0, 1], mod: [0, 1] };
-  const NATURES = ['none', 'rain', 'ocean', 'wind', 'forest', 'stream'];
+  const NATURES = ['none', 'rain', 'ocean', 'wind', 'forest', 'stream', 'crickets', 'lapping', 'leaves'];
   const describe = (p, nature) => { const b = []; b.push(p.colour < 0.33 ? 'deep noise' : p.colour < 0.67 ? 'balanced noise' : 'bright noise'); if (p.warm < -0.25) b.push('warmer'); if (p.warm > 0.25) b.push('brighter'); if (p.deep > 0.3) b.push('airy'); if (p.deep < -0.3) b.push('deep'); if (p.soft < -0.3) b.push('soft'); if (p.smooth > 0.3) b.push('textured'); if (p.width > 0.6) b.push('wide'); if (p.moving > 0.3) b.push('gently moving'); if (p.rich > 0.4) b.push('rich'); if (p.mod > 0.3) b.push('slow swells'); if (nature && nature !== 'none') b.push(NAME(nature).toLowerCase()); return b.join(' · '); };
   const soundMix = (snd, vol = 0.55) => { const m = [{ id: snd.type === 'paint' ? 'paint' : 'sculpt', volume: vol, balance: 0 }]; if (snd.type === 'paint') m[0].curve = snd.curve; else m[0].params = snd.params; if (snd.nature && snd.nature !== 'none') m.push({ id: snd.nature, volume: snd.natureVol || 0.35, balance: 0 }); return m; };
   function saveSoundForm(host, snd, afterSave) {
@@ -164,7 +164,7 @@
     const motion = store.get('motion', 'low'); lines.push(motion === 'still' || motion === 'low' ? 'Low visual movement' : 'More visual movement');
     return { lines, pp, nature: nat ? nat[0] : 'none', rounds: p.n };
   }
-  function visualForProfile() { const motion = store.get('motion', 'low'); const dark = document.documentElement.dataset.theme === 'dark'; const pr = profile(); if (pr.nature === 'rain') return 'rainwindow'; if (pr.nature === 'ocean') return 'ocean'; if (pr.nature === 'forest') return 'forest'; if (motion === 'still') return dark ? 'nightsky' : 'softlight'; return dark ? 'nightsky' : 'particles'; }
+  function visualForProfile() { const motion = store.get('motion', 'low'); const dark = document.documentElement.dataset.theme === 'dark'; const pr = profile(); if (pr.nature === 'rain') return 'rainwindow'; if (pr.nature === 'ocean' || pr.nature === 'lapping') return 'ocean'; if (pr.nature === 'forest' || pr.nature === 'leaves') return 'forest'; if (pr.nature === 'crickets') return 'nightsky'; if (motion === 'still') return dark ? 'nightsky' : 'softlight'; return dark ? 'nightsky' : 'particles'; }
   function renderProfile() {
     const pr = profile(); const el = $('#lab-profile'); if (!el) return;
     let fp = $('.profile-fp', el.parentElement); if (!fp) { fp = document.createElement('div'); fp.className = 'profile-fp'; fp.innerHTML = '<canvas aria-label="Your sound fingerprint — an abstract picture of your preferences"></canvas>'; el.parentElement.insertBefore(fp, el); liveShape($('canvas', fp), () => { const pp = profileParams(); return { p: pp ? Object.assign({}, pp, { nature: profile().nature }) : Object.assign(DEF(), { colour: 0.45, width: 0.5 }), live: false, speed: 0.6, scale: 0.4 }; }); }
