@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://debra-lang.github.io/softwave/sitemap.xml
+Sitemap: https://findmyquietsound.com/sitemap.xml
