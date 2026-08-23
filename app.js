@@ -447,7 +447,10 @@
     fieldMain.setEnvironment(visualId); fieldMain.morph = 1; fieldMain.morphTarget = 0; if (location.hash !== '#sounds') showView('sounds', { push: false }); scrollTo({ top: 0, behavior: 'instant' });
     transit.timer = setTimeout(() => { transit.active = false; document.body.classList.remove('transit'); cv.classList.remove('fs'); fieldMain.fullscreen = false; fieldMain.morph = 0; }, REDUCE() ? 450 : 1600);
   }
-  window.softwaveTransition = { to: transitionTo, back: transitionBack, get active() { return transit.active; } };
+  function clearTransit() { clearTimeout(transit.timer); transit.active = false; transit.since = 0; document.body.classList.remove('transit'); const cv = $('#field-canvas'); if (cv) cv.classList.remove('fs'); if (fieldMain) { fieldMain.fullscreen = false; fieldMain.morph = 0; fieldMain.morphTarget = 0; } }
+  // watchdog: a transition can never leave the interface hidden — whatever happens, it clears itself
+  setInterval(() => { if (transit.active) { transit.since = transit.since || Date.now(); if (Date.now() - transit.since > 4000) clearTransit(); } else transit.since = 0; if (!transit.active && document.body.classList.contains('transit')) document.body.classList.remove('transit'); }, 1000);
+  window.softwaveTransition = { to: transitionTo, back: transitionBack, clear: clearTransit, get active() { return transit.active; } };
   $('#field-core').addEventListener('click', async e => { const b = e.currentTarget; b.classList.add('pressed'); setTimeout(() => b.classList.remove('pressed'), 450); if (!engine.activeList().length) { $('#sound-groups').scrollIntoView({ behavior: 'smooth', block: 'start' }); return; } await togglePlay(); syncField(); });
   $('#field-vol').addEventListener('input', e => setMaster(+e.target.value / 100, true));
   $$('[data-fa]').forEach(b => b.addEventListener('click', () => { const k = b.dataset.fa; if (k === 'timer') { const cur = engine.timer.durationMin || 0; const next = cur === 0 ? 30 : cur === 30 ? 60 : cur === 60 ? 90 : 0; engine.setTimer(next, true); toast(next ? `Timer: ${next} minutes with gentle fade` : 'Timer off'); } if (k === 'visual') { if (window.softwaveFocus) softwaveFocus.openChooser(); else showView('focus'); } if (k === 'mixer') showView('mixer'); if (k === 'save') { showView('mixer'); setTimeout(() => { $('#mix-save').click(); $('#mix-save').scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 150); } if (k === 'immerse') openNow(); }));
@@ -480,12 +483,13 @@
 
   // ---------- Back: closes any open overlay first, then steps back through views ----------
   function goBack() {
+    if (transit.active) { clearTransit(); }
     const overlays = [['#visual-chooser', () => { const ch = $('#visual-chooser'); ch.hidden = true; document.body.style.overflow = ''; }], ['#now', () => closeNow()], ['#focus-screen', () => window.softwaveFocus && softwaveFocus.exitFocus()], ['#eyes-screen', () => window.softwaveLab && softwaveLab.stop()], ['#sleep-screen', () => exitSleep()], ['#lab-detail', () => { if (window.softwaveLab && softwaveLab.isRunning()) softwaveLab.stop('Experiment stopped'); const d = $('#lab-detail'); d.hidden = true; d.innerHTML = ''; }]];
     for (const [sel, close] of overlays) { const el = $(sel); if (el && !el.hidden) { close(); return; } }
     if (history.length > 1 && location.hash && location.hash !== '#sounds') history.back(); else showView('sounds');
   }
   $('#nav-back').addEventListener('click', goBack);
-  document.addEventListener('keydown', e => { if (e.key === 'Backspace' && !e.target.matches('input, textarea, select, [contenteditable]')) { e.preventDefault(); goBack(); } });
+  document.addEventListener('keydown', e => { const tgt = e.target && e.target.matches ? e.target : document.body; if (e.key === 'Backspace' && !tgt.matches('input, textarea, select, [contenteditable]')) { e.preventDefault(); goBack(); } if (e.key === 'Escape' && transit.active) clearTransit(); });
 
   // ---------- keyboard shortcuts ----------
   document.addEventListener('keydown', e => {

@@ -967,3 +967,11 @@ html[data-theme="dark"] .row-title { color: rgba(238,240,244,.42); }
 .env-stage-actions .btn-primary { background: #fff; color: #1f1d1a; border: 0; box-shadow: 0 10px 30px rgba(0,0,0,.25); font-weight: 600; letter-spacing: .04em; }
 .env-stage-actions .btn-primary:hover { background: #f3efe7; }
 .env-stage-ui { background: linear-gradient(to top, rgba(0,0,0,.55), rgba(0,0,0,0) 60%); }
+
+/* an exit is always reachable: when controls fade, Exit stays faint but live */
+.focus-screen.idle .focus-top { opacity: 1; pointer-events: none; }
+.focus-screen.idle .focus-names { opacity: 0; transition: opacity 1.4s ease; }
+.focus-screen .focus-names { transition: opacity 1.4s ease; }
+.focus-screen.idle .focus-top-actions { opacity: .38; pointer-events: auto; transition: opacity 1.4s ease; }
+.focus-screen .focus-top-actions { transition: opacity 1.4s ease; }
+.now.idle .immerse-top { opacity: .38; pointer-events: auto; }
