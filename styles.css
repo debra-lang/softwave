@@ -1137,3 +1137,5 @@ html[data-theme="dark"] .lab-view { --lab-bg-a: #0f1320; --lab-bg-b: #090b12; }
   .focus-screen .focus-panel { position: fixed; left: 8px; right: 8px; width: auto; transform: none; bottom: calc(8px + env(safe-area-inset-bottom, 0px)); top: auto; max-height: calc(100dvh - 72px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; z-index: 7; padding-bottom: 22px; }
   .focus-screen .focus-panel-head { position: sticky; top: 0; z-index: 1; padding: 4px 0 6px; background: var(--sf-glass-strong); margin: -4px 0 4px; }
 }
+/* phone: A and B side by side, "No difference" underneath */
+@media (max-width: 560px) { .disc-wrap [data-pick="same"] { order: 3; flex-basis: 100%; margin-top: 4px; } .disc-wrap [data-pick="A"], .disc-wrap [data-pick="B"] { flex: 1 1 40%; } }

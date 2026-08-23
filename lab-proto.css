@@ -189,3 +189,4 @@ body[data-phase="entry"] .result *, body[data-phase="run"] .result * { animation
 .sculpt-hint[hidden] { display: none; }
 @media (max-width: 720px) { .sculpt-obj { width: min(84vw, 46vh); } .fingerprint { width: min(78vw, 44vh); } #paint-canvas { height: clamp(300px, 60vh, 520px); } }
 @media (prefers-reduced-motion: reduce) { .result * { animation: none !important; } }
+@media (max-width: 720px) { .choices { flex-wrap: wrap; } .choice[data-pick="same"] { order: 3; flex-basis: 100%; margin-top: 2px; } .choice[data-pick="A"], .choice[data-pick="B"] { flex: 1 1 40%; } }
