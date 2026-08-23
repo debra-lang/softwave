@@ -66,7 +66,7 @@
   function ensureLab() {
     if (window.softwaveLab) return Promise.resolve();
     if (labPromise) return labPromise;
-    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=22'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
+    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=23'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
     return labPromise;
   }
   window.softwaveEnsureLab = ensureLab;
@@ -86,7 +86,7 @@
     const make = (container, includeCustom) => {
       container.innerHTML = '';
       const list = [...PRESETS];
-      const custom = store.get('mixes', []);
+      const custom = store.get('mixes', []).filter(m => m && Array.isArray(m.mix) && m.mix.every(x => engine.def(x.id)));
       if (includeCustom) custom.forEach((m, i) => list.push({ id: 'custom-' + i, name: m.name, desc: m.mix.map(x => engine.def(x.id).name).join(' + '), mix: m.mix, master: m.master, custom: true, index: i }));
       list.forEach(p => {
         const b = document.createElement('button'); b.className = 'chip'; b.setAttribute('role', 'listitem'); b.dataset.preset = p.id;
@@ -100,8 +100,8 @@
       }
     };
     make($('#presets'), true); make($('#sleep-presets'), false);
-    const ms = store.get('lab:sounds', []); const row = $('#my-sounds-row'); const host = $('#my-sounds'); host.innerHTML = ''; row.hidden = !ms.length;
-    ms.forEach((snd, i) => { const b = document.createElement('button'); b.className = 'chip chip-mine'; b.setAttribute('role', 'listitem'); b.innerHTML = `<strong>★ ${snd.name}</strong><span>${snd.type === 'paint' ? 'Painted sound' : 'Custom sound'}${snd.nature && snd.nature !== 'none' ? ' + ' + engine.def(snd.nature).name.toLowerCase() : ''}</span>`;
+    const ms = store.get('lab:sounds', []).filter(x => x && x.name); const row = $('#my-sounds-row'); const host = $('#my-sounds'); host.innerHTML = ''; row.hidden = !ms.length;
+    ms.forEach((snd, i) => { const b = document.createElement('button'); b.className = 'chip chip-mine'; b.setAttribute('role', 'listitem'); b.innerHTML = `<strong>★ ${snd.name}</strong><span>${snd.type === 'paint' ? 'Painted sound' : 'Custom sound'}${snd.nature && snd.nature !== 'none' && engine.def(snd.nature) ? ' + ' + engine.def(snd.nature).name.toLowerCase() : ''}</span>`;
       b.addEventListener('click', async () => { const mix = [{ id: snd.type === 'paint' ? 'paint' : 'sculpt', volume: 0.55, balance: 0 }]; if (snd.type === 'paint') mix[0].curve = snd.curve; else mix[0].params = snd.params; if (snd.nature && snd.nature !== 'none') mix.push({ id: snd.nature, volume: snd.natureVol || 0.35, balance: 0 }); await loadPreset({ name: snd.name, mix, master: Math.min(engine.masterVolume, 0.45) }); });
       const del = document.createElement('button'); del.className = 'chip-del'; del.setAttribute('aria-label', 'Delete ' + snd.name); del.textContent = '×'; del.addEventListener('click', e => { e.stopPropagation(); ms.splice(i, 1); store.set('lab:sounds', ms); renderPresets(); toast('Sound deleted'); }); b.appendChild(del); host.appendChild(b); });
     const saved = $('#saved-mixes'); saved.innerHTML = '';
@@ -109,7 +109,7 @@
     if (!custom.length) saved.innerHTML = '<p class="muted">Nothing saved yet. Build a mix and tap "Save as My Custom Mix".</p>';
     custom.forEach((m, i) => {
       const b = document.createElement('button'); b.className = 'chip';
-      b.innerHTML = `<strong>${m.name}</strong><span>${m.mix.map(x => engine.def(x.id).name + ' ' + Math.round(x.volume * 100) + '%').join(' · ')}</span>`;
+      b.innerHTML = `<strong>${m.name}</strong><span>${m.mix.filter(x => engine.def(x.id)).map(x => engine.def(x.id).name + ' ' + Math.round(x.volume * 100) + '%').join(' · ')}</span>`;
       b.addEventListener('click', () => loadPreset({ name: m.name, mix: m.mix, master: m.master }));
       const del = document.createElement('button'); del.className = 'btn btn-ghost btn-sm'; del.textContent = 'Delete'; del.setAttribute('aria-label', 'Delete ' + m.name);
       del.addEventListener('click', e => { e.stopPropagation(); custom.splice(i, 1); store.set('mixes', custom); renderPresets(); toast('Mix deleted'); });
@@ -424,7 +424,7 @@
     const ids = fieldIds(); if (fieldMain) { fieldMain.set(ids); fieldBig.set(ids); }
     const names = engine.activeList().map(sn => engine.def(sn.id).name); const playing = engine.isPlaying; const any = ids.length > 0;
     const top = engine.activeList().slice().sort((x, y) => y.volume - x.volume)[0]; const desc = any ? (ids.length > 1 ? names.slice(1).join(' + ') + ' layered' : (FIELD && FIELD.DESC[top.id]) || engine.def(top.id).desc) : '';
-    $('#field-name').textContent = any ? names[0] : 'Ready when you are'; $('#field-desc').innerHTML = any ? desc : 'Tap any sound below — or <button class="linklike" id="field-discover">help me find my sound</button>';
+    $('#field-name').textContent = any ? names[0] : 'Ready when you are'; $('#field-desc').innerHTML = any ? desc : 'Tap any sound below — or <button class="linklike" id="field-discover">Help Me Find My Sound</button>';
     const fd = $('#field-discover'); if (fd) fd.addEventListener('click', openDiscovery);
     $('#field-controls').hidden = !any; const core = $('#field-core'); core.classList.toggle('idle', !any); core.setAttribute('aria-pressed', playing); core.setAttribute('aria-label', !any ? 'Choose a sound to begin' : playing ? 'Pause' : 'Play');
     $('#field').dataset.state = !any ? 'idle' : playing ? 'playing' : 'paused';

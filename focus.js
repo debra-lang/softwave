@@ -491,8 +491,7 @@
 
   // ---------- favourites (sound + visual + movement + timer) ----------
   function renderFavs() {
-    const host = $('#fav-list'); host.innerHTML = ''; const favs = app.store.get('combos', []);
-    if (!favs.length) host.innerHTML = '<p class="muted">Nothing saved yet. Set up a sound and a visual, then tap "Save this combination".</p>';
+    const host = $('#fav-list'); host.innerHTML = ''; const favs = app.store.get('combos', []); const sec = $('#fav-section'); if (sec) sec.hidden = !favs.length;
     favs.forEach((f, i) => {
       const el = document.createElement('div'); el.className = 'fav-card';
       const lines = f.mix.map(m => `${m.params ? 'Custom sound' : m.curve ? 'Painted sound' : engine.def(m.id).name} — ${Math.round(m.volume * 100)}%`); lines.push(`Visual — ${byId[f.visual] ? byId[f.visual].name : f.visual}`); lines.push(`Movement — ${f.motion[0].toUpperCase() + f.motion.slice(1)}`); if (f.timer) lines.push(`Timer — ${f.timer} minutes`);

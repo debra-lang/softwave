@@ -130,7 +130,7 @@ PAGES.push({
 <p>Many people with tonal tinnitus want to know roughly what pitch they hear. A frequency generator lets you sweep a tone up and down until it sounds similar. That rough pitch is useful in two ways: it helps choose masking sounds with energy in the same region, and it lets you try the <a href="/learn/tinnitus-frequency-matching/">frequency-centred experiments</a> in Softwave. It is not a hearing test and it does not change the tinnitus itself.</p>
 <h2>How to use it safely</h2>
 <ol>
-<li>Start quiet. Tones feel louder than noise at the same setting; Softwave caps the tone level lower than other sounds and fades it in.</li>
+<li>Tones feel louder than noise at the same setting, so Softwave caps the tone level lower than other sounds and fades it in. Keep it at the lowest comfortable level.</li>
 <li>Sweep slowly with the slider, then refine with +/−10 Hz and +/−1 Hz.</li>
 <li>Check one octave up and down. Pitch matching often lands an octave off; compare the tone with double and half its frequency before you settle.</li>
 <li>Stop if anything feels uncomfortable. A few minutes is plenty.</li>
@@ -279,7 +279,7 @@ learn({
 <h2>1. Describe your tinnitus first</h2>
 <p>Ringing (a pure tone), whistling (narrow), hissing (broad and high), or humming/buzzing (low)? High sounds blend with white noise, hiss, rain and waterfall; mid sounds with pink noise, streams and fans; low sounds with brown noise, ocean and wind. The <a href="/tinnitus-sound-matching/">sound matching</a> tool does this for you.</p>
 <h2>2. Compare at the same low level</h2>
-<p>Set the master volume low and leave it there. Switch between sounds rather than adjusting volume. <a href="/?exp=discovery">Sound Discovery</a> in the Lab turns this into a guided A/B comparison.</p>
+<p>Set the master volume low and leave it there. Switch between sounds rather than adjusting volume. <a href="/?exp=discovery">Find My Sound</a> in the Lab turns this into a guided A/B comparison.</p>
 <h2>3. Find the mixing point</h2>
 <p>With your chosen sound, raise the level slowly until the tinnitus just starts to blend. That is your level.</p>
 <h2>4. Add texture if pure noise feels clinical</h2>
@@ -481,12 +481,11 @@ trust({
   h1: 'Safe listening',
   body: `
 <ul>
-<li><strong>Start low.</strong> Begin at a low level and adjust only until the sound feels comfortable and useful. You do not need to completely cover the tinnitus. Louder is not necessarily better.</li>
-<li><strong>Mind headphone time.</strong> The WHO-ITU safe-listening standard suggests personal audio around 80 dB or less for no more than 40 hours a week (75 dB for children). A device’s volume percentage does not reliably correspond to decibels, so rather than a number: use the lowest comfortable level that gives you the experience you want, and take breaks.</li>
+<li><strong>Start low.</strong> Use the lowest comfortable listening level that gives you the experience you want. You do not need to completely cover your tinnitus — a sound that just blends with it is usually enough, and louder is not necessarily better. Softwave starts every sound low and fades it in; raise the level slowly if you need to.</li>
+<li><strong>Mind headphone time.</strong> The WHO-ITU safe-listening standard suggests personal audio around 80 dB or less for no more than 40 hours a week (75 dB for children). A device’s volume percentage does not reliably correspond to decibels, so rather than a number: the lowest comfortable level, with breaks.</li>
 <li><strong>Take breaks.</strong> Prolonged loud listening can harm hearing and may make tinnitus more noticeable.</li>
-<li><strong>Start quiet, adjust slowly.</strong> Softwave starts every sound low and fades it in.</li>
 <li><strong>Speakers are fine</strong> — often better for all-night use.</li>
-<li><strong>Sound sensitivity (hyperacusis):</strong> stay at the quietest end; start at the quietest setting and stay there. Seek a clinician’s plan if everyday sounds hurt.</li>
+<li><strong>Sound sensitivity (hyperacusis):</strong> stay at the quietest setting, and seek a clinician’s plan if everyday sounds hurt.</li>
 </ul>
 <h2>How the app protects you</h2>
 <p>35% default level, never restored above 60%; fade-ins and fade-outs on everything; a limiter on the mix; a warning above 75%; tones capped lower than noise; nothing raises the volume by itself.</p>
@@ -530,15 +529,15 @@ trust({
 });
 
 trust({
-  path: 'premium/', title: 'Softwave Premium — Personal Sound Discovery',
-  description: 'What stays free in Softwave and what Softwave Premium will include: Sound Discovery, your sound profile, Frequency Painting, Sound Sculptor, generative sound, Sound Space and journeys. Free during the beta.',
+  path: 'premium/', title: 'Softwave Premium — Personal Find My Sound',
+  description: 'What stays free in Softwave and what Softwave Premium will include: Find My Sound, your sound profile, Frequency Painting, Sound Sculptor, generative sound, Sound Space and journeys. Free during the beta.',
   h1: 'Free and Premium',
   body: `
 <p><strong>Everything is free during the beta.</strong> This page explains what will stay free and what the personalisation layer — Softwave Premium — will include, so there are no surprises later.</p>
 <h2>Always free</h2>
 <ul><li>White, pink and brown noise, gentle static and soft hiss</li><li>Rain, ocean, flowing water, waterfall, forest, wind, fan, fireplace and night sounds</li><li>The mixer (up to five layers, balance, saved mixes)</li><li>The frequency generator and Find My Tinnitus Sound</li><li>Visual Focus and Focus Mode, the breathing circle, Attention Focus</li><li>Sleep Mode with timers and fade-out</li><li>Sound Morph and Build My Session</li><li>Works offline, no account, no tracking of your hearing</li></ul>
 <h2>Softwave Premium — discover and build your personal sound experience</h2>
-<ul><li><strong>Sound Discovery</strong> — the guided A/B journey to your preferred sound, and the profile it builds</li><li><strong>Sound Sculptor</strong> and <strong>Frequency Painting</strong> — shape your own sounds and keep them</li><li><strong>Generative Sound</strong> — sounds that never quite repeat</li><li><strong>Sound Space</strong> — place sounds around you</li><li><strong>Adaptive Sound Journeys</strong> and <strong>Sound + Visual Journeys</strong></li><li>Unlimited saved sounds and experiences, and recommendations built from your own preferences</li></ul>
+<ul><li><strong>Find My Sound</strong> — the guided A/B journey to your preferred sound, and the profile it builds</li><li><strong>Sound Sculptor</strong> and <strong>Frequency Painting</strong> — shape your own sounds and keep them</li><li><strong>Generative Sound</strong> — sounds that never quite repeat</li><li><strong>Sound Space</strong> — place sounds around you</li><li><strong>Adaptive Sound Journeys</strong> and <strong>Sound + Visual Journeys</strong></li><li>Unlimited saved sounds and experiences, and recommendations built from your own preferences</li></ul>
 <p>Premium is about personalisation, not "more noise". Anything you save while it is free stays yours.</p>
 <h2>Accounts</h2>
 <p>You do not need an account to use Softwave; everything is kept on your device. An optional free account to keep your sounds across devices is planned; it will never ask for hearing or health information.</p>`,

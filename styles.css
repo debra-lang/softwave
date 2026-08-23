@@ -975,3 +975,13 @@ html[data-theme="dark"] .row-title { color: rgba(238,240,244,.42); }
 .focus-screen.idle .focus-top-actions { opacity: .38; pointer-events: auto; transition: opacity 1.4s ease; }
 .focus-screen .focus-top-actions { transition: opacity 1.4s ease; }
 .now.idle .immerse-top { opacity: .38; pointer-events: auto; }
+
+/* focus bar: one quiet pill, the blue core replaced by the glass core */
+.focus-screen .focus-bar { flex-wrap: nowrap; gap: clamp(6px, 1.6vw, 18px); padding: 8px 14px; }
+.focus-screen .focus-bar .play-btn { width: 44px; height: 44px; }
+.focus-screen .focus-bar .play-btn::after { background: var(--sf-core); inset: 0; border: 1px solid var(--sf-core-ring); box-sizing: border-box; }
+.focus-screen .focus-bar .play-btn svg { color: var(--sf-ink); filter: none; }
+.focus-screen .focus-bar .focus-vol { width: clamp(70px, 14vw, 140px); }
+.focus-screen .focus-bar .btn-sm { padding: 6px 8px; font-size: .78rem; white-space: nowrap; }
+@media (max-width: 640px) { .focus-screen .focus-bar { flex-wrap: wrap; justify-content: center; border-radius: 26px; gap: 6px 10px; } .focus-screen .focus-bar .focus-vol { width: 100%; order: -1; } }
+@media (max-height: 520px) and (orientation: landscape) { .focus-screen .focus-bar { bottom: 10px; flex-wrap: nowrap; } .focus-screen .focus-bar .focus-vol { width: 90px; order: 0; } }
