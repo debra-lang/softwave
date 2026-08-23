@@ -36,7 +36,7 @@
   // env: { dt, speed, t(global), level, spec, wave, freq, pointer:{x,y,on}, taps:[{x,y,age}], breathText, reduced, still }
   const V = [];
   const add = (d) => V.push(d);
-  const P = { target: 'light', sync: true, haptic: false, soundTouch: false, breathPeriod: 0 };   // experiment parameters
+  const P = { target: 'light', sync: true, haptic: false, soundTouch: false, breathPeriod: 0, dim: 0, slow: 0, time: 0.5 };   // experiment parameters (dim/slow/time are ramped by journeys)
 
   // ===== NATURE =====
   // ===== Noise texture helper: fBm rendered at low resolution, drawn scaled (soft, fast) =====
@@ -61,15 +61,17 @@
     let t = 0; const tex = new NoiseTex(96, 54); const horizon = 0.42;
     return { draw(ctx, w, h, e) { t += e.dt * e.speed * 0.45;
       // sky with dusk gradient and a low sun
-      const g = ctx.createLinearGradient(0, 0, 0, h * horizon); const d = isDark(); g.addColorStop(0, d ? '#0a1330' : '#cfe0f4'); g.addColorStop(0.75, d ? '#24305a' : '#f3d9c2'); g.addColorStop(1, d ? '#5a4a6a' : '#f9c9a0'); ctx.fillStyle = g; ctx.fillRect(0, 0, w, h * horizon);
-      const sx = w * 0.68, sy = h * (horizon - 0.06); glow(ctx, sx, sy, w * 0.22, d ? 'rgba(255,200,150,A)' : 'rgba(255,230,190,A)', 0.55); ctx.fillStyle = d ? '#ffe2c2' : '#fff2d8'; ctx.beginPath(); ctx.arc(sx, sy, Math.min(w, h) * 0.035, 0, TAU); ctx.fill();
+      const tm = P.time; const lerpC = (a, b, k) => a.map((v, i) => Math.round(v + (b[i] - v) * k)); const rgb = c => `rgb(${c.join(',')})`; const day = [[150, 196, 240], [226, 236, 248], [250, 226, 200]], dusk = [[24, 34, 86], [120, 90, 120], [250, 180, 140]], night = [[6, 10, 28], [14, 20, 50], [30, 34, 70]]; const pick = (i) => tm < 0.5 ? lerpC(day[i], dusk[i], tm * 2) : lerpC(dusk[i], night[i], (tm - 0.5) * 2);
+      const g = ctx.createLinearGradient(0, 0, 0, h * horizon); const d = isDark(); g.addColorStop(0, rgb(pick(0))); g.addColorStop(0.75, rgb(pick(1))); g.addColorStop(1, rgb(pick(2))); ctx.fillStyle = g; ctx.fillRect(0, 0, w, h * horizon);
+      const sx = w * 0.68, sy = h * (horizon - 0.18 + tm * 0.16); const sunA = Math.max(0, 1 - Math.max(0, tm - 0.55) * 3); glow(ctx, sx, sy, w * 0.22, 'rgba(255,215,170,A)', 0.55 * sunA); ctx.fillStyle = `rgba(255,236,210,${sunA})`; ctx.beginPath(); ctx.arc(sx, sy, Math.min(w, h) * 0.035, 0, TAU); ctx.fill();
+      if (tm > 0.6) { const sa = (tm - 0.6) * 2.5; ctx.fillStyle = `rgba(235,240,255,${0.8 * sa})`; for (let i = 0; i < 90; i++) { const x = ((i * 977) % 1000) / 1000 * w, y = ((i * 613) % 1000) / 1000 * h * horizon * 0.9; ctx.beginPath(); ctx.arc(x, y, (i % 3) * 0.4 + 0.5, 0, TAU); ctx.fill(); } }
       // sea: perspective rows of swell, far rows compressed
-      const seaTop = h * horizon; const sg = ctx.createLinearGradient(0, seaTop, 0, h); sg.addColorStop(0, d ? '#1a2e55' : '#7fb0d8'); sg.addColorStop(1, d ? '#071226' : '#2f6f9e'); ctx.fillStyle = sg; ctx.fillRect(0, seaTop, w, h - seaTop);
+      const seaTop = h * horizon; const sg = ctx.createLinearGradient(0, seaTop, 0, h); sg.addColorStop(0, rgb(lerpC([127, 176, 216], [16, 30, 70], tm))); sg.addColorStop(1, rgb(lerpC([47, 111, 158], [5, 12, 32], tm))); ctx.fillStyle = sg; ctx.fillRect(0, seaTop, w, h - seaTop);
       const rows = 26;
       for (let k = 0; k < rows; k++) { const p = k / rows; const depth = p * p; const y0 = seaTop + depth * (h - seaTop); const amp = 2 + depth * 22 * (1 + e.level * 0.6); const sp = (0.8 + depth * 0.6); ctx.beginPath();
         for (let x = 0; x <= w; x += 6) { const u = x / w; const y = y0 + Math.sin(u * 9 / (0.4 + depth) + t * sp + k * 1.3) * amp + Math.sin(u * 23 - t * 0.7 * sp + k) * amp * 0.3 + (fbm(u * 3 + k, t * 0.2, k) - 0.5) * amp * 1.2; ctx.lineTo(x, y); }
         ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.closePath();
-        const L = d ? 14 + depth * 18 : 45 + depth * 14; ctx.fillStyle = `hsla(${206 + depth * 6},${d ? 55 : 60}%,${L}%,${0.55 + depth * 0.4})`; ctx.fill();
+        const L = (45 + depth * 14) * (1 - tm * 0.7) + 6; ctx.fillStyle = `hsla(${206 + depth * 6},${60 - tm * 10}%,${L}%,${0.55 + depth * 0.4})`; ctx.fill();
         // foam crest highlight
         ctx.strokeStyle = `hsla(200,50%,${d ? 60 : 92}%,${0.05 + depth * 0.18})`; ctx.lineWidth = 1 + depth * 2; ctx.stroke(); }
       // sun path shimmer on the water
@@ -424,7 +426,7 @@
     const dt = Math.min(dtRaw, 0.05);
     const raw = engine.isPlaying ? engine.getLevels(spec) : 0; if (engine.isPlaying) engine.getWave(wave); else { spec.fill(0); wave.fill(128); }
     smoothLevel += (clamp(raw * 6, 0, 1) - smoothLevel) * 0.08;
-    let speed = MOTION[S.motion]; if (S.reduced) speed = Math.min(speed, 0.25); if (S.paused) speed = 0;
+    let speed = MOTION[S.motion]; if (S.reduced) speed = Math.min(speed, 0.25); if (S.paused) speed = 0; speed *= (1 - P.slow * 0.7);
     return { dt, speed, level: smoothLevel, spec, wave, freq: engine.tone && engine.tone.playing ? engine.tone.freq : null, pointer, taps, breathText: S.breathText, reduced: S.reduced, still: S.motion === 'still' || S.paused };
   }
 
@@ -493,6 +495,7 @@
       host.appendChild(el);
     });
   }
+  document.addEventListener('softwave:profile', () => { if (window.softwaveProfile) softwaveProfile.refresh(); });
   $('#fav-save').addEventListener('click', () => {
     let form = $('#fav-form'); if (form) { form.remove(); return; }
     form = document.createElement('form'); form.id = 'fav-form'; form.className = 'inline-form';
@@ -528,6 +531,7 @@
     focus.taps = focus.taps.filter(t => (t.age += dt) < 10);
     const env = makeEnv(focus.pointer, focus.taps, dt);
     focus.inst.draw(ctx, focus.w, focus.h, env);
+    if (P.dim > 0.005) { ctx.fillStyle = `rgba(2,4,12,${Math.min(0.85, P.dim)})`; ctx.fillRect(0, 0, focus.w, focus.h); }
     // drift the pointer effect off when idle
   }
   function showControls() { screen.classList.remove('idle'); clearTimeout(focus.hideT); focus.hideT = setTimeout(() => { if (!$('#focus-panel').classList.contains('open')) screen.classList.add('idle'); }, 4500); }
@@ -546,7 +550,7 @@
     veil.classList.add('on'); setTimeout(() => { setVisual(id); setTimeout(() => veil.classList.remove('on'), 120); }, 1600);
   }
   function exitFocus() {
-    if (engine.ctx) engine.resetMasterShape();
+    if (engine.ctx) engine.resetMasterShape(); P.dim = 0; P.slow = 0; P.time = 0.5;
     screen.hidden = true; document.body.style.overflow = ''; cancelAnimationFrame(focus.raf); closePanel();
     if (document.fullscreenElement) document.exitFullscreen().catch(() => { });
     if (focus.wake) { focus.wake.release().catch(() => { }); focus.wake = null; }
@@ -609,6 +613,6 @@
   window.softwaveFocus = { enterFocus, exitFocus, setVisual, crossfadeTo, visuals: V.filter(v => !v.hidden), allVisuals: V, setParam: (k, v) => { P[k] = v; }, getParam: () => P };
 
   // ---------- init ----------
-  renderLibrary(); renderPairings(); renderFavs(); syncSettings();
+  renderLibrary(); renderPairings(); renderFavs(); syncSettings(); if (window.softwaveProfile) softwaveProfile.refresh();
   const qf = new URLSearchParams(location.search).get('focus'); if (qf && byId[qf]) { setVisual(qf); setTimeout(enterFocus, 50); }
 })();

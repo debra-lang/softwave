@@ -51,7 +51,7 @@ PAGES.push({
 <h2>How to use a tinnitus sound generator</h2>
 <ol>
 <li><strong>Choose a sound.</strong> Try several. There is no single sound that works best for everyone; the most comfortable one is the right one for you.</li>
-<li><strong>Keep it low.</strong> Set the level so the sound just blends with your tinnitus rather than drowning it out. Most people find a level around or just below their tinnitus most comfortable, and it is kinder to your hearing.</li>
+<li><strong>Keep it low.</strong> Start at a low level and adjust only until the sound feels comfortable and useful. You do not need to completely cover the tinnitus — louder is not better masking, and a low level is kinder to your hearing.</li>
 <li><strong>Personalise it.</strong> Layer two or three sounds, nudge the balance, or save a mix you like. Use a timer at night.</li>
 </ol>
 <h2>Who it is for</h2>
@@ -381,7 +381,7 @@ learn({
   title: 'How Loud Should Tinnitus Masking Sound Be?',
   description: 'How loud to set tinnitus masking: the mixing point, why partial masking beats total masking, safe-listening limits for headphones, and signs it is too loud.',
   h1: 'How loud should tinnitus masking sound be?',
-  intro: 'Low enough that it blends with the tinnitus rather than covering it — the "mixing point". Setting sound at that level worked as well as total masking in a direct comparison, and it keeps you well inside safe-listening limits.',
+  intro: 'Start low and raise it only until the sound feels comfortable and useful; you do not need to cover the tinnitus. In tinnitus retraining therapy this blend level is called the "mixing point", and in one direct comparison it worked as well as total masking — at a far lower level.',
   body: `
 <h2>The mixing point</h2>
 <p>Raise the sound slowly from silence. The moment it begins to blend with the tinnitus — without hiding it and without being annoying — is the mixing point. Stop there. Softwave starts every sound quietly and fades it in so you can stop at that point.</p>
@@ -481,7 +481,7 @@ trust({
   h1: 'Safe listening',
   body: `
 <ul>
-<li><strong>Use the lowest level that helps.</strong> Sound should partly cover the tinnitus, not overpower it. Most people settle just below or around their tinnitus.</li>
+<li><strong>Start low.</strong> Begin at a low level and adjust only until the sound feels comfortable and useful. You do not need to completely cover the tinnitus. Louder is not necessarily better.</li>
 <li><strong>Mind headphone time.</strong> The WHO-ITU safe-listening standard suggests personal audio around 80 dB or less for no more than 40 hours a week (75 dB for children). A device’s volume percentage does not reliably correspond to decibels, so rather than a number: use the lowest comfortable level that gives you the experience you want, and take breaks.</li>
 <li><strong>Take breaks.</strong> Prolonged loud listening can harm hearing and may make tinnitus more noticeable.</li>
 <li><strong>Start quiet, adjust slowly.</strong> Softwave starts every sound low and fades it in.</li>

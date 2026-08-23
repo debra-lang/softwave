@@ -64,7 +64,7 @@
   function ensureLab() {
     if (window.softwaveLab) return Promise.resolve();
     if (labPromise) return labPromise;
-    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=16'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
+    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=18'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
     return labPromise;
   }
   window.softwaveEnsureLab = ensureLab;
@@ -120,7 +120,22 @@
     toast(`Playing “${p.name}” — adjust anything you like`);
   }
 
-  $('#home-discover').addEventListener('click', async () => { showView('lab'); try { await ensureLab(); window.softwaveLab.open('discovery'); } catch (e) { toast(e.message); } });
+  const openDiscovery = async () => { showView('lab'); try { await ensureLab(); window.softwaveLab.open('discovery'); } catch (e) { toast(e.message); } };
+  $('#home-discover').addEventListener('click', openDiscovery); $('#home-tool-discover').addEventListener('click', openDiscovery);
+
+  // ---------- Sound preference profile, available app-wide (read-only summary; the Lab owns the details) ----------
+  const DIMS = ['colour', 'warm', 'deep', 'smooth', 'soft', 'width', 'moving', 'rich', 'mod'];
+  function profileParams() { const p = store.get('lab:prefs2', { n: 0, sum: {}, natures: {} }); if (!p.n) return null; const out = {}; DIMS.forEach(d => out[d] = (p.sum[d] || 0) / p.n); const nat = Object.entries(p.natures || {}).sort((x, y) => y[1] - x[1])[0]; out.nature = nat ? nat[0] : 'none'; return out; }
+  function profileMix(opts = {}) { const pp = profileParams(); if (!pp) return null; const params = Object.assign({}, pp); delete params.nature; if (opts.sleep) Object.assign(params, { colour: Math.min(params.colour, 0.45), soft: Math.min(params.soft, -0.2), moving: 0, mod: 0 }); const mix = [{ id: 'sculpt', volume: opts.sleep ? 0.5 : 0.55, balance: 0, params }]; const nature = pp.nature === 'none' ? (opts.sleep ? 'rain' : null) : pp.nature; if (nature) mix.push({ id: nature, volume: opts.sleep ? 0.25 : 0.3, balance: 0 }); return mix; }
+  function profileVisual() { const pp = profileParams(); const motion = store.get('motion', 'low'); const dark = root.dataset.theme === 'dark'; if (pp && pp.nature === 'rain') return 'rainwindow'; if (pp && pp.nature === 'ocean') return 'ocean'; if (pp && pp.nature === 'forest') return 'forest'; if (motion === 'still') return dark ? 'nightsky' : 'softlight'; return dark ? 'nightsky' : 'particles'; }
+  function renderProfileHooks() {
+    const pp = profileParams();
+    const sleepRow = $('#sleep-profile-row'); if (sleepRow) sleepRow.hidden = !pp;
+    const vs = $('#visual-profile-suggest'); if (vs) { if (pp) { const v = profileVisual(); const name = (window.softwaveFocus && softwaveFocus.allVisuals.find(x => x.id === v) || {}).name || v; vs.hidden = false; vs.innerHTML = `Based on your preferences, try <button class="linklike" data-pv="${v}">${name}</button>.`; $('[data-pv]', vs).addEventListener('click', () => { softwaveFocus.setVisual(v); toast(`Visual: ${name}`); }); } else vs.hidden = true; }
+  }
+  $('#sleep-from-profile').addEventListener('click', async () => { const mix = profileMix({ sleep: true }); if (!mix) return; if (engine.masterVolume > 0.5) setMaster(0.4); await engine.loadMix(mix); engine.setTimer(60, true); toast('Sleep session from your profile: 60-minute timer with gentle fade.'); });
+  addEventListener('storage', renderProfileHooks); document.addEventListener('softwave:profile', renderProfileHooks);
+  window.softwaveProfile = { params: profileParams, mix: profileMix, visual: profileVisual, refresh: renderProfileHooks };
 
   // ---------- sound cards ----------
   function renderSounds() {
@@ -407,7 +422,7 @@
   window.softwaveApp = { loadPreset, setMaster, togglePlay, toast, store, PRESETS, paintRange, showView, renderPresets };
 
   // ---------- init ----------
-  renderSounds(); renderPresets(); renderMixer([]); updatePlayer();
+  renderSounds(); renderPresets(); renderMixer([]); updatePlayer(); renderProfileHooks();
   showView((location.hash || '#sounds').slice(1));
   // Deep links from the static pages: ?sound=<id> highlights a sound; ?preset=<id> highlights a preset.
   (function deepLinks() {
