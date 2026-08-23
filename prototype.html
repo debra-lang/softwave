@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0a0c12">
+<title>Softwave — Brown Noise & Ocean prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400&family=Inter:wght@300;400;500&display=swap">
+<link rel="stylesheet" href="proto.css?v=1">
+</head>
+<body data-mode="field" data-sound="brown">
+<canvas id="env" aria-hidden="true"></canvas>
+
+<header class="top fade">
+  <a class="wordmark" href="./">Softwave</a>
+  <div class="top-right">
+    <button id="motion-btn" class="pill" aria-pressed="false">Reduce motion</button>
+    <button id="theme-btn" class="pill icon" aria-label="Switch to light mode">☀</button>
+  </div>
+</header>
+
+<main id="stage">
+  <section class="field-ui" id="field-ui">
+    <div class="hero fade">
+      <p class="eyebrow">Find your sound</p>
+      <h1>Your tinnitus is personal.<br>Your sound should be too.</h1>
+    </div>
+
+    <div class="field-spot" id="field-spot">
+      <button id="play" class="core" aria-label="Play" aria-pressed="false"><span class="ic-play"></span><span class="ic-pause"></span></button>
+    </div>
+
+    <div class="meta">
+      <h2 id="sound-name">Brown Noise</h2>
+      <p id="sound-tags">Deep • Warm • Steady</p>
+    </div>
+
+    <div class="vol fade-soft">
+      <label class="sr-only" for="vol">Volume</label>
+      <input type="range" id="vol" min="0" max="100" value="35">
+      <output id="vol-out" for="vol">35%</output>
+    </div>
+
+    <nav class="actions fade-soft" aria-label="Player actions">
+      <button data-act="timer" id="act-timer">Timer</button>
+      <button data-act="visual">Add Visual</button>
+      <button data-act="mixer">Mixer</button>
+      <button data-act="save">Save</button>
+    </nav>
+
+    <div class="sheet" id="mixer-sheet" hidden>
+      <p>Layer another sound under Brown Noise</p>
+      <div class="chips" id="mixer-chips"></div>
+    </div>
+
+    <div class="selector fade" id="selector" role="radiogroup" aria-label="Choose a sound"></div>
+
+    <button id="immerse" class="immerse-btn fade">Immerse</button>
+    <button id="exit-immerse" class="pill exit-immerse" hidden>Exit</button>
+  </section>
+
+  <section class="ocean-ui" id="ocean-ui" hidden>
+    <div class="ocean-title">
+      <h2>Ocean</h2>
+      <p id="ocean-sound">Brown Noise</p>
+    </div>
+    <button id="ocean-play" class="core small" aria-label="Pause" aria-pressed="true"><span class="ic-play"></span><span class="ic-pause"></span></button>
+    <div class="ocean-bar">
+      <div class="vol">
+        <label class="sr-only" for="ocean-vol">Volume</label>
+        <input type="range" id="ocean-vol" min="0" max="100" value="35">
+      </div>
+      <button data-act="timer" id="ocean-timer">Timer</button>
+      <button data-act="sound">Change Sound</button>
+      <button data-act="visual">Change Visual</button>
+      <button data-act="exit" id="ocean-exit">Exit</button>
+    </div>
+    <div class="sheet ocean-sheet" id="ocean-sounds" hidden><div class="chips" id="ocean-sound-chips"></div></div>
+    <div class="sheet ocean-sheet" id="ocean-visuals" hidden><div class="chips"><button class="chip active" data-vis="ocean">Ocean</button><button class="chip" data-vis="field">Sound Field</button></div></div>
+  </section>
+
+  <div class="sheet timer-sheet" id="timer-sheet" hidden>
+    <p>Fade out after</p>
+    <div class="chips"><button class="chip" data-min="15">15 min</button><button class="chip" data-min="30">30 min</button><button class="chip" data-min="60">60 min</button><button class="chip" data-min="0">Off</button></div>
+  </div>
+</main>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script src="audio.js?v=18"></script>
+<script src="proto.js?v=1"></script>
+</body>
+</html>
