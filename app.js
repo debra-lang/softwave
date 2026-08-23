@@ -43,12 +43,13 @@
 
   // ---------- views ----------
   const views = ['sounds', 'focus', 'lab', 'mixer', 'frequency', 'match', 'sleep', 'learn'];
-  function showView(name) {
+  function showView(name, opts = {}) {
     if (!views.includes(name)) name = 'sounds';
     if (name === 'lab') ensureLab();
     views.forEach(v => { const el = $('#view-' + v); el.hidden = v !== name; el.classList.toggle('active', v === name); });
     $$('.nav a').forEach(a => a.classList.toggle('active', a.dataset.view === name));
-    if (location.hash !== '#' + name) history.replaceState(null, '', '#' + name);
+    if (location.hash !== '#' + name) { if (opts.push === false) history.replaceState(null, '', '#' + name); else history.pushState(null, '', '#' + name); }
+    const back = $('#nav-back'); if (back) back.hidden = name === 'sounds';
     window.scrollTo({ top: 0, behavior: 'smooth' });
     bg.setMode(name === 'lab' ? 'lab' : engine.isActive('rain') ? 'rain' : 'calm');
   }
@@ -57,14 +58,15 @@
     const a = e.target.closest('[data-view]'); if (!a) return;
     e.preventDefault(); showView(a.dataset.view);
   });
-  addEventListener('hashchange', () => showView(location.hash.slice(1)));
+  addEventListener('hashchange', () => showView(location.hash.slice(1), { push: false }));
+  addEventListener('popstate', () => showView((location.hash || '#sounds').slice(1), { push: false }));
 
   // Lazy-load The Lab (experiments) only when needed, so the homepage stays light.
   let labPromise = null;
   function ensureLab() {
     if (window.softwaveLab) return Promise.resolve();
     if (labPromise) return labPromise;
-    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=19'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
+    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=20'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
     return labPromise;
   }
   window.softwaveEnsureLab = ensureLab;
@@ -457,6 +459,15 @@
   $$('[data-now]').forEach(b => b.addEventListener('click', () => { const k = b.dataset.now; if (k === 'timer') { const cur = engine.timer.durationMin || 0; const next = cur === 0 ? 30 : cur === 30 ? 60 : cur === 60 ? 90 : 0; engine.setTimer(next, true); toast(next ? `Timer: ${next} minutes with gentle fade` : 'Timer off'); b.textContent = next ? `Timer · ${next} min` : 'Timer'; return; } closeNow(); if (k === 'change') { showView('sounds'); setTimeout(() => $('#sound-groups').scrollIntoView({ behavior: 'smooth', block: 'start' }), 150); } if (k === 'visual') { showView('focus'); if (window.softwaveFocus) softwaveFocus.enterFocus(); } }));
   document.addEventListener('click', e => { if (e.target.closest('#fav-save, #mix-save, [data-save], [data-save-session], [data-r="save"]')) { const b = e.target.closest('button'); b.classList.add('saved-pop'); setTimeout(() => b.classList.remove('saved-pop'), 520); } }, true);
 
+  // ---------- Back: closes any open overlay first, then steps back through views ----------
+  function goBack() {
+    const overlays = [['#now', () => closeNow()], ['#focus-screen', () => window.softwaveFocus && softwaveFocus.exitFocus()], ['#eyes-screen', () => window.softwaveLab && softwaveLab.stop()], ['#sleep-screen', () => exitSleep()], ['#lab-detail', () => { const d = $('#lab-detail'); d.hidden = true; d.innerHTML = ''; }]];
+    for (const [sel, close] of overlays) { const el = $(sel); if (el && !el.hidden) { close(); return; } }
+    if (history.length > 1 && location.hash && location.hash !== '#sounds') history.back(); else showView('sounds');
+  }
+  $('#nav-back').addEventListener('click', goBack);
+  document.addEventListener('keydown', e => { if (e.key === 'Backspace' && !e.target.matches('input, textarea, select, [contenteditable]')) { e.preventDefault(); goBack(); } });
+
   // ---------- keyboard shortcuts ----------
   document.addEventListener('keydown', e => {
     if (e.target.matches('input, select, textarea')) return;
@@ -478,7 +489,7 @@
 
   // ---------- init ----------
   renderSounds(); renderPresets(); renderMixer([]); updatePlayer(); renderProfileHooks(); if (window.SoftwaveField) syncField();
-  showView((location.hash || '#sounds').slice(1));
+  showView((location.hash || '#sounds').slice(1), { push: false });
   // Deep links from the static pages: ?sound=<id> highlights a sound; ?preset=<id> highlights a preset.
   (function deepLinks() {
     const q = new URLSearchParams(location.search); const sid = q.get('sound'), pid = q.get('preset');

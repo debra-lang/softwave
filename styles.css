@@ -771,3 +771,8 @@ body[data-atmo="dark"] #atmo { opacity: 1; background: radial-gradient(90% 60% a
 @media (prefers-reduced-motion: reduce) { .tile-preview { transition: none; } }
 
 @media (max-width: 640px) { .player { flex-wrap: nowrap; min-height: 58px; padding: 6px 10px; gap: 8px; } .player .player-vol, .player #player-exp { display: none; } .player-timer { order: 0; font-size: .8rem; } .player-stop { padding: 6px 10px; min-height: 34px; } body { padding-bottom: calc(90px + env(safe-area-inset-bottom, 0px)); } .toast { bottom: calc(100px + env(safe-area-inset-bottom, 0px)); } }
+
+/* back navigation */
+.nav-back { flex-shrink: 0; }
+.nav-back[hidden] { display: none; }
+@media (max-width: 640px) { .nav-back { order: 0; } .topbar .brand { order: -1; } }

@@ -113,8 +113,8 @@
 
     async init() {
       if (this.ctx) { await this.resume(); await this._ready; return; }
-      if (this._initPromise) { await this._initPromise; await this.resume(); return; }
-      this._initPromise = this._init(); await this._initPromise;
+      if (!this._initPromise) this._initPromise = this._init().catch(e => { this._initPromise = null; console.error('Audio init failed', e); throw e; });
+      await this._initPromise; await this.resume();
     }
     // Warm up early (e.g. on the first touch) so the first sound starts instantly.
     prepare() { if (!this.ctx && !this._initPromise) { this._initPromise = this._init(); } }
@@ -144,7 +144,10 @@
       this.limiter.connect(this.analyser);
       this.analyser.connect(ctx.destination);
 
-      this._ready = generateBuffers(ctx).then(b => { Object.assign(this.buffers, b); });
+      // Buffers come from a Worker; if it never answers (blocked blob URL, crashed worker) fall back to inline generation after 6 s.
+      const ready = generateBuffers(ctx).then(b => { Object.assign(this.buffers, b); });
+      const fallback = new Promise(res => setTimeout(res, 6000)).then(() => { if (!this.buffers.white) { console.warn('Worker timeout — generating buffers inline'); const b = generateInline(ctx); if (b) Object.assign(this.buffers, b); } });
+      this._ready = Promise.race([ready, fallback]).then(() => { if (!this.buffers.white) { const b = generateInline(ctx); if (b) Object.assign(this.buffers, b); } });
 
       ctx.onstatechange = () => {
         this.emit('state', ctx.state);
@@ -158,7 +161,7 @@
     async resume() {
       if (!this.ctx) return;
       if (this.ctx.state !== 'running') {
-        try { await this.ctx.resume(); } catch (e) { /* needs gesture */ }
+        try { await Promise.race([this.ctx.resume(), new Promise(r => setTimeout(r, 1500))]); } catch (e) { /* needs gesture */ }
       }
     }
 
