@@ -468,7 +468,7 @@
       host.appendChild(sec);
     });
   }
-  function setVisual(id) { if (!byId[id]) return; S.visual = id; app.store.set('visual', id); $$('.vis-card').forEach(c => c.classList.toggle('active', c.dataset.id === id)); const cv = $('#current-visual-name'); if (cv) cv.textContent = byId[id].name; if (focus.inst && focus.visualId !== id) focus.load(id); renderStage(); }
+  function setVisual(id) { if (!byId[id]) return; const MZ = window.softwaveMonetization; if (MZ && !MZ.canUse('visual:' + id)) { if (window.softwavePremium && !softwavePremium.gate('visual:' + id)) return; } S.visual = id; app.store.set('visual', id); $$('.vis-card').forEach(c => c.classList.toggle('active', c.dataset.id === id)); const cv = $('#current-visual-name'); if (cv) cv.textContent = byId[id].name; if (focus.inst && focus.visualId !== id) focus.load(id); renderStage(); }
 
   // ---------- pairings ----------
   const PAIRINGS = [
@@ -508,7 +508,7 @@
     form = document.createElement('form'); form.id = 'fav-form'; form.className = 'inline-form';
     form.innerHTML = `<label class="sr-only" for="fav-name">Name</label><input id="fav-name" class="select" maxlength="40" value="My Focus" style="min-width:200px"><button type="submit" class="btn btn-primary btn-sm">Save</button><button type="button" class="btn btn-ghost btn-sm" data-cancel>Cancel</button>`;
     $('#env-stage').after(form); const inp = $('#fav-name', form); inp.focus(); inp.select(); $('[data-cancel]', form).addEventListener('click', () => form.remove());
-    form.addEventListener('submit', e => { e.preventDefault(); const favs = app.store.get('combos', []); favs.push({ name: inp.value.trim() || 'My Focus', mix: engine.snapshot(), master: engine.masterVolume, visual: S.visual, motion: S.motion, timer: engine.timer.durationMin || 0 }); app.store.set('combos', favs); form.remove(); renderFavs(); app.toast('Saved on this device'); });
+    form.addEventListener('submit', e => { e.preventDefault(); const favs = app.store.get('combos', []); const MZ = window.softwaveMonetization; if (MZ && !MZ.canCreateSavedItem(favs.length)) { if (window.softwavePremium) softwavePremium.saveLimit('environments'); return; } favs.push({ name: inp.value.trim() || 'My Focus', mix: engine.snapshot(), master: engine.masterVolume, visual: S.visual, motion: S.motion, timer: engine.timer.durationMin || 0 }); app.store.set('combos', favs); form.remove(); renderFavs(); app.toast('Saved on this device'); });
   });
 
   // ---------- settings UI ----------

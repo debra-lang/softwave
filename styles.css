@@ -988,6 +988,29 @@ html[data-theme="dark"] .row-title { color: rgba(238,240,244,.42); }
 .field-vol .vol-pause.paused .vp-play { display: block; }
 .field-desc-alt { display: block; margin-top: 7px; font-size: .92em; opacity: .85; }
 
+/* ---- contextual Premium dialog (inert during free launch) ---- */
+.premium-veil { position: fixed; inset: 0; z-index: 300; display: flex; align-items: center; justify-content: center; padding: 18px; background: rgba(8, 11, 20, 0.6); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); overflow-y: auto; }
+.premium-card { background: var(--card-solid); color: var(--text); border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--border); max-width: 560px; width: 100%; max-height: calc(100vh - 36px); overflow-y: auto; padding: 26px 24px; text-align: center; }
+.premium-card .prem-eyebrow { font-size: .72rem; letter-spacing: .24em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; }
+.premium-card h2 { font-family: var(--sf-display); font-weight: 300; font-size: clamp(1.4rem, 3.4vw, 1.9rem); margin: 0 0 10px; }
+.premium-card .prem-line { color: var(--muted); margin: 0 auto 14px; max-width: 40ch; }
+.premium-card .prem-terms { font-size: .85rem; color: var(--muted); margin: 12px auto; max-width: 44ch; }
+.prem-actions { display: flex; flex-direction: column; gap: 10px; align-items: center; margin-top: 6px; }
+.prem-actions .btn { width: min(340px, 100%); justify-content: center; }
+.prem-links { margin: 12px 0 0; }
+.prem-plans { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; text-align: left; margin: 16px 0 4px; }
+.prem-plan { border: 1px solid var(--border); border-radius: 18px; padding: 16px; background: var(--card); }
+.prem-plan h3 { margin: 0 0 6px; }
+.prem-plan ul { margin: 10px 0 0; padding-left: 18px; font-size: .85rem; color: var(--muted); display: grid; gap: 5px; }
+.prem-price { font-size: 1.25rem; font-weight: 800; margin: 0; }
+.prem-price span { font-size: .8rem; font-weight: 500; color: var(--muted); }
+.prem-plan-best { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); position: relative; }
+.prem-badge { position: absolute; top: -10px; right: 12px; background: var(--accent); color: #fff; font-size: .68rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; border-radius: 999px; padding: 3px 10px; margin: 0; }
+.prem-trial-note { font-size: .85rem; font-weight: 700; color: var(--accent); margin: 4px 0 0; }
+.prem-alt { font-size: .8rem; color: var(--muted); margin: 10px 0 0; }
+@media (max-width: 640px) { .prem-plans { grid-template-columns: 1fr; } .premium-card { padding: 20px 16px; } }
+@media (prefers-reduced-motion: reduce) { .premium-veil { backdrop-filter: none; -webkit-backdrop-filter: none; } }
+
 .env-stage-actions .btn-primary { background: #fff; color: #1f1d1a; border: 0; box-shadow: 0 10px 30px rgba(0,0,0,.25); font-weight: 600; letter-spacing: .04em; }
 .env-stage-actions .btn-primary:hover { background: #f3efe7; }
 .env-stage-ui { background: linear-gradient(to top, rgba(0,0,0,.55), rgba(0,0,0,0) 60%); }

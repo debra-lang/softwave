@@ -227,7 +227,9 @@
     async startSound(id, volume = 0.6, balance = 0) {
       await this.init();
       if (this.active.has(id)) { this.setVolume(id, volume); return true; }
-      if (this.active.size >= MAX_ACTIVE) { this.emit('limit', MAX_ACTIVE); return false; }
+      const MZ = global.softwaveMonetization;
+      const lim = MZ && MZ.activeLayerLimit ? Math.min(MAX_ACTIVE, MZ.activeLayerLimit()) : MAX_ACTIVE;  // Free: 3 layers once monetization is on
+      if (this.active.size >= lim) { if (lim < MAX_ACTIVE && global.softwavePremium) softwavePremium.gate('mixer_layers'); this.emit('limit', lim); return false; }
       const ctx = this.ctx;
       const gain = ctx.createGain(); gain.gain.value = 0;
       const filt = ctx.createBiquadFilter(); filt.type = 'lowpass'; filt.frequency.value = 20000; filt.Q.value = 0.4;
