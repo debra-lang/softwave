@@ -1,0 +1,98 @@
+# Builds the iOS app in the cloud (no Mac needed locally).
+#
+# UNSIGNED lane (works today, no Apple developer account):
+#   GitHub → Actions → "iOS build" → Run workflow.
+#   Compiles the full native app and uploads an unsigned .ipa artifact —
+#   proof the app builds, and a file you can sign later.
+#
+# SIGNED lane (after you enroll in the Apple Developer Program):
+#   Add the four repository secrets listed in IOS-APP.md, then run the
+#   workflow with "signed" set to true. Produces a TestFlight-ready .ipa.
+name: iOS build
+
+on:
+  workflow_dispatch:
+    inputs:
+      signed:
+        description: "Signed build (requires Apple secrets — see IOS-APP.md)"
+        type: boolean
+        default: false
+
+jobs:
+  build:
+    runs-on: macos-15
+    defaults:
+      run:
+        working-directory: native
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build web bundle and sync Capacitor
+        run: npm run sync
+
+      - name: Build (unsigned)
+        if: ${{ !inputs.signed }}
+        run: |
+          xcodebuild -project ios/App/App.xcodeproj \
+            -scheme App -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath ios/DerivedData \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY="" build
+          APP_PATH=$(find ios/DerivedData/Build/Products -name "App.app" -type d | head -1)
+          mkdir -p output/Payload
+          cp -R "$APP_PATH" output/Payload/
+          cd output && zip -qry FindMyQuietSound-unsigned.ipa Payload
+
+      - name: Import signing certificate
+        if: ${{ inputs.signed }}
+        env:
+          CERT_P12_BASE64: ${{ secrets.IOS_CERT_P12_BASE64 }}
+          CERT_PASSWORD: ${{ secrets.IOS_CERT_PASSWORD }}
+          PROFILE_BASE64: ${{ secrets.IOS_PROFILE_BASE64 }}
+        run: |
+          KEYCHAIN=build.keychain
+          security create-keychain -p ci $KEYCHAIN
+          security default-keychain -s $KEYCHAIN
+          security unlock-keychain -p ci $KEYCHAIN
+          security set-keychain-settings -t 3600 $KEYCHAIN
+          echo "$CERT_P12_BASE64" | base64 --decode > cert.p12
+          security import cert.p12 -k $KEYCHAIN -P "$CERT_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k ci $KEYCHAIN
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          echo "$PROFILE_BASE64" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/app.mobileprovision
+
+      - name: Build and export signed .ipa
+        if: ${{ inputs.signed }}
+        env:
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          xcodebuild -project ios/App/App.xcodeproj \
+            -scheme App -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath ios/App.xcarchive \
+            DEVELOPMENT_TEAM="$TEAM_ID" archive
+          cat > exportOptions.plist <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>teamID</key><string>$TEAM_ID</string>
+          </dict></plist>
+          EOF
+          xcodebuild -exportArchive -archivePath ios/App.xcarchive \
+            -exportOptionsPlist exportOptions.plist -exportPath output
+          mv output/*.ipa output/FindMyQuietSound.ipa
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.signed && 'FindMyQuietSound-ipa' || 'FindMyQuietSound-unsigned-ipa' }}
+          path: native/output/*.ipa
+          retention-days: 30
