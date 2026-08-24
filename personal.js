@@ -25,15 +25,20 @@
     function applyTuning() {
       if (!engine.ctx) return;
       const pp = profile.params();
-      if (!pp || !confident() || !tunedOn() || !gateQuiet('sound_profile')) { engine.setMasterTone(20000, 0.6); engine.setVariation(0); syncChip(); return; }
+      // The frequency generator and tinnitus matcher must always play untouched —
+      // personalization never shapes deliberate tones.
+      const toneActive = (engine.tone && engine.tone.playing) || (engine.matcher && engine.matcher.playing);
+      if (!pp || !confident() || !tunedOn() || toneActive || !gateQuiet('sound_profile')) { engine.setMasterTone(20000, 0.6); engine.setVariation(0); syncChip(); return; }
       const warm = pp.warm || 0;      // -1 warmer … +1 brighter (from A/B choices)
       const moving = pp.moving || 0;  // 0 steady … 1 moving
-      engine.setMasterTone(warm < -0.45 ? 7000 : warm < -0.2 ? 10500 : 20000, 0.8);
-      engine.setVariation(moving > 0.35 ? Math.min(0.3, moving * 0.5) : 0, 9);
+      // A gentle easing, never a rewrite: the strongest setting only softens the very top —
+      // every sound's character (hiss stays hissy, cicadas stay bright) must survive it.
+      engine.setMasterTone(warm < -0.45 ? 11000 : warm < -0.2 ? 14000 : 20000, 0.8);
+      engine.setVariation(moving > 0.35 ? Math.min(0.25, moving * 0.4) : 0, 9);
       syncChip();
     }
     const gateQuiet = (key) => !M() || M().canUse(key);   // tuning silently pauses if the profile ever becomes premium-gated
-    engine.on(type => { if (type === 'sounds' && engine.activeList().length) applyTuning(); });
+    engine.on(type => { if ((type === 'sounds' && engine.activeList().length) || type === 'tone') applyTuning(); });
 
     // The quiet indicator: a small chip beside the field actions, only when tuning is possible.
     function syncChip() {
@@ -98,7 +103,7 @@
     const STEPS = [
       { t: 'Sounds are different tools', b: 'Broadband noise (white, pink, brown) blends steadily. Nature sounds add life and character. Neither is “correct” — comfort is personal, and quieter usually works better than louder.', a: 'Next' },
       { t: 'Compare two sounds', b: 'Listen to each for a few seconds at the same volume. Notice which one your ears relax into — that reaction is the whole method.', a: 'Next', demo: true },
-      { t: 'Find your level', b: 'Using the volume under the big circle, go lower than you think — the best level lets the sound sit beside your tinnitus rather than fight it. If it feels loud, it is.', a: 'Next' },
+      { t: 'Find your level', b: 'Using the volume under the big circle, start low and adjust to a comfortable level — one where the sound sits beside your tinnitus rather than fighting it.', a: 'Next' },
       { t: 'Let it learn your preferences', b: 'Find My Sound plays pairs of sounds and learns from your choices — about ten quick comparisons. “No difference” is a perfectly good answer.', a: 'Start Find My Sound', discover: true },
       { t: 'Your first Moment', b: 'Your preferences are learned. “Your Moments” now sit at the top of the Sounds page — one tap builds your personal quiet, sleep or focus environment.', a: 'Try Your Quiet', moment: true },
     ];
