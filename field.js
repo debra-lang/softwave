@@ -16,7 +16,7 @@
   const mix3 = (a, b, t) => [lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t)];
   const isDark = () => document.documentElement.dataset.theme === 'dark';
   const reduced = () => { try { return (localStorage.getItem('softwave:reduceMotion') === 'true') || matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (_) { return false; } };
-  const LOW = (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) || (navigator.deviceMemory && navigator.deviceMemory <= 4);
+  let LOW = (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) || (navigator.deviceMemory && navigator.deviceMemory <= 4);
   // deterministic pseudo-random per index (stable layouts, no Math.random in the hot path)
   const hash = (i, k = 0) => { const s = Math.sin(i * 12.9898 + k * 78.233) * 43758.5453; return s - Math.floor(s); };
 
@@ -345,5 +345,8 @@
   function makeEnvironment(id) { return (ENV[id] || ENV.generic)(); }
   const shared = {}; function sharedEnvironment(id) { return shared[id] || (shared[id] = makeEnvironment(id)); }
 
-  global.SoftwaveField = { Field, Preview, PERSONA, DESC, LAYERS, personaFor, blend, clock, tick, makeEnvironment, sharedEnvironment, environments: Object.keys(ENV), drawRings, envState, LOW, isDark, reduced };
+  global.SoftwaveField = { Field, Preview, PERSONA, DESC, LAYERS, personaFor, blend, clock, tick, makeEnvironment, sharedEnvironment, environments: Object.keys(ENV), drawRings, envState, LOW, isDark, reduced,
+    // Runtime degrade: when the app detects a struggling machine it flips every LOW path on (fewer
+    // particles, static previews, slower shape cadence) — same visuals family, far less GPU work.
+    setLOW(v) { LOW = !!v; global.SoftwaveField.LOW = LOW; } };
 })(window);
