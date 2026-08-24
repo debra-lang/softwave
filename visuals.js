@@ -37,8 +37,8 @@
     theme() {
       const dark = document.documentElement.dataset.theme === 'dark';
       return dark
-        ? { a: 'hsla(226, 80%, 66%, ', b: 'hsla(190, 70%, 60%, ', p: 'rgba(200,215,255,', wave: 0.045 }
-        : { a: 'hsla(226, 85%, 60%, ', b: 'hsla(190, 70%, 55%, ', p: 'rgba(63,108,240,', wave: 0.07 };
+        ? { a: 'hsla(226, 80%, 66%, ', b: 'hsla(190, 70%, 60%, ', p: 'rgba(200,215,255,', wave: 0.045, blob: 0.12 }
+        : { a: 'hsla(226, 85%, 56%, ', b: 'hsla(190, 72%, 48%, ', p: 'rgba(63,108,240,', wave: 0.105, blob: 0.17 };
     }
     loop() {
       if (!this.running) return;
@@ -55,10 +55,10 @@
 
       // soft gradient blobs
       const g1 = ctx.createRadialGradient(w * (0.2 + Math.sin(this.t * 0.5) * 0.05), h * 0.15, 0, w * 0.2, h * 0.15, w * 0.6);
-      g1.addColorStop(0, th.a + (0.12 + L * 0.25) + ')'); g1.addColorStop(1, th.a + '0)');
+      g1.addColorStop(0, th.a + (th.blob + L * 0.25) + ')'); g1.addColorStop(1, th.a + '0)');
       ctx.fillStyle = g1; ctx.fillRect(0, 0, w, h);
       const g2 = ctx.createRadialGradient(w * (0.85 + Math.cos(this.t * 0.4) * 0.05), h * 0.8, 0, w * 0.85, h * 0.8, w * 0.6);
-      g2.addColorStop(0, th.b + (0.10 + L * 0.2) + ')'); g2.addColorStop(1, th.b + '0)');
+      g2.addColorStop(0, th.b + (th.blob * 0.85 + L * 0.2) + ')'); g2.addColorStop(1, th.b + '0)');
       ctx.fillStyle = g2; ctx.fillRect(0, 0, w, h);
 
       // flowing waves — large, translucent, the Softwave signature; scale with the environment

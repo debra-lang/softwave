@@ -567,8 +567,8 @@ input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.12); }
 /* =====================================================================
    PREMIUM VISUAL LAYER — palettes, open layouts, sound personalities
    ===================================================================== */
-:root { --bg: #f5f4f0; --bg-2: #fbfaf8; --card: rgba(255, 255, 255, 0.62); --card-solid: #ffffff; --border: rgba(20, 30, 60, 0.06); --text: #151a2b; --muted: #636c86; --accent: #3f63e0; --accent-2: #5fb4c9; --accent-soft: rgba(63, 99, 224, 0.10); --ring: rgba(63, 99, 224, 0.28); --shadow: 0 14px 40px rgba(30, 40, 80, 0.08), 0 1px 2px rgba(30, 40, 80, 0.04); --radius: 26px; }
-:root[data-theme="dark"] { --bg: #0b0f1d; --bg-2: #0e1424; --card: rgba(20, 27, 48, 0.55); --card-solid: #131a2f; --border: rgba(180, 200, 255, 0.07); --text: #e7ebf6; --muted: #98a3c2; --accent: #8aa6ff; --accent-2: #74d2e2; --accent-soft: rgba(138, 166, 255, 0.14); --ring: rgba(138, 166, 255, 0.32); --shadow: 0 18px 50px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3); }
+:root { --bg: #f0eee7; --bg-2: #f7f5ef; --card: rgba(255, 255, 255, 0.62); --card-solid: #ffffff; --border: rgba(20, 30, 60, 0.06); --text: #151a2b; --muted: #59627c; --accent: #3f63e0; --accent-2: #5fb4c9; --accent-soft: rgba(63, 99, 224, 0.10); --ring: rgba(63, 99, 224, 0.28); --shadow: 0 14px 40px rgba(30, 40, 80, 0.08), 0 1px 2px rgba(30, 40, 80, 0.04); --radius: 26px; }
+:root[data-theme="dark"] { --bg: #0b0f1d; --bg-2: #0e1424; --card: rgba(20, 27, 48, 0.55); --card-solid: #131a2f; --border: rgba(180, 200, 255, 0.07); --text: #e7ebf6; --muted: #a7b1ce; --accent: #8aa6ff; --accent-2: #74d2e2; --accent-soft: rgba(138, 166, 255, 0.14); --ring: rgba(138, 166, 255, 0.32); --shadow: 0 18px 50px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3); }
 body { background: var(--bg); }
 :root[data-theme="dark"] body { background: radial-gradient(120% 70% at 20% -10%, #141d3d 0%, #0b0f1d 55%) fixed, #0b0f1d; }
 
@@ -825,8 +825,8 @@ body.entering #field { transform: scale(1.6); opacity: 0; transition: transform 
    SOFTWAVE v3 — ENVIRONMENT LANGUAGE (from the approved Brown Noise + Ocean prototypes)
    Sound becomes visual. Visual becomes environment. Controls are subordinate to the experience.
    ===================================================================== */
-:root { --sf-display: "Fraunces", Georgia, "Times New Roman", serif; --sf-ink: #1f1d1a; --sf-ink-2: rgba(31,29,26,.64); --sf-ink-3: rgba(31,29,26,.42); --sf-line: rgba(31,29,26,.14); --sf-glass: rgba(255,252,247,.55); --sf-glass-strong: rgba(255,252,247,.8); --sf-accent: #7d5a3c; --sf-core: rgba(255,252,247,.55); --sf-core-ring: rgba(31,29,26,.18); --sf-range: rgba(31,29,26,.16); --sf-range-fill: rgba(125,90,60,.8); --sf-bg-a: #f6f3ec; --sf-bg-b: #ebe6dc; }
-html[data-theme="dark"] { --sf-ink: #eef0f4; --sf-ink-2: rgba(238,240,244,.62); --sf-ink-3: rgba(238,240,244,.38); --sf-line: rgba(238,240,244,.14); --sf-glass: rgba(14,17,26,.42); --sf-glass-strong: rgba(14,17,26,.66); --sf-accent: #e5d3ba; --sf-core: rgba(238,240,244,.10); --sf-core-ring: rgba(238,240,244,.26); --sf-range: rgba(238,240,244,.22); --sf-range-fill: rgba(229,211,186,.85); --sf-bg-a: #12141c; --sf-bg-b: #0a0c12; }
+:root { --sf-display: "Fraunces", Georgia, "Times New Roman", serif; --sf-ink: #1f1d1a; --sf-ink-2: rgba(31,29,26,.74); --sf-ink-3: rgba(31,29,26,.54); --sf-line: rgba(31,29,26,.14); --sf-glass: rgba(255,252,247,.55); --sf-glass-strong: rgba(255,252,247,.8); --sf-accent: #7d5a3c; --sf-core: rgba(255,252,247,.55); --sf-core-ring: rgba(31,29,26,.18); --sf-range: rgba(31,29,26,.16); --sf-range-fill: rgba(125,90,60,.8); --sf-bg-a: #f6f3ec; --sf-bg-b: #ebe6dc; }
+html[data-theme="dark"] { --sf-ink: #eef0f4; --sf-ink-2: rgba(238,240,244,.78); --sf-ink-3: rgba(238,240,244,.55); --sf-line: rgba(238,240,244,.14); --sf-glass: rgba(14,17,26,.42); --sf-glass-strong: rgba(14,17,26,.66); --sf-accent: #e5d3ba; --sf-core: rgba(238,240,244,.10); --sf-core-ring: rgba(238,240,244,.26); --sf-range: rgba(238,240,244,.22); --sf-range-fill: rgba(229,211,186,.85); --sf-bg-a: #12141c; --sf-bg-b: #0a0c12; }
 
 /* ---- the stage: full-bleed environment, not a card ---- */
 body { overflow-x: hidden; }
