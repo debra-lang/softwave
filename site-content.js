@@ -414,6 +414,43 @@ learn({
   sources: ['who', 'ata', 'harvard'],
 });
 
+learn({
+  slug: 'how-to-use-find-my-sound',
+  title: 'How to Use Help Me Find My Sound',
+  description: 'A step-by-step guide to Help Me Find My Sound: compare sounds two at a time, answer honestly, and let the app build your personal sound and Sound Profile.',
+  h1: 'How to use Help Me Find My Sound',
+  intro: 'Instead of guessing which sound might suit you, Help Me Find My Sound plays you pairs of sounds and learns from your choices. After about ten quick comparisons it builds a personal sound — and a Sound Profile the app can reuse for suggestions. There are no wrong answers: it is only about what feels easiest to your ears.',
+  body: `
+<h2>Before you start</h2>
+<ul><li>Use headphones if you can — comparisons are easier (not required).</li><li>Set the volume <strong>low and comfortable</strong>. You are comparing character, not loudness.</li></ul>
+<h2>Starting</h2>
+<p>Open it any of these ways — they all lead to the same place: tap <strong>Find My Sound</strong> in the top menu, or <strong>Experiments → Find My Sound</strong>, or the <em>"Help Me Find My Sound"</em> link under the big circle on the Sounds page. Then choose how many <strong>rounds</strong> you want — 8 (quick), 12 (standard) or 15 (thorough) — and press <strong>Start Experiment</strong>.</p>
+<h2>During each round</h2>
+<ol>
+<li>You will see two shapes, <strong>A</strong> and <strong>B</strong>. One of them is playing.</li>
+<li><strong>Tap A, then tap B</strong> — the sound switches instantly. Switch back and forth as often as you like; take your time.</li>
+<li>Answer <em>"Which feels more comfortable?"</em> by tapping <strong>A</strong>, <strong>No difference</strong> or <strong>B</strong>. <em>"No difference" is a perfectly good answer</em> — do not force a choice you do not feel.</li>
+</ol>
+<p>The sound you preferred is kept and gently varied for the next round — sometimes in depth or brightness, sometimes with a soft nature texture such as rain, ocean, crickets, lapping water or rustling leaves. The dots at the top show your progress.</p>
+<h2>When you finish</h2>
+<p>Your discovered sound is revealed as a living shape, with everything you might want to do next:</p>
+<ul>
+<li><strong>Listen</strong> — play it.</li>
+<li><strong>Save</strong> — name it and keep it. It then appears under <em>My sounds</em> on the Sounds page, one tap away.</li>
+<li><strong>Tune</strong> — open it in the Sound Sculptor and fine-adjust it with sliders.</li>
+<li><strong>Favourites</strong> — save it with a matching visual as an environment in Visual Focus.</li>
+<li><strong>Sleep</strong> — start it softly with a 60-minute timer and gentle fade-out.</li>
+<li><strong>With a visual</strong> — play it inside a full-screen calm visual.</li>
+<li><strong>Try again</strong> — run a fresh discovery.</li>
+</ul>
+<h2>Your Sound Profile</h2>
+<p>Your answers also build a <strong>Sound Profile</strong> (shown in the Experiments section): a short summary of what you tend to prefer. The app uses it for suggestions — a one-tap sleep session, a recommended visual — and it gets a little smarter every time you run a discovery.</p>
+<h2>Tips</h2>
+<ul><li>Preferences shift with time of day and mood — rerunning it at night may find a different, softer sound than in the morning.</li><li>If everything starts sounding the same after many rounds, you have probably converged on your sound: stop, save it, and enjoy it.</li><li>Sound preferences vary from person to person; this tool helps you explore yours. It does not diagnose or treat anything.</li></ul>
+<p><a href="/?exp=discovery">Try Help Me Find My Sound now →</a></p>`,
+  sources: [],
+});
+
 // ===== TRUST PAGES =====
 const trust = (o) => PAGES.push(Object.assign({ type: 'trust' }, o));
 trust({
@@ -422,7 +459,7 @@ trust({
   body: `
 <p>Find My Quiet Sound is a free web app for people with tinnitus who want comfortable background sound. It is built around one idea: <strong>everyone experiences tinnitus differently, so everyone’s comfortable sound is different too.</strong> Find My Quiet Sound makes trying, comparing and shaping sounds easy, keeps every level low, and helps you keep what you find.</p>
 <h2>What it is</h2>
-<ul><li>A <a href="/tinnitus-sound-generator/">sound generator</a> with fourteen synthesised sounds that loop seamlessly.</li><li>A <a href="/tinnitus-sound-mixer/">mixer</a>, a <a href="/tinnitus-frequency-generator/">frequency generator</a>, a guided <a href="/tinnitus-sound-matching/">sound-matching</a> tool and <a href="/tinnitus-sleep-sounds/">Sleep Mode</a>.</li><li>Visual Focus — calm visuals to watch while listening.</li><li>Experiments — personal sound discovery: compare sounds two at a time, paint or sculpt your own, and build sessions; each experiment carries a plain-English "why are we testing this?" note and an evidence label.</li></ul>
+<ul><li>A <a href="/tinnitus-sound-generator/">sound generator</a> with twenty synthesised sounds that loop seamlessly.</li><li>A <a href="/tinnitus-sound-mixer/">mixer</a>, a <a href="/tinnitus-frequency-generator/">frequency generator</a>, a guided <a href="/tinnitus-sound-matching/">sound-matching</a> tool and <a href="/tinnitus-sleep-sounds/">Sleep Mode</a>.</li><li>Visual Focus — calm visuals to watch while listening.</li><li>Experiments — personal sound discovery: compare sounds two at a time, paint or sculpt your own, and build sessions; each experiment carries a plain-English "why are we testing this?" note and an evidence label.</li></ul>
 <h2>What it is not</h2>
 <p>It is not a medical device, a hearing test or a treatment. It does not diagnose, treat or cure tinnitus. See the <a href="/medical-disclaimer/">medical disclaimer</a>.</p>
 <h2>How it is made</h2>
