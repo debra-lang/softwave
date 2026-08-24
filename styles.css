@@ -592,6 +592,9 @@ body { background: var(--bg); }
 :root[data-theme="dark"] .tile-preview { box-shadow: 0 0 0 1px rgba(180, 200, 255, 0.30); }
 :root[data-theme="dark"] .sound-card:hover .tile-preview, :root[data-theme="dark"] .sound-card .card-btn:focus-visible .tile-preview { box-shadow: 0 0 0 1px var(--accent); }
 :root[data-theme="dark"] .sound-card.active .tile-preview { box-shadow: 0 0 0 1px var(--sf-accent), 0 16px 40px rgba(0, 0, 0, 0.3); }
+/* Experiments: same visibility standard; hover uses the lab's green; running state keeps its own accent */
+:root[data-theme="dark"] .lab-tile:not(.running), :root[data-theme="dark"] .lab-flagship, :root[data-theme="dark"] #view-lab .card { border-color: rgba(180, 200, 255, 0.30); }
+:root[data-theme="dark"] .lab-tile:hover:not(.running) { border-color: var(--lab); }
 .topbar { background: color-mix(in srgb, var(--bg) 62%, transparent); border-bottom-color: transparent; }
 .group-title { letter-spacing: .18em; font-size: .78rem; }
 .row-title { letter-spacing: .18em; }
