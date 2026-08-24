@@ -581,7 +581,7 @@ body { background: var(--bg); }
    accent; selected adds the accent ring — three clearly distinct states without heavy lines */
 :root[data-theme="dark"] .chip, :root[data-theme="dark"] .two-tool, :root[data-theme="dark"] .vis-card,
 :root[data-theme="dark"] .pair-card, :root[data-theme="dark"] .fav-card, :root[data-theme="dark"] .lab-card,
-:root[data-theme="dark"] .channel, :root[data-theme="dark"] .about-tool { border-color: rgba(180, 200, 255, 0.18); }
+:root[data-theme="dark"] .channel, :root[data-theme="dark"] .about-tool { border-color: rgba(180, 200, 255, 0.30); }
 :root[data-theme="dark"] .chip:hover, :root[data-theme="dark"] .chip:focus-visible,
 :root[data-theme="dark"] .two-tool:hover, :root[data-theme="dark"] .two-tool:focus-visible,
 :root[data-theme="dark"] .vis-card:hover, :root[data-theme="dark"] .vis-card:focus-visible,
@@ -589,7 +589,7 @@ body { background: var(--bg); }
 :root[data-theme="dark"] .lab-card:hover, :root[data-theme="dark"] .about-tool:hover { border-color: var(--accent); }
 :root[data-theme="dark"] .chip.active, :root[data-theme="dark"] .vis-card.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 14px 36px var(--ring); }
 /* sound tiles: same three states, drawn as a ring so nothing shifts */
-:root[data-theme="dark"] .tile-preview { box-shadow: 0 0 0 1px rgba(180, 200, 255, 0.18); }
+:root[data-theme="dark"] .tile-preview { box-shadow: 0 0 0 1px rgba(180, 200, 255, 0.30); }
 :root[data-theme="dark"] .sound-card:hover .tile-preview, :root[data-theme="dark"] .sound-card .card-btn:focus-visible .tile-preview { box-shadow: 0 0 0 1px var(--accent); }
 :root[data-theme="dark"] .sound-card.active .tile-preview { box-shadow: 0 0 0 1px var(--sf-accent), 0 16px 40px rgba(0, 0, 0, 0.3); }
 .topbar { background: color-mix(in srgb, var(--bg) 62%, transparent); border-bottom-color: transparent; }
