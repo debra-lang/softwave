@@ -177,9 +177,11 @@
         const card = document.createElement('div'); card.className = 'sound-card'; card.style.setProperty('--hue', d.hue); card.dataset.id = d.id; card.setAttribute('role', 'listitem');
         const FD = (window.SoftwaveField && window.SoftwaveField.DESC[d.id]) || d.desc;
         card.innerHTML = `
-          <button class="card-btn" aria-pressed="false" aria-label="${d.name}: ${FD}"><span class="tile-preview" aria-hidden="true"><canvas class="tile-canvas"></canvas></span><span class="name">${d.name}</span><span class="desc">${FD}</span></button>
-          <div class="vol"><label class="sr-only" for="vol-${d.id}">${d.name} volume</label><input id="vol-${d.id}" type="range" min="0" max="100" value="60"><output>60%</output></div>`;
+          <button class="card-btn" aria-pressed="false" aria-label="${d.name}: ${FD}"><span class="tile-preview" aria-hidden="true"><canvas class="tile-canvas"></canvas></span></button>
+          <div class="vol"><label class="sr-only" for="vol-${d.id}">${d.name} volume</label><input id="vol-${d.id}" type="range" min="0" max="100" value="60"><output>60%</output></div>
+          <span class="name">${d.name}</span><span class="desc">${FD}</span>`;
         const btn = $('.card-btn', card);
+        $$('.name, .desc', card).forEach(el => el.addEventListener('click', () => btn.click()));
         if (window.SoftwaveField) { const pv = new SoftwaveField.Preview($('.tile-canvas', card), d.id); tilePreviews.set(card, pv); }
         btn.addEventListener('click', async () => {
           const wasActive = engine.isActive(d.id);

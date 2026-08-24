@@ -886,7 +886,7 @@ html[data-theme="dark"] .sound-library .group-title { color: rgba(238,240,244,.4
 .sound-card .name { font-weight: 500; font-size: .84rem; letter-spacing: .02em; }
 .sound-card .desc { font-size: .62rem; letter-spacing: .06em; text-transform: none; color: var(--sf-ink-3); margin-top: -6px; max-width: 138px; line-height: 1.25; }
 html[data-theme="dark"] .sound-card .desc { color: rgba(238,240,244,.42); }
-.sound-card .vol { width: 100%; margin-top: 6px; }
+.sound-card .vol { width: 100%; margin: -2px 0; }   /* sits directly under the tile, above the name */
 .sound-card .vol input[type="range"] { height: 2px; }
 .presets-row { margin-top: 36px; }
 .row-title { font-size: .7rem; letter-spacing: .26em; color: var(--sf-ink-3); font-weight: 500; text-transform: uppercase; }
