@@ -537,7 +537,7 @@ trust({
 <p>This app is designed for sound masking, relaxation, and tinnitus management support. It does not diagnose, treat, or cure tinnitus and is not a substitute for professional medical care.</p>
 <p>Nothing on this site is medical advice. Experimental features are exploratory tools for relaxation, attention, sound personalisation and tinnitus management support; they are not proven treatments and may not work for everyone. The frequency and matching tools are not hearing tests.</p>
 <h2>When to talk to a professional</h2>
-<p>See a doctor, audiologist or ENT specialist if your tinnitus is new or changed suddenly; is persistent (around six months or more) or distressing; is in one ear only; comes with hearing difficulty, fullness or dizziness; pulses with your heartbeat; started after an injury; or is affecting sleep, mood or concentration. A hearing evaluation is the usual first step.</p>
+<p>See a doctor, audiologist or ENT specialist if your tinnitus is new or changed suddenly; is persistent, getting worse, or distressing; is in one ear only; comes with hearing difficulty, fullness or dizziness; pulses with your heartbeat; started after an injury; or is affecting sleep, mood or concentration. A hearing evaluation is the usual first step.</p>
 <p>Find My Quiet Sound has no medical staff and makes no claims of clinical review. Sources used for guidance are listed on <a href="/research-and-sources/">Research &amp; Sources</a>.</p>`,
   sources: ['aao', 'nidcd'],
 });
