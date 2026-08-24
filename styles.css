@@ -988,6 +988,14 @@ html[data-theme="dark"] .row-title { color: rgba(238,240,244,.42); }
 .field-vol .vol-pause.paused .vp-play { display: block; }
 .field-desc-alt { display: block; margin-top: 7px; font-size: .92em; opacity: .85; }
 
+/* ---- personalized moments + starter journey ---- */
+.moments-row .moments-note { margin: -4px 0 10px; }
+.journey-chip { display: flex; align-items: center; gap: 8px; margin: 4px 0 14px; }
+.journey-chip .chip strong::before { content: "☀ "; }
+.journey-veil .journey-card .btn-row { flex-wrap: wrap; }
+.fa-tuned { font-size: .78rem; opacity: .85; }
+.fa-tuned[aria-pressed="true"]::before { content: "✦ "; }
+
 /* ---- contextual Premium dialog (inert during free launch) ---- */
 .premium-veil { position: fixed; inset: 0; z-index: 300; display: flex; align-items: center; justify-content: center; padding: 18px; background: rgba(8, 11, 20, 0.6); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); overflow-y: auto; }
 .premium-card { background: var(--card-solid); color: var(--text); border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--border); max-width: 560px; width: 100%; max-height: calc(100vh - 36px); overflow-y: auto; padding: 26px 24px; text-align: center; }

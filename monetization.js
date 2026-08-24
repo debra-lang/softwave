@@ -187,7 +187,7 @@
   // ---------------- privacy-conscious analytics stub ----------------
   // Counts events locally only; sends NOTHING anywhere until an endpoint is configured post-launch.
   // Never pass free-text or health information — event names + coarse counts only.
-  const ANALYTICS_EVENTS = ['pricing_viewed', 'premium_feature_opened', 'premium_prompt_shown', 'premium_prompt_dismissed', 'premium_preview_started', 'checkout_started', 'checkout_completed', 'trial_started', 'plan_selected', 'premium_activated', 'premium_cancelled', 'premium_expired', 'save_limit_reached', 'subscription_cancelled', 'subscription_reactivated', 'find_my_sound_completed', 'sound_profile_created', 'frequency_painting_used', 'environment_saved', 'sound_saved'];
+  const ANALYTICS_EVENTS = ['pricing_viewed', 'premium_feature_opened', 'premium_prompt_shown', 'premium_prompt_dismissed', 'premium_preview_started', 'checkout_started', 'checkout_completed', 'trial_started', 'plan_selected', 'premium_activated', 'premium_cancelled', 'premium_expired', 'save_limit_reached', 'moment_used', 'journey_completed', 'tuning_on', 'tuning_off', 'subscription_cancelled', 'subscription_reactivated', 'find_my_sound_completed', 'sound_profile_created', 'frequency_painting_used', 'environment_saved', 'sound_saved'];
   // entry_feature values are restricted to known feature keys — never free text, never health data.
   const FEATURE_KEYS = Object.keys(FEATURE_ENTITLEMENT).concat(['visual', 'saves', 'mixer_layers', 'plans']);
   function track(event, feature) {
