@@ -443,10 +443,11 @@
   const fieldSpec = new Uint8Array(512); let fieldLast = 0; let fieldVisible = true;
   new IntersectionObserver(en => { fieldVisible = en[0].isIntersecting; }).observe($('#field'));
   const tileVisible = new Map(); const tileIO = new IntersectionObserver(ens => ens.forEach(en => tileVisible.set(en.target, en.isIntersecting)), { rootMargin: '80px' });
+  let tileTick = 0;   // idle previews refresh staggered (1/3 per tick) so no frame redraws every tile at once
   function fieldIds() { return engine.activeList().map(sn => ({ id: sn.id, volume: sn.volume, params: (sn.id === 'sculpt' || sn.id.startsWith('disco')) ? engine.getSculpt(sn.id) : null })); }
   function fieldLoop(now) { requestAnimationFrame(fieldLoop); if (!FIELD || document.hidden) return; const playing = !!engine.isPlaying; const lv = playing ? Math.min(1, engine.getLevels(fieldSpec) * 6) : 0; let lo = 0; if (playing) { for (let i = 1; i < 10; i++) lo += fieldSpec[i]; lo /= 9 * 255; } const bal = engine.activeList().reduce((acc, sn) => acc + sn.balance, 0); const immersed = !$('#now').hidden; const focusOpen = !$('#focus-screen').hidden && !transit.active;
     if (immersed) { fieldBig.setPlaying(playing); fieldBig.setLevel(lv, bal); fieldBig.setLow(lo); fieldBig.draw(now); } else if (!focusOpen && (transit.active || (fieldVisible && !$('#view-sounds').hidden))) { fieldMain.setPlaying(playing); fieldMain.setLevel(lv, bal); fieldMain.setLow(lo); fieldMain.draw(now); }
-    if (now - fieldLast > 80 && !$('#view-sounds').hidden && !immersed) { fieldLast = now; tilePreviews.forEach((pv, card) => { if (!tileVisible.has(card)) { tileIO.observe(card); tileVisible.set(card, false); return; } if (!tileVisible.get(card)) return; const hot = card.classList.contains('active') || card.matches(':hover'); pv.setLevel(hot ? 0.5 : 0.15, 0); pv.draw(now); }); } }
+    if (now - fieldLast > 80 && !$('#view-sounds').hidden && !immersed) { fieldLast = now; tileTick = (tileTick + 1) % 3; let ti = 0; tilePreviews.forEach((pv, card) => { ti++; if (!tileVisible.has(card)) { tileIO.observe(card); tileVisible.set(card, false); return; } if (!tileVisible.get(card)) return; const hot = card.classList.contains('active') || card.matches(':hover'); if (!hot && ti % 3 !== tileTick) return; pv.setLevel(hot ? 0.5 : 0.15, 0); pv.draw(now); }); } }
   requestAnimationFrame(fieldLoop);
   function syncField() {
     const ids = fieldIds(); if (fieldMain) { fieldMain.set(ids); fieldBig.set(ids); }

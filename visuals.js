@@ -23,9 +23,10 @@
     _p(init) { return { x: Math.random(), y: init ? Math.random() : 1.05, r: 1 + Math.random() * 2.5, s: 0.0002 + Math.random() * 0.0005, o: 0.2 + Math.random() * 0.5, d: Math.random() * Math.PI * 2 }; }
     _drop(init) { return { x: Math.random(), y: init ? Math.random() : -0.05, l: 0.02 + Math.random() * 0.04, s: 0.006 + Math.random() * 0.008, o: 0.15 + Math.random() * 0.3 }; }
     resize() {
-      const dpr = Math.min(devicePixelRatio || 1, 2);
+      // Soft, blurry atmosphere: render at 2/3 resolution — invisible difference, far fewer pixels to fill each tick.
+      const dpr = Math.min(devicePixelRatio || 1, 1) * 0.67;
       this.w = innerWidth; this.h = innerHeight;
-      this.c.width = this.w * dpr; this.c.height = this.h * dpr;
+      this.c.width = Math.round(this.w * dpr); this.c.height = Math.round(this.h * dpr);
       this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
     setMode(m) { this.mode = m; }

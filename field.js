@@ -254,7 +254,7 @@
     setLevel(lv) { this.level += (lv - this.level) * 0.1; }
     draw(now) {
       const c = this.c, r = c.getBoundingClientRect(); if (!r.width) return; const dpr = Math.min(devicePixelRatio || 1, 1.5); if (c.width !== Math.round(r.width * dpr)) { c.width = Math.round(r.width * dpr); c.height = Math.round(r.height * dpr); }
-      const x = c.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, 0, 0); const w = r.width, h = r.height; const dt = this.last ? Math.min(0.05, (now - this.last) / 1000) : 0.016; this.last = now; const mo = reduced() ? 0.1 : 1; this.t += dt * (0.5 + this.level) * mo;
+      const x = c.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, 0, 0); const w = r.width, h = r.height; const dt = this.last ? Math.min(0.3, (now - this.last) / 1000) : 0.016; this.last = now; const mo = reduced() ? 0.1 : 1; this.t += dt * (0.5 + this.level) * mo;
       const P = personaFor(this.id, this.params), dark = isDark(), tint = dark ? P.tint : P.light, t = this.t;
       x.clearRect(0, 0, w, h); x.fillStyle = dark ? 'rgba(18,21,29,0.92)' : 'rgba(244,246,250,0.92)'; x.fillRect(0, 0, w, h);
       x.strokeStyle = rgba(tint, dark ? 0.6 : 0.8); x.fillStyle = rgba(tint, dark ? 0.6 : 0.8); x.lineWidth = 1.2;
