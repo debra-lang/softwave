@@ -201,14 +201,14 @@
     setMasterVolume(v, immediate) {
       this.masterVolume = Math.max(0, Math.min(1, v));
       if (!this.ctx) return;
-      const target = this._curve(this.masterVolume);
+      const target = this._curve(this.masterVolume) * 1.4;   // makeup gain; the limiter guards peaks
       const g = this.master.gain; const t = this.ctx.currentTime;
       g.cancelScheduledValues(t);
       g.setValueAtTime(g.value, t);
       g.linearRampToValueAtTime(target, t + (immediate ? 0.05 : 0.12));
       this.emit('master', this.masterVolume);
     }
-    _curve(v) { return v * v; } // perceptual-ish taper; 100% slider = unity gain (pre-limiter)
+    _curve(v) { return Math.pow(v, 1.6); } // perceptual-ish taper, gentler than v² so sound is audible earlier on the slider
 
     // ---------- sounds ----------
     defs(includeLab) { return includeLab ? SOUND_DEFS : SOUND_DEFS.filter(d => !d.lab); }
