@@ -178,7 +178,7 @@
         const FD = (window.SoftwaveField && window.SoftwaveField.DESC[d.id]) || d.desc;
         card.innerHTML = `
           <button class="card-btn" aria-pressed="false" aria-label="${d.name}: ${FD}"><span class="tile-preview" aria-hidden="true"><canvas class="tile-canvas"></canvas></span></button>
-          <div class="vol"><label class="sr-only" for="vol-${d.id}">${d.name} volume</label><input id="vol-${d.id}" type="range" min="0" max="100" value="60"><output>60%</output></div>
+          <div class="vol"><button class="vol-pause" aria-label="Pause or resume playback"><svg class="vp-pause" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M7 5h4v14H7zM13 5h4v14h-4z" fill="currentColor"/></svg><svg class="vp-play" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg></button><label class="sr-only" for="vol-${d.id}">${d.name} volume</label><input id="vol-${d.id}" type="range" min="0" max="100" value="60"><output>60%</output><button class="vol-stop" aria-label="Stop ${d.name}"><svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><path d="M6 6h12v12H6z" fill="currentColor"/></svg></button></div>
           <span class="name">${d.name}</span><span class="desc">${FD}</span>`;
         const btn = $('.card-btn', card);
         $$('.name, .desc', card).forEach(el => el.addEventListener('click', () => btn.click()));
@@ -191,6 +191,8 @@
         });
         const slider = $('input', card);
         slider.addEventListener('input', () => { engine.setVolume(d.id, +slider.value / 100); $('output', card).textContent = slider.value + '%'; });
+        $('.vol-pause', card).addEventListener('click', async () => { if (engine.ctx && engine.ctx.state === 'running') await engine.pauseAll(); else await engine.playAll(); });
+        $('.vol-stop', card).addEventListener('click', () => engine.stopSound(d.id));
         grid.appendChild(card);
       });
       host.appendChild(grid);
@@ -412,6 +414,7 @@
   function clockTick() { const d = new Date(); $('#sleep-clock').textContent = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); }
   setInterval(clockTick, 1000); clockTick();
   engine.on(type => { if (type === 'state') $('#sleep-toggle').textContent = engine.isPlaying ? '❚❚' : '▶'; });
+  engine.on(type => { if (type === 'state') { const paused = !(engine.ctx && engine.ctx.state === 'running'); $$('.vol-pause').forEach(b => { b.classList.toggle('paused', paused); b.setAttribute('aria-label', paused ? 'Resume playback' : 'Pause playback'); }); } });
   function renderTimer(t) {
     const el = $('#player-timer'), rem = $('#sleep-remaining');
     if (!t.endsAt) { el.hidden = true; rem.textContent = 'Continuous'; if (!t.durationMin) $$('.timer-seg [data-min]').forEach(x => x.setAttribute('aria-checked', x.dataset.min === '0')); return; }
