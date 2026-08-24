@@ -194,6 +194,7 @@
       what: 'Two sounds, A and B. Switch between them as often as you like and say which feels more comfortable. The winner is kept and gently varied each round. After about ten rounds you have your preferred sound.',
       why: 'Everyone’s tinnitus is different, and so is the sound that feels comfortable next to it. Comparing two things at a time is the easiest way to find out what you actually prefer — no sliders, no jargon.',
       how: 'Press Start. Listen to A, tap B, listen again, then choose. "No difference" is a perfectly good answer. Keep the volume low.',
+      guide: 'learn/how-to-use-find-my-sound/',
       whyTest: 'Pairwise comparison is a well-established way to learn preferences people cannot put into words; the same method is used to personalise hearing-aid settings. Answers are naturally a little noisy, so sounds change slowly and the winner is kept every round. This discovers what you prefer — it says nothing about your hearing or the cause of your tinnitus.',
       settings: [{ key: 'rounds', label: 'Rounds', type: 'buttons', options: [[8, '8 (quick)'], [12, '12'], [15, '15 (thorough)']] }],
       defaults: { rounds: 12 }, custom: true,
@@ -496,7 +497,7 @@
     const exp = byId[id]; if (!exp) return; const ctx = ctxFor(exp); const panel = $('#lab-detail'); panel.hidden = false; const f = fb()[exp.id] || {}; const isFav = favs().includes(exp.id);
     panel.innerHTML = `<div class="lab-detail-inner"><button class="btn btn-ghost btn-sm" data-close>← Experiments</button>
       <div class="lab-card-head"><div><div class="lab-cat">${exp.cat} · from ${exp.from}${exp.premium ? ' · <span class="tag tag-prem">' + PREMIUM_TAG() + '</span>' : ''}</div><h2>${exp.name}</h2></div><span class="ev ev-${exp.evidence}">${EV[exp.evidence]}</span></div>
-      <dl class="lab-dl"><dt>What it does</dt><dd>${exp.what}</dd><dt>Why try it</dt><dd>${exp.why}</dd><dt>How to use it</dt><dd>${exp.how}</dd></dl>
+      <dl class="lab-dl"><dt>What it does</dt><dd>${exp.what}</dd><dt>Why try it</dt><dd>${exp.why}</dd><dt>How to use it</dt><dd>${exp.how}${exp.guide ? ` <a href="${exp.guide}">Full step-by-step guide →</a>` : ''}</dd></dl>
       <details class="lab-why"><summary>Why are we testing this?</summary><p>${exp.whyTest}</p><p class="muted small">Not a medical treatment. Stop at any time with the Stop button below or in the player bar.</p></details>
       ${exp.customFirst ? '<div data-custom></div><div class="lab-settings" data-settings></div>' : '<div class="lab-settings" data-settings></div><div data-custom></div>'}
       <div class="lab-run"><button class="btn btn-primary btn-lg" data-exp-start="${exp.id}">Start Experiment</button><button class="btn btn-ghost" data-stop>Stop</button><button class="btn btn-ghost" data-reset>Reset</button><button class="btn btn-secondary" data-fav aria-pressed="${isFav}">${isFav ? '★ Favourite' : '☆ Favourite'}</button></div>

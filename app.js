@@ -68,7 +68,7 @@
   function ensureLab() {
     if (window.softwaveLab) return Promise.resolve();
     if (labPromise) return labPromise;
-    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=34'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
+    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=35'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
     return labPromise;
   }
   window.softwaveEnsureLab = ensureLab;
@@ -452,7 +452,7 @@
     const ids = fieldIds(); if (fieldMain) { fieldMain.set(ids); fieldBig.set(ids); }
     const names = engine.activeList().map(sn => engine.def(sn.id).name); const playing = engine.isPlaying; const any = ids.length > 0;
     const top = engine.activeList().slice().sort((x, y) => y.volume - x.volume)[0]; const desc = any ? (ids.length > 1 ? names.slice(1).join(' + ') + ' layered' : (FIELD && FIELD.DESC[top.id]) || engine.def(top.id).desc) : '';
-    $('#field-name').textContent = any ? names[0] : 'Ready when you are'; $('#field-desc').innerHTML = any ? desc : 'Tap any sound below — or <button class="linklike" id="field-discover">Help Me Find My Sound</button>';
+    $('#field-name').textContent = any ? names[0] : 'Ready when you are'; $('#field-desc').innerHTML = any ? desc : 'Tap any sound below — or <button class="linklike" id="field-discover">Help Me Find My Sound</button> <a class="linklike" href="learn/how-to-use-find-my-sound/">(how it works)</a>';
     const fd = $('#field-discover'); if (fd) fd.addEventListener('click', openDiscovery);
     $('#field-controls').hidden = !any; const core = $('#field-core'); core.classList.toggle('idle', !any); core.setAttribute('aria-pressed', playing); core.setAttribute('aria-label', !any ? 'Choose a sound to begin' : playing ? 'Pause' : 'Play');
     $('#field').dataset.state = !any ? 'idle' : playing ? 'playing' : 'paused';
