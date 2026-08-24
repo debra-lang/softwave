@@ -1007,7 +1007,9 @@ html[data-theme="dark"] .row-title { color: rgba(238,240,244,.42); }
 .field-desc-alt { display: block; margin-top: 7px; font-size: .92em; opacity: .85; }
 
 /* ---- personalized moments + starter journey ---- */
-.moments-row .moments-note { margin: -4px 0 10px; }
+.moments-row .moments-note { margin: -4px 0 10px; color: #3e9a72; }
+.moments-row .row-title { color: #3e9a72; }
+:root[data-theme="dark"] .moments-row .moments-note, :root[data-theme="dark"] .moments-row .row-title { color: #9fe0bb; }
 .journey-chip { display: flex; align-items: center; gap: 8px; margin: 4px 0 14px; }
 .journey-chip .chip strong::before { content: "☀ "; }
 .journey-veil .journey-card .btn-row { flex-wrap: wrap; }
