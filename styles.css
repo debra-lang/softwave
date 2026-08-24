@@ -261,6 +261,7 @@ input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.12); }
 .player-vol { display: flex; align-items: center; gap: 10px; width: 240px; }
 .player-vol output { width: 40px; text-align: right; font-size: .85rem; color: var(--muted); font-variant-numeric: tabular-nums; }
 .player-vol.warn output { color: var(--danger); font-weight: 700; }
+.field-vol.warn output { color: var(--danger); font-weight: 700; }
 .player-timer { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--accent); font-size: .9rem; white-space: nowrap; }
 
 /* ---------- sleep screen ---------- */

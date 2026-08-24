@@ -257,6 +257,7 @@
     if (!fromSlider) { masterEl.value = Math.round(v * 100); paintRange(masterEl); }
     $('#master-out').textContent = Math.round(v * 100) + '%';
     $('.player-vol').classList.toggle('warn', v > 0.75);
+    const fv = $('.field-vol'); if (fv) fv.classList.toggle('warn', v > 0.75);
     store.set('master', v);
   }
   let warned = false;
