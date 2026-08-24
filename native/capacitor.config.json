@@ -1,0 +1,11 @@
+{
+  "appId": "com.findmyquietsound.app",
+  "appName": "Find My Quiet Sound",
+  "webDir": "www",
+  "backgroundColor": "#0b1020",
+  "ios": {
+    "contentInset": "automatic",
+    "backgroundColor": "#0b1020",
+    "preferredContentMode": "mobile"
+  }
+}

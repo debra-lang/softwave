@@ -1,0 +1,16 @@
+{
+  "name": "findmyquietsound-native",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Native (Capacitor) shell for Find My Quiet Sound — findmyquietsound.com",
+  "scripts": {
+    "build": "node build-www.js",
+    "sync": "node build-www.js && npx cap sync ios"
+  },
+  "type": "commonjs",
+  "dependencies": {
+    "@capacitor/cli": "^8.5.0",
+    "@capacitor/core": "^8.5.0",
+    "@capacitor/ios": "^8.5.0"
+  }
+}
