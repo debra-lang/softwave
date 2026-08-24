@@ -577,6 +577,17 @@ body { background: var(--bg); }
 .card, .sound-card, .chip, .vis-card, .pair-card, .fav-card, .channel, .lab-card, .player, .two-tool, .about-tool, .lab-detail, .lab-notice { border-color: transparent; }
 .chip, .two-tool { box-shadow: 0 6px 20px rgba(30, 40, 80, 0.06); }
 :root[data-theme="dark"] .chip, :root[data-theme="dark"] .two-tool { box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3); }
+/* dark mode: option cards keep a subtle, always-visible frame; hover/focus brightens it to the
+   accent; selected adds the accent ring — three clearly distinct states without heavy lines */
+:root[data-theme="dark"] .chip, :root[data-theme="dark"] .two-tool, :root[data-theme="dark"] .vis-card,
+:root[data-theme="dark"] .pair-card, :root[data-theme="dark"] .fav-card, :root[data-theme="dark"] .lab-card,
+:root[data-theme="dark"] .channel, :root[data-theme="dark"] .about-tool { border-color: rgba(180, 200, 255, 0.18); }
+:root[data-theme="dark"] .chip:hover, :root[data-theme="dark"] .chip:focus-visible,
+:root[data-theme="dark"] .two-tool:hover, :root[data-theme="dark"] .two-tool:focus-visible,
+:root[data-theme="dark"] .vis-card:hover, :root[data-theme="dark"] .vis-card:focus-visible,
+:root[data-theme="dark"] .pair-card:hover, :root[data-theme="dark"] .fav-card:hover,
+:root[data-theme="dark"] .lab-card:hover, :root[data-theme="dark"] .about-tool:hover { border-color: var(--accent); }
+:root[data-theme="dark"] .chip.active, :root[data-theme="dark"] .vis-card.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 14px 36px var(--ring); }
 .topbar { background: color-mix(in srgb, var(--bg) 62%, transparent); border-bottom-color: transparent; }
 .group-title { letter-spacing: .18em; font-size: .78rem; }
 .row-title { letter-spacing: .18em; }
