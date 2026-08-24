@@ -396,7 +396,7 @@
   const CAT_DESC = { Nature: 'Slow scenes from the natural world.', Abstract: 'Soft shapes and colour, nothing to figure out.', 'Sound Reactive': 'Visuals that gently respond to what you are hearing.', Interactive: 'Optional touch and pointer play — no goals, no pressure.', 'Focus Activities': 'Just enough to hold your attention, and nothing more.', Breathing: 'An optional breathing rhythm to settle into.' };
 
   // ---------- shared state ----------
-  const MOTION = { still: 0, low: 0.4, medium: 0.8, high: 2.7 };
+  const MOTION = { still: 0, low: 0.4, medium: 0.8, high: 5.4 };
   const S = {
     visual: app.store.get('visual', 'ocean'),
     motion: app.store.get('motion', 'low'),
