@@ -259,22 +259,30 @@
       mic.title = 'Speak your request — voice recognition may be processed by your browser or device provider';
       mic.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3z" fill="currentColor"/><path d="M18 11a6 6 0 0 1-12 0M12 17v3.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
       form.appendChild(mic);
-      let rec = null, listening = false, firstUse = true;
+      let rec = null, listening = false, firstUse = true, listenGuard = null;
       const setListening = (on) => {
         listening = on;
         mic.classList.toggle('listening', on);
         mic.setAttribute('aria-pressed', on);
         input.placeholder = on ? 'Listening… tap again to cancel' : 'Something warm for sleep…';
         if (on) out.innerHTML = '<div class="ask-line">Listening…</div>'; else if (out.textContent.trim() === 'Listening…') out.innerHTML = '';
+        clearTimeout(listenGuard);
+        if (on) listenGuard = setTimeout(() => {   // hard guarantee: "Listening…" can never get stuck
+          try { rec && rec.abort(); } catch (_) { }
+          setListening(false);
+          confirmLines(['I didn’t hear anything. Tap the microphone and try again, or type your request.'], false);
+        }, 12000);
       };
       mic.addEventListener('click', () => {
         if (listening) { try { rec && rec.abort(); } catch (_) { } setListening(false); return; }   // tap again = cancel
         try {
+          if (rec) { try { rec.abort(); } catch (_) { } rec = null; }   // kill any lingering session before starting a new one
           rec = new SR();
           rec.lang = document.documentElement.lang || 'en';
           rec.continuous = false; rec.interimResults = false; rec.maxAlternatives = 1;
           rec.onresult = async (e) => {
             setListening(false);
+            try { rec.stop(); } catch (_) { }   // end the session promptly so the next tap starts clean
             const text = e.results && e.results[0] && e.results[0][0] ? e.results[0][0].transcript.trim() : '';
             if (!text) { track('voice_command_failed'); confirmLines(['I didn’t catch that. Try again or type your request.'], false); return; }
             input.value = text;                       // transparency: show exactly what was heard
