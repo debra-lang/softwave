@@ -69,7 +69,28 @@
       async remove_layer(p) { if (engine.isActive(p.id)) { engine.stopSound(p.id); ok.push('Removed ' + engine.def(p.id).name); } else ok.push(engine.def(p.id).name + ' is not playing'); },
       async layer_volume(p) { if (!engine.isActive(p.id)) return ok.push(engine.def(p.id).name + ' is not playing'); const s = engine.activeList().find(x => x.id === p.id); const v = Math.max(0.05, Math.min(1, s.volume + p.delta)); engine.setVolume(p.id, v); ok.push((p.delta < 0 ? 'Lowered ' : 'Raised ') + engine.def(p.id).name + ' to ' + Math.round(v * 100) + '%'); },
       async stop_all() { engine.stopAll(); ok.push('Stopped everything'); },
-      async master_volume(p) { const v = p.set != null ? p.set : engine.masterVolume + p.delta; app.setMaster(Math.max(0, Math.min(1, v))); ok.push('Volume ' + Math.round(Math.max(0, Math.min(1, v)) * 100) + '%'); },
+      async master_volume(p) {
+        // Conservative volume policy for assistant-driven changes (manual sliders are unrestricted):
+        // - out-of-range or "maximum" requests are REJECTED, never converted to 100%
+        // - explicit increases move at most +30 points per command
+        // - relative increases are gradual (+5, "much louder" +10) and stop at 90%
+        // - decreases are always honoured in full
+        const cur = engine.masterVolume;
+        if (p.reject) { ok.push(p.reject); return; }
+        if (p.set != null) {
+          if (p.set < 0 || p.set > 1) { ok.push('That level isn’t available — try “volume 80%” or lower.'); return; }
+          if (p.set > cur + 0.30) { const to = Math.min(1, cur + 0.30); app.setMaster(to); ok.push('Raised to ' + Math.round(to * 100) + '% — for a bigger increase, please use the volume slider.'); return; }
+          app.setMaster(p.set); ok.push('Volume ' + Math.round(p.set * 100) + '%'); return;
+        }
+        let d = p.delta || 0;
+        if (d > 0) {
+          if (cur >= 0.90) { ok.push('Already at a high level — please use the volume slider for more.'); return; }
+          const v = Math.min(0.90, cur + Math.min(d, 0.10));
+          app.setMaster(v); ok.push('A little louder — ' + Math.round(v * 100) + '%'); return;
+        }
+        const v = Math.max(0, cur + d);
+        app.setMaster(v); ok.push('Softer — ' + Math.round(v * 100) + '%');
+      },
       async warmer() { toneStep(1); ok.push('Made it warmer'); },
       async brighter() { toneStep(-1); ok.push('Made it brighter'); },
       async steadier() { engine.setVariation(0); ok.push('Made it steadier'); },
@@ -123,8 +144,17 @@
       else if (th) acts.push(['set_timer', { minutes: (th[1] === 'an' || th[1] === 'one' ? 1 : +th[1]) * 60 }]);
       // per-sound verbs — detected independently so "give me ocean with crickets" plays ocean AND adds crickets
       const light = /(a little|a bit of|light|some|a touch of|slight)/.test(t);
-      const lessM = matchSound(t, /(?:less|quieter|lower|turn down|softer)\s+(?:the\s+)?/);
-      const moreM = matchSound(t, /(?:more|louder|raise|turn up)\s+(?:the\s+)?/);
+      // volume verbs work in both orders: "lower the rain" and "make the rain quieter"
+      let lessM = matchSound(t, /(?:less|quieter|lower|turn down|softer)\s+(?:the\s+)?/);
+      let moreM = matchSound(t, /(?:more|louder|raise|turn up)\s+(?:the\s+)?/);
+      if (!lessM && !moreM) for (const [id, ...names] of LEX) {
+        for (const n of names) {
+          const nn = n.replace(/ /g, '\\s+');
+          if (new RegExp('\\b' + nn + '\\b.{0,12}\\b(quieter|softer|lower|down)\\b').test(t)) { lessM = { id }; break; }
+          if (new RegExp('\\b' + nn + '\\b.{0,12}\\b(louder|up|stronger)\\b').test(t)) { moreM = { id }; break; }
+        }
+        if (lessM || moreM) break;
+      }
       const remM = matchSound(t, /(?:remove|without|take out|take away|drop|no more|stop the)\s+(?:the\s+)?/);
       const addM = matchSound(t, /(?:add|with|include|put in|layer)\s+(?:a little |a bit of |some |a touch of |light |the )?/);
       const playM = matchSound(t, /(?:play|start|put on|give me|i want)\s+(?:the |some |a little )?/);
@@ -137,7 +167,7 @@
       if (addM && (!remM || remM.id !== addM.id) && (!lessM || lessM.id !== addM.id)) acts.push(['add_layer', { id: addM.id, level: light ? 0.25 : 0.35 }]);
       if (remM) acts.push(['remove_layer', { id: remM.id }]);
       let m;
-      if (!acts.length && (m = findSound(t)) && t.trim().split(' ').length <= 4) acts.push(['play_sound', { id: m.id }]);   // bare "rain on window"
+      if (!acts.length && (m = findSound(t)) && t.trim().split(' ').length <= 4 && !/(louder|softer|quieter|warmer|brighter|steadier|too )/.test(t)) acts.push(['play_sound', { id: m.id }]);   // bare "rain on window"
       // character
       if (/(warmer|less bright|too bright|less sharp|too sharp|softer sound|mellow)/.test(t)) acts.push(['warmer', {}]);
       if (/(brighter|more bright|crisper|less muffled|too muffled|too dull)/.test(t)) acts.push(['brighter', {}]);
@@ -146,12 +176,24 @@
       // visual
       if (/(calmer|slower).{0,12}visual|visual.{0,12}(calmer|slower)/.test(t)) acts.push(['change_visual', { calmer: true }]);
       else if (/(change|different|another|new).{0,12}visual|visual.{0,12}(change|different)/.test(t)) acts.push(['change_visual', {}]);
+      // per-sound "too loud/sharp" — a comfort complaint about a layer lowers THAT layer, never the whole mix
+      for (const [id, ...names] of LEX) {
+        if (acts.some(a => a[0] === 'layer_volume')) break;
+        for (const n of names) if (new RegExp('\\b' + n.replace(/ /g, '\\s+') + '\\b.{0,14}too (loud|sharp|strong|much|bright)').test(t)) { acts.push(['layer_volume', { id, delta: -0.15 }]); break; }
+      }
       // globals
       if (/^\s*(stop|silence|quiet please|turn (it )?off)\s*$/.test(t.trim()) || /\bstop everything\b/.test(t)) acts.push(['stop_all', {}]);
-      const vp = t.match(/volume\s*(?:to\s*)?(\d{1,3})\s*%?/);
-      if (vp) acts.push(['master_volume', { set: Math.min(100, +vp[1]) / 100 }]);
-      else if (/(volume down|quieter overall|softer overall|too loud|\bsofter\b(?!.{0,12}sound))/.test(t) && !acts.some(a => a[0] === 'layer_volume')) acts.push(['master_volume', { delta: -0.1 }]);
-      else if (/(volume up|louder overall|can'?t hear|too quiet)/.test(t)) acts.push(['master_volume', { delta: 0.1 }]);
+      if (/(maximum volume|full volume|max volume|loudest|as loud as)/.test(t)) acts.push(['master_volume', { reject: 'For comfort, I only make gradual increases — the volume slider is there for large changes.' }]);
+      else {
+        const vp = t.match(/volume\s*(?:to\s*)?(-?\s?\d{1,3})\s*(?:%|percent)?/);
+        const negWords = /volume\s+(?:to\s+)?(negative|minus)/.test(t);
+        if (negWords) acts.push(['master_volume', { reject: 'That level isn’t available — try “volume 20%”.' }]);
+        else if (vp) { const n = +vp[1].replace(/\s/g, ''); acts.push(['master_volume', n < 0 || n > 100 ? { reject: 'That level isn’t available — try “volume 80%” or lower.' } : { set: n / 100 }]); }
+        else if (/(much softer|much quieter|way too loud)/.test(t) && !acts.some(a => a[0] === 'layer_volume')) acts.push(['master_volume', { delta: -0.15 }]);
+        else if (/(volume down|quieter overall|softer overall|too loud|\bsofter\b(?!.{0,12}sound))/.test(t) && !acts.some(a => a[0] === 'layer_volume')) acts.push(['master_volume', { delta: -0.1 }]);
+        else if (/(much louder|a lot louder)/.test(t)) acts.push(['master_volume', { delta: 0.1 }]);
+        else if (/(\blouder\b|volume up|can'?t hear|too quiet)/.test(t) && !acts.some(a => a[0] === 'layer_volume')) acts.push(['master_volume', { delta: 0.05 }]);
+      }
       if (/\bsave (this|it|environment)?\b/.test(t)) acts.push(['save_environment', {}]);
       if (/(something (else|different|new)|surprise me|change it up)/.test(t) && !acts.some(a => a[0] === 'play_sound' || a[0] === 'start_moment')) acts.push(['something_different', {}]);
       if (/(make it better|improve|nicer)/.test(t) && !acts.length) return { clarify: true };
@@ -238,7 +280,7 @@
           };
           rec.onend = () => setListening(false);      // one-shot: always stops after the attempt
           track('voice_opened');
-          if (firstUse) { firstUse = false; app.toast('Voice recognition may be processed by your browser or device provider. Only what you say is sent — never your sounds or profile.', 5200); }
+          if (firstUse) { firstUse = false; app.toast('Voice recognition may be processed by your browser or device provider. Find My Quiet Sound does not store your voice and does not send your Sound Profile or tinnitus information with the request.', 5600); }
           setListening(true);
           rec.start();                                 // permission prompt happens here, on the deliberate tap
         } catch (err) { setListening(false); track('voice_command_failed'); confirmLines(['Voice isn’t available right now. You can still type your request.'], false); }
