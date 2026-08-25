@@ -230,11 +230,12 @@
           <button class="btn btn-primary btn-sm" type="submit">Go</button>
         </form>
         <div id="ask-out" role="status" aria-live="polite"></div>
+        <p class="muted small ask-help" id="ask-help" hidden><a class="linklike" href="learn/ask-find-my-quiet-sound/">How it works</a></p>
       </div>`;
     const form = $('#ask-form'), input = $('#ask-input'), out = $('#ask-out'), opener = $('#ask-open');
-    opener.addEventListener('click', () => { form.hidden = false; opener.hidden = true; input.focus(); track('ai_assistant_opened'); });
+    opener.addEventListener('click', () => { form.hidden = false; opener.hidden = true; const h = $('#ask-help'); if (h) h.hidden = false; input.focus(); track('ai_assistant_opened'); });
     form.addEventListener('submit', async e => { e.preventDefault(); const v = input.value; input.value = ''; await run(v); });
-    input.addEventListener('keydown', e => { if (e.key === 'Escape') { form.hidden = true; opener.hidden = false; out.innerHTML = ''; opener.focus(); } });
+    input.addEventListener('keydown', e => { if (e.key === 'Escape') { form.hidden = true; opener.hidden = false; out.innerHTML = ''; const h = $('#ask-help'); if (h) h.hidden = true; opener.focus(); } });
 
     // ---------- Phase 2: tap-to-talk (speech becomes text; the SAME pipeline runs it) ----------
     // Web Speech API only — no cloud LLM, no always-on listening, one-shot per tap.

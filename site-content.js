@@ -415,6 +415,32 @@ learn({
 });
 
 learn({
+  slug: 'ask-find-my-quiet-sound',
+  title: 'Ask Find My Quiet Sound',
+  description: 'Control your sound environment with everyday language: type or speak requests like "something gentle for sleep" and Find My Quiet Sound sets it up for you.',
+  h1: 'Ask Find My Quiet Sound',
+  intro: 'Just say what you want. Ask Find My Quiet Sound lets you control your sound environment using everyday language. Type your request, or tap the microphone and speak.',
+  body: `
+<h2>Try things like</h2>
+<ul>
+<li>“Something gentle for sleep.”</li>
+<li>“Add a little rain.”</li>
+<li>“Make it warmer.”</li>
+<li>“Set a timer for 30 minutes.”</li>
+<li>“Give me something for focus.”</li>
+<li>“Make it softer.”</li>
+<li>“Save this.”</li>
+</ul>
+<p>Find My Quiet Sound turns your request into controls you could otherwise adjust yourself.</p>
+<h2>Your choices stay in your control</h2>
+<p>You can always use the normal controls, and you can undo changes made through Ask Find My Quiet Sound. Volume increases through Ask are always gradual — for larger changes, the volume slider is yours.</p>
+<h2>About voice</h2>
+<p>Voice recognition may be processed by your browser or device provider. Find My Quiet Sound does not store your voice or send your Sound Profile or tinnitus information with your request. The microphone listens only when you tap it, one request at a time — never in the background.</p>
+<p><a href="/">Try it now — it lives just under the main controls on the Sounds page →</a></p>`,
+  sources: [],
+});
+
+learn({
   slug: 'how-to-use-find-my-sound',
   title: 'How to Use Help Me Find My Sound',
   description: 'A step-by-step guide to Help Me Find My Sound: compare sounds two at a time, answer honestly, and let the app build your personal sound and Sound Profile.',
