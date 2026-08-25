@@ -222,20 +222,22 @@
     // ---------- UI ----------
     const slot = $('#assistant-slot');
     slot.innerHTML = `
-      <div class="ask-wrap">
-        <button id="ask-open" class="linklike ask-opener">✨ Ask Find My Quiet Sound</button>
-        <form id="ask-form" hidden>
+      <section class="ask-section section-block" aria-labelledby="ask-title">
+        <h2 class="row-title" id="ask-title">✨ Ask Find My Quiet Sound</h2>
+        <p class="muted small ask-tagline">Tell me what you want to hear. Type it or say it. <a class="linklike" href="learn/ask-find-my-quiet-sound/">How it works</a></p>
+        <form id="ask-form">
           <label class="sr-only" for="ask-input">Tell Find My Quiet Sound what you would like</label>
-          <input id="ask-input" type="text" maxlength="140" placeholder="What would you like? — e.g. “something warm for sleep, 45 minutes”" autocomplete="off">
+          <input id="ask-input" type="text" maxlength="140" placeholder="Something warm for sleep…" autocomplete="off">
           <button class="btn btn-primary btn-sm" type="submit">Go</button>
         </form>
         <div id="ask-out" role="status" aria-live="polite"></div>
-        <p class="muted small ask-help" id="ask-help" hidden><a class="linklike" href="learn/ask-find-my-quiet-sound/">How it works</a></p>
-      </div>`;
-    const form = $('#ask-form'), input = $('#ask-input'), out = $('#ask-out'), opener = $('#ask-open');
-    opener.addEventListener('click', () => { form.hidden = false; opener.hidden = true; const h = $('#ask-help'); if (h) h.hidden = false; input.focus(); track('ai_assistant_opened'); });
+        <p class="muted small ask-bridge">or choose a sound below</p>
+      </section>`;
+    const form = $('#ask-form'), input = $('#ask-input'), out = $('#ask-out');
+    let openedOnce = false;
+    input.addEventListener('focus', () => { if (!openedOnce) { openedOnce = true; track('ai_assistant_opened'); } });
     form.addEventListener('submit', async e => { e.preventDefault(); const v = input.value; input.value = ''; await run(v); });
-    input.addEventListener('keydown', e => { if (e.key === 'Escape') { form.hidden = true; opener.hidden = false; out.innerHTML = ''; const h = $('#ask-help'); if (h) h.hidden = true; opener.focus(); } });
+    input.addEventListener('keydown', e => { if (e.key === 'Escape') { out.innerHTML = ''; input.blur(); } });
 
     // ---------- Phase 2: tap-to-talk (speech becomes text; the SAME pipeline runs it) ----------
     // Web Speech API only — no cloud LLM, no always-on listening, one-shot per tap.
@@ -255,7 +257,7 @@
         listening = on;
         mic.classList.toggle('listening', on);
         mic.setAttribute('aria-pressed', on);
-        input.placeholder = on ? 'Listening… tap again to cancel' : 'What would you like? — e.g. “something warm for sleep, 45 minutes”';
+        input.placeholder = on ? 'Listening… tap again to cancel' : 'Something warm for sleep…';
         if (on) out.innerHTML = '<div class="ask-line">Listening…</div>'; else if (out.textContent.trim() === 'Listening…') out.innerHTML = '';
       };
       mic.addEventListener('click', () => {

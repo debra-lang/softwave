@@ -1014,9 +1014,12 @@ html[data-theme="dark"] .row-title { color: rgba(238,240,244,.42); }
 .journey-chip .chip strong::before { content: "☀ "; }
 .journey-veil .journey-card .btn-row { flex-wrap: wrap; }
 .fa-tuned { font-size: .78rem; opacity: .85; }
-/* Ask Find My Quiet Sound — a quiet control line, not a chat window */
-.ask-wrap { max-width: 620px; margin: 14px auto 4px; text-align: center; }
-.ask-opener { font-size: .92rem; opacity: .9; }
+/* Ask Find My Quiet Sound — a calm control section before the library, not a chat window */
+.ask-section { border: 1px solid var(--border); background: var(--card); border-radius: 20px; padding: 16px 18px 12px; margin: 18px 0 30px; box-shadow: var(--shadow); }
+:root[data-theme="dark"] .ask-section { border-color: rgba(180, 200, 255, 0.30); }
+.ask-section .row-title { margin: 0 0 4px; }
+.ask-tagline { margin: 0 0 12px; }
+.ask-bridge { margin: 12px 0 0; text-align: center; opacity: .7; font-size: .74rem; letter-spacing: .14em; text-transform: uppercase; }
 #ask-form { display: flex; gap: 8px; align-items: center; }
 #ask-input { flex: 1; min-width: 0; padding: 11px 16px; border-radius: 999px; border: 1px solid var(--border); background: var(--card); color: var(--text); font: inherit; font-size: .95rem; }
 :root[data-theme="dark"] #ask-input { border-color: rgba(180, 200, 255, 0.30); }
@@ -1026,6 +1029,7 @@ html[data-theme="dark"] .row-title { color: rgba(238,240,244,.42); }
 @media (max-width: 640px) { .ask-wrap { margin-top: 10px; } #ask-input { font-size: 16px; } }
 .ask-mic { flex: none; display: grid; place-items: center; width: 38px; height: 38px; padding: 0; border-radius: 50%; }
 .ask-help { margin: 8px 0 0; font-size: .78rem; opacity: .8; }
+@media (max-width: 480px) { #ask-form { flex-wrap: wrap; } #ask-form #ask-input { flex: 1 1 100%; } }
 .ask-mic.listening { color: var(--accent); box-shadow: 0 0 0 2px var(--ring); animation: mic-pulse 1.6s ease-in-out infinite; }
 @keyframes mic-pulse { 0%, 100% { box-shadow: 0 0 0 2px var(--ring); } 50% { box-shadow: 0 0 0 6px var(--ring); } }
 @media (prefers-reduced-motion: reduce) { .ask-mic.listening { animation: none; } }
