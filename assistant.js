@@ -287,7 +287,7 @@
       form.appendChild(mic);
       // ONE persistent recognition instance, reused across taps — recreating per tap can wedge
       // Chrome's speech service so the second session never returns. Handlers attach once.
-      let rec = null, listening = false, firstUse = true, listenGuard = null, sessionHadOutcome = false, duckPrev = null;
+      let rec = null, listening = false, firstUse = true, listenGuard = null, sessionHadOutcome = false, duckPrev = null, duckRestoreVal = null, duckRestoreAt = 0;
       const setListening = (on) => {
         listening = on;
         mic.classList.toggle('listening', on);
@@ -296,8 +296,15 @@
         // Playing audio drowns speech recognition (echo cancellation swallows the voice), so the
         // sound is quietened to near-silence while listening and restored to exactly its previous
         // level afterward. masterVolume, mixer layers and timers are never touched.
-        if (on && engine.isPlaying && engine.trim) { duckPrev = engine.trim.gain.value; engine.setMasterTrim(0.005, 0.08); }
-        else if (!on && duckPrev != null) { engine.setMasterTrim(duckPrev, 0.3); duckPrev = null; }
+        if (on && engine.isPlaying && engine.trim) {
+          if (duckPrev == null) {
+            // A restore ramp takes ~1.5s to settle; reading the live gain during it captures a
+            // mid-ramp value and each quick voice command would ratchet the volume further down.
+            duckPrev = (performance.now() < duckRestoreAt && duckRestoreVal != null) ? duckRestoreVal : engine.trim.gain.value;
+          }
+          engine.setMasterTrim(0.005, 0.08);
+        }
+        else if (!on && duckPrev != null) { engine.setMasterTrim(duckPrev, 0.3); duckRestoreVal = duckPrev; duckRestoreAt = performance.now() + 1800; duckPrev = null; }
         const wasDucked = on && duckPrev != null;
         if (on) out.innerHTML = '<div class="ask-line">Listening…' + (wasDucked ? ' (sound paused while you speak)' : '') + '</div>'; else if (out.textContent.trim().indexOf('Listening…') === 0) out.innerHTML = '';
         clearTimeout(listenGuard);
