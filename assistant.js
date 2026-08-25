@@ -26,12 +26,12 @@
       ['white', 'white noise', 'white'], ['pink', 'pink noise', 'pink'], ['brown', 'brown noise', 'brown'],
       ['static', 'gentle static', 'static'], ['hiss', 'soft hiss', 'hiss'],
       ['glassrain', 'rain on window', 'rain on the window', 'window rain', 'rain on glass'],
-      ['rain', 'rain'], ['ocean', 'ocean', 'waves', 'sea'], ['lapping', 'lapping water', 'lapping', 'lake', 'shore'],
-      ['stream', 'flowing water', 'stream', 'river', 'creek'], ['waterfall', 'waterfall'],
-      ['forest', 'forest', 'woods'], ['leaves', 'rustling leaves', 'leaves', 'leaf'],
-      ['crickets', 'crickets', 'cricket'], ['cicadas', 'cicadas', 'cicada'],
-      ['summernight', 'summer night'], ['night', 'night sounds', 'night'],
-      ['wind', 'wind', 'breeze'], ['fan', 'fan'], ['fire', 'fireplace', 'fire', 'campfire'],
+      ['rain', 'rain', 'storm', 'rainstorm', 'drizzle'], ['ocean', 'ocean', 'waves', 'sea', 'beach', 'seaside'], ['lapping', 'lapping water', 'lapping', 'lake', 'shore'],
+      ['stream', 'flowing water', 'stream', 'river', 'creek', 'brook', 'running water'], ['waterfall', 'waterfall'],
+      ['forest', 'forest', 'woods', 'birds', 'jungle'], ['leaves', 'rustling leaves', 'leaves', 'leaf'],
+      ['crickets', 'crickets', 'cricket', 'insects', 'bugs'], ['cicadas', 'cicadas', 'cicada'],
+      ['summernight', 'summer night', 'summer evening'], ['night', 'night sounds', 'night', 'nighttime'],
+      ['wind', 'wind', 'breeze'], ['fan', 'fan', 'air conditioner', 'air con'], ['fire', 'fireplace', 'fire', 'campfire', 'bonfire'],
     ];
     const findSound = (t) => { for (const [id, ...names] of LEX) for (const n of names) if (t.includes(n)) return { id, name: engine.def(id).name }; return null; };
 
@@ -149,17 +149,19 @@
     function parse(raw) {
       const t = normalizeNumbers(' ' + raw.toLowerCase().replace(/[.,!?;]/g, ' ').replace(/\s+/g, ' ').trim() + ' ');
       if (/^\s*(undo|go back|put it back)\s*$/.test(t.trim())) return { undo: true };
+      if (/^\s*(help|what can (i say|you do)|show examples|examples)\s*\??\s*$/.test(t.trim())) return { help: true };
       if (MEDICAL.test(t)) return { medical: true };
       const acts = [];
       // moments / situations first (they set the base environment)
-      if (/(for sleep|to sleep|sleepy|my sleep|going to bed|bedtime)/.test(t)) acts.push(['start_moment', { id: 'sleep' }]);
+      if (/(for sleep|to sleep|sleepy|my sleep|going to bed|bedtime|for a nap|can'?t sleep|fall asleep)/.test(t)) acts.push(['start_moment', { id: 'sleep' }]);
       else if (/(woke up|middle of the night|wake at night|very gentle|extra gentle)/.test(t)) acts.push(['start_moment', { id: 'night' }]);
-      else if (/(for focus|to focus|for work|concentrat|my focus|studying|for reading)/.test(t)) acts.push(['start_moment', { id: 'focus' }]);
-      else if (/(my quiet|something for me)/.test(t)) acts.push(['start_moment', { id: 'quiet' }]);
+      else if (/(for focus|to focus|for work|concentrat|my focus|studying|for reading|while i work|for background)/.test(t)) acts.push(['start_moment', { id: 'focus' }]);
+      else if (/(my quiet|something for me|to relax|for relax|calm (me )?down|to unwind|meditat)/.test(t)) acts.push(['start_moment', { id: 'quiet' }]);
       if (/(help me find|find (me )?a sound|find my sound|don'?t know what|not sure what|discover)/.test(t)) return { actions: [['help_find', {}]] };
       // character requests: "play something warm", "something deep and steady", "give me something bright"
       if (!acts.length && /\b(something|a sound|anything)\b/.test(t) && !findSound(t)) {
-        const traits = ['warm', 'bright', 'deep', 'dark', 'low', 'airy', 'high', 'light', 'soft', 'gentle', 'moving', 'alive', 'steady', 'calm', 'rich', 'full'].filter(w => new RegExp('\\b' + w + '\\b').test(t));
+        const tt = t.replace(/\b(cozy|cosy|mellow)\b/g, 'warm').replace(/\bcrisp\b/g, 'bright').replace(/\bsmooth\b/g, 'soft').replace(/\b(relaxing|peaceful|soothing|calming)\b/g, 'soft steady').replace(/\bdarker\b/g, 'dark').replace(/\blighter\b/g, 'light');
+        const traits = ['warm', 'bright', 'deep', 'dark', 'low', 'airy', 'high', 'light', 'soft', 'gentle', 'moving', 'alive', 'steady', 'calm', 'rich', 'full'].filter(w => new RegExp('\\b' + w + '\\b').test(tt));
         if (traits.length) acts.push(['play_character', { traits }]);
       }
       // timers
@@ -181,8 +183,8 @@
         if (lessM || moreM) break;
       }
       const remM = matchSound(t, /(?:remove|without|take out|take away|drop|no more|stop the)\s+(?:the\s+)?/);
-      const addM = matchSound(t, /(?:add|with|include|put in|layer)\s+(?:a little |a bit of |some |a touch of |light |the )?/);
-      const playM = matchSound(t, /(?:play|start|put on|give me|i want)\s+(?:the |some |a little )?/);
+      const addM = matchSound(t, /(?:add|with|include|put in|layer)\s+(?:a little |a bit of |some |a touch of |light |the |an |a )?/);
+      const playM = matchSound(t, /(?:play|start|put on|give me|i want)\s+(?:the sound of a |the sound of |a little |the |some |an |a )?/);
       if (lessM) acts.push(['layer_volume', { id: lessM.id, delta: -0.15 }]);
       else if (moreM) acts.push(['layer_volume', { id: moreM.id, delta: 0.15 }]);
       if (playM && (!addM || addM.id !== playM.id) && (!remM || remM.id !== playM.id) && (!lessM || lessM.id !== playM.id)) {
@@ -217,9 +219,9 @@
         if (negWords) acts.push(['master_volume', { reject: 'That level isn’t available — try “volume 20%”.' }]);
         else if (vp) { const n = +vp[1].replace(/\s/g, ''); acts.push(['master_volume', n < 0 || n > 100 ? { reject: 'That level isn’t available — try “volume 80%” or lower.' } : { set: n / 100 }]); }
         else if (/(much softer|much quieter|way too loud)/.test(t) && !acts.some(a => a[0] === 'layer_volume')) acts.push(['master_volume', { delta: -0.15 }]);
-        else if (/(volume down|quieter overall|softer overall|too loud|\bsofter\b(?!.{0,12}sound))/.test(t) && !acts.some(a => a[0] === 'layer_volume')) acts.push(['master_volume', { delta: -0.1 }]);
+        else if (/(volume down|turn (it|this) down|lower the volume|quieter overall|softer overall|too loud|\bsofter\b(?!.{0,12}sound))/.test(t) && !acts.some(a => a[0] === 'layer_volume')) acts.push(['master_volume', { delta: -0.1 }]);
         else if (/(much louder|a lot louder)/.test(t)) acts.push(['master_volume', { delta: 0.1 }]);
-        else if (/(\blouder\b|volume up|can'?t hear|too quiet)/.test(t) && !acts.some(a => a[0] === 'layer_volume')) acts.push(['master_volume', { delta: 0.05 }]);
+        else if (/(\blouder\b|volume up|turn (it|this) up|raise the volume|can'?t hear|too quiet)/.test(t) && !acts.some(a => a[0] === 'layer_volume')) acts.push(['master_volume', { delta: 0.05 }]);
       }
       if (/\bsave (this|it|environment)?\b/.test(t)) acts.push(['save_environment', {}]);
       if (/(something (else|different|new)|surprise me|change it up)/.test(t) && !acts.some(a => a[0] === 'play_sound' || a[0] === 'start_moment')) acts.push(['something_different', {}]);
@@ -238,6 +240,7 @@
       const req = raw.trim(); if (!req) return;
       const parsed = parse(req);
       if (parsed.undo) { await undo(); return; }
+      if (parsed.help) { confirmLines(['You can ask for sounds (“play rain”, “add a little ocean”), character (“something warm and steady”), purpose (“something for sleep”), changes (“softer”, “more movement”, “less rain”), timers (“for 30 minutes”), plus “save this”, “stop” and “undo”.'], false); return; }
       if (parsed.medical) { confirmLines(['I can adjust sounds and settings, but I can’t give medical advice. The Learn section covers sound and tinnitus carefully — and for symptoms, a doctor or audiologist is the right person.'], false); return; }
       if (parsed.clarify) { confirmLines(['Try being specific: “warmer”, “softer”, “more movement”, or “something different”.'], false); return; }
       if (parsed.unknownSound) { track('ai_command_failed'); confirmLines(['I don’t recognise that sound. The library has: rain, rain on window, ocean, lapping water, flowing water, waterfall, white/pink/brown noise, static, hiss, forest, leaves, crickets, cicadas, summer night, night sounds, wind, fan and fireplace.'], false); return; }
