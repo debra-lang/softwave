@@ -412,6 +412,7 @@
     const raw = engine.isPlaying ? engine.getLevels(spec) : 0; if (engine.isPlaying) engine.getWave(wave); else { spec.fill(0); wave.fill(128); }
     smoothLevel += (clamp(raw * 6, 0, 1) - smoothLevel) * 0.08;
     let speed = MOTION[S.motion]; if (S.reduced) speed = Math.min(speed, 0.25); if (S.paused) speed = 0; speed *= (1 - P.slow * 0.7);
+    const SFg = window.SoftwaveField; if (SFg && SFg.LOW) speed = Math.min(speed, 0.8);   // struggling machines never run High's full speed
     const sound = window.softwaveSound ? softwaveSound() : null;
     return { dt, speed, level: smoothLevel, spec, wave, freq: engine.tone && engine.tone.playing ? engine.tone.freq : null, pointer, taps, breathText: S.breathText, reduced: S.reduced, still: S.motion === 'still' || S.paused, sound };
   }
@@ -529,7 +530,7 @@
   const screen = $('#focus-screen'), canvas = $('#focus-canvas'), ctx = canvas.getContext('2d', { alpha: false });   // opaque: every visual paints its own background; far cheaper to composite
   const focus = { inst: null, visualId: null, last: 0, hideT: null, raf: null, pointer: { x: 0.5, y: 0.5, on: false, down: false }, taps: [], tapId: 0, wake: null,
     load(id) { this.visualId = id; this.inst = byId[id].make(); this.taps = []; $('#focus-visual-name').textContent = byId[id].name; $('#focus-breath-row').hidden = id !== 'breathing'; } };
-  function resize() { const w = innerWidth, h = innerHeight; let dpr = Math.min(devicePixelRatio || 1, 1.5); if (w * h * dpr * dpr > 2.4e6) dpr = Math.min(dpr, Math.max(1, Math.sqrt(2.4e6 / (w * h)))); canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr); canvas.style.width = w + 'px'; canvas.style.height = h + 'px'; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); focus.w = w; focus.h = h; }
+  function resize() { const w = innerWidth, h = innerHeight; const SFg = window.SoftwaveField; const cap = SFg && SFg.LOW ? 1.2e6 : 2.4e6; let dpr = Math.min(devicePixelRatio || 1, SFg && SFg.LOW ? 1 : 1.5); if (w * h * dpr * dpr > cap) dpr = Math.min(dpr, Math.max(0.75, Math.sqrt(cap / (w * h)))); canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr); canvas.style.width = w + 'px'; canvas.style.height = h + 'px'; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); focus.w = w; focus.h = h; }
   addEventListener('resize', () => { if (!screen.hidden) resize(); });
   function loop(now) {
     if (screen.hidden) return; focus.raf = requestAnimationFrame(loop);
