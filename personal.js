@@ -155,6 +155,12 @@
     });
 
     renderMoments(); renderJourneyCard();
+    // Small public surface for other layers (the assistant): run a Moment by id, list them.
+    window.softwavePersonal = {
+      moments: () => MOMENTS.map(m => ({ id: m.id, name: m.name })),
+      hasProfile: () => !!profile.params(),
+      runMoment: async (id) => { const m = MOMENTS.find(x => x.id === id); if (!m) return false; if (!gate('sound_profile')) return false; if (M()) M().track('moment_used'); await m.run(); journeyMomentDone(); return true; },
+    };
   };
   boot();
 })();
