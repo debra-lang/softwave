@@ -261,13 +261,18 @@
       form.appendChild(mic);
       // ONE persistent recognition instance, reused across taps — recreating per tap can wedge
       // Chrome's speech service so the second session never returns. Handlers attach once.
-      let rec = null, listening = false, firstUse = true, listenGuard = null, sessionHadOutcome = false;
+      let rec = null, listening = false, firstUse = true, listenGuard = null, sessionHadOutcome = false, duckPrev = null;
       const setListening = (on) => {
         listening = on;
         mic.classList.toggle('listening', on);
         mic.setAttribute('aria-pressed', on);
         input.placeholder = on ? 'Listening… tap again to cancel' : 'Something warm for sleep…';
-        if (on) out.innerHTML = '<div class="ask-line">Listening…</div>'; else if (out.textContent.trim() === 'Listening…') out.innerHTML = '';
+        // Playing audio drowns speech recognition (echo cancellation swallows the voice), so the
+        // sound is softened while listening and restored to exactly its previous level afterward.
+        if (on && engine.isPlaying && engine.trim) { duckPrev = engine.trim.gain.value; engine.setMasterTrim(0.1, 0.15); }
+        else if (!on && duckPrev != null) { engine.setMasterTrim(duckPrev, 0.3); duckPrev = null; }
+        const wasDucked = on && duckPrev != null;
+        if (on) out.innerHTML = '<div class="ask-line">Listening…' + (wasDucked ? ' (sound softened while you speak)' : '') + '</div>'; else if (out.textContent.trim().indexOf('Listening…') === 0) out.innerHTML = '';
         clearTimeout(listenGuard);
         if (on) listenGuard = setTimeout(() => {   // hard guarantee: "Listening…" can never get stuck
           try { rec && rec.abort(); } catch (_) { }
