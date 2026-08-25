@@ -40,7 +40,7 @@
   };
 
   // Visual Focus environments that become Premium post-launch. Everything in Nature plus a strong
-  // core of every category stays Free (ocean, rain window, night sky, clouds, forest, fireplace,
+  // core of every category is currently free (ocean, rain window, night sky, clouds, forest, fireplace,
   // waterfall, river, underwater, slow waves, flowing colours, particles, circles, soft light,
   // spectrum, waveform, rings, sound field, ripple, follow-the-light...). Premium = the advanced
   // generative and interactive collection:

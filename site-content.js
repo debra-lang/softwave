@@ -593,15 +593,15 @@ trust({
 
 trust({
   path: 'premium/', title: 'Find My Quiet Sound Premium — Personal Find My Sound',
-  description: 'What stays free in Find My Quiet Sound and what Find My Quiet Sound Premium will include: Find My Sound, your sound profile, Frequency Painting, Sound Sculptor, generative sound, Sound Space and journeys. Free during the beta.',
+  description: 'Find My Quiet Sound is currently free to use. What the optional Premium plan is expected to include: Find My Sound, your sound profile, Frequency Painting, Sound Sculptor, generative sound, Sound Space and journeys.',
   h1: 'Free and Premium',
   body: `
-<p><strong>Everything is free during the beta.</strong> This page explains what will stay free and what the personalisation layer — Find My Quiet Sound Premium — will include, so there are no surprises later.</p>
-<h2>Always free</h2>
+<p><strong>Find My Quiet Sound is currently free to use.</strong> As the app evolves, some features may become part of an optional Premium plan. Any pricing or access changes will be communicated clearly before they take effect. This page explains what the personalisation layer — Find My Quiet Sound Premium — is expected to include.</p>
+<h2>Free today</h2>
 <ul><li>White, pink and brown noise, gentle static and soft hiss</li><li>Rain, ocean, flowing water, waterfall, forest, wind, fan, fireplace and night sounds</li><li>The mixer (up to five layers, balance, saved mixes)</li><li>The frequency generator and Find My Tinnitus Sound</li><li>Visual Focus and Focus Mode, the breathing circle, Attention Focus</li><li>Sleep Mode with timers and fade-out</li><li>Sound Morph and Build My Session</li><li>Works offline, no account, no tracking of your hearing</li></ul>
 <h2>Find My Quiet Sound Premium — discover and build your personal sound experience</h2>
 <ul><li><strong>Find My Sound</strong> — the guided A/B journey to your preferred sound, and the profile it builds</li><li><strong>Sound Sculptor</strong> and <strong>Frequency Painting</strong> — shape your own sounds and keep them</li><li><strong>Generative Sound</strong> — sounds that never quite repeat</li><li><strong>Sound Space</strong> — place sounds around you</li><li><strong>Adaptive Sound Journeys</strong> and <strong>Sound + Visual Journeys</strong></li><li>Unlimited saved sounds and experiences, and recommendations built from your own preferences</li></ul>
-<p>Premium is about personalisation, not "more noise". Anything you save while it is free stays yours.</p>
+<p>Premium is about personalisation, not "more noise". Nothing you save will be deleted.</p>
 <h2>Accounts</h2>
 <p>You do not need an account to use Find My Quiet Sound; everything is kept on your device. An optional free account to keep your sounds across devices is planned; it will never ask for hearing or health information.</p>`,
 });
