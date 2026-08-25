@@ -103,6 +103,24 @@
       async change_visual(p) { const F = window.softwaveFocus; if (!F) return; if (p.calmer) { store.set('motion', 'low'); ok.push('Visual set calmer'); return; } const all = F.visuals; const cur = store.get('visual', 'ocean'); const idx = all.findIndex(v => v.id === cur); const next = all[(idx + 1) % all.length]; F.setVisual(next.id); ok.push('Visual: ' + next.name); },
       async save_environment() { if (!engine.activeList().length) return ok.push('Start some sounds first, then say save'); const combos = store.get('combos', []); if (M() && !M().canCreateSavedItem(combos.length)) { if (window.softwavePremium) softwavePremium.saveLimit('environments'); return ok.push('Save limit reached'); } combos.push({ name: 'My saved environment', mix: engine.snapshot(), master: engine.masterVolume, visual: store.get('visual', 'ocean'), motion: store.get('motion', 'low'), timer: engine.timer.durationMin || 0 }); store.set('combos', combos); track('environment_saved'); ok.push('Saved (Visual Focus → My environments)'); },
       async help_find() { app.showView('find'); ok.push('Opening Find My Sound — it learns what you prefer'); },
+      async play_character(p) {
+        // "something warm / deep and steady / bright with movement": sculpt a sound to the asked
+        // character, starting from the user's learned profile when one exists.
+        const base = (profile && profile.params()) ? Object.assign({}, profile.params()) : { colour: 0.4, warm: 0, deep: 0, smooth: 0, soft: 0, width: 0.4, moving: 0.15, rich: 0.2, mod: 0 };
+        delete base.nature;
+        const T = p.traits, adj = (k, d) => { base[k] = Math.max(k === 'colour' ? 0 : -1, Math.min(1, (base[k] || 0) + d)); };
+        if (T.includes('warm')) { adj('warm', -0.5); base.colour = Math.min(base.colour, 0.35); }
+        if (T.includes('bright')) { adj('warm', 0.45); base.colour = Math.max(base.colour, 0.7); }
+        if (T.includes('deep') || T.includes('dark') || T.includes('low')) { base.colour = Math.min(base.colour, 0.18); adj('deep', -0.4); }
+        if (T.includes('airy') || T.includes('high') || T.includes('light')) { adj('deep', 0.5); base.colour = Math.max(base.colour, 0.6); }
+        if (T.includes('soft') || T.includes('gentle')) adj('soft', -0.5);
+        if (T.includes('moving') || T.includes('alive')) base.moving = Math.max(base.moving, 0.5);
+        if (T.includes('steady') || T.includes('calm')) { base.moving = 0; base.mod = 0; }
+        if (T.includes('rich') || T.includes('full')) base.rich = Math.max(base.rich, 0.6);
+        engine.setSculpt(base, 'sculpt');
+        await engine.loadMix([{ id: 'sculpt', volume: 0.55, balance: 0, params: base }]);
+        ok.push('Playing a ' + T.join(', ') + ' sound' + ((profile && profile.params()) ? ' shaped from your preferences' : '') + ' — say “warmer”, “softer” or “more movement” to adjust');
+      },
       async something_different() {
         // With a profile: keep the user's learned sound, swap the texture to one they haven't
         // just had — a meaningful variation, not a lottery. Without one: a fresh library sound.
@@ -139,6 +157,11 @@
       else if (/(for focus|to focus|for work|concentrat|my focus|studying|for reading)/.test(t)) acts.push(['start_moment', { id: 'focus' }]);
       else if (/(my quiet|something for me)/.test(t)) acts.push(['start_moment', { id: 'quiet' }]);
       if (/(help me find|find (me )?a sound|find my sound|don'?t know what|not sure what|discover)/.test(t)) return { actions: [['help_find', {}]] };
+      // character requests: "play something warm", "something deep and steady", "give me something bright"
+      if (!acts.length && /\b(something|a sound|anything)\b/.test(t) && !findSound(t)) {
+        const traits = ['warm', 'bright', 'deep', 'dark', 'low', 'airy', 'high', 'light', 'soft', 'gentle', 'moving', 'alive', 'steady', 'calm', 'rich', 'full'].filter(w => new RegExp('\\b' + w + '\\b').test(t));
+        if (traits.length) acts.push(['play_character', { traits }]);
+      }
       // timers
       const tm = t.match(/(\d+)\s*(minutes|minute|min|mins)\b/); const th = t.match(/(\d+|an|one)\s*(hours|hour|hr)\b/);
       if (/(stop|cancel|clear).{0,8}timer/.test(t)) acts.push(['clear_timer', {}]);
