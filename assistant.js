@@ -69,6 +69,8 @@
       async remove_layer(p) { if (engine.isActive(p.id)) { engine.stopSound(p.id); ok.push('Removed ' + engine.def(p.id).name); } else ok.push(engine.def(p.id).name + ' is not playing'); },
       async layer_volume(p) { if (!engine.isActive(p.id)) return ok.push(engine.def(p.id).name + ' is not playing'); const s = engine.activeList().find(x => x.id === p.id); const v = Math.max(0.05, Math.min(1, s.volume + p.delta)); engine.setVolume(p.id, v); ok.push((p.delta < 0 ? 'Lowered ' : 'Raised ') + engine.def(p.id).name + ' to ' + Math.round(v * 100) + '%'); },
       async stop_all() { engine.stopAll(); ok.push('Stopped everything'); },
+      async pause_all() { await engine.pauseAll(); ok.push('Paused — say “resume” to continue'); },
+      async resume_all() { await engine.playAll(); ok.push('Resumed'); },
       async master_volume(p) {
         // Conservative volume policy for assistant-driven changes (manual sliders are unrestricted):
         // - out-of-range or "maximum" requests are REJECTED, never converted to 100%
@@ -182,7 +184,9 @@
         for (const n of names) if (new RegExp('\\b' + n.replace(/ /g, '\\s+') + '\\b.{0,14}too (loud|sharp|strong|much|bright)').test(t)) { acts.push(['layer_volume', { id, delta: -0.15 }]); break; }
       }
       // globals
-      if (/^\s*(stop|silence|quiet please|turn (it )?off)\s*$/.test(t.trim()) || /\bstop everything\b/.test(t)) acts.push(['stop_all', {}]);
+      if (/^\s*(stop( playing| the sounds?| the music| the sound| it| everything| all)?|silence|quiet please|be quiet|turn (it |the sound |everything )?off)\s*$/.test(t.trim()) || /\bstop everything\b/.test(t)) acts.push(['stop_all', {}]);
+      else if (/^\s*(pause( it| playing| the sound)?|hold on)\s*$/.test(t.trim())) acts.push(['pause_all', {}]);
+      else if (/^\s*(resume|continue|unpause|keep going|play again|keep playing)\s*$/.test(t.trim())) acts.push(['resume_all', {}]);
       if (/(maximum volume|full volume|max volume|loudest|as loud as)/.test(t)) acts.push(['master_volume', { reject: 'For comfort, I only make gradual increases — the volume slider is there for large changes.' }]);
       else {
         const vp = t.match(/volume\s*(?:to\s*)?(-?\s?\d{1,3})\s*(?:%|percent)?/);
@@ -197,6 +201,8 @@
       if (/\bsave (this|it|environment)?\b/.test(t)) acts.push(['save_environment', {}]);
       if (/(something (else|different|new)|surprise me|change it up)/.test(t) && !acts.some(a => a[0] === 'play_sound' || a[0] === 'start_moment')) acts.push(['something_different', {}]);
       if (/(make it better|improve|nicer)/.test(t) && !acts.length) return { clarify: true };
+      // a sound verb with a name we don't recognise deserves a specific answer, not a generic one
+      if (!acts.length && /\b(add|play|put on|give me|start)\b/.test(t) && !findSound(t) && !/\b(something|anything|music)\b/.test(t)) return { unknownSound: true };
       return { actions: acts };
       function matchSound(text, verbRe) {
         for (const [id, ...names] of LEX) for (const n of names) { const re = new RegExp(verbRe.source + n.replace(/ /g, '\\s+') + '\\b'); if (re.test(text)) return { id }; }
@@ -211,6 +217,7 @@
       if (parsed.undo) { await undo(); return; }
       if (parsed.medical) { confirmLines(['I can adjust sounds and settings, but I can’t give medical advice. The Learn section covers sound and tinnitus carefully — and for symptoms, a doctor or audiologist is the right person.'], false); return; }
       if (parsed.clarify) { confirmLines(['Try being specific: “warmer”, “softer”, “more movement”, or “something different”.'], false); return; }
+      if (parsed.unknownSound) { track('ai_command_failed'); confirmLines(['I don’t recognise that sound. The library has: rain, rain on window, ocean, lapping water, flowing water, waterfall, white/pink/brown noise, static, hiss, forest, leaves, crickets, cicadas, summer night, night sounds, wind, fan and fireplace.'], false); return; }
       if (!parsed.actions || !parsed.actions.length) { track('ai_command_failed'); confirmLines(['I didn’t catch that. Try things like “play rain”, “make it warmer”, “add a little ocean”, “set a timer for 30 minutes”, or “give me something for sleep”.'], false); return; }
       snapshot();
       ok.length = 0;
