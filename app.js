@@ -268,7 +268,19 @@
     if (v > 0.75 && !warned) { warned = true; toast('High level. The lowest comfortable level that still helps is usually best — louder is not better masking.', 4000); }
     if (v <= 0.75) warned = false;
   });
-  setMaster(clamp(store.get('master', 0.35), 0, 0.6)); // never restore above a moderate level
+  setMaster(clamp(store.get('master', 0.45), 0.1, 1)); // restore last-used level (floor avoids opening silent)
+  // The phone's hardware volume multiplies with the app slider — when both are low the app seems
+  // broken. That hardware level is unreadable from a web app, so a brief hint is the only bridge.
+  let volHinted = false;
+  engine.on(type => {
+    if (type !== 'sounds' || volHinted || !engine.activeList().length) return;
+    volHinted = true;
+    const shown = store.get('volhint', 0);
+    if (engine.masterVolume <= 0.4 && shown < 3) {
+      store.set('volhint', shown + 1);
+      setTimeout(() => toast('Quiet? Raise the volume slider here — and check your phone’s own volume buttons. Both work together.', 5200), 1400);
+    }
+  });
   async function togglePlay() {
     if (!engine.ctx) { if (!engine.activeList().length) return toast('Choose a sound to begin'); }
     if (engine.ctx && engine.ctx.state === 'running' && engine.isPlaying) await engine.pauseAll();
