@@ -268,11 +268,12 @@
         mic.setAttribute('aria-pressed', on);
         input.placeholder = on ? 'Listening… tap again to cancel' : 'Something warm for sleep…';
         // Playing audio drowns speech recognition (echo cancellation swallows the voice), so the
-        // sound is softened while listening and restored to exactly its previous level afterward.
-        if (on && engine.isPlaying && engine.trim) { duckPrev = engine.trim.gain.value; engine.setMasterTrim(0.1, 0.15); }
+        // sound is quietened to near-silence while listening and restored to exactly its previous
+        // level afterward. masterVolume, mixer layers and timers are never touched.
+        if (on && engine.isPlaying && engine.trim) { duckPrev = engine.trim.gain.value; engine.setMasterTrim(0.005, 0.08); }
         else if (!on && duckPrev != null) { engine.setMasterTrim(duckPrev, 0.3); duckPrev = null; }
         const wasDucked = on && duckPrev != null;
-        if (on) out.innerHTML = '<div class="ask-line">Listening…' + (wasDucked ? ' (sound softened while you speak)' : '') + '</div>'; else if (out.textContent.trim().indexOf('Listening…') === 0) out.innerHTML = '';
+        if (on) out.innerHTML = '<div class="ask-line">Listening…' + (wasDucked ? ' (sound paused while you speak)' : '') + '</div>'; else if (out.textContent.trim().indexOf('Listening…') === 0) out.innerHTML = '';
         clearTimeout(listenGuard);
         if (on) listenGuard = setTimeout(() => {   // hard guarantee: "Listening…" can never get stuck
           try { rec && rec.abort(); } catch (_) { }
@@ -315,15 +316,21 @@
         track('voice_opened');
         if (firstUse) { firstUse = false; app.toast('Voice recognition may be processed by your browser or device provider. Find My Quiet Sound does not store your voice and does not send your Sound Profile or tinnitus information with the request.', 5600); }
         sessionHadOutcome = false;
-        setListening(true);
+        const wasPlaying = engine.isPlaying;
+        setListening(true);   // ducks the sound first…
         const r = ensureRec();
-        try {
-          r.start();                                  // permission prompt happens here, on the deliberate tap
-        } catch (err) {
-          // InvalidStateError: a previous session is still winding down — reset and retry once shortly
-          try { r.abort(); } catch (_) { }
-          setTimeout(() => { try { r.start(); } catch (e2) { rec = null; setListening(false); track('voice_command_failed'); confirmLines(['Voice isn’t available right now. You can still type your request.'], false); } }, 300);
-        }
+        const begin = () => {
+          if (!listening) return;   // cancelled during the quiet-down
+          try {
+            r.start();              // permission prompt happens here, on the deliberate tap
+          } catch (err) {
+            // InvalidStateError: a previous session is still winding down — reset and retry once shortly
+            try { r.abort(); } catch (_) { }
+            setTimeout(() => { if (!listening) return; try { r.start(); } catch (e2) { rec = null; setListening(false); track('voice_command_failed'); confirmLines(['Voice isn’t available right now. You can still type your request.'], false); } }, 300);
+          }
+        };
+        // …then start recognition in near-silence, so its noise calibration hears you, not the sound
+        setTimeout(begin, wasPlaying ? 350 : 0);
       });
     } else {
       track('voice_unsupported');   // no mic button rendered; typing is fully functional
