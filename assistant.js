@@ -80,13 +80,33 @@
       async change_visual(p) { const F = window.softwaveFocus; if (!F) return; if (p.calmer) { store.set('motion', 'low'); ok.push('Visual set calmer'); return; } const all = F.visuals; const cur = store.get('visual', 'ocean'); const idx = all.findIndex(v => v.id === cur); const next = all[(idx + 1) % all.length]; F.setVisual(next.id); ok.push('Visual: ' + next.name); },
       async save_environment() { if (!engine.activeList().length) return ok.push('Start some sounds first, then say save'); const combos = store.get('combos', []); if (M() && !M().canCreateSavedItem(combos.length)) { if (window.softwavePremium) softwavePremium.saveLimit('environments'); return ok.push('Save limit reached'); } combos.push({ name: 'My saved environment', mix: engine.snapshot(), master: engine.masterVolume, visual: store.get('visual', 'ocean'), motion: store.get('motion', 'low'), timer: engine.timer.durationMin || 0 }); store.set('combos', combos); track('environment_saved'); ok.push('Saved (Visual Focus → My environments)'); },
       async help_find() { app.showView('find'); ok.push('Opening Find My Sound — it learns what you prefer'); },
-      async something_different() { const act = new Set(engine.activeList().map(s => s.id)); const pool = engine.defs().map(d => d.id).filter(id => !act.has(id)); const id = pool[Math.floor(Math.random() * pool.length)]; await engine.loadMix([{ id, volume: 0.55 }]); ok.push('Trying ' + engine.def(id).name); },
+      async something_different() {
+        // With a profile: keep the user's learned sound, swap the texture to one they haven't
+        // just had — a meaningful variation, not a lottery. Without one: a fresh library sound.
+        const act = new Set(engine.activeList().map(s => s.id));
+        if (profile && profile.params()) {
+          const textures = ['rain', 'ocean', 'wind', 'forest', 'stream', 'crickets', 'lapping', 'leaves', 'glassrain', 'fire'].filter(id => !act.has(id));
+          const tx = textures[Math.floor(Math.random() * textures.length)];
+          const mix = profile.mix() || [];
+          const base = mix.filter(s => s.id === 'sculpt');
+          await engine.loadMix(base.concat([{ id: tx, volume: 0.32, balance: 0 }]));
+          ok.push('Your sound with ' + engine.def(tx).name.toLowerCase() + ' instead');
+        } else {
+          const pool = engine.defs().map(d => d.id).filter(id => !act.has(id));
+          const id = pool[Math.floor(Math.random() * pool.length)];
+          await engine.loadMix([{ id, volume: 0.55 }]);
+          ok.push('Trying ' + engine.def(id).name);
+        }
+      },
     };
 
     // ---------- the local parser: text → validated actions ----------
     const MEDICAL = /\b(cure|treat|diagnos|prescri|hearing loss|therapy for|medical|what frequency is my|why do i have|is my tinnitus|getting worse|damage)\b/;
+    // Spoken numbers arrive as words on some platforms — normalize the common ones.
+    const NUMWORDS = [['forty five', '45'], ['forty-five', '45'], ['an hour and a half', '90 minutes'], ['half an hour', '30 minutes'], ['one', '1'], ['five', '5'], ['ten', '10'], ['fifteen', '15'], ['twenty', '20'], ['thirty', '30'], ['forty', '40'], ['fifty', '50'], ['sixty', '60'], ['ninety', '90']];
+    function normalizeNumbers(t) { for (const [w, d] of NUMWORDS) t = t.replace(new RegExp('\\b' + w + '\\b', 'g'), d); return t; }
     function parse(raw) {
-      const t = ' ' + raw.toLowerCase().replace(/[.,!?;]/g, ' ').replace(/\s+/g, ' ').trim() + ' ';
+      const t = normalizeNumbers(' ' + raw.toLowerCase().replace(/[.,!?;]/g, ' ').replace(/\s+/g, ' ').trim() + ' ');
       if (/^\s*(undo|go back|put it back)\s*$/.test(t.trim())) return { undo: true };
       if (MEDICAL.test(t)) return { medical: true };
       const acts = [];
@@ -101,15 +121,23 @@
       if (/(stop|cancel|clear).{0,8}timer/.test(t)) acts.push(['clear_timer', {}]);
       else if (tm) acts.push(['set_timer', { minutes: +tm[1] }]);
       else if (th) acts.push(['set_timer', { minutes: (th[1] === 'an' || th[1] === 'one' ? 1 : +th[1]) * 60 }]);
-      // per-sound verbs
+      // per-sound verbs — detected independently so "give me ocean with crickets" plays ocean AND adds crickets
       const light = /(a little|a bit of|light|some|a touch of|slight)/.test(t);
+      const lessM = matchSound(t, /(?:less|quieter|lower|turn down|softer)\s+(?:the\s+)?/);
+      const moreM = matchSound(t, /(?:more|louder|raise|turn up)\s+(?:the\s+)?/);
+      const remM = matchSound(t, /(?:remove|without|take out|take away|drop|no more|stop the)\s+(?:the\s+)?/);
+      const addM = matchSound(t, /(?:add|with|include|put in|layer)\s+(?:a little |a bit of |some |a touch of |light |the )?/);
+      const playM = matchSound(t, /(?:play|start|put on|give me|i want)\s+(?:the |some |a little )?/);
+      if (lessM) acts.push(['layer_volume', { id: lessM.id, delta: -0.15 }]);
+      else if (moreM) acts.push(['layer_volume', { id: moreM.id, delta: 0.15 }]);
+      if (playM && (!addM || addM.id !== playM.id) && (!remM || remM.id !== playM.id) && (!lessM || lessM.id !== playM.id)) {
+        if (!acts.some(a => a[0] === 'start_moment')) acts.push(['play_sound', { id: playM.id }]);
+        else acts.push(['add_layer', { id: playM.id, level: light ? 0.25 : 0.35 }]);
+      }
+      if (addM && (!remM || remM.id !== addM.id) && (!lessM || lessM.id !== addM.id)) acts.push(['add_layer', { id: addM.id, level: light ? 0.25 : 0.35 }]);
+      if (remM) acts.push(['remove_layer', { id: remM.id }]);
       let m;
-      if ((m = matchSound(t, /(?:less|quieter|lower|turn down|softer)\s+(?:the\s+)?/))) acts.push(['layer_volume', { id: m.id, delta: -0.15 }]);
-      else if ((m = matchSound(t, /(?:more|louder|raise|turn up)\s+(?:the\s+)?/))) acts.push(['layer_volume', { id: m.id, delta: 0.15 }]);
-      if ((m = matchSound(t, /(?:remove|without|take out|take away|drop|no more|stop the)\s+(?:the\s+)?/))) acts.push(['remove_layer', { id: m.id }]);
-      else if ((m = matchSound(t, /(?:add|with|include|put in|layer)\s+(?:a little |a bit of |some |a touch of |light |the )?/))) acts.push(['add_layer', { id: m.id, level: light ? 0.25 : 0.35 }]);
-      else if ((m = matchSound(t, /(?:play|start|put on|give me|i want)\s+(?:the |some |a little )?/))) { if (!acts.some(a => a[0] === 'start_moment')) acts.push(['play_sound', { id: m.id }]); else acts.push(['add_layer', { id: m.id, level: light ? 0.25 : 0.35 }]); }
-      else if (!acts.length && (m = findSound(t)) && t.trim().split(' ').length <= 4) acts.push(['play_sound', { id: m.id }]);   // bare "rain on window"
+      if (!acts.length && (m = findSound(t)) && t.trim().split(' ').length <= 4) acts.push(['play_sound', { id: m.id }]);   // bare "rain on window"
       // character
       if (/(warmer|less bright|too bright|less sharp|too sharp|softer sound|mellow)/.test(t)) acts.push(['warmer', {}]);
       if (/(brighter|more bright|crisper|less muffled|too muffled|too dull)/.test(t)) acts.push(['brighter', {}]);
@@ -165,6 +193,59 @@
     opener.addEventListener('click', () => { form.hidden = false; opener.hidden = true; input.focus(); track('ai_assistant_opened'); });
     form.addEventListener('submit', async e => { e.preventDefault(); const v = input.value; input.value = ''; await run(v); });
     input.addEventListener('keydown', e => { if (e.key === 'Escape') { form.hidden = true; opener.hidden = false; out.innerHTML = ''; opener.focus(); } });
+
+    // ---------- Phase 2: tap-to-talk (speech becomes text; the SAME pipeline runs it) ----------
+    // Web Speech API only — no cloud LLM, no always-on listening, one-shot per tap.
+    // NOTE: recognition itself may be processed by the browser/device provider
+    // (Google on Chrome/Edge/Android, Apple on Safari/iOS). We send only audio the
+    // user chose to speak — never app data. Firefox has no support: mic is hidden.
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SR) {
+      const mic = document.createElement('button');
+      mic.type = 'button'; mic.id = 'ask-mic'; mic.className = 'btn btn-ghost btn-sm ask-mic';
+      mic.setAttribute('aria-label', 'Speak your request'); mic.setAttribute('aria-pressed', 'false');
+      mic.title = 'Speak your request — voice recognition may be processed by your browser or device provider';
+      mic.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3z" fill="currentColor"/><path d="M18 11a6 6 0 0 1-12 0M12 17v3.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+      form.appendChild(mic);
+      let rec = null, listening = false, firstUse = true;
+      const setListening = (on) => {
+        listening = on;
+        mic.classList.toggle('listening', on);
+        mic.setAttribute('aria-pressed', on);
+        input.placeholder = on ? 'Listening… tap again to cancel' : 'What would you like? — e.g. “something warm for sleep, 45 minutes”';
+        if (on) out.innerHTML = '<div class="ask-line">Listening…</div>'; else if (out.textContent.trim() === 'Listening…') out.innerHTML = '';
+      };
+      mic.addEventListener('click', () => {
+        if (listening) { try { rec && rec.abort(); } catch (_) { } setListening(false); return; }   // tap again = cancel
+        try {
+          rec = new SR();
+          rec.lang = document.documentElement.lang || 'en';
+          rec.continuous = false; rec.interimResults = false; rec.maxAlternatives = 1;
+          rec.onresult = async (e) => {
+            setListening(false);
+            const text = e.results && e.results[0] && e.results[0][0] ? e.results[0][0].transcript.trim() : '';
+            if (!text) { track('voice_command_failed'); confirmLines(['I didn’t catch that. Try again or type your request.'], false); return; }
+            input.value = text;                       // transparency: show exactly what was heard
+            track('voice_command_completed');         // command outcome is tracked by run() as usual
+            await run(text);
+            input.value = '';
+          };
+          rec.onerror = (e) => {
+            setListening(false);
+            if (e.error === 'not-allowed' || e.error === 'service-not-allowed') { track('voice_permission_denied'); confirmLines(['Microphone access isn’t available. You can still type your request.'], false); }
+            else if (e.error === 'no-speech' || e.error === 'aborted') { if (e.error === 'no-speech') { track('voice_command_failed'); confirmLines(['I didn’t catch that. Try again or type your request.'], false); } }
+            else { track('voice_command_failed'); confirmLines(['Voice didn’t work just now. You can still type your request.'], false); }
+          };
+          rec.onend = () => setListening(false);      // one-shot: always stops after the attempt
+          track('voice_opened');
+          if (firstUse) { firstUse = false; app.toast('Voice recognition may be processed by your browser or device provider. Only what you say is sent — never your sounds or profile.', 5200); }
+          setListening(true);
+          rec.start();                                 // permission prompt happens here, on the deliberate tap
+        } catch (err) { setListening(false); track('voice_command_failed'); confirmLines(['Voice isn’t available right now. You can still type your request.'], false); }
+      });
+    } else {
+      track('voice_unsupported');   // no mic button rendered; typing is fully functional
+    }
     function confirmLines(lines, withUndo) {
       out.innerHTML = lines.map(l => `<div class="ask-line">${l}</div>`).join('') + (withUndo ? '<button class="btn btn-ghost btn-sm" id="ask-undo">Undo</button>' : '');
       const u = $('#ask-undo', out); if (u) u.addEventListener('click', undo);

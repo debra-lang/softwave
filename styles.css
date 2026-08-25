@@ -1024,6 +1024,10 @@ html[data-theme="dark"] .row-title { color: rgba(238,240,244,.42); }
 #ask-out { margin-top: 10px; display: flex; flex-direction: column; gap: 4px; align-items: center; }
 .ask-line { font-size: .9rem; color: var(--muted); }
 @media (max-width: 640px) { .ask-wrap { margin-top: 10px; } #ask-input { font-size: 16px; } }
+.ask-mic { flex: none; display: grid; place-items: center; width: 38px; height: 38px; padding: 0; border-radius: 50%; }
+.ask-mic.listening { color: var(--accent); box-shadow: 0 0 0 2px var(--ring); animation: mic-pulse 1.6s ease-in-out infinite; }
+@keyframes mic-pulse { 0%, 100% { box-shadow: 0 0 0 2px var(--ring); } 50% { box-shadow: 0 0 0 6px var(--ring); } }
+@media (prefers-reduced-motion: reduce) { .ask-mic.listening { animation: none; } }
 .fa-tuned[aria-pressed="true"]::before { content: "✦ "; }
 
 /* ---- contextual Premium dialog (inert during free launch) ---- */
