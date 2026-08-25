@@ -3,7 +3,7 @@
    Dates are "last reviewed" dates; update them when content changes. */
 'use strict';
 
-const REVIEWED = '2026-08-22';
+const REVIEWED = '2026-08-25';
 const SRC = {
   nidcd: { t: 'NIDCD — Tinnitus (National Institute on Deafness and Other Communication Disorders)', u: 'https://www.nidcd.nih.gov/health/tinnitus' },
   ata: { t: 'American Tinnitus Association — Sound Therapy', u: 'https://www.ata.org/about-tinnitus/sound-therapy/' },
@@ -416,8 +416,8 @@ learn({
 
 learn({
   slug: 'ask-find-my-quiet-sound',
-  title: 'Ask Find My Quiet Sound',
-  description: 'Control your sound environment with everyday language: type or speak requests like "something gentle for sleep" and Find My Quiet Sound sets it up for you.',
+  title: 'Ask Find My Quiet Sound — Voice & Text Sound Control',
+  description: 'A tinnitus sound app you can control by voice or text. Say "something gentle for sleep" or "add a little rain" — hands-free masking sounds, with the microphone on only when you tap it.',
   h1: 'Ask Find My Quiet Sound',
   intro: 'Just say what you want. Ask Find My Quiet Sound lets you control your sound environment using everyday language. Type your request, or tap the microphone and speak.',
   body: `
