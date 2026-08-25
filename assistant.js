@@ -259,7 +259,9 @@
       mic.title = 'Speak your request — voice recognition may be processed by your browser or device provider';
       mic.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3z" fill="currentColor"/><path d="M18 11a6 6 0 0 1-12 0M12 17v3.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
       form.appendChild(mic);
-      let rec = null, listening = false, firstUse = true, listenGuard = null;
+      // ONE persistent recognition instance, reused across taps — recreating per tap can wedge
+      // Chrome's speech service so the second session never returns. Handlers attach once.
+      let rec = null, listening = false, firstUse = true, listenGuard = null, sessionHadOutcome = false;
       const setListening = (on) => {
         listening = on;
         mic.classList.toggle('listening', on);
@@ -271,37 +273,52 @@
           try { rec && rec.abort(); } catch (_) { }
           setListening(false);
           confirmLines(['I didn’t hear anything. Tap the microphone and try again, or type your request.'], false);
-        }, 12000);
+        }, 10000);
       };
+      function ensureRec() {
+        if (rec) return rec;
+        rec = new SR();
+        rec.lang = document.documentElement.lang || 'en';
+        rec.continuous = false; rec.interimResults = false; rec.maxAlternatives = 1;
+        rec.onresult = async (e) => {
+          sessionHadOutcome = true;
+          setListening(false);
+          const text = e.results && e.results[0] && e.results[0][0] ? e.results[0][0].transcript.trim() : '';
+          if (!text) { track('voice_command_failed'); confirmLines(['I didn’t catch that. Try again or type your request.'], false); return; }
+          input.value = text;                       // transparency: show exactly what was heard
+          track('voice_command_completed');
+          await run(text);
+          input.value = '';
+        };
+        rec.onerror = (e) => {
+          sessionHadOutcome = true;
+          setListening(false);
+          if (e.error === 'not-allowed' || e.error === 'service-not-allowed') { track('voice_permission_denied'); confirmLines(['Microphone access isn’t available. You can still type your request.'], false); }
+          else if (e.error === 'aborted') { /* user cancelled or superseded — quiet */ }
+          else if (e.error === 'no-speech') { track('voice_command_failed'); confirmLines(['I didn’t catch that. Try again or type your request.'], false); }
+          else { track('voice_command_failed'); confirmLines(['Voice didn’t work just now (' + (e.error || 'unknown') + '). You can still type your request.'], false); }
+        };
+        rec.onend = () => {   // fires after every session, success or not
+          const silent = listening && !sessionHadOutcome;
+          setListening(false);
+          if (silent) { track('voice_command_failed'); confirmLines(['I didn’t catch that. Tap the microphone and try again, or type your request.'], false); }
+        };
+        return rec;
+      }
       mic.addEventListener('click', () => {
         if (listening) { try { rec && rec.abort(); } catch (_) { } setListening(false); return; }   // tap again = cancel
+        track('voice_opened');
+        if (firstUse) { firstUse = false; app.toast('Voice recognition may be processed by your browser or device provider. Find My Quiet Sound does not store your voice and does not send your Sound Profile or tinnitus information with the request.', 5600); }
+        sessionHadOutcome = false;
+        setListening(true);
+        const r = ensureRec();
         try {
-          if (rec) { try { rec.abort(); } catch (_) { } rec = null; }   // kill any lingering session before starting a new one
-          rec = new SR();
-          rec.lang = document.documentElement.lang || 'en';
-          rec.continuous = false; rec.interimResults = false; rec.maxAlternatives = 1;
-          rec.onresult = async (e) => {
-            setListening(false);
-            try { rec.stop(); } catch (_) { }   // end the session promptly so the next tap starts clean
-            const text = e.results && e.results[0] && e.results[0][0] ? e.results[0][0].transcript.trim() : '';
-            if (!text) { track('voice_command_failed'); confirmLines(['I didn’t catch that. Try again or type your request.'], false); return; }
-            input.value = text;                       // transparency: show exactly what was heard
-            track('voice_command_completed');         // command outcome is tracked by run() as usual
-            await run(text);
-            input.value = '';
-          };
-          rec.onerror = (e) => {
-            setListening(false);
-            if (e.error === 'not-allowed' || e.error === 'service-not-allowed') { track('voice_permission_denied'); confirmLines(['Microphone access isn’t available. You can still type your request.'], false); }
-            else if (e.error === 'no-speech' || e.error === 'aborted') { if (e.error === 'no-speech') { track('voice_command_failed'); confirmLines(['I didn’t catch that. Try again or type your request.'], false); } }
-            else { track('voice_command_failed'); confirmLines(['Voice didn’t work just now. You can still type your request.'], false); }
-          };
-          rec.onend = () => setListening(false);      // one-shot: always stops after the attempt
-          track('voice_opened');
-          if (firstUse) { firstUse = false; app.toast('Voice recognition may be processed by your browser or device provider. Find My Quiet Sound does not store your voice and does not send your Sound Profile or tinnitus information with the request.', 5600); }
-          setListening(true);
-          rec.start();                                 // permission prompt happens here, on the deliberate tap
-        } catch (err) { setListening(false); track('voice_command_failed'); confirmLines(['Voice isn’t available right now. You can still type your request.'], false); }
+          r.start();                                  // permission prompt happens here, on the deliberate tap
+        } catch (err) {
+          // InvalidStateError: a previous session is still winding down — reset and retry once shortly
+          try { r.abort(); } catch (_) { }
+          setTimeout(() => { try { r.start(); } catch (e2) { rec = null; setListening(false); track('voice_command_failed'); confirmLines(['Voice isn’t available right now. You can still type your request.'], false); } }, 300);
+        }
       });
     } else {
       track('voice_unsupported');   // no mic button rendered; typing is fully functional
