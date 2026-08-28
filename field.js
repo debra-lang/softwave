@@ -17,6 +17,15 @@
   const isDark = () => document.documentElement.dataset.theme === 'dark';
   const reduced = () => { try { return (localStorage.getItem('softwave:reduceMotion') === 'true') || matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (_) { return false; } };
   let LOW = (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) || (navigator.deviceMemory && navigator.deviceMemory <= 4);
+  // Machines without working GPU acceleration rasterise every canvas on the CPU — there the
+  // browser process burns whole cores painting our large soft-gradient surfaces. A WebGL context
+  // that only exists with a "major performance caveat" (SwiftShader) is the reliable signal.
+  try {
+    const probe = document.createElement('canvas');
+    const gl = probe.getContext('webgl', { failIfMajorPerformanceCaveat: true }) || probe.getContext('experimental-webgl', { failIfMajorPerformanceCaveat: true });
+    if (!gl) { LOW = true; console.info('Softwave: software rendering detected — low-power visuals on'); }
+    else { const lose = gl.getExtension('WEBGL_lose_context'); if (lose) lose.loseContext(); }
+  } catch (_) { LOW = true; }
   // deterministic pseudo-random per index (stable layouts, no Math.random in the hot path)
   const hash = (i, k = 0) => { const s = Math.sin(i * 12.9898 + k * 78.233) * 43758.5453; return s - Math.floor(s); };
 
@@ -210,7 +219,7 @@
     setEnvironment(id) { if (this.envId !== id) { this.envId = id; this.envInst = null; } }
     resize() {
       const r = this.c.getBoundingClientRect(); if (!r.width) return false;
-      const w = Math.round(r.width), h = Math.round(r.height); let dpr = Math.min(LOW ? 1 : 1.5, devicePixelRatio || 1); if (w * h * dpr * dpr > 2.4e6) dpr = Math.min(dpr, Math.max(1, Math.sqrt(2.4e6 / (w * h))));   // big canvases render at a lower density — audio first
+      const w = Math.round(r.width), h = Math.round(r.height); let dpr = Math.min(LOW ? 1 : 1.5, devicePixelRatio || 1); const capPx = LOW ? 0.9e6 : 1.6e6; if (w * h * dpr * dpr > capPx) dpr = Math.min(dpr, Math.max(LOW ? 0.55 : 0.8, Math.sqrt(capPx / (w * h))));   // big canvases render at a lower density — soft glows survive sub-1 density, CPU rasterisers don't survive full density
       if (this.w !== w || this.h !== h || this.dpr !== dpr) { this.w = w; this.h = h; this.dpr = dpr; this.c.width = Math.round(w * dpr); this.c.height = Math.round(h * dpr); }
       this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0); this.rect = r; return true;
     }

@@ -23,8 +23,10 @@
     _p(init) { return { x: Math.random(), y: init ? Math.random() : 1.05, r: 1 + Math.random() * 2.5, s: 0.0002 + Math.random() * 0.0005, o: 0.2 + Math.random() * 0.5, d: Math.random() * Math.PI * 2 }; }
     _drop(init) { return { x: Math.random(), y: init ? Math.random() : -0.05, l: 0.02 + Math.random() * 0.04, s: 0.006 + Math.random() * 0.008, o: 0.15 + Math.random() * 0.3 }; }
     resize() {
-      // Soft, blurry atmosphere: render at 2/3 resolution — invisible difference, far fewer pixels to fill each tick.
-      const dpr = Math.min(devicePixelRatio || 1, 1) * 0.67;
+      // Soft, blurry atmosphere: render at 2/3 resolution — invisible difference, far fewer pixels
+      // to fill each tick. On LOW (weak or software-rendered machines) go to half resolution.
+      const SFg = window.SoftwaveField;
+      const dpr = Math.min(devicePixelRatio || 1, 1) * (SFg && SFg.LOW ? 0.5 : 0.67);
       this.w = innerWidth; this.h = innerHeight;
       this.c.width = Math.round(this.w * dpr); this.c.height = Math.round(this.h * dpr);
       this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -49,7 +51,7 @@
       this._queued = true;
       requestAnimationFrame(() => { this._queued = false; this.loop(); });
       // The page atmosphere is slow-moving: 20 fps is plenty, and it leaves the frame budget to the Sound Field (audio first).
-      const nowT = performance.now(); if (this._lastT && nowT - this._lastT < 66) return; this._lastT = nowT;
+      const nowT = performance.now(); if (this._lastT && nowT - this._lastT < (window.SoftwaveField && SoftwaveField.LOW ? 100 : 66)) return; this._lastT = nowT;
       const ctx = this.ctx, w = this.w, h = this.h;
       const lv = this.engine.isPlaying ? this.engine.getLevels(this.freq) : 0;
       this.level += (lv - this.level) * 0.06;
