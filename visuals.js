@@ -49,7 +49,7 @@
       this._queued = true;
       requestAnimationFrame(() => { this._queued = false; this.loop(); });
       // The page atmosphere is slow-moving: 20 fps is plenty, and it leaves the frame budget to the Sound Field (audio first).
-      const nowT = performance.now(); if (this._lastT && nowT - this._lastT < 48) return; this._lastT = nowT;
+      const nowT = performance.now(); if (this._lastT && nowT - this._lastT < 66) return; this._lastT = nowT;
       const ctx = this.ctx, w = this.w, h = this.h;
       const lv = this.engine.isPlaying ? this.engine.getLevels(this.freq) : 0;
       this.level += (lv - this.level) * 0.06;
@@ -122,8 +122,10 @@
   class ToneViz {
     constructor(canvas, engine, getFreq) {
       this.c = canvas; this.ctx = canvas.getContext('2d'); this.engine = engine; this.getFreq = getFreq;
-      this.wave = new Uint8Array(1024); this.t = 0; this.resize();
+      this.wave = new Uint8Array(1024); this.t = 0; this.visible = false; this._lt = 0; this.resize();
       new ResizeObserver(() => this.resize()).observe(canvas);
+      // visibility via observer, not per-frame offsetParent (which forces layout every frame)
+      new IntersectionObserver(es => { this.visible = es[0].isIntersecting; }).observe(canvas);
       this.loop();
     }
     resize() {
@@ -132,7 +134,8 @@
     }
     loop() {
       requestAnimationFrame(() => this.loop());
-      if (this.c.offsetParent === null) return; // hidden
+      if (!this.visible || document.hidden) return;
+      const nowT = performance.now(); if (nowT - this._lt < 33) return; this._lt = nowT;
       const ctx = this.ctx, w = this.w, h = this.h; this.t += 0.02;
       const dark = document.documentElement.dataset.theme === 'dark';
       ctx.clearRect(0, 0, w, h);

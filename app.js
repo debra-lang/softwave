@@ -68,7 +68,7 @@
   function ensureLab() {
     if (window.softwaveLab) return Promise.resolve();
     if (labPromise) return labPromise;
-    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=40'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
+    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=41'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
     return labPromise;
   }
   window.softwaveEnsureLab = ensureLab;
@@ -462,10 +462,14 @@
   function fieldIds() { return engine.activeList().map(sn => ({ id: sn.id, volume: sn.volume, params: (sn.id === 'sculpt' || sn.id.startsWith('disco')) ? engine.getSculpt(sn.id) : null })); }
   // Frame-time watchdog: on machines that cannot keep up (old GPUs, broken drivers), sustained
   // slow frames flip every LOW rendering path on — the visuals stay, with far less GPU work.
-  let ftEma = 16, ftBadSince = 0, ftPrev = 0;
+  let ftEma = 16, ftBadSince = 0, ftPrev = 0, fieldDrawLast = 0;
   function fieldLoop(now) { requestAnimationFrame(fieldLoop); if (!FIELD || document.hidden) { ftPrev = 0; return; } const playing = !!engine.isPlaying;
-    if (ftPrev) { const ft = now - ftPrev; if (ft < 2000) { ftEma += (ft - ftEma) * 0.05; if (!FIELD.LOW) { if (ftEma > 90) { if (!ftBadSince) ftBadSince = now; if (now - ftBadSince > 4000) { FIELD.setLOW(true); console.info('Softwave: low-power visuals enabled (slow frames detected)'); try { dispatchEvent(new Event('resize')); } catch (_) { } } } else ftBadSince = 0; } } } ftPrev = now; const lv = playing ? Math.min(1, engine.getLevels(fieldSpec) * 6) : 0; let lo = 0; if (playing) { for (let i = 1; i < 10; i++) lo += fieldSpec[i]; lo /= 9 * 255; } const bal = engine.activeList().reduce((acc, sn) => acc + sn.balance, 0); const immersed = !$('#now').hidden; const focusOpen = !$('#focus-screen').hidden && !transit.active;
-    if (immersed) { fieldBig.setPlaying(playing); fieldBig.setLevel(lv, bal); fieldBig.setLow(lo); fieldBig.draw(now); } else if (!focusOpen && (transit.active || (fieldVisible && !$('#view-sounds').hidden))) { fieldMain.setPlaying(playing); fieldMain.setLevel(lv, bal); fieldMain.setLow(lo); fieldMain.draw(now); }
+    if (ftPrev) { const ft = now - ftPrev; if (ft < 2000) { ftEma += (ft - ftEma) * 0.05; if (!FIELD.LOW) { if (ftEma > 90) { if (!ftBadSince) ftBadSince = now; if (now - ftBadSince > 4000) { FIELD.setLOW(true); console.info('Softwave: low-power visuals enabled (slow frames detected)'); try { dispatchEvent(new Event('resize')); } catch (_) { } } } else ftBadSince = 0; } } } ftPrev = now;
+    // The field is a slow-breathing form: 30 fps playing / 20 fps idle is visually identical
+    // and halves both script time and the GPU compositing of a large canvas.
+    const drawDue = now - fieldDrawLast >= (transit.active ? 0 : playing ? 33 : 50);
+    if (drawDue) { fieldDrawLast = now; const lv = playing ? Math.min(1, engine.getLevels(fieldSpec) * 6) : 0; let lo = 0; if (playing) { for (let i = 1; i < 10; i++) lo += fieldSpec[i]; lo /= 9 * 255; } const bal = engine.activeList().reduce((acc, sn) => acc + sn.balance, 0); const immersed = !$('#now').hidden; const focusOpen = !$('#focus-screen').hidden && !transit.active;
+    if (immersed) { fieldBig.setPlaying(playing); fieldBig.setLevel(lv, bal); fieldBig.setLow(lo); fieldBig.draw(now); } else if (!focusOpen && (transit.active || (fieldVisible && !$('#view-sounds').hidden))) { fieldMain.setPlaying(playing); fieldMain.setLevel(lv, bal); fieldMain.setLow(lo); fieldMain.draw(now); } }
     if (now - fieldLast > 80 && !$('#view-sounds').hidden && !immersed) { fieldLast = now; tileTick = (tileTick + 1) % 3; let ti = 0; tilePreviews.forEach((pv, card) => { ti++; if (!tileVisible.has(card)) { tileIO.observe(card); tileVisible.set(card, false); return; } if (!tileVisible.get(card)) return; const hot = card.classList.contains('active') || card.matches(':hover'); if (!hot && ti % 3 !== tileTick) return; if (!hot && FIELD.LOW && pv._once) return; pv._once = true; pv.setLevel(hot ? 0.5 : 0.15, 0); pv.draw(now); }); } }
   requestAnimationFrame(fieldLoop);
   function syncField() {
@@ -512,8 +516,11 @@
   window.softwaveSound = () => { const l = engine.activeList(); if (!l.length) return null; const top = l.slice().sort((x, y) => y.volume - x.volume)[0]; const p = SV.paramsFor(top.id, (top.id === 'sculpt' || top.id.startsWith('disco')) ? engine.getSculpt(top.id) : null); return { colour: p.colour, warm: p.warm, moving: p.moving, nature: p.nature }; };
   function describeSound(p) { const b = []; b.push(p.colour < 0.33 ? 'Deep' : p.colour < 0.67 ? 'Balanced' : 'Bright'); if (p.warm < -0.25) b.push('Warm'); if (p.warm > 0.25) b.push('Airy'); if (p.moving > 0.3 || p.mod > 0.3) b.push('Moving'); else b.push('Steady'); if (p.nature !== 'none') b.push(engine.def(p.nature) ? engine.def(p.nature).name : p.nature); return b.join(' · '); }
   const orbs = [['#player-orb', 0.44]]; let orbT = 0, orbLast = 0; const orbSpec = new Uint8Array(512);
-  function orbLoop(now) { requestAnimationFrame(orbLoop); if (document.hidden || now - orbLast < 33) return; const dt = Math.min(0.05, (now - orbLast) / 1000); orbLast = now; orbT += dt * (engine.isPlaying ? 1 : 0.35); const lv = engine.isPlaying ? Math.min(1, engine.getLevels(orbSpec) * 6) : 0; const p = dominantParams();
-    for (const [sel, scale] of orbs) { const c = $(sel); if (!c || c.offsetParent === null) continue; const r = c.getBoundingClientRect(); if (!r.width) continue; const dpr = Math.min(devicePixelRatio || 1, 2); if (c.width !== Math.round(r.width * dpr)) { c.width = Math.round(r.width * dpr); c.height = Math.round(r.height * dpr); } const ctx = c.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, r.width, r.height); SV.soundShape(ctx, r.width, r.height, p, orbT, lv, { scale, glow: sel === '#now-canvas' }); } }
+  function orbLoop(now) { requestAnimationFrame(orbLoop); if (document.hidden || now - orbLast < 50) return; const dt = Math.min(0.08, (now - orbLast) / 1000); orbLast = now; orbT += dt * (engine.isPlaying ? 1 : 0.35);
+    // cheap visibility first — dominantParams and getLevels only run when the orb will actually draw
+    if ($('#player').classList.contains('player-hidden')) return;
+    const lv = engine.isPlaying ? Math.min(1, engine.getLevels(orbSpec) * 6) : 0; const p = dominantParams();
+    for (const [sel, scale] of orbs) { const c = $(sel); if (!c) continue; const r = c.getBoundingClientRect(); if (!r.width) continue; const dpr = Math.min(devicePixelRatio || 1, 2); if (c.width !== Math.round(r.width * dpr)) { c.width = Math.round(r.width * dpr); c.height = Math.round(r.height * dpr); } const ctx = c.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, r.width, r.height); SV.soundShape(ctx, r.width, r.height, p, orbT, lv, { scale, glow: sel === '#now-canvas' }); } }
   requestAnimationFrame(orbLoop);
   function syncEnvironment() { const id = dominant(); bg.setEnv(id); document.body.dataset.sound = id || ''; const p = dominantParams(); const names = engine.activeList().map(s => engine.def(s.id).name); $('#now-name').textContent = names.length ? names.join(' + ') : 'Nothing playing'; $('#now-desc').textContent = names.length ? describeSound(p) : 'Choose a sound to begin'; const on = engine.isPlaying; $('#now-orb').setAttribute('aria-pressed', on); $('#now-orb').setAttribute('aria-label', on ? 'Pause' : 'Play'); }
   engine.on(type => { if (['sounds', 'state', 'tone', 'master'].includes(type)) syncEnvironment(); if (type === 'master') { const v = $('#now-vol'); v.value = Math.round(engine.masterVolume * 100); paintRange(v); $('#now-vol-out').textContent = v.value + '%'; } });
