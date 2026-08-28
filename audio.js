@@ -178,7 +178,15 @@
       try {
         const el = document.createElement('audio');
         el.loop = true; el.volume = 0.01; el.setAttribute('playsinline', '');
-        el.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA=';
+        // One real second of silence. The previous WAV had a ZERO-length data chunk — looping a
+        // zero-duration file makes the browser's media pipeline seek-restart as fast as it can,
+        // burning more than a core in the renderer AND browser processes for as long as sounds play.
+        const sr = 8000, n = sr; const wav = new ArrayBuffer(44 + n * 2); const dv = new DataView(wav);
+        const wstr = (o, s) => { for (let i = 0; i < s.length; i++) dv.setUint8(o + i, s.charCodeAt(i)); };
+        wstr(0, 'RIFF'); dv.setUint32(4, 36 + n * 2, true); wstr(8, 'WAVEfmt '); dv.setUint32(16, 16, true);
+        dv.setUint16(20, 1, true); dv.setUint16(22, 1, true); dv.setUint32(24, sr, true); dv.setUint32(28, sr * 2, true);
+        dv.setUint16(32, 2, true); dv.setUint16(34, 16, true); wstr(36, 'data'); dv.setUint32(40, n * 2, true);
+        el.src = URL.createObjectURL(new Blob([wav], { type: 'audio/wav' }));
         this.silentEl = el;
       } catch (e) { }
       if ('mediaSession' in navigator) {
