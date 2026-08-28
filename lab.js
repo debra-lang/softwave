@@ -204,7 +204,7 @@
       buildUI(ctx, host) {
         host.innerHTML = `<div class="disc-wrap">
           <div class="disc-progress" data-progress aria-live="polite"></div>
-          <div class="ab-switch"><button class="ab-obj" data-sw="A" aria-pressed="true" aria-label="Listen to sound A" disabled><canvas></canvas><span class="lbl">A</span></button><button class="ab-obj" data-sw="B" aria-pressed="false" aria-label="Listen to sound B" disabled><canvas></canvas><span class="lbl">B</span></button></div>
+          <div class="ab-switch"><button class="ab-obj" data-sw="A" aria-pressed="true" aria-label="Listen to sound A" disabled><canvas></canvas><span class="lbl">A</span></button><button class="ab-obj" data-sw="B" aria-pressed="false" aria-label="Listen to sound B" disabled><canvas></canvas><span class="lbl">B</span></button><div class="disc-round" data-round aria-hidden="true"></div></div>
           <p class="muted small" style="text-align:center" data-hint>Press Start Experiment to begin.</p>
           <div class="label-sm" style="text-align:center;margin-top:12px">Which feels more comfortable?</div>
           <div class="btn-row" style="justify-content:center"><button class="btn btn-ghost" data-pick="A" disabled>A</button><button class="btn btn-ghost" data-pick="same" disabled>No difference</button><button class="btn btn-ghost" data-pick="B" disabled>B</button></div>
@@ -225,7 +225,11 @@
         ctx.switchTo = (s) => { ctx.side = s; $$('[data-sw]', host).forEach(b => { const on = b.dataset.sw === s; b.setAttribute('aria-pressed', on); }); engine.crossfade(s === 'A' ? 'discoB' : 'discoA', s === 'A' ? 'discoA' : 'discoB', 0.18); for (const n of NATURES) if (n !== 'none' && engine.isActive(n)) { if (sides[s].nature === n) engine.rampVolume(n, 0.35, 0.25); else engine.muteQuick(n); } };
         const show = () => { $('[data-progress]', host).innerHTML = Array.from({ length: rounds }, (_, i) => `<span class="${i < round ? 'done' : i === round ? 'now' : ''}"></span>`).join('') + `<em>Round ${round + 1} of ${rounds}</em>`; $('[data-hint]', host).textContent = 'Tap A and B to compare, then choose below. Comfortable = easy to listen to — the one you could leave on and forget about.'; $$('[data-sw],[data-pick]', host).forEach(b => b.disabled = false); };
         const next = async () => { sides.A = best; sides.B = cand; show(); await prep(); engine.muteQuick('discoB'); for (const n of NATURES) if (n !== 'none' && engine.isActive(n)) { if (sides.A.nature === n) engine.rampVolume(n, 0.35, 0.5); else engine.muteQuick(n); } ctx.switchTo('A'); show(); };
-        ctx.answer = (pick) => { const winner = pick === 'B' ? cand : best; if (pick !== 'same') learn(winner.params, winner.nature); best = pick === 'same' ? best : winner; round++; if (round >= rounds) { finish(); return; } cand = perturb(best); next(); };
+        // Brief, calm interstitial so a first-time user notices a new round began —
+        // the tiny progress dot alone is easy to miss.
+        const roundNote = () => { const el = $('[data-round]', host); if (!el) return; el.textContent = `Round ${round + 1} of ${rounds}`; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show'); e2 = setTimeout(() => el.classList.remove('show'), 1600); };
+        let e2 = null;
+        ctx.answer = (pick) => { const winner = pick === 'B' ? cand : best; if (pick !== 'same') learn(winner.params, winner.nature); best = pick === 'same' ? best : winner; round++; if (round >= rounds) { finish(); return; } cand = perturb(best); clearTimeout(e2); roundNote(); next(); };
         const finish = async () => {
           clearTimers(); ctx.result = best; ctx.finished = true; store.set('lab:discoveries', store.get('lab:discoveries', 0) + 1); sides.A = best; sides.B = best; engine.setSculpt(best.params, 'discoA'); ctx.switchTo('A'); if (engine.isActive('discoB')) engine.stopSound('discoB'); for (const n of NATURES) if (n !== 'none' && engine.isActive(n) && best.nature !== n) engine.stopSound(n);
           $$('[data-sw],[data-pick]', host).forEach(b => b.disabled = true); $('[data-progress]', host).innerHTML = '<em>Done</em>'; $('[data-hint]', host).textContent = '';

@@ -201,14 +201,14 @@
     setMasterVolume(v, immediate) {
       this.masterVolume = Math.max(0, Math.min(1, v));
       if (!this.ctx) return;
-      const target = this._curve(this.masterVolume) * 1.4;   // makeup gain; the limiter guards peaks
+      const target = this._curve(this.masterVolume) * 1.5;   // makeup gain; the limiter guards peaks
       const g = this.master.gain; const t = this.ctx.currentTime;
       g.cancelScheduledValues(t);
       g.setValueAtTime(g.value, t);
       g.linearRampToValueAtTime(target, t + (immediate ? 0.05 : 0.12));
       this.emit('master', this.masterVolume);
     }
-    _curve(v) { return Math.pow(v, 1.6); } // perceptual-ish taper, gentler than v² so sound is audible earlier on the slider
+    _curve(v) { return Math.pow(v, 1.45); } // perceptual-ish taper, gentler than v² so sound is audible earlier on the slider
 
     // ---------- sounds ----------
     defs(includeLab) { return includeLab ? SOUND_DEFS : SOUND_DEFS.filter(d => !d.lab); }
@@ -375,6 +375,23 @@
       entry.nodes.push(...nodes);
     }
 
+    // Lookahead scheduler for generative micro-events. Main-thread timers are throttled
+    // (locked phones / background tabs: >= 1 s per tick) and delayed by UI jank, so audio
+    // scheduled "now" from a timer arrives late and the texture stutters or gaps. Instead
+    // we keep `horizon` seconds of events pre-scheduled in the AudioContext's own timeline;
+    // the audio thread plays them on time even when the next timer tick is seconds late.
+    // fire(t) may return the gap (seconds) to the following event; otherwise gap() is used.
+    _pump(e, id, first, gap, fire, horizon = 12) {
+      let next = this.ctx.currentTime + first;
+      const tick = () => {
+        if (!this.active.has(id)) return;
+        const limit = this.ctx.currentTime + horizon;
+        while (next < limit) { const g = fire(next); next += (typeof g === 'number' && g > 0) ? g : gap(); }
+        e.timers.push(setTimeout(tick, 1200));
+      };
+      tick();
+    }
+
     _build(id, e, out) {
       const ctx = this.ctx, B = this.buffers;
       const d = this.def(id); if (d && d.lab) return this._buildLab(id, e, out);
@@ -400,17 +417,15 @@
           this._chain(e, [s, hp, lp, g], out);
           // droplets: short filtered bursts
           const dropGain = ctx.createGain(); dropGain.gain.value = 0.5; dropGain.connect(out); e.nodes.push(dropGain);
-          const tick = () => {
-            if (!this.active.has(id)) return;
+          const tick = (t) => {
             const n = this.ctx.createBufferSource(); n.buffer = B.white;
             const f = this._filter('bandpass', 1500 + Math.random() * 5000, 6);
-            const gg = ctx.createGain(); const t = ctx.currentTime;
+            const gg = ctx.createGain();
             gg.gain.setValueAtTime(0, t); gg.gain.linearRampToValueAtTime(0.15 + Math.random() * 0.25, t + 0.004); gg.gain.exponentialRampToValueAtTime(0.001, t + 0.05 + Math.random() * 0.08);
             n.connect(f); f.connect(gg); gg.connect(dropGain);
             n.start(t, Math.random() * 5, 0.2); n.onended = () => { try { f.disconnect(); gg.disconnect(); } catch (_) { } };
-            e.timers.push(setTimeout(tick, 40 + Math.random() * 160));
           };
-          tick(); break;
+          this._pump(e, id, 0.05, () => 0.04 + Math.random() * 0.16, tick, 5); break;
         }
         case 'ocean': {
           const s = this._src(B.brown); const lp = this._filter('lowpass', 900, 0.8);
@@ -460,19 +475,18 @@
           this._chain(e, [s, bp, lp, g], out);
           // distant birds
           const birdGain = ctx.createGain(); birdGain.gain.value = 0.05; birdGain.connect(out); e.nodes.push(birdGain);
-          const chirp = () => {
-            if (!this.active.has(id)) return;
-            const t = ctx.currentTime; const n = 2 + Math.floor(Math.random() * 4); const base = 2500 + Math.random() * 2500;
+          const chirp = (t) => {
+            const n = 2 + Math.floor(Math.random() * 4); const base = 2500 + Math.random() * 2500;
             for (let i = 0; i < n; i++) {
               const o = ctx.createOscillator(); o.type = 'sine'; const gg = ctx.createGain();
               const st = t + i * (0.12 + Math.random() * 0.08);
               o.frequency.setValueAtTime(base, st); o.frequency.exponentialRampToValueAtTime(base * (1.2 + Math.random() * 0.4), st + 0.06); o.frequency.exponentialRampToValueAtTime(base * 0.9, st + 0.12);
               gg.gain.setValueAtTime(0, st); gg.gain.linearRampToValueAtTime(1, st + 0.02); gg.gain.exponentialRampToValueAtTime(0.001, st + 0.13);
               o.connect(gg); gg.connect(birdGain); o.start(st); o.stop(st + 0.15);
+              o.onended = () => { try { gg.disconnect(); } catch (_) { } };
             }
-            e.timers.push(setTimeout(chirp, 4000 + Math.random() * 9000));
           };
-          e.timers.push(setTimeout(chirp, 2000 + Math.random() * 3000)); break;
+          this._pump(e, id, 2 + Math.random() * 3, () => 4 + Math.random() * 9, chirp, 14); break;
         }
         case 'fan': {
           const s = this._src(B.pink); const bp = this._filter('bandpass', 700, 0.5); const lp = this._filter('lowpass', 3500, 0.6);
@@ -488,15 +502,14 @@
           e.nodes.push(...this._lfo(0.3, 0.25, g.gain, 0.8));
           this._chain(e, [s, lp, g], out);
           const crackGain = ctx.createGain(); crackGain.gain.value = 0.25; crackGain.connect(out); e.nodes.push(crackGain);
-          const crackle = () => {
-            if (!this.active.has(id)) return;
-            const t = ctx.currentTime; const n = ctx.createBufferSource(); n.buffer = B.white;
+          const crackle = (t) => {
+            const n = ctx.createBufferSource(); n.buffer = B.white;
             const f = this._filter('bandpass', 2000 + Math.random() * 4000, 2); const gg = ctx.createGain();
             gg.gain.setValueAtTime(0, t); gg.gain.linearRampToValueAtTime(0.3 + Math.random() * 0.5, t + 0.003); gg.gain.exponentialRampToValueAtTime(0.001, t + 0.02 + Math.random() * 0.05);
             n.connect(f); f.connect(gg); gg.connect(crackGain); n.start(t, Math.random() * 5, 0.1);
-            e.timers.push(setTimeout(crackle, 60 + Math.random() * 700));
+            n.onended = () => { try { f.disconnect(); gg.disconnect(); } catch (_) { } };
           };
-          crackle(); break;
+          this._pump(e, id, 0.05, () => 0.06 + Math.random() * 0.7, crackle, 5); break;
         }
         case 'night': {
           const s = this._src(B.pink); const bp = this._filter('bandpass', 600, 0.8); const g = ctx.createGain(); g.gain.value = 0.25;
@@ -536,12 +549,10 @@
           trill(4250, 27, 0.010); trill(4680, 31, 0.007);
           const chirpGain = ctx.createGain(); chirpGain.gain.value = 1; chirpGain.connect(soft); e.nodes.push(chirpGain);
           let phase = Math.random() * 100;
-          const chirp = () => {
-            if (!this.active.has(id)) return;
+          const chirp = (t) => {
             phase += 1;
             const density = 0.55 + 0.35 * Math.sin(phase * 0.09);   // slow drift in how busy the field feels
             if (Math.random() < density) {
-              const t = ctx.currentTime;
               const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = 4050 + Math.random() * 850;
               const am = ctx.createGain(); am.gain.value = 0.5;
               const l = ctx.createOscillator(); l.type = 'square'; l.frequency.value = 26 + Math.random() * 8;
@@ -554,9 +565,8 @@
               o.start(t); l.start(t); o.stop(t + dur + 0.3); l.stop(t + dur + 0.3);
               o.onended = () => { try { am.disconnect(); env.disconnect(); lg.disconnect(); if (p) p.disconnect(); } catch (_) { } };
             }
-            e.timers.push(setTimeout(chirp, 900 + Math.random() * 2600));
           };
-          e.timers.push(setTimeout(chirp, 600 + Math.random() * 900));
+          this._pump(e, id, 0.6 + Math.random() * 0.9, () => 0.9 + Math.random() * 2.6, chirp, 12);
           break;
         }
         case 'cicadas': {
@@ -602,9 +612,7 @@
             this._chain(e, [o, am, env], soft);
           };
           trill(4150, 25, 0.006, 0.045); trill(4550, 30, 0.0045, 0.06);
-          const far = () => {
-            if (!this.active.has(id)) return;
-            const t = ctx.currentTime;
+          const far = (t) => {
             const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = 2900 + Math.random() * 500;
             const am = ctx.createGain(); am.gain.value = 0.5;
             const l = ctx.createOscillator(); l.type = 'square'; l.frequency.value = 14 + Math.random() * 6;
@@ -616,9 +624,8 @@
             if (p) { p.pan.value = (Math.random() * 2 - 1) * 0.4; env.connect(p); p.connect(soft); } else env.connect(soft);
             o.start(t); l.start(t); o.stop(t + dur + 0.7); l.stop(t + dur + 0.7);
             o.onended = () => { try { am.disconnect(); env.disconnect(); lg.disconnect(); if (p) p.disconnect(); } catch (_) { } };
-            e.timers.push(setTimeout(far, 9000 + Math.random() * 14000));
           };
-          e.timers.push(setTimeout(far, 6000 + Math.random() * 8000));
+          this._pump(e, id, 6 + Math.random() * 8, () => 9 + Math.random() * 14, far, 16);
           break;
         }
         case 'glassrain': {
@@ -633,34 +640,29 @@
           this._chain(e, [s2, hp2, lp2, g2], out);
           const tapGain = ctx.createGain(); tapGain.gain.value = 0.5; tapGain.connect(out); e.nodes.push(tapGain);
           let ph = Math.random() * 100;
-          const tap = () => {
-            if (!this.active.has(id)) return;
+          const tap = (t) => {
             ph += 1; const density = 0.65 + 0.3 * Math.sin(ph * 0.05);
             if (Math.random() < density) {
               const n = ctx.createBufferSource(); n.buffer = B.white;
               const f = this._filter('bandpass', 850 + Math.random() * 1700, 8);
               const gg = ctx.createGain(); const p = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
-              const t = ctx.currentTime;
               gg.gain.setValueAtTime(0, t); gg.gain.linearRampToValueAtTime(0.10 + Math.random() * 0.14, t + 0.006); gg.gain.exponentialRampToValueAtTime(0.001, t + 0.05 + Math.random() * 0.09);
               n.connect(f); f.connect(gg);
               if (p) { p.pan.value = (Math.random() * 2 - 1) * 0.7; gg.connect(p); p.connect(tapGain); } else gg.connect(tapGain);
               n.start(t, Math.random() * 5, 0.2); n.onended = () => { try { f.disconnect(); gg.disconnect(); if (p) p.disconnect(); } catch (_) { } };
             }
-            e.timers.push(setTimeout(tap, 130 + Math.random() * 520));
           };
-          tap();
-          const run = () => {
-            if (!this.active.has(id)) return;
-            const t = ctx.currentTime; const n = ctx.createBufferSource(); n.buffer = B.white;
+          this._pump(e, id, 0.1, () => 0.13 + Math.random() * 0.52, tap, 5);
+          const run = (t) => {
+            const n = ctx.createBufferSource(); n.buffer = B.white;
             const f = this._filter('bandpass', 1900, 10); const gg = ctx.createGain();
             const dur = 0.5 + Math.random() * 0.6;
             f.frequency.setValueAtTime(1700 + Math.random() * 500, t); f.frequency.exponentialRampToValueAtTime(650 + Math.random() * 250, t + dur);
             gg.gain.setValueAtTime(0, t); gg.gain.linearRampToValueAtTime(0.05, t + dur * 0.3); gg.gain.linearRampToValueAtTime(0, t + dur);
             n.connect(f); f.connect(gg); gg.connect(tapGain);
             n.start(t, Math.random() * 5, dur + 0.05); n.onended = () => { try { f.disconnect(); gg.disconnect(); } catch (_) { } };
-            e.timers.push(setTimeout(run, 4000 + Math.random() * 9000));
           };
-          e.timers.push(setTimeout(run, 2500 + Math.random() * 4000));
+          this._pump(e, id, 2.5 + Math.random() * 4, () => 4 + Math.random() * 9, run, 14);
           break;
         }
         case 'lapping': {
@@ -670,9 +672,7 @@
           e.nodes.push(...this._lfo(0.07, 0.05, g.gain, 0.22));
           this._chain(e, [s, lp, g], out);
           const waveGain = ctx.createGain(); waveGain.gain.value = 1; waveGain.connect(out); e.nodes.push(waveGain);
-          const wave = () => {
-            if (!this.active.has(id)) return;
-            const t = ctx.currentTime;
+          const wave = (t) => {
             const rise = 0.7 + Math.random() * 0.8, fall = 1.1 + Math.random() * 1.1;
             const peak = 0.28 + Math.random() * 0.22;
             const n = this._src(B.brown);
@@ -685,10 +685,11 @@
             const s2 = this._src(B.pink); const f2 = this._filter('bandpass', 2100 + Math.random() * 700, 1.6); const g2 = ctx.createGain();
             g2.gain.setValueAtTime(0, t); g2.gain.linearRampToValueAtTime(peak * 0.16, t + rise * 1.05); g2.gain.linearRampToValueAtTime(0, t + rise + fall * 0.7);
             s2.connect(f2); f2.connect(g2); g2.connect(p || waveGain);
-            setTimeout(() => { try { n.stop(); s2.stop(); n.disconnect(); s2.disconnect(); f.disconnect(); f2.disconnect(); gg.disconnect(); g2.disconnect(); if (p) p.disconnect(); } catch (_) { } }, (rise + fall) * 1000 + 200);
-            e.timers.push(setTimeout(wave, (1.6 + Math.random() * 2.6) * 1000));
+            // sample-accurate teardown: throttled timers must never delay cleanup
+            n.stop(t + rise + fall + 0.2); s2.stop(t + rise + fall + 0.2);
+            n.onended = () => { try { n.disconnect(); s2.disconnect(); f.disconnect(); f2.disconnect(); gg.disconnect(); g2.disconnect(); if (p) p.disconnect(); } catch (_) { } };
           };
-          wave();
+          this._pump(e, id, 0.05, () => 1.6 + Math.random() * 2.6, wave, 10);
           break;
         }
         case 'leaves': {
@@ -705,18 +706,18 @@
           const s2 = this._src(B.pink); const bp2 = this._filter('bandpass', 420, 0.9); const g2 = ctx.createGain(); g2.gain.value = 0.10;
           e.nodes.push(...this._lfo(0.04, 0.05, g2.gain, 0.10));
           this._chain(e, [s2, bp2, g2], out);
-          const blow = () => {
-            if (!this.active.has(id)) return;
-            const t = ctx.currentTime;
+          let gustEnd = 0.28;   // deterministic anchor: blows never overlap, so the value at each start is the previous end
+          const blow = (t) => {
             const up = 1.4 + Math.random() * 1.8, hold = 0.8 + Math.random() * 2.2, down = 2.0 + Math.random() * 2.2;
-            gust.gain.cancelScheduledValues(t); gust.gain.setValueAtTime(gust.gain.value, t);
+            gust.gain.setValueAtTime(gustEnd, t);
             gust.gain.linearRampToValueAtTime(0.5 + Math.random() * 0.35, t + up);
-            gust.gain.linearRampToValueAtTime(0.24 + Math.random() * 0.08, t + up + hold + down);
+            gustEnd = 0.24 + Math.random() * 0.08;
+            gust.gain.linearRampToValueAtTime(gustEnd, t + up + hold + down);
             bp.frequency.setTargetAtTime(1900 + Math.random() * 1400, t, up);
             if (drift) drift.pan.setTargetAtTime((Math.random() * 2 - 1) * 0.3, t, up + 1);
-            e.timers.push(setTimeout(blow, (up + hold + down + 1 + Math.random() * 5) * 1000));
+            return up + hold + down + 1 + Math.random() * 5;
           };
-          e.timers.push(setTimeout(blow, 1200 + Math.random() * 2500));
+          this._pump(e, id, 1.2 + Math.random() * 2.5, () => 8, blow, 16);
           break;
         }
       }
@@ -728,14 +729,13 @@
       switch (id) {
         case 'thunder': {
           const g = ctx.createGain(); g.gain.value = 0; g.connect(out); e.nodes.push(g);
-          const rumble = () => {
-            if (!this.active.has(id)) return;
+          const rumble = (t) => {
             const s = this._src(B.brown); const lp = this._filter('lowpass', 90 + Math.random() * 60, 0.9); const gg = ctx.createGain();
-            const t = ctx.currentTime, len = 4 + Math.random() * 5; gg.gain.setValueAtTime(0, t); gg.gain.linearRampToValueAtTime(0.5 + Math.random() * 0.5, t + len * 0.35); gg.gain.linearRampToValueAtTime(0, t + len);
-            s.connect(lp); lp.connect(gg); gg.connect(g); setTimeout(() => { try { s.stop(); s.disconnect(); lp.disconnect(); gg.disconnect(); } catch (_) { } }, len * 1000 + 100);
-            e.timers.push(setTimeout(rumble, 15000 + Math.random() * 45000));
+            const len = 4 + Math.random() * 5; gg.gain.setValueAtTime(0, t); gg.gain.linearRampToValueAtTime(0.5 + Math.random() * 0.5, t + len * 0.35); gg.gain.linearRampToValueAtTime(0, t + len);
+            s.connect(lp); lp.connect(gg); gg.connect(g);
+            s.stop(t + len + 0.1); s.onended = () => { try { s.disconnect(); lp.disconnect(); gg.disconnect(); } catch (_) { } };
           };
-          g.gain.setTargetAtTime(1, ctx.currentTime, 0.5); e.timers.push(setTimeout(rumble, 3000 + Math.random() * 8000)); break;
+          g.gain.setTargetAtTime(1, ctx.currentTime, 0.5); this._pump(e, id, 3 + Math.random() * 8, () => 15 + Math.random() * 45, rumble, 20); break;
         }
         case 'city': {
           const s = this._src(B.brown); const lp = this._filter('lowpass', 220, 0.7); const g = ctx.createGain(); g.gain.value = 0.7;
@@ -754,17 +754,16 @@
           // Fractal-style: a random walk over a pentatonic set, slow attacks, long releases, never the same twice.
           const g = ctx.createGain(); g.gain.value = 1; g.connect(out); e.nodes.push(g);
           const scale = [0, 2, 4, 7, 9, 12, 14, 16]; let idx = 3; const base = 220 * Math.pow(2, (Math.random() * 5 | 0) / 12);
-          const note = () => {
-            if (!this.active.has(id)) return;
+          const note = (t) => {
             idx = Math.max(0, Math.min(scale.length - 1, idx + (Math.random() < 0.5 ? -1 : 1) * (Math.random() < 0.8 ? 1 : 2)));
             const f = base * Math.pow(2, scale[idx] / 12) * (Math.random() < 0.3 ? 2 : 1);
             const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = f; const o2 = ctx.createOscillator(); o2.type = 'sine'; o2.frequency.value = f * 2.01; const g2 = ctx.createGain(); g2.gain.value = 0.15;
-            const env = ctx.createGain(); const t = ctx.currentTime; const a = 0.8 + Math.random() * 1.2, r = 4 + Math.random() * 5;
+            const env = ctx.createGain(); const a = 0.8 + Math.random() * 1.2, r = 4 + Math.random() * 5;
             env.gain.setValueAtTime(0, t); env.gain.linearRampToValueAtTime(0.25 + Math.random() * 0.15, t + a); env.gain.exponentialRampToValueAtTime(0.0005, t + a + r);
             o.connect(env); o2.connect(g2); g2.connect(env); env.connect(g); o.start(t); o2.start(t); o.stop(t + a + r + 0.1); o2.stop(t + a + r + 0.1);
-            e.timers.push(setTimeout(note, 2500 + Math.random() * 6000));
+            o.onended = () => { try { env.disconnect(); g2.disconnect(); } catch (_) { } };
           };
-          note(); break;
+          this._pump(e, id, 0.1, () => 2.5 + Math.random() * 6, note, 12); break;
         }
         case 'paint': {
           // 24 log-spaced bands over white noise; gains come from the drawn curve (0..1 each).
