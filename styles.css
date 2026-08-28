@@ -1221,8 +1221,8 @@ html[data-theme="dark"] .lab-view { --lab-bg-a: #0f1320; --lab-bg-b: #090b12; }
 .disc-wrap .ab-obj:disabled { opacity: .35; }
 .disc-wrap .ab-switch { margin-bottom: 44px; position: relative; }
 /* brief "Round X of N" interstitial between discovery rounds */
-.disc-round { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 6; padding: 10px 22px; border-radius: 999px; background: rgba(247, 249, 253, 0.94); border: 1px solid rgba(20, 30, 60, 0.12); color: #1b2440; font-weight: 700; font-size: 1.05rem; letter-spacing: .03em; white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity .45s ease; box-shadow: 0 10px 30px rgba(0,0,0,.22); }
-:root[data-theme="dark"] .disc-round { background: rgba(20, 28, 52, 0.94); border-color: rgba(180, 200, 255, 0.30); color: #eef2fb; }
+.disc-round { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 6; padding: 10px 22px; border-radius: 999px; background: rgba(247, 249, 253, 0.94); border: 1px solid rgba(62, 154, 114, 0.35); color: #3e9a72; font-weight: 700; font-size: 1.05rem; letter-spacing: .03em; white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity .45s ease; box-shadow: 0 10px 30px rgba(0,0,0,.22); }
+:root[data-theme="dark"] .disc-round { background: rgba(20, 28, 52, 0.94); border-color: rgba(159, 224, 187, 0.35); color: #9fe0bb; }
 .disc-round.show { opacity: 1; }
 @media (prefers-reduced-motion: reduce) { .disc-round { transition: none; } }
 
