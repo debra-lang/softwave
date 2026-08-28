@@ -623,7 +623,7 @@
   $('#freq-visualizer').addEventListener('click', async () => { if (!(engine.tone && engine.tone.playing)) $('#freq-play').click(); setVisual('frequency'); enterFocus(); });
 
   // expose for app
-  window.softwaveFocus = { enterFocus, exitFocus, enterViaTransition, setVisual, crossfadeTo, openChooser, visuals: V.filter(v => !v.hidden), allVisuals: V, setParam: (k, v) => { P[k] = v; }, getParam: () => P };
+  window.softwaveFocus = { enterFocus, exitFocus, enterViaTransition, setVisual, crossfadeTo, openChooser, refreshFavs: renderFavs, visuals: V.filter(v => !v.hidden), allVisuals: V, setParam: (k, v) => { P[k] = v; }, getParam: () => P };
 
   // ---------- init ----------
   renderLibrary(); renderPairings(); renderFavs(); syncSettings(); if (window.softwaveProfile) softwaveProfile.refresh();

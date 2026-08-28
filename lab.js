@@ -240,8 +240,21 @@
           const R = $('[data-result]', host); liveShape($('.reveal-orb canvas', R), () => ({ p: Object.assign({}, best.params, { nature: best.nature }), live: true, scale: 0.42 }));
           $('[data-r="listen"]', R).addEventListener('click', async () => { await engine.loadMix(soundMix(snd)); });
           $('[data-r="tune"]', R).addEventListener('click', async () => { await engine.loadMix(soundMix(snd)); store.set('lab:settings:sculptor', sculptSettingsFrom(best.params, best.nature)); delete ctxs.sculptor; openExperiment('sculptor'); });
-          $('[data-r="save"]', R).addEventListener('click', () => saveSoundForm($('[data-saveform]', R), snd));
-          $('[data-r="fav"]', R).addEventListener('click', async () => { if (!canSaveCombo()) return; await engine.loadMix(soundMix(snd)); const combos = store.get('combos', []); combos.push({ name: 'My discovered sound', mix: engine.snapshot(), master: engine.masterVolume, visual: store.get('visual', 'ocean'), motion: store.get('motion', 'low'), timer: 0 }); store.set('combos', combos); app.toast('Added to favourites (Visual Focus → My environments).'); });
+          // After Save / Add to favourites, say WHERE it went — with a one-tap jump to the spot.
+          const savedNote = (html) => {
+            let n = $('.disc-saved-note', R);
+            if (!n) { n = document.createElement('p'); n.className = 'disc-next disc-saved-note'; const sf = $('[data-saveform]', R); sf.parentNode.insertBefore(n, sf); }
+            n.innerHTML = html;
+            $('[data-go]', n).addEventListener('click', (ev) => {
+              const parts = ev.currentTarget.dataset.go.split('|');
+              app.showView(parts[0]);
+              setTimeout(() => { const spot = document.querySelector(parts[1]); if (spot) { spot.scrollIntoView({ behavior: 'smooth', block: 'center' }); spot.classList.add('row-hello'); setTimeout(() => spot.classList.remove('row-hello'), 2600); } }, 250);
+            });
+          };
+          $('[data-r="save"]', R).addEventListener('click', () => saveSoundForm($('[data-saveform]', R), snd, () => {
+            savedNote('Saved. Find it any time under <strong>My sounds</strong> on the Sounds page. <button type="button" class="linklike" data-go="sounds|#my-sounds-row">Show me</button>');
+          }));
+          $('[data-r="fav"]', R).addEventListener('click', async () => { if (!canSaveCombo()) return; await engine.loadMix(soundMix(snd)); const combos = store.get('combos', []); combos.push({ name: 'My discovered sound', mix: engine.snapshot(), master: engine.masterVolume, visual: store.get('visual', 'ocean'), motion: store.get('motion', 'low'), timer: 0 }); store.set('combos', combos); if (window.softwaveFocus && softwaveFocus.refreshFavs) softwaveFocus.refreshFavs(); app.toast('Added to My environments (Visual Focus).'); savedNote('Added to <strong>My environments</strong> in Visual Focus — your sound and its visual together, one tap. <button type="button" class="linklike" data-go="focus|#fav-section">Show me</button>'); });
           $('[data-r="sleep"]', R).addEventListener('click', async () => { await engine.loadMix(soundMix(Object.assign({}, snd, { params: Object.assign({}, best.params, { moving: 0 }) }), 0.5)); engine.setTimer(60, true); app.showView('sleep'); app.toast('Sleep: 60-minute timer with gentle fade.'); });
           $('[data-r="visual"]', R).addEventListener('click', async () => { await engine.loadMix(soundMix(snd)); focus.setVisual(visualForProfile()); focus.enterFocus(); });
           $('[data-r="again"]', R).addEventListener('click', () => { stopRunning(); openExperiment('discovery'); });
