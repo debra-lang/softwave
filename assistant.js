@@ -69,6 +69,7 @@
       async remove_layer(p) { if (engine.isActive(p.id)) { engine.stopSound(p.id); ok.push('Removed ' + engine.def(p.id).name); } else ok.push(engine.def(p.id).name + ' is not playing'); },
       async layer_volume(p) { if (!engine.isActive(p.id)) return ok.push(engine.def(p.id).name + ' is not playing'); const s = engine.activeList().find(x => x.id === p.id); const v = Math.max(0.05, Math.min(1, s.volume + p.delta)); engine.setVolume(p.id, v); ok.push((p.delta < 0 ? 'Lowered ' : 'Raised ') + engine.def(p.id).name + ' to ' + Math.round(v * 100) + '%'); },
       async stop_all() { engine.stopAll(); ok.push('Stopped everything'); },
+      async now_playing() { const l = engine.activeList().map(s => engine.def(s.id).name); ok.push(l.length ? 'Playing: ' + l.join(' + ') + ' · volume ' + Math.round(engine.masterVolume * 100) + '%' : 'Nothing is playing right now'); },
       async pause_all() { await engine.pauseAll(); ok.push('Paused — say “resume” to continue'); },
       async resume_all() { await engine.playAll(); ok.push('Resumed'); },
       async master_volume(p) {
@@ -149,7 +150,7 @@
     function parse(raw) {
       // Common typos and speech-to-text slips: "ply/plying" for "play/playing".
       const t = normalizeNumbers(' ' + raw.toLowerCase().replace(/[.,!?;]/g, ' ').replace(/\bplying\b/g, 'playing').replace(/\bply\b/g, 'play').replace(/\s+/g, ' ').trim() + ' ');
-      if (/^\s*(undo|go back|put it back)\s*$/.test(t.trim())) return { undo: true };
+      if (/^\s*(undo( that| it| last)?|go back|put it back)\s*$/.test(t.trim())) return { undo: true };
       if (/^\s*(help|what can (i say|you do)|show examples|examples)\s*\??\s*$/.test(t.trim())) return { help: true };
       if (MEDICAL.test(t)) return { medical: true };
       const acts = [];
@@ -167,9 +168,12 @@
       }
       // timers
       const tm = t.match(/(\d+)\s*(minutes|minute|min|mins)\b/); const th = t.match(/(\d+|an|one)\s*(hours|hour|hr)\b/);
+      const tb = t.match(/\btimer\s*(?:to|for|at)?\s*(\d{1,3})\b/);   // "timer 30"
       if (/(stop|cancel|clear).{0,8}timer/.test(t)) acts.push(['clear_timer', {}]);
       else if (tm) acts.push(['set_timer', { minutes: +tm[1] }]);
       else if (th) acts.push(['set_timer', { minutes: (th[1] === 'an' || th[1] === 'one' ? 1 : +th[1]) * 60 }]);
+      else if (tb) acts.push(['set_timer', { minutes: +tb[1] }]);
+      else if (/\bsleep timer\b/.test(t)) acts.push(['set_timer', { minutes: 60 }]);
       // per-sound verbs — detected independently so "give me ocean with crickets" plays ocean AND adds crickets
       const light = /(a little|a bit of|light|some|a touch of|slight)/.test(t);
       // volume verbs work in both orders: "lower the rain" and "make the rain quieter"
@@ -183,9 +187,9 @@
         }
         if (lessM || moreM) break;
       }
-      const remM = matchSound(t, /(?:remove|without|take out|take away|drop|no more|stop(?:\s+playing)?|turn off)\s+(?:the\s+)?/);
+      const remM = matchSound(t, /(?:remove|without|take out|take away|drop|no more|stop(?:\s+playing)?|turn off|don'?t want|do not want|get rid of|enough with)\s+(?:the\s+)?/);
       const addM = matchSound(t, /(?:add|with|include|put in|layer)\s+(?:a little |a bit of |some |a touch of |light |the |an |a )?/);
-      const playM = matchSound(t, /(?:play|start|put on|give me|i want)\s+(?:the sound of a |the sound of |a little |the |some |an |a )?/);
+      const playM = matchSound(t, /(?:play|start|put on|give me|i want|hear|listen to|have)\s+(?:the sound of a |the sound of |a little |the |some |an |a )?/);
       if (lessM) acts.push(['layer_volume', { id: lessM.id, delta: -0.15 }]);
       else if (moreM) acts.push(['layer_volume', { id: moreM.id, delta: 0.15 }]);
       if (playM && (!addM || addM.id !== playM.id) && (!remM || remM.id !== playM.id) && (!lessM || lessM.id !== playM.id)) {
@@ -197,7 +201,7 @@
       let m;
       if (!acts.length && (m = findSound(t)) && t.trim().split(' ').length <= 4 && !/(louder|softer|quieter|warmer|brighter|steadier|too )/.test(t)) acts.push(['play_sound', { id: m.id }]);   // bare "rain on window"
       // character
-      if (/(warmer|less bright|too bright|less sharp|too sharp|softer sound|mellow)/.test(t)) acts.push(['warmer', {}]);
+      if (/(warmer|more warm|less bright|too bright|less sharp|too sharp|softer sound|mellow|more bass|\bdeeper\b|more deep|too thin)/.test(t)) acts.push(['warmer', {}]);
       if (/(brighter|more bright|crisper|less muffled|too muffled|too dull)/.test(t)) acts.push(['brighter', {}]);
       if (/(steadier|more steady|less movement|too busy|calmer sound|more constant)/.test(t)) acts.push(['steadier', {}]);
       if (/(more movement|more alive|more dynamic|more variation|less static\b)/.test(t)) acts.push(['more_movement', {}]);
@@ -212,7 +216,8 @@
       // globals
       if (/^\s*(stop( playing| the sounds?| the music| the sound| it| everything| all)?|silence|quiet please|be quiet|turn (it |the sound |everything )?off)\s*$/.test(t.trim()) || /\bstop everything\b/.test(t)) acts.push(['stop_all', {}]);
       else if (/^\s*(pause( it| playing| the sound)?|hold on)\s*$/.test(t.trim())) acts.push(['pause_all', {}]);
-      else if (/^\s*(resume|continue|unpause|keep going|play again|keep playing)\s*$/.test(t.trim())) acts.push(['resume_all', {}]);
+      else if (/^\s*(resume|continue|unpause|keep going|play again|keep playing|start again)\s*$/.test(t.trim())) acts.push(['resume_all', {}]);
+      if (/(what'?s playing|what is playing|what am i (listening to|hearing)|what is this( sound)?|what sound is (this|playing)|which sounds? (is|are) (this|playing|on))/.test(t)) acts.push(['now_playing', {}]);
       if (/(maximum volume|full volume|max volume|loudest|as loud as)/.test(t)) acts.push(['master_volume', { reject: 'For comfort, I only make gradual increases — the volume slider is there for large changes.' }]);
       else {
         const vp = t.match(/volume\s*(?:to\s*)?(-?\s?\d{1,3})\s*(?:%|percent)?/);
@@ -220,11 +225,11 @@
         if (negWords) acts.push(['master_volume', { reject: 'That level isn’t available — try “volume 20%”.' }]);
         else if (vp) { const n = +vp[1].replace(/\s/g, ''); acts.push(['master_volume', n < 0 || n > 100 ? { reject: 'That level isn’t available — try “volume 80%” or lower.' } : { set: n / 100 }]); }
         else if (/(much softer|much quieter|way too loud)/.test(t) && !acts.some(a => a[0] === 'layer_volume')) acts.push(['master_volume', { delta: -0.15 }]);
-        else if (/(volume down|turn (it|this) down|lower the volume|quieter overall|softer overall|too loud|\bsofter\b(?!.{0,12}sound))/.test(t) && !acts.some(a => a[0] === 'layer_volume')) acts.push(['master_volume', { delta: -0.1 }]);
+        else if (/(volume down|turn (it|this) down|lower the volume|lower it\b|quiet it down|bring it down|more quiet|quieter overall|softer overall|too loud|\bsofter\b(?!.{0,12}sound))/.test(t) && !acts.some(a => a[0] === 'layer_volume')) acts.push(['master_volume', { delta: -0.1 }]);
         else if (/(much louder|a lot louder)/.test(t)) acts.push(['master_volume', { delta: 0.1 }]);
         else if (/(\blouder\b|volume up|turn (it|this) up|raise the volume|can'?t hear|too quiet)/.test(t) && !acts.some(a => a[0] === 'layer_volume')) acts.push(['master_volume', { delta: 0.05 }]);
       }
-      if (/\bsave (this|it|environment)?\b/.test(t)) acts.push(['save_environment', {}]);
+      if (/\bsave( this| it| environment)?\b/.test(t) && !/\bsaved\b/.test(t)) acts.push(['save_environment', {}]);
       if (/(something (else|different|new)|surprise me|change it up)/.test(t) && !acts.some(a => a[0] === 'play_sound' || a[0] === 'start_moment')) acts.push(['something_different', {}]);
       if (/(make it better|improve|nicer)/.test(t) && !acts.length) return { clarify: true };
       // a sound verb with a name we don't recognise deserves a specific answer, not a generic one
@@ -232,7 +237,24 @@
       return { actions: acts };
       function matchSound(text, verbRe) {
         for (const [id, ...names] of LEX) for (const n of names) { const re = new RegExp(verbRe.source + n.replace(/ /g, '\\s+') + '\\b'); if (re.test(text)) return { id }; }
+        // One-typo tolerance: the word right after the verb may be a slightly misspelled sound
+        // name ("cickets", "ran"). Only single-word aliases of 4+ letters, edit distance 1.
+        const mm = new RegExp(verbRe.source + '([a-z]+)').exec(text);
+        if (mm) {
+          const w = mm[1];
+          if (w.length >= 3) for (const [id, ...names] of LEX) for (const n of names) { if (n.includes(' ') || n.length < 4) continue; if (ed1(w, n)) return { id }; }
+        }
         return null;
+      }
+      function ed1(a, b) {
+        if (a === b) return true; const la = a.length, lb = b.length; if (Math.abs(la - lb) > 1) return false;
+        let i = 0, j = 0, edits = 0;
+        while (i < la && j < lb) {
+          if (a[i] === b[j]) { i++; j++; continue; }
+          if (++edits > 1) return false;
+          if (la > lb) i++; else if (lb > la) j++; else { i++; j++; }
+        }
+        return edits + (la - i) + (lb - j) <= 1;
       }
     }
 
