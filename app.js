@@ -487,13 +487,8 @@
     try { dispatchEvent(new Event('resize')); } catch (_) { }
   }
   if (MINIMAL) applyMinimal(true);
-  (() => { const fa = $('#field-controls .field-actions'); if (!fa) return;
-    const b = document.createElement('button'); b.id = 'minimal-chip'; b.className = 'fa';
-    const paint = () => { b.textContent = 'Visuals · ' + (MINIMAL ? 'minimal' : 'full'); b.setAttribute('aria-pressed', MINIMAL); };
-    paint();
-    b.addEventListener('click', () => { applyMinimal(!MINIMAL); paint(); toast(MINIMAL ? 'Minimal visuals — the calmest setting for your computer. Sound is untouched.' : 'Full visuals restored.', 3600); });
-    fa.appendChild(b);
-  })();
+  // No visible toggle: minimal mode stays reachable via ?minimal=1 / ?minimal=0 as a support tool,
+  // and slow machines are switched to low-power visuals automatically.
   // ---------- diagnostics overlay: open with ?diag=1 and read the machine's real state ----------
   if (qsp.get('diag') === '1') setTimeout(() => {
     const d = document.createElement('div');
