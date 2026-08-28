@@ -50,6 +50,8 @@
       if (this._queued) return;
       this._queued = true;
       requestAnimationFrame(() => { this._queued = false; this.loop(); });
+      // minimal visuals: paint the atmosphere once, then hold it as a static backdrop
+      if (window.softwaveMinimalActive) { if (this._staticDrawn) return; this._staticDrawn = true; }
       // The page atmosphere is slow-moving: 20 fps is plenty, and it leaves the frame budget to the Sound Field (audio first).
       const nowT = performance.now(); if (this._lastT && nowT - this._lastT < (window.SoftwaveField && SoftwaveField.LOW ? 100 : 66)) return; this._lastT = nowT;
       const ctx = this.ctx, w = this.w, h = this.h;

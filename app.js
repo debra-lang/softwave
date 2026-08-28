@@ -68,7 +68,7 @@
   function ensureLab() {
     if (window.softwaveLab) return Promise.resolve();
     if (labPromise) return labPromise;
-    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=42'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
+    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=43'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
     return labPromise;
   }
   window.softwaveEnsureLab = ensureLab;
@@ -468,12 +468,46 @@
       ftEma += (ft - ftEma) * 0.05; if (!FIELD.LOW) { if (ftEma > 90) { if (!ftBadSince) ftBadSince = now; if (now - ftBadSince > 4000) { FIELD.setLOW(true); console.info('Softwave: low-power visuals enabled (slow frames detected)'); try { dispatchEvent(new Event('resize')); } catch (_) { } } } else ftBadSince = 0; } } } ftPrev = now;
     // The field is a slow-breathing form: 30 fps playing / 20 fps idle is visually identical
     // and halves both script time and the GPU compositing of a large canvas.
-    const drawDue = now - fieldDrawLast >= (transit.active ? 0 : FIELD.LOW ? (playing ? 50 : 100) : (playing ? 33 : 50));
+    const drawDue = now - fieldDrawLast >= (transit.active ? 0 : window.softwaveMinimalActive ? (playing ? 200 : 500) : FIELD.LOW ? (playing ? 50 : 100) : (playing ? 33 : 50));
     const immersed = !$('#now').hidden; const focusOpen = !$('#focus-screen').hidden && !transit.active;
     if (drawDue) { fieldDrawLast = now; const lv = playing ? Math.min(1, engine.getLevels(fieldSpec) * 6) : 0; let lo = 0; if (playing) { for (let i = 1; i < 10; i++) lo += fieldSpec[i]; lo /= 9 * 255; } const bal = engine.activeList().reduce((acc, sn) => acc + sn.balance, 0);
     if (immersed) { fieldBig.setPlaying(playing); fieldBig.setLevel(lv, bal); fieldBig.setLow(lo); fieldBig.draw(now); } else if (!focusOpen && (transit.active || (fieldVisible && !$('#view-sounds').hidden))) { fieldMain.setPlaying(playing); fieldMain.setLevel(lv, bal); fieldMain.setLow(lo); fieldMain.draw(now); } }
     if (now - fieldLast > 80 && !$('#view-sounds').hidden && !immersed) { fieldLast = now; tileTick = (tileTick + 1) % 3; let ti = 0; tilePreviews.forEach((pv, card) => { ti++; if (!tileVisible.has(card)) { tileIO.observe(card); tileVisible.set(card, false); return; } if (!tileVisible.get(card)) return; const hot = card.classList.contains('active') || card.matches(':hover'); if (!hot && ti % 3 !== tileTick) return; if (!hot && FIELD.LOW && pv._once) return; pv._once = true; pv.setLevel(hot ? 0.5 : 0.15, 0); pv.draw(now); }); } }
   requestAnimationFrame(fieldLoop);
+
+  // ---------- Minimal visuals (battery saver): near-zero continuous painting; sound untouched ----------
+  const qsp = new URLSearchParams(location.search);
+  if (qsp.get('minimal') === '1') store.set('minimal', true); else if (qsp.get('minimal') === '0') store.set('minimal', false);
+  let MINIMAL = !!store.get('minimal', false);
+  window.softwaveMinimalActive = MINIMAL;
+  function applyMinimal(on) {
+    MINIMAL = on; window.softwaveMinimalActive = on; store.set('minimal', on);
+    if (FIELD) { try { FIELD.setLOW(on || localStorage.getItem('softwave:rasterSlow') === '1'); } catch (_) { } }
+    if (window.softwaveBg) { softwaveBg._staticDrawn = false; if (!on && !document.hidden) { softwaveBg.running = true; softwaveBg.loop(); } }
+    try { dispatchEvent(new Event('resize')); } catch (_) { }
+  }
+  if (MINIMAL) applyMinimal(true);
+  (() => { const fa = $('#field-controls .field-actions'); if (!fa) return;
+    const b = document.createElement('button'); b.id = 'minimal-chip'; b.className = 'fa';
+    const paint = () => { b.textContent = 'Visuals · ' + (MINIMAL ? 'minimal' : 'full'); b.setAttribute('aria-pressed', MINIMAL); };
+    paint();
+    b.addEventListener('click', () => { applyMinimal(!MINIMAL); paint(); toast(MINIMAL ? 'Minimal visuals — the calmest setting for your computer. Sound is untouched.' : 'Full visuals restored.', 3600); });
+    fa.appendChild(b);
+  })();
+  // ---------- diagnostics overlay: open with ?diag=1 and read the machine's real state ----------
+  if (qsp.get('diag') === '1') setTimeout(() => {
+    const d = document.createElement('div');
+    d.style.cssText = 'position:fixed;left:8px;bottom:8px;z-index:9999;background:rgba(10,14,26,.94);color:#cfe0ff;font:12px/1.6 monospace;padding:10px 14px;border-radius:10px;border:1px solid rgba(160,180,255,.4);white-space:pre;pointer-events:none';
+    const fc = $('#field-canvas'), bgc = $('#bg');
+    let gl; try { gl = !!document.createElement('canvas').getContext('webgl', { failIfMajorPerformanceCaveat: true }); } catch (e) { gl = 'err'; }
+    d.textContent = ['SOFTWAVE DIAG', 'LOW: ' + (FIELD && FIELD.LOW) + '   minimal: ' + MINIMAL,
+      'rasterSlow: ' + localStorage.getItem('softwave:rasterSlow') + ' (' + (localStorage.getItem('softwave:rasterMs') || '?') + ' ms)',
+      'hwWebGL: ' + gl + '   dpr: ' + devicePixelRatio, 'win: ' + innerWidth + 'x' + innerHeight,
+      'field: ' + (fc ? fc.width + 'x' + fc.height : '-') + '   bg: ' + (bgc ? bgc.width + 'x' + bgc.height : '-'),
+      'cores: ' + navigator.hardwareConcurrency + '   mem: ' + (navigator.deviceMemory || '?') + 'GB'].join('\n');
+    document.body.appendChild(d);
+  }, 4500);
+
   function syncField() {
     const ids = fieldIds(); if (fieldMain) { fieldMain.set(ids); fieldBig.set(ids); }
     const names = engine.activeList().map(sn => engine.def(sn.id).name); const playing = engine.isPlaying; const any = ids.length > 0;
@@ -518,7 +552,7 @@
   window.softwaveSound = () => { const l = engine.activeList(); if (!l.length) return null; const top = l.slice().sort((x, y) => y.volume - x.volume)[0]; const p = SV.paramsFor(top.id, (top.id === 'sculpt' || top.id.startsWith('disco')) ? engine.getSculpt(top.id) : null); return { colour: p.colour, warm: p.warm, moving: p.moving, nature: p.nature }; };
   function describeSound(p) { const b = []; b.push(p.colour < 0.33 ? 'Deep' : p.colour < 0.67 ? 'Balanced' : 'Bright'); if (p.warm < -0.25) b.push('Warm'); if (p.warm > 0.25) b.push('Airy'); if (p.moving > 0.3 || p.mod > 0.3) b.push('Moving'); else b.push('Steady'); if (p.nature !== 'none') b.push(engine.def(p.nature) ? engine.def(p.nature).name : p.nature); return b.join(' · '); }
   const orbs = [['#player-orb', 0.44]]; let orbT = 0, orbLast = 0; const orbSpec = new Uint8Array(512);
-  function orbLoop(now) { requestAnimationFrame(orbLoop); if (document.hidden || now - orbLast < 50) return; const dt = Math.min(0.08, (now - orbLast) / 1000); orbLast = now; orbT += dt * (engine.isPlaying ? 1 : 0.35);
+  function orbLoop(now) { requestAnimationFrame(orbLoop); if (document.hidden || now - orbLast < (window.softwaveMinimalActive ? 250 : 50)) return; const dt = Math.min(0.3, (now - orbLast) / 1000); orbLast = now; orbT += dt * (engine.isPlaying ? 1 : 0.35);
     // cheap visibility first — dominantParams and getLevels only run when the orb will actually draw
     if ($('#player').classList.contains('player-hidden')) return;
     const lv = engine.isPlaying ? Math.min(1, engine.getLevels(orbSpec) * 6) : 0; const p = dominantParams();

@@ -39,7 +39,7 @@
       run();                                    // cold run primes the context
       const cost = Math.min(run(), run());
       const slow = cost > 28;
-      try { localStorage.setItem('softwave:rasterSlow', slow ? '1' : '0'); } catch (_) { }
+      try { localStorage.setItem('softwave:rasterSlow', slow ? '1' : '0'); localStorage.setItem('softwave:rasterMs', String(Math.round(cost))); } catch (_) { }
       if (slow && !LOW) { global.SoftwaveField.setLOW(true); try { dispatchEvent(new Event('resize')); } catch (_) { } console.info('Softwave: slow canvas rasterisation (' + Math.round(cost) + ' ms) — low-power visuals on'); }
     } catch (_) { }
   }, 2500);
