@@ -593,7 +593,12 @@
     $$('#focus-panel [data-min]').forEach(x => x.setAttribute('aria-checked', String(+x.dataset.min === (t.durationMin || 0))));
   }
   engine.on(type => { if (!screen.hidden && ['sounds', 'state', 'tone', 'timer', 'master'].includes(type)) updateFocusBar(); if (type === 'sounds') renderStage(); });
-  $('#focus-play').addEventListener('click', () => app.togglePlay());
+  $('#focus-play').addEventListener('click', () => {
+    // With nothing chosen, "play" silently did nothing (the toast renders under this screen).
+    // Now it opens the sound picker — the action the tap actually means.
+    if (!engine.activeList().length && !(engine.tone && engine.tone.playing)) { openPanel('sound'); app.toast('Pick a sound to play here.'); return; }
+    app.togglePlay();
+  });
   $('#focus-vol').addEventListener('input', e => app.setMaster(+e.target.value / 100, true));
 
   // panels
