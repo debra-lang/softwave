@@ -506,14 +506,14 @@
         }
         case 'fire': {
           const s = this._src(B.brown); const lp = this._filter('lowpass', 400, 0.8);
-          const g = ctx.createGain(); g.gain.value = 0.8;
-          e.nodes.push(...this._lfo(0.3, 0.25, g.gain, 0.8));
+          const g = ctx.createGain(); g.gain.value = 0.55;   // background rumble sits behind the crackle, not over it
+          e.nodes.push(...this._lfo(0.3, 0.17, g.gain, 0.55));
           this._chain(e, [s, lp, g], out);
           // faint steady sizzle — embers under the crackle
-          const sz = this._src(B.white); const shp = this._filter('highpass', 4500, 0.7); const sg = ctx.createGain(); sg.gain.value = 0.018;
-          e.nodes.push(...this._lfo(0.9, 0.008, sg.gain, 0.018));
+          const sz = this._src(B.white); const shp = this._filter('highpass', 4500, 0.7); const sg = ctx.createGain(); sg.gain.value = 0.012;
+          e.nodes.push(...this._lfo(0.9, 0.006, sg.gain, 0.012));
           this._chain(e, [sz, shp, sg], out);
-          const crackGain = ctx.createGain(); crackGain.gain.value = 0.25; crackGain.connect(out); e.nodes.push(crackGain);
+          const crackGain = ctx.createGain(); crackGain.gain.value = 0.66; crackGain.connect(out); e.nodes.push(crackGain);
           // two voices make it read as fire: deep woody pops and sharp snaps — plus occasional quick clusters
           const one = (t, kind) => {
             const n = ctx.createBufferSource(); n.buffer = B.white;
