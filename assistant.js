@@ -147,7 +147,8 @@
     const NUMWORDS = [['forty five', '45'], ['forty-five', '45'], ['an hour and a half', '90 minutes'], ['half an hour', '30 minutes'], ['one', '1'], ['five', '5'], ['ten', '10'], ['fifteen', '15'], ['twenty', '20'], ['thirty', '30'], ['forty', '40'], ['fifty', '50'], ['sixty', '60'], ['ninety', '90']];
     function normalizeNumbers(t) { for (const [w, d] of NUMWORDS) t = t.replace(new RegExp('\\b' + w + '\\b', 'g'), d); return t; }
     function parse(raw) {
-      const t = normalizeNumbers(' ' + raw.toLowerCase().replace(/[.,!?;]/g, ' ').replace(/\s+/g, ' ').trim() + ' ');
+      // Common typos and speech-to-text slips: "ply/plying" for "play/playing".
+      const t = normalizeNumbers(' ' + raw.toLowerCase().replace(/[.,!?;]/g, ' ').replace(/\bplying\b/g, 'playing').replace(/\bply\b/g, 'play').replace(/\s+/g, ' ').trim() + ' ');
       if (/^\s*(undo|go back|put it back)\s*$/.test(t.trim())) return { undo: true };
       if (/^\s*(help|what can (i say|you do)|show examples|examples)\s*\??\s*$/.test(t.trim())) return { help: true };
       if (MEDICAL.test(t)) return { medical: true };
@@ -182,7 +183,7 @@
         }
         if (lessM || moreM) break;
       }
-      const remM = matchSound(t, /(?:remove|without|take out|take away|drop|no more|stop the)\s+(?:the\s+)?/);
+      const remM = matchSound(t, /(?:remove|without|take out|take away|drop|no more|stop(?:\s+playing)?|turn off)\s+(?:the\s+)?/);
       const addM = matchSound(t, /(?:add|with|include|put in|layer)\s+(?:a little |a bit of |some |a touch of |light |the |an |a )?/);
       const playM = matchSound(t, /(?:play|start|put on|give me|i want)\s+(?:the sound of a |the sound of |a little |the |some |an |a )?/);
       if (lessM) acts.push(['layer_volume', { id: lessM.id, delta: -0.15 }]);
