@@ -43,7 +43,11 @@
     }
     loop() {
       if (!this.running) return;
-      requestAnimationFrame(() => this.loop());
+      // One chain only: a second loop() call while a frame is queued (e.g. focus exit
+      // firing twice) must not spawn a parallel rAF chain that then runs forever.
+      if (this._queued) return;
+      this._queued = true;
+      requestAnimationFrame(() => { this._queued = false; this.loop(); });
       // The page atmosphere is slow-moving: 20 fps is plenty, and it leaves the frame budget to the Sound Field (audio first).
       const nowT = performance.now(); if (this._lastT && nowT - this._lastT < 48) return; this._lastT = nowT;
       const ctx = this.ctx, w = this.w, h = this.h;

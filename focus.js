@@ -562,6 +562,7 @@
     veil.classList.add('on'); setTimeout(() => { setVisual(id); setTimeout(() => veil.classList.remove('on'), 120); }, 1600);
   }
   function exitFocus() {
+    if (screen.hidden) return;   // double-exit (Escape + button) must be a no-op
     if (engine.ctx) engine.resetMasterShape(); P.dim = 0; P.slow = 0; P.time = 0.5;
     if (enteredVia && window.softwaveTransition) { const id = enteredVia; enteredVia = null; window.softwaveTransition.back(id); }
     screen.hidden = true; document.body.style.overflow = ''; cancelAnimationFrame(focus.raf); closePanel();
