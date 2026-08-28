@@ -3,7 +3,7 @@
    Dates are "last reviewed" dates; update them when content changes. */
 'use strict';
 
-const REVIEWED = '2026-08-25';
+const REVIEWED = '2026-08-28';
 const SRC = {
   nidcd: { t: 'NIDCD — Tinnitus (National Institute on Deafness and Other Communication Disorders)', u: 'https://www.nidcd.nih.gov/health/tinnitus' },
   ata: { t: 'American Tinnitus Association — Sound Therapy', u: 'https://www.ata.org/about-tinnitus/sound-therapy/' },
@@ -443,36 +443,30 @@ learn({
 learn({
   slug: 'how-to-use-find-my-sound',
   title: 'How to Use Help Me Find My Sound',
-  description: 'A step-by-step guide to Help Me Find My Sound: compare sounds two at a time, answer honestly, and let the app build your personal sound and Sound Profile.',
+  description: 'Find My Sound works like the eye test at the optician — "better with one, or two?" — but with sound. A plain guide to using it, and what to do with your result.',
   h1: 'How to use Help Me Find My Sound',
-  intro: 'Instead of guessing which sound might suit you, Help Me Find My Sound plays you pairs of sounds and learns from your choices. After about ten quick comparisons it builds a personal sound — and a Sound Profile the app can reuse for suggestions. There are no wrong answers: it is only about what feels easiest to your ears.',
+  intro: 'You know the test at the eye doctor: they flip a lens and ask, "Better with one… or two?" You do not need to know anything about eyes — you just say which looks clearer, and the right glasses come out at the end. Help Me Find My Sound is exactly that, for your ears. It plays two sounds, you say which one feels nicer, and after a handful of these questions it hands you your sound.',
   body: `
 <h2>Before you start</h2>
-<ul><li>Use headphones if you can — comparisons are easier (not required).</li><li>Set the volume <strong>low and comfortable</strong>. You are comparing character, not loudness.</li></ul>
-<h2>Starting</h2>
-<p>Open it any of these ways — they all lead to the same place: tap <strong>Find My Sound</strong> in the top menu, or <strong>Experiments → Find My Sound</strong>, or the <em>"Help Me Find My Sound"</em> link under the big circle on the Sounds page. Then choose how many <strong>rounds</strong> you want — 8 (quick), 12 (standard) or 15 (thorough) — and press <strong>Start Experiment</strong>.</p>
-<h2>During each round</h2>
+<ul><li>Headphones help, but are not required.</li><li>Keep the volume <strong>low and comfortable</strong>. You are choosing which sound feels nicer — never which is louder.</li></ul>
+<h2>How to do it</h2>
 <ol>
-<li>You will see two shapes, <strong>A</strong> and <strong>B</strong>. One of them is playing.</li>
-<li><strong>Tap A, then tap B</strong> — the sound switches instantly. Switch back and forth as often as you like; take your time.</li>
-<li>Answer <em>"Which feels more comfortable?"</em> by tapping <strong>A</strong>, <strong>No difference</strong> or <strong>B</strong>. Comfortable means <em>easy to listen to</em> — the sound you could leave on for an hour and forget about, the one that sits calmly beside your tinnitus. It is not about which sound is more interesting; interesting sounds pull attention, and that is usually the opposite of what helps. <em>"No difference" is a perfectly good answer</em> — do not force a choice you do not feel.</li>
+<li><strong>Open it.</strong> Tap <strong>Find My Sound</strong> in the top menu (or the <em>"Help Me Find My Sound"</em> link under the big circle on the Sounds page) and press <strong>Start Experiment</strong>.</li>
+<li><strong>Listen to both.</strong> You will see two circles, <strong>A</strong> and <strong>B</strong>. Tap A to hear one, tap B to hear the other. Go back and forth as many times as you like — there is no clock and no score.</li>
+<li><strong>Say which feels nicer.</strong> Tap <strong>A</strong>, <strong>B</strong>, or <strong>No difference</strong>. "Nicer" simply means the one you could leave on and forget about — the one your ears relax into. If you honestly cannot tell, <strong>No difference</strong> is a perfectly good answer.</li>
 </ol>
-<p>The sound you preferred is kept and gently varied for the next round — sometimes in depth or brightness, sometimes with a soft nature texture such as rain, ocean, crickets, lapping water or rustling leaves. The dots at the top show your progress.</p>
-<h2>When you finish</h2>
-<p>Your discovered sound is revealed as a living shape, with everything you might want to do next:</p>
+<p>That is the whole skill. A soft green note tells you when a new round begins, and the same question comes back with a slightly different pair — about ten times in all. There are no wrong answers, and nothing about your hearing is being tested or measured. It only learns what you <em>like</em>.</p>
+<h2>What to do when it finishes</h2>
+<p>After the last round, the app shows you the sound you chose most often. Two things are worth doing right away:</p>
 <ul>
-<li><strong>Listen</strong> — play it.</li>
-<li><strong>Save</strong> — name it and keep it. It then appears under <em>My sounds</em> on the Sounds page, one tap away.</li>
-<li><strong>Tune</strong> — open it in the Sound Sculptor and fine-adjust it with sliders.</li>
-<li><strong>Favourites</strong> — save it with a matching visual as an environment in Visual Focus.</li>
-<li><strong>Sleep</strong> — start it softly with a 60-minute timer and gentle fade-out.</li>
-<li><strong>With a visual</strong> — play it inside a full-screen calm visual.</li>
-<li><strong>Try again</strong> — run a fresh discovery.</li>
+<li><strong>Tap "See Your Moments."</strong> Finishing Find My Sound unlocks <strong>Your Moments</strong> at the top of the Sounds page — one-tap buttons that build your personal quiet, sleep or focus sound. This is the real reward: from now on, your sound is always one tap away.</li>
+<li><strong>Save your sound</strong> if you like it. Give it a name and it appears under <em>My sounds</em> on the Sounds page.</li>
 </ul>
-<h2>Your Sound Profile</h2>
-<p>Your answers also build a <strong>Sound Profile</strong> (shown in the Experiments section): a short summary of what you tend to prefer. The app uses it for suggestions — a one-tap sleep session, a recommended visual — and it gets a little smarter every time you run a discovery.</p>
-<h2>Tips</h2>
-<ul><li>Preferences shift with time of day and mood — rerunning it at night may find a different, softer sound than in the morning.</li><li>If everything starts sounding the same after many rounds, you have probably converged on your sound: stop, save it, and enjoy it.</li><li>Sound preferences vary from person to person; this tool helps you explore yours. It does not diagnose or treat anything.</li></ul>
+<p>The other buttons are extras for whenever you want them: fine-tune the sound with sliders, add a calm visual, send it straight into a 60-minute sleep session, or run the whole thing again.</p>
+<h2>What the app remembers</h2>
+<p>Your choices build a simple picture of your taste — warmer or brighter, steady or moving, rain or ocean. The app quietly uses that picture everywhere: Your Moments, sleep suggestions, a recommended visual, and a gentle <em>"Tuned to you"</em> touch on whatever you play. It all stays on your device, and it gets a little smarter every time you use Find My Sound.</p>
+<h2>Good to know</h2>
+<ul><li>Your taste can change with the time of day — running it again at night may find a softer sound than in the morning. Run it again whenever you feel like it.</li><li>If the two sounds start feeling the same near the end, that is a good sign: you have found your sound. Finish, save it, and enjoy it.</li><li>This tool explores what you find comfortable. It does not diagnose or treat anything.</li></ul>
 <p><a href="/?exp=discovery">Try Help Me Find My Sound now →</a></p>`,
   sources: [],
 });
