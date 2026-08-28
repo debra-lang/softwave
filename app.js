@@ -468,7 +468,8 @@
     // The field is a slow-breathing form: 30 fps playing / 20 fps idle is visually identical
     // and halves both script time and the GPU compositing of a large canvas.
     const drawDue = now - fieldDrawLast >= (transit.active ? 0 : playing ? 33 : 50);
-    if (drawDue) { fieldDrawLast = now; const lv = playing ? Math.min(1, engine.getLevels(fieldSpec) * 6) : 0; let lo = 0; if (playing) { for (let i = 1; i < 10; i++) lo += fieldSpec[i]; lo /= 9 * 255; } const bal = engine.activeList().reduce((acc, sn) => acc + sn.balance, 0); const immersed = !$('#now').hidden; const focusOpen = !$('#focus-screen').hidden && !transit.active;
+    const immersed = !$('#now').hidden; const focusOpen = !$('#focus-screen').hidden && !transit.active;
+    if (drawDue) { fieldDrawLast = now; const lv = playing ? Math.min(1, engine.getLevels(fieldSpec) * 6) : 0; let lo = 0; if (playing) { for (let i = 1; i < 10; i++) lo += fieldSpec[i]; lo /= 9 * 255; } const bal = engine.activeList().reduce((acc, sn) => acc + sn.balance, 0);
     if (immersed) { fieldBig.setPlaying(playing); fieldBig.setLevel(lv, bal); fieldBig.setLow(lo); fieldBig.draw(now); } else if (!focusOpen && (transit.active || (fieldVisible && !$('#view-sounds').hidden))) { fieldMain.setPlaying(playing); fieldMain.setLevel(lv, bal); fieldMain.setLow(lo); fieldMain.draw(now); } }
     if (now - fieldLast > 80 && !$('#view-sounds').hidden && !immersed) { fieldLast = now; tileTick = (tileTick + 1) % 3; let ti = 0; tilePreviews.forEach((pv, card) => { ti++; if (!tileVisible.has(card)) { tileIO.observe(card); tileVisible.set(card, false); return; } if (!tileVisible.get(card)) return; const hot = card.classList.contains('active') || card.matches(':hover'); if (!hot && ti % 3 !== tileTick) return; if (!hot && FIELD.LOW && pv._once) return; pv._once = true; pv.setLevel(hot ? 0.5 : 0.15, 0); pv.draw(now); }); } }
   requestAnimationFrame(fieldLoop);
