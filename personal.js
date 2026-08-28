@@ -86,9 +86,14 @@
       }
       const host = $('#moments', slot); host.innerHTML = '';
       MOMENTS.forEach(mo => {
-        const b = document.createElement('button'); b.className = 'chip chip-mine'; b.setAttribute('role', 'listitem');
+        const b = document.createElement('button'); b.className = 'chip chip-mine'; b.setAttribute('role', 'listitem'); b.dataset.chipName = mo.name;
+        b.addEventListener('click', async () => {
+          if (window.softwaveChips && softwaveChips.toggleStop(mo.name)) { app.toast(`Stopped “${mo.name}”`); return; }
+          if (!gate('sound_profile')) return; if (M()) M().track('moment_used'); await mo.run();
+          if (window.softwaveChips) softwaveChips.set(mo.name);
+          if (mo.id !== 'sleep' && mo.id !== 'focus') app.toast(`${mo.name} — tap it again to stop.`); journeyMomentDone();
+        });
         b.innerHTML = `<strong>✦ ${mo.name}</strong><span>${mo.desc}</span>`;
-        b.addEventListener('click', async () => { if (!gate('sound_profile')) return; if (M()) M().track('moment_used'); await mo.run(); if (mo.id !== 'sleep' && mo.id !== 'focus') app.toast(`${mo.name} — adjust anything you like.`); journeyMomentDone(); });
         host.appendChild(b);
       });
       syncChip();

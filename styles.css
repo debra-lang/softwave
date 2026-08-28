@@ -1016,6 +1016,9 @@ html[data-theme="dark"] .row-title { color: rgba(238,240,244,.42); }
 .journey-chip .chip strong::before { content: "☀ "; }
 .journey-veil .journey-card .btn-row { flex-wrap: wrap; }
 .fa-tuned { font-size: .78rem; opacity: .85; }
+/* a chip whose sound is currently playing — tap again to stop */
+.chip-playing { outline: 2px solid rgba(62, 154, 114, 0.55); outline-offset: -1px; }
+:root[data-theme="dark"] .chip-playing { outline-color: rgba(159, 224, 187, 0.6); }
 /* the personalization chip carries the brand green, matching Moments and Find My Sound */
 .fa-tuned, .field-actions .fa.fa-tuned { color: #3e9a72; border-color: rgba(62, 154, 114, 0.45); }
 :root[data-theme="dark"] .fa-tuned, :root[data-theme="dark"] .field-actions .fa.fa-tuned { color: #9fe0bb; border-color: rgba(159, 224, 187, 0.45); }

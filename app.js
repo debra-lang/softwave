@@ -100,7 +100,7 @@
       const custom = store.get('mixes', []).filter(m => m && Array.isArray(m.mix) && m.mix.every(x => engine.def(x.id)));
       if (includeCustom) custom.forEach((m, i) => list.push({ id: 'custom-' + i, name: m.name, desc: m.mix.map(x => engine.def(x.id).name).join(' + '), mix: m.mix, master: m.master, custom: true, index: i }));
       list.forEach(p => {
-        const b = document.createElement('button'); b.className = 'chip'; b.setAttribute('role', 'listitem'); b.dataset.preset = p.id;
+        const b = document.createElement('button'); b.className = 'chip'; b.setAttribute('role', 'listitem'); b.dataset.preset = p.id; b.dataset.chipName = p.name;
         b.innerHTML = `<strong>${p.name}</strong><span>${p.desc}</span>`;
         b.addEventListener('click', () => loadPreset(p));
         container.appendChild(b);
@@ -119,7 +119,7 @@
     const row = $('#my-sounds-row'); const host = $('#my-sounds'); host.innerHTML = '';
     if (!ms.length) { if (row) row.remove(); updateMixSaved(); return; }
     if (!row) { renderPresetsRemount(); return; }
-    ms.forEach((snd, i) => { const b = document.createElement('button'); b.className = 'chip chip-mine'; b.setAttribute('role', 'listitem'); b.innerHTML = `<strong>★ ${snd.name}</strong><span>${snd.type === 'paint' ? 'Painted sound' : 'Custom sound'}${snd.nature && snd.nature !== 'none' && engine.def(snd.nature) ? ' + ' + engine.def(snd.nature).name.toLowerCase() : ''}</span>`;
+    ms.forEach((snd, i) => { const b = document.createElement('button'); b.className = 'chip chip-mine'; b.setAttribute('role', 'listitem'); b.dataset.chipName = snd.name; b.innerHTML = `<strong>★ ${snd.name}</strong><span>${snd.type === 'paint' ? 'Painted sound' : 'Custom sound'}${snd.nature && snd.nature !== 'none' && engine.def(snd.nature) ? ' + ' + engine.def(snd.nature).name.toLowerCase() : ''}</span>`;
       b.addEventListener('click', async () => { const mix = [{ id: snd.type === 'paint' ? 'paint' : 'sculpt', volume: 0.55, balance: 0 }]; if (snd.type === 'paint') mix[0].curve = snd.curve; else mix[0].params = snd.params; if (snd.nature && snd.nature !== 'none') mix.push({ id: snd.nature, volume: snd.natureVol || 0.35, balance: 0 }); await loadPreset({ name: snd.name, mix, master: Math.min(engine.masterVolume, 0.45) }); });
       const del = document.createElement('button'); del.className = 'chip-del'; del.setAttribute('aria-label', 'Delete ' + snd.name); del.textContent = '×'; del.addEventListener('click', e => { e.stopPropagation(); ms.splice(i, 1); store.set('lab:sounds', ms); renderPresetsRemount(); toast('Sound deleted'); }); b.appendChild(del); host.appendChild(b); });
     if (!host.children.length) row.remove();   // the section exists only with content
@@ -131,7 +131,7 @@
     const custom = store.get('mixes', []);
     if (!custom.length) saved.innerHTML = '<p class="muted">Nothing saved yet. Build a mix and tap "Save as My Custom Mix".</p>';
     custom.forEach((m, i) => {
-      const b = document.createElement('button'); b.className = 'chip';
+      const b = document.createElement('button'); b.className = 'chip'; b.dataset.chipName = m.name;
       b.innerHTML = `<strong>${m.name}</strong><span>${m.mix.filter(x => engine.def(x.id)).map(x => engine.def(x.id).name + ' ' + Math.round(x.volume * 100) + '%').join(' · ')}</span>`;
       b.addEventListener('click', () => loadPreset({ name: m.name, mix: m.mix, master: m.master }));
       const del = document.createElement('button'); del.className = 'btn btn-ghost btn-sm'; del.textContent = 'Delete'; del.setAttribute('aria-label', 'Delete ' + m.name);
@@ -139,10 +139,20 @@
       const wrap = document.createElement('div'); wrap.style.display = 'flex'; wrap.style.gap = '6px'; wrap.style.alignItems = 'center'; wrap.append(b, del); saved.appendChild(wrap);
     });
   }
+  // Every playable card toggles like the sound tiles: tap to start, tap the same card to stop.
+  let activeChipName = null;
+  function markChips() { $$('[data-chip-name]').forEach(c => c.classList.toggle('chip-playing', !!c.dataset.chipName && c.dataset.chipName === activeChipName && engine.isPlaying)); }
+  window.softwaveChips = {
+    set(name) { activeChipName = name; markChips(); },
+    toggleStop(name) { if (name && activeChipName === name && engine.isPlaying && engine.activeList().length) { engine.stopAll(); activeChipName = null; markChips(); return true; } return false; }
+  };
+  engine.on(type => { if (type === 'sounds' && !engine.activeList().length) activeChipName = null; if (type === 'sounds' || type === 'state') markChips(); });
   async function loadPreset(p) {
+    if (window.softwaveChips.toggleStop(p.name)) { toast(`Stopped “${p.name}”`); return; }
     if (p.master !== undefined) setMaster(Math.min(p.master, engine.masterVolume || p.master));
     await engine.loadMix(p.mix);
-    toast(`Playing “${p.name}” — adjust anything you like`);
+    softwaveChips.set(p.name);
+    toast(`Playing “${p.name}” — tap it again to stop`);
   }
 
   const openDiscovery = async () => { showView('lab'); try { await ensureLab(); window.softwaveLab.open('discovery'); } catch (e) { toast(e.message); } };
