@@ -509,13 +509,27 @@
           const g = ctx.createGain(); g.gain.value = 0.8;
           e.nodes.push(...this._lfo(0.3, 0.25, g.gain, 0.8));
           this._chain(e, [s, lp, g], out);
+          // faint steady sizzle — embers under the crackle
+          const sz = this._src(B.white); const shp = this._filter('highpass', 4500, 0.7); const sg = ctx.createGain(); sg.gain.value = 0.018;
+          e.nodes.push(...this._lfo(0.9, 0.008, sg.gain, 0.018));
+          this._chain(e, [sz, shp, sg], out);
           const crackGain = ctx.createGain(); crackGain.gain.value = 0.25; crackGain.connect(out); e.nodes.push(crackGain);
-          const crackle = (t) => {
+          // two voices make it read as fire: deep woody pops and sharp snaps — plus occasional quick clusters
+          const one = (t, kind) => {
             const n = ctx.createBufferSource(); n.buffer = B.white;
-            const f = this._filter('bandpass', 2000 + Math.random() * 4000, 2); const gg = ctx.createGain();
-            gg.gain.setValueAtTime(0, t); gg.gain.linearRampToValueAtTime(0.3 + Math.random() * 0.5, t + 0.003); gg.gain.exponentialRampToValueAtTime(0.001, t + 0.02 + Math.random() * 0.05);
-            n.connect(f); f.connect(gg); gg.connect(crackGain); n.start(t, Math.random() * 5, 0.1);
+            const f = kind === 'pop' ? this._filter('bandpass', 500 + Math.random() * 1100, 1.6) : this._filter('bandpass', 2000 + Math.random() * 4000, 2);
+            const gg = ctx.createGain();
+            const lvl = kind === 'pop' ? 0.45 + Math.random() * 0.45 : 0.3 + Math.random() * 0.5;
+            const dur = kind === 'pop' ? 0.03 + Math.random() * 0.06 : 0.015 + Math.random() * 0.045;
+            gg.gain.setValueAtTime(0, t); gg.gain.linearRampToValueAtTime(lvl, t + 0.003); gg.gain.exponentialRampToValueAtTime(0.001, t + dur);
+            n.connect(f); f.connect(gg); gg.connect(crackGain); n.start(t, Math.random() * 5, dur + 0.05);
             n.onended = () => { try { f.disconnect(); gg.disconnect(); } catch (_) { } };
+          };
+          const crackle = (t) => {
+            const r = Math.random();
+            if (r < 0.4) one(t, 'pop');
+            else if (r < 0.9) one(t, 'snap');
+            else { const k = 2 + Math.floor(Math.random() * 3); for (let i = 0; i < k; i++) one(t + i * (0.03 + Math.random() * 0.05), Math.random() < 0.5 ? 'pop' : 'snap'); }
           };
           this._pump(e, id, 0.05, () => 0.06 + Math.random() * 0.7, crackle, 5); break;
         }
