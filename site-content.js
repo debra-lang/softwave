@@ -460,7 +460,7 @@ learn({
 <p>After the last round, the app shows you the sound you chose most often. Two things are worth doing right away:</p>
 <ul>
 <li><strong>Tap "See Your Moments."</strong> Finishing Find My Sound unlocks <strong>Your Moments</strong> at the top of the Sounds page — one-tap buttons that build your personal quiet, sleep or focus sound. This is the real reward: from now on, your sound is always one tap away.</li>
-<li><strong>Save your sound</strong> if you like it. Give it a name and it appears under <em>My sounds</em> on the Sounds page.</li>
+<li><strong>Save your sound</strong> if you like it. Give it a name and it appears under <em>My Saved Sounds</em> on the Sounds page.</li>
 </ul>
 <p>The other buttons are extras for whenever you want them: fine-tune the sound with sliders, add a calm visual, send it straight into a 60-minute sleep session, or run the whole thing again.</p>
 <h2>What the app remembers</h2>
