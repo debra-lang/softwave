@@ -26,6 +26,23 @@
     if (!gl) { LOW = true; console.info('Softwave: software rendering detected — low-power visuals on'); }
     else { const lose = gl.getExtension('WEBGL_lose_context'); if (lose) lose.loseContext(); }
   } catch (_) { LOW = true; }
+  // The WebGL probe misses machines whose GPU composites but whose 2D canvases still rasterise on
+  // the CPU (driver blocklists). Only measuring tells the truth: a gradient-heavy paint that costs
+  // 14-18 ms warm on GPU raster costs several times that in software. Verdict persists so the next
+  // launch starts in the right mode immediately; re-measured each session in case hardware changes.
+  try { if (localStorage.getItem('softwave:rasterSlow') === '1') LOW = true; } catch (_) { }
+  try { const q = new URLSearchParams(location.search).get('low'); if (q === '1') LOW = true; else if (q === '0') LOW = false; } catch (_) { }
+  setTimeout(() => {
+    try {
+      const bc = document.createElement('canvas'); bc.width = 720; bc.height = 720; const bctx = bc.getContext('2d');
+      const run = () => { const t0 = performance.now(); for (let i = 0; i < 8; i++) { const g = bctx.createRadialGradient(360, 360, 10, 360, 360, 360); g.addColorStop(0, 'rgba(120,140,255,0.5)'); g.addColorStop(1, 'rgba(0,0,0,0)'); bctx.fillStyle = g; bctx.fillRect(0, 0, 720, 720); } bctx.getImageData(0, 0, 2, 2); return performance.now() - t0; };
+      run();                                    // cold run primes the context
+      const cost = Math.min(run(), run());
+      const slow = cost > 28;
+      try { localStorage.setItem('softwave:rasterSlow', slow ? '1' : '0'); } catch (_) { }
+      if (slow && !LOW) { global.SoftwaveField.setLOW(true); try { dispatchEvent(new Event('resize')); } catch (_) { } console.info('Softwave: slow canvas rasterisation (' + Math.round(cost) + ' ms) — low-power visuals on'); }
+    } catch (_) { }
+  }, 2500);
   // deterministic pseudo-random per index (stable layouts, no Math.random in the hot path)
   const hash = (i, k = 0) => { const s = Math.sin(i * 12.9898 + k * 78.233) * 43758.5453; return s - Math.floor(s); };
 

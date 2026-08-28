@@ -464,7 +464,8 @@
   // slow frames flip every LOW rendering path on — the visuals stay, with far less GPU work.
   let ftEma = 16, ftBadSince = 0, ftPrev = 0, fieldDrawLast = 0;
   function fieldLoop(now) { requestAnimationFrame(fieldLoop); if (!FIELD || document.hidden) { ftPrev = 0; return; } const playing = !!engine.isPlaying;
-    if (ftPrev) { const ft = now - ftPrev; if (ft < 2000) { ftEma += (ft - ftEma) * 0.05; if (!FIELD.LOW) { if (ftEma > 90) { if (!ftBadSince) ftBadSince = now; if (now - ftBadSince > 4000) { FIELD.setLOW(true); console.info('Softwave: low-power visuals enabled (slow frames detected)'); try { dispatchEvent(new Event('resize')); } catch (_) { } } } else ftBadSince = 0; } } } ftPrev = now;
+    if (ftPrev) { const ft = now - ftPrev; if (ft < 400) {   // frames >=400ms are throttling (occluded window, 2fps cap), not jank — counting them would flip LOW spuriously
+      ftEma += (ft - ftEma) * 0.05; if (!FIELD.LOW) { if (ftEma > 90) { if (!ftBadSince) ftBadSince = now; if (now - ftBadSince > 4000) { FIELD.setLOW(true); console.info('Softwave: low-power visuals enabled (slow frames detected)'); try { dispatchEvent(new Event('resize')); } catch (_) { } } } else ftBadSince = 0; } } } ftPrev = now;
     // The field is a slow-breathing form: 30 fps playing / 20 fps idle is visually identical
     // and halves both script time and the GPU compositing of a large canvas.
     const drawDue = now - fieldDrawLast >= (transit.active ? 0 : FIELD.LOW ? (playing ? 50 : 100) : (playing ? 33 : 50));
