@@ -1225,6 +1225,15 @@ html[data-theme="dark"] .lab-view { --lab-bg-a: #0f1320; --lab-bg-b: #090b12; }
 :root[data-theme="dark"] .disc-round { background: rgba(20, 28, 52, 0.94); border-color: rgba(159, 224, 187, 0.35); color: #9fe0bb; }
 .disc-round.show { opacity: 1; }
 @media (prefers-reduced-motion: reduce) { .disc-round { transition: none; } }
+/* completion: point to what the profile just unlocked */
+.disc-next { margin: 12px 0 4px; font-size: .92rem; line-height: 1.55; color: var(--muted); }
+.disc-next strong { color: #3e9a72; }
+:root[data-theme="dark"] .disc-next strong { color: #9fe0bb; }
+.moments-row.moments-hello { animation: momentsHello 2.4s ease; border-radius: 16px; }
+@keyframes momentsHello { 0%, 100% { box-shadow: 0 0 0 0 rgba(62, 154, 114, 0); } 25% { box-shadow: 0 0 0 3px rgba(62, 154, 114, .45); } 70% { box-shadow: 0 0 0 3px rgba(62, 154, 114, .22); } }
+:root[data-theme="dark"] .moments-row.moments-hello { animation-name: momentsHelloDark; }
+@keyframes momentsHelloDark { 0%, 100% { box-shadow: 0 0 0 0 rgba(159, 224, 187, 0); } 25% { box-shadow: 0 0 0 3px rgba(159, 224, 187, .5); } 70% { box-shadow: 0 0 0 3px rgba(159, 224, 187, .24); } }
+@media (prefers-reduced-motion: reduce) { .moments-row.moments-hello { animation: none; } }
 
 /* light mode: keep the app's original cool, airy light atmosphere — the stage is transparent over it, and the field carries more colour */
 :root:not([data-theme="dark"]) .sf-stage, :root:not([data-theme="dark"]) .lab-hero { background: transparent; }

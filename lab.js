@@ -235,7 +235,8 @@
           $$('[data-sw],[data-pick]', host).forEach(b => b.disabled = true); $('[data-progress]', host).innerHTML = '<em>Done</em>'; $('[data-hint]', host).textContent = '';
           const snd = { type: 'sculpt', params: best.params, nature: best.nature, natureVol: 0.35, name: 'My discovered sound' };
           $('[data-result]', host).innerHTML = `<div class="card lab-result disc-result disc-reveal"><div class="reveal-orb"><canvas></canvas></div><div class="label-sm">Your preferred sound</div><h3>${describe(best.params, best.nature).split(' · ').map(s => s[0].toUpperCase() + s.slice(1)).join(' · ')}</h3><div class="desc-chips">${describe(best.params, best.nature).split(' · ').map(s => `<span>${s}</span>`).join('')}</div><p class="muted small">This is what you chose most often. A preference, not a measurement of your hearing.</p>
-            <div class="btn-row"><button class="btn btn-primary" data-r="listen">Listen</button><button class="btn btn-secondary" data-r="tune">Fine tune in Sound Sculptor</button><button class="btn btn-secondary" data-r="save">Save</button><button class="btn btn-ghost" data-r="fav">Add to favourites</button><button class="btn btn-ghost" data-r="sleep">Use for sleep</button><button class="btn btn-ghost" data-r="visual">Add visual</button><button class="btn btn-ghost" data-r="again">Try again</button></div><div data-saveform></div></div>`;
+            <p class="disc-next">Your Sound Profile is ready. It now powers <strong>Your Moments</strong> — one-tap Quiet, Sleep and Focus at the top of the Sounds page — and gently tunes everything you play. It keeps learning every time you use Find My Sound.</p>
+            <div class="btn-row"><button class="btn btn-primary" data-r="moments">See Your Moments</button><button class="btn btn-secondary" data-r="listen">Listen</button><button class="btn btn-secondary" data-r="tune">Fine tune in Sound Sculptor</button><button class="btn btn-secondary" data-r="save">Save</button><button class="btn btn-ghost" data-r="fav">Add to favourites</button><button class="btn btn-ghost" data-r="sleep">Use for sleep</button><button class="btn btn-ghost" data-r="visual">Add visual</button><button class="btn btn-ghost" data-r="again">Try again</button></div><div data-saveform></div></div>`;
           const R = $('[data-result]', host); liveShape($('.reveal-orb canvas', R), () => ({ p: Object.assign({}, best.params, { nature: best.nature }), live: true, scale: 0.42 }));
           $('[data-r="listen"]', R).addEventListener('click', async () => { await engine.loadMix(soundMix(snd)); });
           $('[data-r="tune"]', R).addEventListener('click', async () => { await engine.loadMix(soundMix(snd)); store.set('lab:settings:sculptor', sculptSettingsFrom(best.params, best.nature)); delete ctxs.sculptor; openExperiment('sculptor'); });
@@ -244,6 +245,13 @@
           $('[data-r="sleep"]', R).addEventListener('click', async () => { await engine.loadMix(soundMix(Object.assign({}, snd, { params: Object.assign({}, best.params, { moving: 0 }) }), 0.5)); engine.setTimer(60, true); app.showView('sleep'); app.toast('Sleep: 60-minute timer with gentle fade.'); });
           $('[data-r="visual"]', R).addEventListener('click', async () => { await engine.loadMix(soundMix(snd)); focus.setVisual(visualForProfile()); focus.enterFocus(); });
           $('[data-r="again"]', R).addEventListener('click', () => { stopRunning(); openExperiment('discovery'); });
+          $('[data-r="moments"]', R).addEventListener('click', () => {
+            app.showView('sounds');
+            setTimeout(() => {
+              const row = document.querySelector('#moments-slot .moments-row');
+              if (row) { row.scrollIntoView({ behavior: 'smooth', block: 'center' }); row.classList.add('moments-hello'); setTimeout(() => row.classList.remove('moments-hello'), 2600); }
+            }, 250);
+          });
           renderProfile(); stopRunning(null, true); if (M()) { M().track('find_my_sound_completed'); M().track('sound_profile_created'); }
         };
         await next();
