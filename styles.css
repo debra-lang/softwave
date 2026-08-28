@@ -1014,6 +1014,9 @@ html[data-theme="dark"] .row-title { color: rgba(238,240,244,.42); }
 .journey-chip .chip strong::before { content: "☀ "; }
 .journey-veil .journey-card .btn-row { flex-wrap: wrap; }
 .fa-tuned { font-size: .78rem; opacity: .85; }
+/* the personalization chip carries the brand green, matching Moments and Find My Sound */
+.fa-tuned, .field-actions .fa.fa-tuned { color: #3e9a72; border-color: rgba(62, 154, 114, 0.45); }
+:root[data-theme="dark"] .fa-tuned, :root[data-theme="dark"] .field-actions .fa.fa-tuned { color: #9fe0bb; border-color: rgba(159, 224, 187, 0.45); }
 /* Ask Find My Quiet Sound — a calm control section before the library, not a chat window */
 .ask-section { border: 1px solid var(--border); background: var(--card); border-radius: 20px; padding: 16px 18px 12px; margin: 18px 0 30px; box-shadow: var(--shadow); }
 :root[data-theme="dark"] .ask-section { border-color: rgba(180, 200, 255, 0.30); }
