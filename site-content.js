@@ -562,6 +562,29 @@ trust({
   sources: ['aao', 'nidcd'],
 });
 trust({
+  path: 'terms/', title: 'Terms of Use — Find My Quiet Sound',
+  description: 'The plain-language terms for using Find My Quiet Sound: personal use, no medical claims, safe listening, your data stays yours, and the service is provided as-is.',
+  h1: 'Terms of Use',
+  body: `
+<p>These terms are short on purpose. By using Find My Quiet Sound you agree to them.</p>
+<h2>What the service is</h2>
+<p>Find My Quiet Sound is a sound generator for masking, relaxation and tinnitus management support. It is provided for personal, non-commercial use. It is currently free to use; as the app evolves, some features may become part of an optional Premium plan, and any pricing or access changes will be communicated clearly before they take effect.</p>
+<h2>Not medical advice</h2>
+<p>Find My Quiet Sound does not diagnose, treat or cure tinnitus or any condition, and nothing in the app or on this site is medical advice. The <a href="/medical-disclaimer/">medical disclaimer</a> is part of these terms. If your tinnitus is persistent, getting worse, or bothering you significantly, talk to a doctor or audiologist.</p>
+<h2>Listen safely</h2>
+<p>You are responsible for your listening levels. Keep the volume low and comfortable and follow the guidance on the <a href="/safe-listening/">safe listening</a> page. Do not use the app in situations that require your full attention, such as driving.</p>
+<h2>Your data</h2>
+<p>Everything you save stays on your device; there is no account and nothing is collected — see the <a href="/privacy/">privacy page</a>, which is part of these terms. Your saved sounds and preferences are yours; nothing you save will be deleted by us.</p>
+<h2>Provided as-is</h2>
+<p>The service is provided "as is" and "as available", without warranties of any kind, express or implied. To the maximum extent permitted by law, the Find My Quiet Sound project is not liable for any damages arising from use of, or inability to use, the service. Sound preferences vary from person to person; the app may not work for everyone.</p>
+<h2>Fair use</h2>
+<p>Do not copy, resell or misrepresent the app or its sounds, attempt to disrupt the service, or use it in any unlawful way. The app's name, design and generated sounds remain the property of the Find My Quiet Sound project.</p>
+<h2>Changes</h2>
+<p>We may update the app and these terms. Meaningful changes will be reflected on this page with an updated review date, and pricing or access changes will always be communicated clearly before they take effect.</p>
+<h2>Contact</h2>
+<p>Questions about these terms: see the <a href="/contact/">contact page</a>.</p>`,
+});
+trust({
   path: 'privacy/', title: 'Privacy — Find My Quiet Sound',
   description: 'Find My Quiet Sound works without an account and does not collect hearing or health data. What is stored in your browser, what is not collected, and how to clear it.',
   h1: 'Privacy',

@@ -23,7 +23,7 @@ const stripTags = (s) => s.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
 const humanDate = (d) => new Date(d + 'T00:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 
 const NAV = [['Sounds', '/'], ['Find My Sound', '/#find'], ['Visual Focus', '/#focus'], ['Sleep', '/#sleep'], ['Experiments', '/#lab'], ['Mixer', '/#mixer'], ['Learn', '/learn/'], ['About', '/about/']];
-const FOOTER = [['About', '/about/'], ['Free & Premium', '/premium/'], ['How it works', '/how-it-works/'], ['Research & sources', '/research-and-sources/'], ['Safe listening', '/safe-listening/'], ['Medical disclaimer', '/medical-disclaimer/'], ['Privacy', '/privacy/'], ['Contact', '/contact/']];
+const FOOTER = [['About', '/about/'], ['Free & Premium', '/premium/'], ['How it works', '/how-it-works/'], ['Research & sources', '/research-and-sources/'], ['Safe listening', '/safe-listening/'], ['Medical disclaimer', '/medical-disclaimer/'], ['Privacy', '/privacy/'], ['Terms', '/terms/'], ['Contact', '/contact/']];
 const TOOLS = [['Tinnitus sound generator', '/tinnitus-sound-generator/'], ['Masking sounds', '/tinnitus-masking-sounds/'], ['White noise', '/white-noise-for-tinnitus/'], ['Pink noise', '/pink-noise-for-tinnitus/'], ['Brown noise', '/brown-noise-for-tinnitus/'], ['Frequency generator', '/tinnitus-frequency-generator/'], ['Sound matching', '/tinnitus-sound-matching/'], ['Sound mixer', '/tinnitus-sound-mixer/'], ['Sleep sounds', '/tinnitus-sleep-sounds/']];
 
 const ORG = { '@type': 'Organization', '@id': ORIGIN + '/#org', name: 'Find My Quiet Sound', url: ORIGIN + '/', logo: ORIGIN + '/icons/icon-512.png', sameAs: ['https://github.com/debra-lang/softwave'] };

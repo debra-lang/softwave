@@ -15,7 +15,7 @@ const FILES = [
   'manifest.webmanifest', '404.html', 'og-image.png',
 ];
 const DIRS = [
-  'icons', 'learn', 'about', 'contact', 'privacy', 'medical-disclaimer',
+  'icons', 'learn', 'about', 'contact', 'privacy', 'terms', 'medical-disclaimer',
   'safe-listening', 'research-and-sources', 'how-it-works', 'premium',
   'brown-noise-for-tinnitus', 'pink-noise-for-tinnitus', 'white-noise-for-tinnitus',
   'tinnitus-frequency-generator', 'tinnitus-masking-sounds', 'tinnitus-sleep-sounds',
