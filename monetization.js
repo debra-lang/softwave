@@ -113,7 +113,7 @@
   // none | trial | active | past_due | cancelled | expired | lifetime | launch_all_access
   // Post-launch this MUST be set from the backend (webhook-verified). The dev simulator below is for
   // local testing only and is ignored the moment a backend-signed state exists.
-  const store = { get(k, d) { try { const v = localStorage.getItem('softwave:' + k); return v === null ? d : JSON.parse(v); } catch (_) { return d; } }, set(k, v) { try { localStorage.setItem('softwave:' + k, JSON.stringify(v)); } catch (_) { } } };
+  const store = { get(k, d) { try { const v = localStorage.getItem('softwave:' + k); if (v === null) return d; const p = JSON.parse(v); if (d !== undefined && d !== null) { if (p === null) return d; if (Array.isArray(d) !== Array.isArray(p)) return d; if (typeof p !== typeof d) return d; } return p; } catch (_) { return d; } }, set(k, v) { try { localStorage.setItem('softwave:' + k, JSON.stringify(v)); } catch (_) { } } };
 
   // Server-authoritative state (set by cloud.js from the read-only billing row / GET /me).
   // The browser renders it but cannot forge it: the billing table has no client write policies.

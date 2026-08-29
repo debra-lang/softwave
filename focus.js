@@ -404,6 +404,8 @@
     breathText: app.store.get('breathText', true),
     paused: false,
   };
+  // stored enums must still be valid — old or damaged data falls back
+  if (!['still', 'low', 'medium', 'high'].includes(S.motion)) S.motion = 'low';
   matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', ev => { if (ev.matches) { S.reduced = true; syncSettings(); } });
   const spec = new Uint8Array(512), wave = new Uint8Array(1024);
   let smoothLevel = 0;
@@ -632,6 +634,7 @@
   window.softwaveFocus = { enterFocus, exitFocus, enterViaTransition, setVisual, crossfadeTo, openChooser, refreshFavs: renderFavs, visuals: V.filter(v => !v.hidden), allVisuals: V, setParam: (k, v) => { P[k] = v; }, getParam: () => P };
 
   // ---------- init ----------
+  if (!byId[S.visual]) S.visual = 'ocean';   // a stored visual id that no longer exists must not break init
   renderLibrary(); renderPairings(); renderFavs(); syncSettings(); if (window.softwaveProfile) softwaveProfile.refresh();
   const qf = new URLSearchParams(location.search).get('focus'); if (qf && byId[qf]) { setVisual(qf); setTimeout(enterFocus, 50); }
 })();

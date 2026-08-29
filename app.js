@@ -10,7 +10,20 @@
 
   // ---------- storage ----------
   const store = {
-    get(k, d) { try { const v = localStorage.getItem('softwave:' + k); return v === null ? d : JSON.parse(v); } catch (_) { return d; } },
+    // Corrupted storage must never break a renderer: a value that parses but has the wrong
+    // SHAPE (a number where an array lived) falls back to the default just like invalid JSON.
+    get(k, d) {
+      try {
+        const v = localStorage.getItem('softwave:' + k); if (v === null) return d;
+        const p = JSON.parse(v);
+        if (d !== undefined && d !== null) {
+          if (p === null) return d;
+          if (Array.isArray(d) !== Array.isArray(p)) return d;
+          if (typeof p !== typeof d) return d;
+        }
+        return p;
+      } catch (_) { return d; }
+    },
     set(k, v) { try { localStorage.setItem('softwave:' + k, JSON.stringify(v)); } catch (_) { } },
     del(k) { try { localStorage.removeItem('softwave:' + k); } catch (_) { } },
   };
