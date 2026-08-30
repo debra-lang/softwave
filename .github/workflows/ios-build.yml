@@ -90,6 +90,18 @@ jobs:
             -exportOptionsPlist exportOptions.plist -exportPath output
           mv output/*.ipa output/FindMyQuietSound.ipa
 
+      - name: Upload to App Store Connect (TestFlight)
+        if: ${{ inputs.signed }}
+        env:
+          ASC_KEY_ID: ${{ secrets.APP_STORE_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.APP_STORE_ISSUER_ID }}
+          ASC_P8_BASE64: ${{ secrets.APP_STORE_P8_BASE64 }}
+        run: |
+          mkdir -p ~/.appstoreconnect/private_keys
+          echo "$ASC_P8_BASE64" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_$ASC_KEY_ID.p8
+          xcrun altool --upload-app -f output/FindMyQuietSound.ipa -t ios \
+            --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID"
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
