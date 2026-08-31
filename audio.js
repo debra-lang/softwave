@@ -149,7 +149,26 @@
       this.master.connect(this.trim); this.trim.connect(this.masterFilter);
       if (this.masterPan) { this.masterFilter.connect(this.masterPan); this.masterPan.connect(this.limiter); } else this.masterFilter.connect(this.limiter);
       this.limiter.connect(this.analyser);
-      this.analyser.connect(ctx.destination);
+      // iOS native shell: WKWebView suspends bare Web Audio output when the screen locks,
+      // but keeps HTMLMediaElement playback alive (that's what the background-audio mode
+      // covers). So on the native app the whole mix is routed through a hidden media
+      // element instead of ctx.destination. Everywhere else: direct output, unchanged.
+      const nativeIOS = window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform() === 'ios';
+      let routed = false;
+      if (nativeIOS) {
+        try {
+          this.streamDest = ctx.createMediaStreamDestination();
+          this.analyser.connect(this.streamDest);
+          const out = document.createElement('audio');
+          out.srcObject = this.streamDest.stream;
+          out.setAttribute('playsinline', ''); out.autoplay = true; out.style.display = 'none';
+          document.body.appendChild(out);
+          this.mediaOut = out;
+          out.play().catch(() => { });
+          routed = true;
+        } catch (e) { console.warn('media-element routing unavailable, using direct output', e); }
+      }
+      if (!routed) this.analyser.connect(ctx.destination);
 
       // Buffers come from a Worker; if it never answers (blocked blob URL, crashed worker) fall back to inline generation after 6 s.
       const ready = generateBuffers(ctx).then(b => { Object.assign(this.buffers, b); });
@@ -170,6 +189,7 @@
       if (this.ctx.state !== 'running') {
         try { await Promise.race([this.ctx.resume(), new Promise(r => setTimeout(r, 1500))]); } catch (e) { /* needs gesture */ }
       }
+      if (this.mediaOut && this.isPlaying) this.mediaOut.play().catch(() => { });   // native iOS: routed output back on after interruptions
     }
 
     _setupBackground() {
@@ -199,6 +219,7 @@
       }
     }
     _keepAlive(on) {
+      if (this.mediaOut && on) this.mediaOut.play().catch(() => { });   // the routed output must be playing whenever sound plays
       if (!this.silentEl) return;
       if (on) { this.silentEl.play().catch(() => { }); }
       else { this.silentEl.pause(); }
