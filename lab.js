@@ -232,8 +232,12 @@
         // orbs — the user had to scroll back up to find A and B every time.
         const ensureAbVisible = () => {
           const el = $('.disc-wrap', host); if (!el) return;
+          // measure the sticky header on THIS device — safe-area padding makes it much
+          // taller on notched iPhones than any fixed offset would guess
+          const tb = document.querySelector('.topbar');
+          const off = (tb ? tb.getBoundingClientRect().height : 60) + 10;
           const r = el.getBoundingClientRect();
-          if (r.top < 56 || r.top > innerHeight * 0.45) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          if (r.top < off - 6 || r.top > innerHeight * 0.45) window.scrollTo({ top: scrollY + r.top - off, behavior: 'smooth' });
         };
         const next = async () => { sides.A = best; sides.B = cand; show(); await prep(); engine.muteQuick('discoB'); for (const n of NATURES) if (n !== 'none' && engine.isActive(n)) { if (sides.A.nature === n) engine.rampVolume(n, 0.35, 0.5); else engine.muteQuick(n); } ctx.switchTo('A'); show(); ensureAbVisible(); };
         // Brief, calm interstitial so a first-time user notices a new round began —
@@ -279,6 +283,19 @@
           renderProfile(); stopRunning(null, true); if (M()) { M().track('find_my_sound_completed'); M().track('sound_profile_created'); }
         };
         if (document.activeElement && document.activeElement.blur) document.activeElement.blur();   // stop iOS from anchoring the viewport to the Start button
+        // Phones: while the experiment runs, fold the explanation away so the whole
+        // comparison flow fits on screen. A small toggle keeps it one tap away.
+        const detailEl = host.closest('.lab-detail');
+        if (detailEl) {
+          if (!detailEl.querySelector('.about-toggle')) {
+            const t = document.createElement('button'); t.type = 'button'; t.className = 'about-toggle';
+            t.textContent = 'ⓘ About this experiment';
+            t.setAttribute('aria-expanded', 'false');
+            t.addEventListener('click', () => { const on = detailEl.classList.toggle('exp-peek'); t.setAttribute('aria-expanded', on); });
+            const dl = detailEl.querySelector('.lab-dl'); if (dl) dl.before(t);
+          }
+          detailEl.classList.add('exp-compact');
+        }
         await next();
       },
       stop(ctx) { (ctx && ctx.finished ? ['discoB'] : ['discoA', 'discoB']).forEach(id => engine.isActive(id) && engine.stopSound(id)); }, keepsSound: true,
@@ -506,6 +523,7 @@
   // ---------- runtime ----------
   function stopRunning(msg, finishedNaturally) {
     if (!running) return; const { exp, ctx } = running; clearTimers(); try { exp.stop && exp.stop(ctx); } catch (_) { } if (!exp.keepsSound) engine.stopAll(); engine.setVariation(0); engine.resetMasterShape();
+    $$('.lab-detail.exp-compact').forEach(d => d.classList.remove('exp-compact', 'exp-peek'));   // restore the folded explanation
     const prev = running; running = null; updateRunningUI(); if (msg) app.toast(msg); showAfterFeedback(prev.exp, prev.ctx);
   }
   function updateRunningUI() { const lv = $('#view-lab'); if (lv) lv.classList.toggle('running', !!running); const det = $('#lab-detail'); if (det) det.classList.toggle('running', !!running); $$('.lab-tile').forEach(t => t.classList.toggle('running', !!running && t.dataset.id === running.exp.id)); const el = $('#player-exp'); if (el) { if (running) { el.hidden = false; el.textContent = `Experiment: ${running.exp.name}`; } else el.hidden = true; } $$('.lab-card').forEach(c => c.classList.toggle('running', !!running && c.dataset.id === running.exp.id)); $$('[data-exp-start]').forEach(b => { const on = running && b.dataset.expStart === running.exp.id; b.textContent = on ? 'Running…' : 'Start Experiment'; b.disabled = !!on; }); }

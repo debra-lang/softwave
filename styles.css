@@ -1228,6 +1228,16 @@ html[data-theme="dark"] .lab-view { --lab-bg-a: #0f1320; --lab-bg-b: #090b12; }
 .disc-wrap .ab-obj .lbl, .disc-wrap .ab-obj[aria-pressed="true"] .lbl { position: absolute; left: 50%; top: 100%; transform: translate(-50%, 4px); width: auto; height: auto; background: transparent; color: var(--sf-ink); font-family: var(--sf-display); font-weight: 300; font-size: 1.6rem; letter-spacing: .1em; }
 .disc-wrap .ab-obj:disabled { opacity: .35; }
 .disc-wrap { scroll-margin-top: 64px; }   /* land just below the sticky topbar when scrolled to */
+/* Phones, while an experiment runs: fold the What/Why/How explanation into a toggle so the
+   whole comparison flow fits on one screen. Desktop keeps the full explanation as-is. */
+.about-toggle { display: none; }
+@media (max-width: 640px) {
+  .lab-detail.exp-compact .lab-dl, .lab-detail.exp-compact details.lab-why { display: none; }
+  .lab-detail.exp-compact.exp-peek .lab-dl { display: grid; }
+  .lab-detail.exp-compact.exp-peek details.lab-why { display: block; }
+  .lab-detail.exp-compact .about-toggle { display: inline-flex; align-items: center; gap: 6px; margin: 0 0 12px; padding: 7px 15px; border: 1px solid var(--border); border-radius: 999px; background: transparent; color: var(--muted); font: inherit; font-size: .82rem; font-weight: 600; cursor: pointer; }
+  .lab-detail.exp-compact.exp-peek .about-toggle { color: var(--accent); border-color: var(--accent); }
+}
 .disc-wrap .ab-switch { margin-bottom: 44px; position: relative; }
 /* brief "Round X of N" interstitial between discovery rounds */
 .disc-round { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 6; padding: 10px 22px; border-radius: 999px; background: rgba(247, 249, 253, 0.94); border: 1px solid rgba(62, 154, 114, 0.35); color: #3e9a72; font-weight: 700; font-size: 1.05rem; letter-spacing: .03em; white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity .45s ease; box-shadow: 0 10px 30px rgba(0,0,0,.22); }
