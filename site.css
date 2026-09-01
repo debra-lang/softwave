@@ -1,5 +1,14 @@
 /* Softwave — static page layout (tool, learn and trust pages). Reuses tokens from styles.css. */
-.site-page { padding-bottom: 0; }
+html { -webkit-text-size-adjust: 100%; }
+.site-page { padding-bottom: env(safe-area-inset-bottom, 0px); }
+/* viewport-fit=cover: on notched iPhones the sticky topbar must clear the status bar,
+   or every navigation link renders underneath the clock / Dynamic Island. */
+.site-page .topbar { padding-top: calc(12px + env(safe-area-inset-top, 0px)); }
+/* Every informational page gets an explicit way back — the reader never depends on
+   the nav row (which scrolls horizontally on phones) or on browser chrome the
+   native app does not have. */
+.back-link { display: inline-flex; align-items: center; gap: 7px; margin: 0 0 14px; padding: 9px 18px; border: 1px solid var(--border); border-radius: 999px; background: var(--card); color: var(--text); text-decoration: none; font-weight: 700; font-size: .92rem; }
+.back-link:hover { border-color: var(--accent); }
 .skip-link { position: absolute; left: -999px; top: 8px; background: var(--accent); color: #fff; padding: 10px 14px; border-radius: 10px; z-index: 100; }
 .skip-link:focus { left: 8px; }
 .site-main { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: clamp(18px, 3vw, 36px) clamp(14px, 3vw, 32px) 40px; }

@@ -44,6 +44,14 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     func applicationDidBecomeActive(_ application: UIApplication) {
         // Reclaim the audio session whenever we come back to the foreground.
         try? AVAudioSession.sharedInstance().setActive(true)
+        // The informational pages are real page navigations inside the web view —
+        // give users the standard iOS edge-swipe to go back (idempotent to re-set).
+        for scene in UIApplication.shared.connectedScenes {
+            guard let ws = scene as? UIWindowScene else { continue }
+            for w in ws.windows {
+                (w.rootViewController as? CAPBridgeViewController)?.webView?.allowsBackForwardNavigationGestures = true
+            }
+        }
     }
 
     func applicationWillTerminate(_ application: UIApplication) {

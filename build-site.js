@@ -14,7 +14,7 @@ const VERIFY = { google: '', bing: '' };        // paste verification tokens her
 const ANALYTICS = '';                           // optional cookie-free analytics snippet (off)
 const INDEXNOW_KEY = 'a7c3e9f1b2d4486a9e0c5f7d3b1a6e2c';
 const LASTMOD = REVIEWED;
-const ASSET_V = '15';  // bump with sw.js CACHE when styles/scripts change
+const ASSET_V = '16';  // bump with sw.js CACHE when styles/scripts change
 
 const abs = (href) => href.startsWith('/') ? BASE + href.slice(1) : href;
 const fixLinks = (html) => html.replace(/href="\/(?!\/)/g, `href="${BASE}`);
@@ -78,6 +78,7 @@ ${ANALYTICS}
   <div class="topbar-actions"><a class="btn btn-primary btn-sm" href="${BASE}">Open the app</a></div>
 </header>
 <main id="content" class="site-main">
+<a class="back-link" href="${abs('/')}" onclick="if(history.length>1){history.back();return false}">‹ Back</a>
 ${crumbs ? `<nav class="crumbs" aria-label="Breadcrumb"><ol>${crumbs.map((c, i) => `<li>${i < crumbs.length - 1 ? `<a href="${abs(c[1])}">${c[0]}</a>` : `<span aria-current="page">${c[0]}</span>`}</li>`).join('')}</ol></nav>` : ''}
 ${fixLinks(bodyHtml)}
 </main>
