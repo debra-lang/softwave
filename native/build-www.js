@@ -51,4 +51,27 @@ function stripQueries(dir) {
   }
 }
 stripQueries(OUT);
-console.log('www built:', copied, 'entries copied to', OUT, '(asset queries stripped for the native scheme)');
+
+// Belt and braces for the native shell: embed the stylesheets directly into every page.
+// A <link> can fail for scheme/MIME/policy reasons that differ per iOS version; inline
+// <style> cannot fail. Also inject a self-diagnostic: if, despite this, the app ever
+// renders unstyled on a device, a banner reports exactly what the WebView sees.
+const CSS = {
+  'styles.css': fs.readFileSync(path.join(OUT, 'styles.css'), 'utf8'),
+  'site.css': fs.readFileSync(path.join(OUT, 'site.css'), 'utf8'),
+};
+const DIAG = `<script>addEventListener('load',function(){try{var ff=getComputedStyle(document.body).fontFamily||'';if(ff.indexOf('Manrope')>=0)return;var d=document.createElement('div');d.style.cssText='position:fixed;left:4px;right:4px;bottom:4px;background:#111;color:#7CFC7C;font:11px Menlo,monospace;padding:8px;z-index:99999;white-space:pre-wrap;word-break:break-all;border-radius:8px';var info='STYLE DIAGNOSTIC\\nurl='+location.href+'\\nsheets='+document.styleSheets.length;for(var i=0;i<document.styleSheets.length;i++){var s=document.styleSheets[i],n;try{n=s.cssRules?s.cssRules.length:-1}catch(e){n=-2}info+='\\n '+(s.href||'inline')+' rules='+n}info+='\\nbodyFont='+ff.slice(0,50)+'\\nUA='+navigator.userAgent.slice(0,90);d.textContent=info;document.body.appendChild(d);}catch(e){}});</script>`;
+function inlineCss(dir) {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const p = path.join(dir, entry.name);
+    if (entry.isDirectory()) { inlineCss(p); continue; }
+    if (!entry.name.endsWith('.html')) continue;
+    let html = fs.readFileSync(p, 'utf8');
+    let changed = false;
+    html = html.replace(/<link rel="stylesheet" href="\/?((?:styles|site)\.css)">/g, (m, file) => { changed = true; return '<style>\n' + CSS[file] + '\n</style>'; });
+    if (changed && !html.includes('STYLE DIAGNOSTIC')) html = html.replace('</body>', DIAG + '</body>');
+    if (changed) fs.writeFileSync(p, html);
+  }
+}
+inlineCss(OUT);
+console.log('www built:', copied, 'entries copied to', OUT, '(queries stripped, CSS inlined for the native scheme)');
