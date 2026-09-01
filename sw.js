@@ -1,5 +1,5 @@
 /* Softwave service worker — network-first app shell with offline fallback */
-const CACHE = 'softwave-v129';
+const CACHE = 'softwave-v130';
 const ASSETS = ['./', './index.html', './styles.css', './app.js', './audio.js', './visuals.js', './focus.js', './lab.js', './field.js', './manifest.webmanifest', './icons/icon.svg', './icons/icon-192.png', './icons/icon-512.png', './site.css'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
@@ -12,6 +12,11 @@ self.addEventListener('fetch', e => {
     fetch(e.request, { cache: (e.request.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname.endsWith('/')) ? 'no-cache' : 'default' }).then(res => {
       if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(e.request, copy)); }
       return res;
-    }).catch(() => caches.match(e.request).then(hit => hit || caches.match('./index.html')))
+    }).catch(() => caches.match(e.request, { ignoreSearch: true }).then(hit => {
+      if (hit) return hit;
+      // Only page navigations fall back to the app shell. Returning index.html for a
+      // failed CSS/JS request would render the whole app unstyled.
+      return e.request.mode === 'navigate' ? caches.match('./index.html') : Response.error();
+    }))
   );
 });

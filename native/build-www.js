@@ -36,4 +36,19 @@ for (const d of DIRS) {
   if (!fs.existsSync(src)) { console.warn('missing dir (skipped):', d); continue; }
   fs.cpSync(src, path.join(OUT, d), { recursive: true }); copied++;
 }
-console.log('www built:', copied, 'entries copied to', OUT);
+// The native shell's local asset server does not serve query-string URLs, so every
+// `styles.css?v=NN`-style reference loads NOTHING on the device — the app renders
+// completely unstyled. Cache-busting queries only matter on the web; strip them here.
+function stripQueries(dir) {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const p = path.join(dir, entry.name);
+    if (entry.isDirectory()) { stripQueries(p); continue; }
+    if (!/\.(html|js)$/.test(entry.name)) continue;
+    const before = fs.readFileSync(p, 'utf8');
+    const after = before.replace(/((?:href|src)=")(\/?[a-z0-9./-]+\.(?:css|js))\?v=\d+(")/g, '$1$2$3')
+                        .replace(/'(lab\.js)\?v=\d+'/g, "'$1'");
+    if (after !== before) fs.writeFileSync(p, after);
+  }
+}
+stripQueries(OUT);
+console.log('www built:', copied, 'entries copied to', OUT, '(asset queries stripped for the native scheme)');
