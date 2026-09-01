@@ -227,7 +227,15 @@
         const prep = async () => { try { engine.setSculpt(sides.A.params, 'discoA'); engine.setSculpt(sides.B.params, 'discoB'); if (!engine.isActive('discoA')) await engine.startSound('discoA', 0.55); if (!engine.isActive('discoB')) await engine.startSound('discoB', 0.55); for (const n of NATURES) if (n !== 'none') { const want = sides.A.nature === n || sides.B.nature === n; if (!want && engine.isActive(n)) engine.stopSound(n); } for (const n of NATURES) if (n !== 'none') { const want = sides.A.nature === n || sides.B.nature === n; if (want && !engine.isActive(n)) await engine.startSound(n, 0.001); } await engine.playAll(); } catch (e) { console.error(e); app.toast('Sound could not start — try again or press Stop.'); } };
         ctx.switchTo = (s) => { ctx.side = s; $$('[data-sw]', host).forEach(b => { const on = b.dataset.sw === s; b.setAttribute('aria-pressed', on); }); engine.crossfade(s === 'A' ? 'discoB' : 'discoA', s === 'A' ? 'discoA' : 'discoB', 0.18); for (const n of NATURES) if (n !== 'none' && engine.isActive(n)) { if (sides[s].nature === n) engine.rampVolume(n, 0.35, 0.25); else engine.muteQuick(n); } };
         const show = () => { $('[data-progress]', host).innerHTML = Array.from({ length: rounds }, (_, i) => `<span class="${i < round ? 'done' : i === round ? 'now' : ''}"></span>`).join('') + `<em>Round ${round + 1} of ${rounds}</em>`; $('[data-hint]', host).textContent = 'Tap A and B to compare, then choose below. Comfortable = easy to listen to — the one you could leave on and forget about.'; $$('[data-sw],[data-pick]', host).forEach(b => b.disabled = false); };
-        const next = async () => { sides.A = best; sides.B = cand; show(); await prep(); engine.muteQuick('discoB'); for (const n of NATURES) if (n !== 'none' && engine.isActive(n)) { if (sides.A.nature === n) engine.rampVolume(n, 0.35, 0.5); else engine.muteQuick(n); } ctx.switchTo('A'); show(); };
+        // Keep the A/B comparison on screen. iOS scrolls to keep the tapped button (Start,
+        // or a pick) in view, and as the round re-renders that parks the viewport BELOW the
+        // orbs — the user had to scroll back up to find A and B every time.
+        const ensureAbVisible = () => {
+          const el = $('.disc-wrap', host); if (!el) return;
+          const r = el.getBoundingClientRect();
+          if (r.top < 56 || r.top > innerHeight * 0.45) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        };
+        const next = async () => { sides.A = best; sides.B = cand; show(); await prep(); engine.muteQuick('discoB'); for (const n of NATURES) if (n !== 'none' && engine.isActive(n)) { if (sides.A.nature === n) engine.rampVolume(n, 0.35, 0.5); else engine.muteQuick(n); } ctx.switchTo('A'); show(); ensureAbVisible(); };
         // Brief, calm interstitial so a first-time user notices a new round began —
         // the tiny progress dot alone is easy to miss.
         const roundNote = () => { const el = $('[data-round]', host); if (!el) return; el.textContent = `Round ${round + 1} of ${rounds}`; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show'); e2 = setTimeout(() => el.classList.remove('show'), 1600); };
@@ -270,6 +278,7 @@
           });
           renderProfile(); stopRunning(null, true); if (M()) { M().track('find_my_sound_completed'); M().track('sound_profile_created'); }
         };
+        if (document.activeElement && document.activeElement.blur) document.activeElement.blur();   // stop iOS from anchoring the viewport to the Start button
         await next();
       },
       stop(ctx) { (ctx && ctx.finished ? ['discoB'] : ['discoA', 'discoB']).forEach(id => engine.isActive(id) && engine.stopSound(id)); }, keepsSound: true,
