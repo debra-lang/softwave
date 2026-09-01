@@ -74,4 +74,19 @@ function inlineCss(dir) {
   }
 }
 inlineCss(OUT);
-console.log('www built:', copied, 'entries copied to', OUT, '(queries stripped, CSS inlined for the native scheme)');
+
+// The native scheme does not resolve directory URLs ("learn/x/" -> index.html) the way a
+// web server does: such navigations fail and Capacitor falls back to the start page.
+// Point every internal folder-style link at its index.html file explicitly.
+function fixDirLinks(dir) {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const p = path.join(dir, entry.name);
+    if (entry.isDirectory()) { fixDirLinks(p); continue; }
+    if (!/\.(html|js)$/.test(entry.name)) continue;
+    const before = fs.readFileSync(p, 'utf8');
+    const after = before.replace(/(href=")(?!https?:)([^"#]*?\/)(")/g, (m, a, u, c) => u === '/' ? m : a + u + 'index.html' + c);
+    if (after !== before) fs.writeFileSync(p, after);
+  }
+}
+fixDirLinks(OUT);
+console.log('www built:', copied, 'entries copied to', OUT, '(queries stripped, CSS inlined, dir links resolved for the native scheme)');
