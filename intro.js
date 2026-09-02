@@ -55,7 +55,7 @@
       <div class="fi-line fi-title" data-at="0.9" data-off="3.6">FIND MY QUIET SOUND</div>
       <div class="fi-line fi-big" data-at="${T.s2 + 0.4}" data-off="${T.s3 - 0.6}">Everyone’s tinnitus is different.</div>
       <div class="fi-line fi-sub" data-at="${T.s2 + 2.2}" data-off="${T.s3 - 0.6}">Your comfortable sound should be too.</div>
-      <div class="fi-line fi-big" data-at="${T.s3 + 0.4}" data-off="${T.s3 + 3.1}">Better with one… or two?</div>
+      <div class="fi-line fi-big" data-at="${T.s3 + 0.4}" data-off="${T.s3 + 3.1}">Better with A… or B?</div>
       <div class="fi-line fi-sub" data-at="${T.s3 + 3.3}" data-off="${T.s4 - 0.4}">It learns what you prefer.</div>
       <div class="fi-line fi-big" data-at="${T.s4 + 0.8}" data-off="${T.end - 1.2}">Your sound. <span class="fi-green">One tap away.</span></div>
       <div class="fi-ab" data-at="${T.s3 + 0.2}" data-off="${T.s4 - 0.2}"><span>A</span><span>B</span></div>
