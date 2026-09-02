@@ -927,7 +927,9 @@
 
     // ---------- sleep timer ----------
     setTimer(minutes, fade = true) {
-      this.clearTimer();
+      // Silent clear when a new timer immediately follows: the transient "no timer"
+      // event would make UI listeners flip the selected chip back to Continuous.
+      this.clearTimer(!!minutes);
       if (!minutes) { this.emit('timer', this.timer); return; }
       this.timer = { endsAt: Date.now() + minutes * 60000, fade, durationMin: minutes, fading: false };
       const tick = () => {
@@ -950,12 +952,12 @@
       if (this.ctx) { const g = this.master.gain; g.cancelScheduledValues(this.ctx.currentTime); this.setMasterVolume(this.masterVolume, true); }
       this.emit('timer', this.timer); this.emit('timerDone');
     }
-    clearTimer() {
+    clearTimer(silent) {
       if (this._timerId) clearTimeout(this._timerId); this._timerId = null;
       const wasFading = this.timer.fading;
       this.timer = { endsAt: null, fade: this.timer.fade, durationMin: null };
       if (wasFading && this.ctx) this.setMasterVolume(this.masterVolume);
-      this.emit('timer', this.timer);
+      if (!silent) this.emit('timer', this.timer);
     }
 
     // ---------- analyser data for visuals ----------

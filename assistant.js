@@ -300,8 +300,12 @@
     // NOTE: recognition itself may be processed by the browser/device provider
     // (Google on Chrome/Edge/Android, Apple on Safari/iOS). We send only audio the
     // user chose to speak — never app data. Firefox has no support: mic is hidden.
+    // Hidden in the native iOS shell too: WKWebView exposes the API but the app has no
+    // microphone permission keys, so recognition is always denied — a dead button.
+    // Proper native voice (speech plugin + privacy declarations) is post-launch work.
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (SR) {
+    const nativeShell = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+    if (SR && !nativeShell) {
       const mic = document.createElement('button');
       mic.type = 'button'; mic.id = 'ask-mic'; mic.className = 'btn btn-ghost btn-sm ask-mic';
       mic.setAttribute('aria-label', 'Speak your request'); mic.setAttribute('aria-pressed', 'false');

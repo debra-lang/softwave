@@ -281,6 +281,16 @@
             }, 250);
           });
           renderProfile(); stopRunning(null, true); if (M()) { M().track('find_my_sound_completed'); M().track('sound_profile_created'); }
+          // Bring the reveal card into view: it renders below the A/B area, and
+          // stopRunning just re-expanded the folded explanation, shifting layout —
+          // so measure after things settle, with the real topbar height as offset.
+          setTimeout(() => {
+            const card = $('.disc-reveal', host); if (!card) return;
+            const tb = document.querySelector('.topbar');
+            const off = (tb ? tb.getBoundingClientRect().height : 54) + 10;
+            const r = card.getBoundingClientRect();
+            window.scrollTo({ top: scrollY + r.top - off, behavior: 'smooth' });
+          }, 150);
         };
         if (document.activeElement && document.activeElement.blur) document.activeElement.blur();   // stop iOS from anchoring the viewport to the Start button
         // Phones: while the experiment runs, fold the explanation away so the whole
