@@ -208,4 +208,6 @@
   }
 
   window.softwavePremium = { gate, saveLimit, show, plans, placard, dismiss };
+  // Preview flag (like ?intro=1): lets the owner view the dormant placard on any device.
+  try { if (new URLSearchParams(location.search).get('placard') === '1') setTimeout(() => { try { placard('preview'); } catch (_) { } }, 700); } catch (_) { }
 })();
