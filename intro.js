@@ -109,7 +109,7 @@
         const dry = ac.createGain(); dry.gain.value = 0.45;
         hall.connect(wet); wet.connect(master); dry.connect(master);
         // one warm shared filter, itself breathing very slowly
-        const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 850; lp.Q.value = 0.3;
+        const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1000; lp.Q.value = 0.3;
         lp.connect(dry); lp.connect(hall);
         const fLfo = ac.createOscillator(); fLfo.frequency.value = 0.045;
         const fLg = ac.createGain(); fLg.gain.value = 220; fLfo.connect(fLg); fLg.connect(lp.frequency); fLfo.start();
@@ -128,19 +128,20 @@
           const lg = ac.createGain(); lg.gain.value = amp * 0.45; l.connect(lg); lg.connect(g.gain); l.start(t + ph);
           return { oscs, g };
         };
-        // one chord per scene, no melody: Am9 → Fmaj7 → Cmaj9 → A major (the lift home)
+        // one chord per scene, no melody — all warm major-9 colors in C, and the top
+        // shimmer voice climbs a step each scene: a quiet rising arc of "found it"
         const chords = [
-          [110.0, 164.81, 261.63, 493.88, 659.25],
-          [87.31, 130.81, 220.0, 329.63, 659.25],
-          [130.81, 196.0, 329.63, 587.33, 659.25],
-          [110.0, 164.81, 277.18, 440.0, 880.0],
+          [130.81, 196.0, 329.63, 587.33, 783.99],   // Cmaj9
+          [87.31, 220.0, 261.63, 659.25, 880.0],     // Fmaj9
+          [98.0, 246.94, 293.66, 587.33, 987.77],    // G add9
+          [130.81, 196.0, 329.63, 659.25, 1046.5],   // Cmaj9, top blooming home
         ];
         const pans = [-0.15, 0.35, -0.4, 0.45, -0.25];
         const amps = [0.055, 0.05, 0.042, 0.03, 0.016];
         const rates = [0.05, 0.075, 0.06, 0.09, 0.11];
         const vs = chords[0].map((f, i) => voice(f, pans[i], amps[i], rates[i], i * 0.7));
-        const sub = voice(55, 0, 0.035, 0.04, 0.3); // deep floor under everything
-        const subRoots = [55, 43.65, 65.41, 55];
+        const sub = voice(65.41, 0, 0.035, 0.04, 0.3); // deep floor under everything
+        const subRoots = [65.41, 43.65, 49.0, 65.41];
         const moveTo = (ci, at, glide) => {
           chords[ci].forEach((f, i) => vs[i].oscs.forEach(o => o.frequency.setTargetAtTime(f, at, glide)));
           sub.oscs.forEach(o => o.frequency.setTargetAtTime(subRoots[ci], at, glide + 0.3));
@@ -151,7 +152,7 @@
         // the arrival opens slightly — upper voices bloom, filter lifts a touch
         vs[3].g.gain.setTargetAtTime(0.045, t + T.s4, 1.4);
         vs[4].g.gain.setTargetAtTime(0.032, t + T.s4, 1.4);
-        lp.frequency.setTargetAtTime(1050, t + T.s4, 1.6);
+        lp.frequency.setTargetAtTime(1250, t + T.s4, 1.6);
       } catch (_) { }
     }
     function stopAudio() {
