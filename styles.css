@@ -119,6 +119,7 @@ main { position: relative; z-index: 1; max-width: 1180px; margin: 0 auto; paddin
 .btn-ghost { background: transparent; border-color: var(--border); color: var(--text); }
 .btn-ghost:hover { background: var(--accent-soft); }
 .btn-sm { padding: 8px 14px; min-height: 38px; font-size: .9rem; }
+#install-btn[hidden] { display: none; }
 .btn-lg { padding: 14px 28px; font-size: 1.05rem; }
 .btn-xl { padding: 18px 40px; font-size: 1.2rem; width: 100%; max-width: 420px; }
 .btn-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
