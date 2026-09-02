@@ -124,7 +124,7 @@
       <h2 id="prem-title">Hear what Premium feels like — free for ${P.trialDays} days</h2>
       <ul class="prem-benefits">
         <li>${ICO.moon}<div><strong>Your Sleep &amp; Your Focus</strong><span>One-tap Moments built from your own preferences.</span></div></li>
-        <li>${ICO.spark}<div><strong>A profile that keeps learning</strong><span>It refines as your taste changes.</span></div></li>
+        <li>${ICO.spark}<div><strong>Find My Sound — unlimited</strong><span>Re-discover anytime; your profile keeps learning as your taste changes.</span></div></li>
         <li>${ICO.slider}<div><strong>Sculpt your own sound</strong><span>And keep unlimited saves.</span></div></li>
         <li>${ICO.eye}<div><strong>The full visual collection</strong><span>Calm environments for focus and sleep.</span></div></li>
         <li>${ICO.shield}<div><strong>Cancel anytime — everything you saved stays yours</strong><span>Nothing you keep is ever taken away.</span></div></li>
