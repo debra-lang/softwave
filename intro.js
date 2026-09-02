@@ -88,39 +88,45 @@
       try {
         ac = new (window.AudioContext || window.webkitAudioContext)();
         master = ac.createGain(); master.gain.value = 0; master.connect(ac.destination);
-        // warm pad: three detuned triangles through a gentle lowpass
-        const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 520; lp.Q.value = 0.4; lp.connect(master);
-        const padG = ac.createGain(); padG.gain.value = 0.15; padG.connect(lp);
-        [[110, 0.11], [164.81, 0.1], [220, 0.05]].forEach(([f, g0], i) => {
-          const o = ac.createOscillator(); o.type = 'triangle'; o.frequency.value = f; o.detune.value = (i - 1) * 4;
-          const g = ac.createGain(); g.gain.value = g0; o.connect(g); g.connect(padG); o.start();
-        });
-        // breathing noise bed (very quiet, slow swell)
-        const len = ac.sampleRate * 2, buf = ac.createBuffer(1, len, ac.sampleRate), d = buf.getChannelData(0);
-        for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
-        const src = ac.createBufferSource(); src.buffer = buf; src.loop = true;
-        const nlp = ac.createBiquadFilter(); nlp.type = 'lowpass'; nlp.frequency.value = 420;
-        const ng = ac.createGain(); ng.gain.value = 0.04;
-        src.connect(nlp); nlp.connect(ng); ng.connect(master); src.start();
-        const lfo = ac.createOscillator(); lfo.frequency.value = 0.07;
-        const lg = ac.createGain(); lg.gain.value = 0.02; lfo.connect(lg); lg.connect(ng.gain); lfo.start();
-        // master envelope: fade in over 2.5 s, fade out over the final 2 s
         const t = ac.currentTime, endAt = t + T.end;
+        // master envelope: fade in over 1.8 s, fade out over the final 2 s
         master.gain.setValueAtTime(0, t);
-        master.gain.linearRampToValueAtTime(0.85, t + 2.5);
-        master.gain.setValueAtTime(0.85, endAt - 2.1);
+        master.gain.linearRampToValueAtTime(0.9, t + 1.8);
+        master.gain.setValueAtTime(0.9, endAt - 2.1);
         master.gain.linearRampToValueAtTime(0.0001, endAt - 0.1);
-        // soft chimes at scene changes; twin detuned pair at s4 for a faint shimmer
-        const bell = (at, f, amp) => {
-          const o = ac.createOscillator(); o.type = 'sine'; o.frequency.value = f;
-          const g = ac.createGain(); g.gain.setValueAtTime(0.0001, at);
-          g.gain.exponentialRampToValueAtTime(amp, at + 0.07);
-          g.gain.exponentialRampToValueAtTime(0.0001, at + 2.4);
-          o.connect(g); g.connect(master); o.start(at); o.stop(at + 2.6);
+        // barely-there drone: two sines an octave apart, chord shifts with each scene
+        const droneLp = ac.createBiquadFilter(); droneLp.type = 'lowpass'; droneLp.frequency.value = 700; droneLp.connect(master);
+        const drone = (f) => {
+          const o = ac.createOscillator(); o.type = 'sine'; o.frequency.setValueAtTime(f, t);
+          const g = ac.createGain(); g.gain.value = 0.028; o.connect(g); g.connect(droneLp); o.start();
+          return o;
         };
-        bell(t + T.s2 + 0.3, 440, 0.06);
-        bell(t + T.s3 + 0.3, 550, 0.06);
-        bell(t + T.s4 + 0.6, 660, 0.08); bell(t + T.s4 + 0.63, 662, 0.05);
+        const dLow = drone(110), dHigh = drone(220); // A
+        const glide = (osc, f, at) => { osc.frequency.setTargetAtTime(f, at, 0.6); };
+        glide(dLow, 87.31, t + T.s2); glide(dHigh, 174.61, t + T.s2);   // F
+        glide(dLow, 130.81, t + T.s3); glide(dHigh, 196.0, t + T.s3);   // C/G
+        glide(dLow, 110, t + T.s4); glide(dHigh, 220, t + T.s4);        // home to A
+        // sparse felt-piano notes: sine fundamental + soft octave, quick attack, long fall
+        const note = (at, f, amp, dur) => {
+          [[1, 1], [2, 0.35], [3, 0.12]].forEach(([m, w]) => {
+            const o = ac.createOscillator(); o.type = 'sine'; o.frequency.value = f * m;
+            const g = ac.createGain(); g.gain.setValueAtTime(0.0001, at);
+            g.gain.exponentialRampToValueAtTime(amp * w, at + 0.025);
+            g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+            o.connect(g); g.connect(master); o.start(at); o.stop(at + dur + 0.2);
+          });
+        };
+        // A-minor pentatonic phrase, one gentle note at a time, tracing the scenes
+        note(t + 1.0, 440.0, 0.075, 2.4);            // A4 — the mark appears
+        note(t + 2.8, 523.25, 0.06, 2.4);            // C5
+        note(t + T.s2 + 0.5, 587.33, 0.065, 2.6);    // D5 — "everyone's different"
+        note(t + T.s2 + 2.6, 523.25, 0.055, 2.6);    // C5
+        note(t + T.s3 + 0.5, 659.25, 0.065, 2.4);    // E5 — "A… or B?"
+        note(t + T.s3 + 1.9, 587.33, 0.05, 2.2);     // D5 (the flip)
+        note(t + T.s3 + 3.5, 783.99, 0.06, 3.0);     // G5 — "it learns what you prefer"
+        note(t + T.s4 + 0.8, 880.0, 0.07, 3.4);      // A5 — arrival
+        note(t + T.s4 + 0.85, 440.0, 0.05, 3.4);     // A4 under it (soft octave)
+        note(t + T.end - 2.6, 659.25, 0.04, 2.4);    // E5 — a last breath out
       } catch (_) { }
     }
     function stopAudio() {
