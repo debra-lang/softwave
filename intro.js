@@ -34,15 +34,15 @@
         text-align: center; color: #e8ecf6; opacity: 0; transition: opacity 1.1s ease;
         font-family: 'Fraunces', Georgia, serif; font-weight: 300; letter-spacing: .04em; text-wrap: balance; }
       .fi-line.on { opacity: 1; }
-      .fi-title { top: 62%; font-size: clamp(1.5rem, 5.4vw, 2.2rem); letter-spacing: .12em; }
-      .fi-big  { top: 16%; font-size: clamp(1.45rem, 5.6vw, 2.1rem); }
-      .fi-sub  { top: 26%; font-size: clamp(1rem, 3.6vw, 1.25rem); color: #9aa7c4;
+      .fi-title { top: 62%; font-size: clamp(1.625rem, 5.8vw, 2.325rem); letter-spacing: .12em; }
+      .fi-big  { top: 16%; font-size: clamp(1.575rem, 6vw, 2.225rem); }
+      .fi-sub  { top: 26%; font-size: clamp(1.125rem, 4vw, 1.375rem); color: #9aa7c4;
         font-family: Manrope, system-ui, sans-serif; font-weight: 500; letter-spacing: .02em; }
       .fi-green { color: #9fe0bb; }
       .fi-skip { position: absolute; right: 18px; bottom: calc(18px + env(safe-area-inset-bottom, 0px));
         color: #9aa7c4; font: 600 .85rem Manrope, system-ui, sans-serif; letter-spacing: .06em;
         background: none; border: 0; padding: 10px 14px; cursor: pointer; opacity: .7; }
-      .fi-ab { position: absolute; inset: 0; color: #9aa7c4; font: 700 1.1rem Manrope, sans-serif;
+      .fi-ab { position: absolute; inset: 0; color: #9aa7c4; font: 700 1.225rem Manrope, sans-serif;
         opacity: 0; transition: opacity 1s ease; pointer-events: none; }
       .fi-ab.on { opacity: 1; }
       .fi-ab span { position: absolute; top: 54%; transform: translateX(-50%); letter-spacing: .2em; }
