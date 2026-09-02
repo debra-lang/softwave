@@ -14,13 +14,13 @@
   } catch (_) { }
   if (!preview && !firstRun) return;
   if (firstRun) {
-    // The film IS the first-run welcome: mark both so neither ever shows twice,
-    // even if the app is killed mid-film.
-    try {
-      localStorage.setItem('softwave:introSeen', '1');
-      localStorage.setItem('softwave:welcomed', 'true');
-    } catch (_) { }
+    // Mark the film as seen up front so it never replays, even if the app is
+    // killed mid-film.
+    try { localStorage.setItem('softwave:introSeen', '1'); } catch (_) { }
   }
+  // The film IS the welcome, in every mode: without this, skipping the film on the
+  // web drops the viewer onto the old welcome dialog waiting underneath it.
+  try { localStorage.setItem('softwave:welcomed', 'true'); } catch (_) { }
 
   // ---- timeline (seconds) — tune freely ----
   const T = {
@@ -71,7 +71,7 @@
     `;
     document.head.appendChild(style);
 
-    if (firstRun) { const w = document.getElementById('welcome'); if (w) w.hidden = true; }
+    const w = document.getElementById('welcome'); if (w) w.hidden = true;
     const ov = document.createElement('div'); ov.id = 'fmqs-intro';
     ov.innerHTML = `
       <canvas></canvas>
