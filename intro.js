@@ -1,6 +1,7 @@
 /* Find My Quiet Sound — opening story (PROTOTYPE).
    Active ONLY with ?intro=1 — not part of the product until approved.
-   Four scenes, ~20 s, tap anywhere to skip, silent, reduced-motion aware.
+   Opens on a "Tap to begin" frame (the tap unlocks audio), then four scenes,
+   ~22 s, soft generated soundscape, tap anywhere to skip, reduced-motion aware.
    Built from the app's own visual language: ripple rings, sound-orbs, the breathing circle. */
 (function () {
   'use strict';
@@ -11,9 +12,9 @@
   const T = {
     s1: 0.0,   // the mark: ripple + logo bars + name
     s2: 4.2,   // "Everyone's tinnitus is different." — three distinct orbs
-    s3: 10.0,  // A/B: "Better with one… or two?"
-    s4: 15.2,  // merge into the breathing circle: "Your sound. One tap away."
-    end: 20.5,
+    s3: 10.0,  // A/B: "Better with A… or B?"
+    s4: 16.7,  // merge into the breathing circle: "Your sound. One tap away."
+    end: 22.0,
   };
 
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -46,19 +47,25 @@
       .fi-ab span { position: absolute; top: 54%; transform: translateX(-50%); letter-spacing: .2em; }
       .fi-ab span:first-child { left: 30%; }
       .fi-ab span:last-child { left: 70%; }
+      .fi-gate { position: absolute; left: 50%; top: 74%; transform: translateX(-50%);
+        color: #9aa7c4; font: 600 .95rem Manrope, system-ui, sans-serif; letter-spacing: .14em;
+        text-transform: uppercase; animation: fiGate 2.6s ease-in-out infinite; pointer-events: none; }
+      #fmqs-intro.started .fi-gate { display: none; }
+      @keyframes fiGate { 0%,100% { opacity: .35; } 50% { opacity: .85; } }
     `;
     document.head.appendChild(style);
 
     const ov = document.createElement('div'); ov.id = 'fmqs-intro';
     ov.innerHTML = `
       <canvas></canvas>
-      <div class="fi-line fi-title" data-at="0.9" data-off="3.6">FIND MY QUIET SOUND</div>
+      <div class="fi-line fi-title" data-at="0" data-off="3.6">FIND MY QUIET SOUND</div>
       <div class="fi-line fi-big" data-at="${T.s2 + 0.4}" data-off="${T.s3 - 0.6}">Everyone’s tinnitus is different.</div>
       <div class="fi-line fi-sub" data-at="${T.s2 + 2.2}" data-off="${T.s3 - 0.6}">Your comfortable sound should be too.</div>
       <div class="fi-line fi-big" data-at="${T.s3 + 0.4}" data-off="${T.s3 + 3.1}">Better with A… or B?</div>
-      <div class="fi-line fi-sub" data-at="${T.s3 + 3.3}" data-off="${T.s4 - 0.4}">It learns what you prefer.</div>
+      <div class="fi-line fi-sub fi-green" data-at="${T.s3 + 3.3}" data-off="${T.s4 - 0.4}">It learns what you prefer.</div>
       <div class="fi-line fi-big" data-at="${T.s4 + 0.8}" data-off="${T.end - 1.2}">Your sound. <span class="fi-green">One tap away.</span></div>
       <div class="fi-ab" data-at="${T.s3 + 0.2}" data-off="${T.s4 - 0.2}"><span>A</span><span>B</span></div>
+      <div class="fi-gate">Tap to begin</div>
       <button class="fi-skip" type="button">Skip</button>`;
     document.body.appendChild(ov);
 
@@ -69,53 +76,128 @@
     fit(); addEventListener('resize', fit);
 
     const lines = [...ov.querySelectorAll('[data-at]')];
+    const titleEl = ov.querySelector('.fi-title');
     const pBrown = SV.paramsFor('brown'), pBright = SV.paramsFor('hiss'), pOcean = SV.paramsFor('ocean');
-    let raf = null, done = false;
-    const t0 = performance.now();
-    const now = () => (performance.now() - t0) / 1000;
+    let raf = null, done = false, started = false, t0 = null;
+    const tLoad = performance.now();
+    const now = () => t0 === null ? 0 : (performance.now() - t0) / 1000;
+
+    // ---- soundscape: warm pad + breathing noise bed + a soft chime per scene ----
+    let ac = null, master = null;
+    function startAudio() {
+      try {
+        ac = new (window.AudioContext || window.webkitAudioContext)();
+        master = ac.createGain(); master.gain.value = 0; master.connect(ac.destination);
+        // warm pad: three detuned triangles through a gentle lowpass
+        const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 520; lp.Q.value = 0.4; lp.connect(master);
+        const padG = ac.createGain(); padG.gain.value = 0.15; padG.connect(lp);
+        [[110, 0.11], [164.81, 0.1], [220, 0.05]].forEach(([f, g0], i) => {
+          const o = ac.createOscillator(); o.type = 'triangle'; o.frequency.value = f; o.detune.value = (i - 1) * 4;
+          const g = ac.createGain(); g.gain.value = g0; o.connect(g); g.connect(padG); o.start();
+        });
+        // breathing noise bed (very quiet, slow swell)
+        const len = ac.sampleRate * 2, buf = ac.createBuffer(1, len, ac.sampleRate), d = buf.getChannelData(0);
+        for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+        const src = ac.createBufferSource(); src.buffer = buf; src.loop = true;
+        const nlp = ac.createBiquadFilter(); nlp.type = 'lowpass'; nlp.frequency.value = 420;
+        const ng = ac.createGain(); ng.gain.value = 0.04;
+        src.connect(nlp); nlp.connect(ng); ng.connect(master); src.start();
+        const lfo = ac.createOscillator(); lfo.frequency.value = 0.07;
+        const lg = ac.createGain(); lg.gain.value = 0.02; lfo.connect(lg); lg.connect(ng.gain); lfo.start();
+        // master envelope: fade in over 2.5 s, fade out over the final 2 s
+        const t = ac.currentTime, endAt = t + T.end;
+        master.gain.setValueAtTime(0, t);
+        master.gain.linearRampToValueAtTime(0.85, t + 2.5);
+        master.gain.setValueAtTime(0.85, endAt - 2.1);
+        master.gain.linearRampToValueAtTime(0.0001, endAt - 0.1);
+        // soft chimes at scene changes; twin detuned pair at s4 for a faint shimmer
+        const bell = (at, f, amp) => {
+          const o = ac.createOscillator(); o.type = 'sine'; o.frequency.value = f;
+          const g = ac.createGain(); g.gain.setValueAtTime(0.0001, at);
+          g.gain.exponentialRampToValueAtTime(amp, at + 0.07);
+          g.gain.exponentialRampToValueAtTime(0.0001, at + 2.4);
+          o.connect(g); g.connect(master); o.start(at); o.stop(at + 2.6);
+        };
+        bell(t + T.s2 + 0.3, 440, 0.06);
+        bell(t + T.s3 + 0.3, 550, 0.06);
+        bell(t + T.s4 + 0.6, 660, 0.08); bell(t + T.s4 + 0.63, 662, 0.05);
+      } catch (_) { }
+    }
+    function stopAudio() {
+      try {
+        if (ac && master) {
+          master.gain.cancelScheduledValues(ac.currentTime);
+          master.gain.setTargetAtTime(0.0001, ac.currentTime, 0.12);
+          setTimeout(() => { try { ac.close(); } catch (_) { } }, 700);
+        }
+      } catch (_) { }
+    }
 
     function finish() {
       if (done) return; done = true;
       cancelAnimationFrame(raf);
+      stopAudio();
       ov.classList.add('out');
       setTimeout(() => { ov.remove(); style.remove(); }, 950);
     }
-    ov.addEventListener('click', finish);
-    ov.querySelector('.fi-skip').addEventListener('click', finish);
-    if (reduced) {   // reduced motion: a calm 3-second title card, nothing moves
-      ov.querySelector('.fi-title').classList.add('on');
+    function begin() {
+      if (started || done) return; started = true;
+      t0 = performance.now();
+      ov.classList.add('started');
+      startAudio();
+    }
+    ov.addEventListener('click', () => { started ? finish() : begin(); });
+    ov.querySelector('.fi-skip').addEventListener('click', (e) => { e.stopPropagation(); finish(); });
+    if (reduced) {   // reduced motion: a calm 3-second title card, no sound, nothing moves
+      ov.classList.add('started');
+      titleEl.classList.add('on');
       setTimeout(finish, 3000);
+    } else {
+      titleEl.classList.add('on'); // title breathes with the gate until the first tap
     }
 
     const ease = (a, b, t) => Math.max(0, Math.min(1, (t - a) / (b - a)));
     const bars = [0, 1, 2];
 
-    function frame(nowMs) {
+    // the mark: slow ripple rings + the three-bar logo breathing
+    function drawMark(t, a1, cx, cy, w, h) {
+      for (let i = 0; i < 3; i++) {
+        const ph = ((t * 0.175 + i / 3) % 1);
+        ctx.beginPath(); ctx.arc(cx, cy, 40 + ph * Math.min(w, h) * 0.42, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(159,224,187,${(1 - ph) * 0.22 * a1})`; ctx.lineWidth = 1.5; ctx.stroke();
+      }
+      for (const i of bars) {
+        const bh = (26 + Math.sin(t * 2.2 + i * 1.1) * 10) * a1;
+        const x = cx - 20 + i * 16;
+        ctx.fillStyle = `rgba(143,179,255,${0.95 * a1})`;
+        ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, cy - bh / 2, 9, bh, 4); else ctx.rect(x, cy - bh / 2, 9, bh); ctx.fill();
+      }
+    }
+
+    function frame() {
       if (done) return;
       raf = requestAnimationFrame(frame);
+      if (reduced) return;
+      const w = innerWidth, h = innerHeight, cx = w / 2, cy = h * 0.42;
+
+      // waiting frame: the mark idles quietly until the first tap
+      if (!started) {
+        const ti = (performance.now() - tLoad) / 1000;
+        ctx.clearRect(0, 0, w, h);
+        drawMark(ti, 1, cx, cy, w, h);
+        return;
+      }
+
       const t = now();
       if (t >= T.end) return finish();
       // text lines on/off
       for (const el of lines) { const on = t >= +el.dataset.at && t < +el.dataset.off; el.classList.toggle('on', on); }
-      if (reduced) return;
-
-      const w = innerWidth, h = innerHeight, cx = w / 2, cy = h * 0.42;
       ctx.clearRect(0, 0, w, h);
 
       // ---- scene 1: expanding ripples + the three-bar mark breathing ----
       if (t < T.s2 + 1) {
-        const a1 = Math.min(1, t / 1.2) * (1 - ease(T.s2 - 0.8, T.s2 + 0.8, t));
-        for (let i = 0; i < 3; i++) {
-          const ph = ((t * 0.35 + i / 3) % 1);
-          ctx.beginPath(); ctx.arc(cx, cy, 40 + ph * Math.min(w, h) * 0.42, 0, Math.PI * 2);
-          ctx.strokeStyle = `rgba(159,224,187,${(1 - ph) * 0.22 * a1})`; ctx.lineWidth = 1.5; ctx.stroke();
-        }
-        for (const i of bars) {
-          const bh = (26 + Math.sin(t * 2.2 + i * 1.1) * 10) * a1;
-          const x = cx - 20 + i * 16;
-          ctx.fillStyle = `rgba(143,179,255,${0.95 * a1})`;
-          ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, cy - bh / 2, 9, bh, 4); else ctx.rect(x, cy - bh / 2, 9, bh); ctx.fill();
-        }
+        const a1 = Math.min(1, 0.6 + t / 2) * (1 - ease(T.s2 - 0.8, T.s2 + 0.8, t));
+        drawMark(t, a1, cx, cy, w, h);
       }
       // ---- scene 2: three different orbs drift — individuality ----
       if (t >= T.s2 && t < T.s3 + 0.8) {
@@ -154,7 +236,7 @@
         SV.soundShape(ctx, box4, box4, pBrown, t * 0.6, 0.22, { scale: 0.42 * breathe });
         ctx.restore();
         for (let i = 0; i < 2; i++) {
-          const ph = ((t * 0.25 + i / 2) % 1);
+          const ph = ((t * 0.125 + i / 2) % 1);
           ctx.beginPath(); ctx.arc(cx, cy, 70 + ph * 160, 0, Math.PI * 2);
           ctx.strokeStyle = `rgba(159,224,187,${(1 - ph) * 0.16 * a4})`; ctx.lineWidth = 1.2; ctx.stroke();
         }
