@@ -89,44 +89,69 @@
         ac = new (window.AudioContext || window.webkitAudioContext)();
         master = ac.createGain(); master.gain.value = 0; master.connect(ac.destination);
         const t = ac.currentTime, endAt = t + T.end;
-        // master envelope: fade in over 1.8 s, fade out over the final 2 s
+        // master envelope: slow bloom in, long exhale out
         master.gain.setValueAtTime(0, t);
-        master.gain.linearRampToValueAtTime(0.9, t + 1.8);
-        master.gain.setValueAtTime(0.9, endAt - 2.1);
+        master.gain.linearRampToValueAtTime(0.9, t + 2.8);
+        master.gain.setValueAtTime(0.9, endAt - 2.4);
         master.gain.linearRampToValueAtTime(0.0001, endAt - 0.1);
-        // barely-there drone: two sines an octave apart, chord shifts with each scene
-        const droneLp = ac.createBiquadFilter(); droneLp.type = 'lowpass'; droneLp.frequency.value = 700; droneLp.connect(master);
-        const drone = (f) => {
-          const o = ac.createOscillator(); o.type = 'sine'; o.frequency.setValueAtTime(f, t);
-          const g = ac.createGain(); g.gain.value = 0.028; o.connect(g); g.connect(droneLp); o.start();
-          return o;
-        };
-        const dLow = drone(110), dHigh = drone(220); // A
-        const glide = (osc, f, at) => { osc.frequency.setTargetAtTime(f, at, 0.6); };
-        glide(dLow, 87.31, t + T.s2); glide(dHigh, 174.61, t + T.s2);   // F
-        glide(dLow, 130.81, t + T.s3); glide(dHigh, 196.0, t + T.s3);   // C/G
-        glide(dLow, 110, t + T.s4); glide(dHigh, 220, t + T.s4);        // home to A
-        // sparse felt-piano notes: sine fundamental + soft octave, quick attack, long fall
-        const note = (at, f, amp, dur) => {
-          [[1, 1], [2, 0.35], [3, 0.12]].forEach(([m, w]) => {
-            const o = ac.createOscillator(); o.type = 'sine'; o.frequency.value = f * m;
-            const g = ac.createGain(); g.gain.setValueAtTime(0.0001, at);
-            g.gain.exponentialRampToValueAtTime(amp * w, at + 0.025);
-            g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
-            o.connect(g); g.connect(master); o.start(at); o.stop(at + dur + 0.2);
+        // generated hall: 4.5 s of darkened decaying noise — the space everything sits in
+        const irLen = Math.floor(ac.sampleRate * 4.5);
+        const ir = ac.createBuffer(2, irLen, ac.sampleRate);
+        for (let ch = 0; ch < 2; ch++) {
+          const d = ir.getChannelData(ch); let lp0 = 0;
+          for (let i = 0; i < irLen; i++) {
+            lp0 = lp0 * 0.75 + (Math.random() * 2 - 1) * 0.25;
+            d[i] = lp0 * Math.pow(1 - i / irLen, 2.8);
+          }
+        }
+        const hall = ac.createConvolver(); hall.buffer = ir;
+        const wet = ac.createGain(); wet.gain.value = 1.0;
+        const dry = ac.createGain(); dry.gain.value = 0.45;
+        hall.connect(wet); wet.connect(master); dry.connect(master);
+        // one warm shared filter, itself breathing very slowly
+        const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 850; lp.Q.value = 0.3;
+        lp.connect(dry); lp.connect(hall);
+        const fLfo = ac.createOscillator(); fLfo.frequency.value = 0.045;
+        const fLg = ac.createGain(); fLg.gain.value = 220; fLfo.connect(fLg); fLg.connect(lp.frequency); fLfo.start();
+        // a pad voice: two barely-detuned sines + a whisper of triangle, its own slow
+        // breath cycle, its own place in the stereo field
+        const voice = (f, pan, amp, rate, ph) => {
+          const g = ac.createGain(); g.gain.value = amp;
+          if (ac.createStereoPanner) { const p = ac.createStereoPanner(); p.pan.value = pan; g.connect(p); p.connect(lp); }
+          else g.connect(lp);
+          const oscs = [['sine', -3, 1], ['sine', 3, 1], ['triangle', 0, 0.28]].map(([ty, det, w]) => {
+            const o = ac.createOscillator(); o.type = ty; o.frequency.setValueAtTime(f, t); o.detune.value = det;
+            const og = ac.createGain(); og.gain.value = w; o.connect(og); og.connect(g); o.start();
+            return o;
           });
+          const l = ac.createOscillator(); l.frequency.value = rate;
+          const lg = ac.createGain(); lg.gain.value = amp * 0.45; l.connect(lg); lg.connect(g.gain); l.start(t + ph);
+          return { oscs, g };
         };
-        // A-minor pentatonic phrase, one gentle note at a time, tracing the scenes
-        note(t + 1.0, 440.0, 0.075, 2.4);            // A4 — the mark appears
-        note(t + 2.8, 523.25, 0.06, 2.4);            // C5
-        note(t + T.s2 + 0.5, 587.33, 0.065, 2.6);    // D5 — "everyone's different"
-        note(t + T.s2 + 2.6, 523.25, 0.055, 2.6);    // C5
-        note(t + T.s3 + 0.5, 659.25, 0.065, 2.4);    // E5 — "A… or B?"
-        note(t + T.s3 + 1.9, 587.33, 0.05, 2.2);     // D5 (the flip)
-        note(t + T.s3 + 3.5, 783.99, 0.06, 3.0);     // G5 — "it learns what you prefer"
-        note(t + T.s4 + 0.8, 880.0, 0.07, 3.4);      // A5 — arrival
-        note(t + T.s4 + 0.85, 440.0, 0.05, 3.4);     // A4 under it (soft octave)
-        note(t + T.end - 2.6, 659.25, 0.04, 2.4);    // E5 — a last breath out
+        // one chord per scene, no melody: Am9 → Fmaj7 → Cmaj9 → A major (the lift home)
+        const chords = [
+          [110.0, 164.81, 261.63, 493.88, 659.25],
+          [87.31, 130.81, 220.0, 329.63, 659.25],
+          [130.81, 196.0, 329.63, 587.33, 659.25],
+          [110.0, 164.81, 277.18, 440.0, 880.0],
+        ];
+        const pans = [-0.15, 0.35, -0.4, 0.45, -0.25];
+        const amps = [0.055, 0.05, 0.042, 0.03, 0.016];
+        const rates = [0.05, 0.075, 0.06, 0.09, 0.11];
+        const vs = chords[0].map((f, i) => voice(f, pans[i], amps[i], rates[i], i * 0.7));
+        const sub = voice(55, 0, 0.035, 0.04, 0.3); // deep floor under everything
+        const subRoots = [55, 43.65, 65.41, 55];
+        const moveTo = (ci, at, glide) => {
+          chords[ci].forEach((f, i) => vs[i].oscs.forEach(o => o.frequency.setTargetAtTime(f, at, glide)));
+          sub.oscs.forEach(o => o.frequency.setTargetAtTime(subRoots[ci], at, glide + 0.3));
+        };
+        moveTo(1, t + T.s2, 1.1);
+        moveTo(2, t + T.s3, 1.1);
+        moveTo(3, t + T.s4, 0.9);
+        // the arrival opens slightly — upper voices bloom, filter lifts a touch
+        vs[3].g.gain.setTargetAtTime(0.045, t + T.s4, 1.4);
+        vs[4].g.gain.setTargetAtTime(0.032, t + T.s4, 1.4);
+        lp.frequency.setTargetAtTime(1050, t + T.s4, 1.6);
       } catch (_) { }
     }
     function stopAudio() {
