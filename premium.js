@@ -99,7 +99,51 @@
       <p class="prem-links"><button class="linklike" data-prem="plans">See all plans</button></p>`;
     $('[data-prem="trial"]', card).addEventListener('click', () => startTrial('PREMIUM_ANNUAL'));
     $('[data-prem="free"]', card).addEventListener('click', () => { if (opts.manageLabel && window.softwaveApp && softwaveApp.showView) { dismiss(); softwaveApp.showView('sounds'); } else dismiss(); });
-    $('[data-prem="plans"]', card).addEventListener('click', () => plans(currentKey));
+    $('[data-prem="plans"]', card).addEventListener('click', () => placard(currentKey));
+    open();
+  }
+
+  // ---------- the trial placard: benefit-led, honest, single CTA ----------
+  // Outcomes over features; risk reversal stated three ways (no payment today, cancel anytime,
+  // saves always kept); verifiable trust badges instead of fabricated social proof; the free
+  // path stays visible. Full comparison one tap away for rational readers.
+  const ICO = {
+    moon: '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>',
+    spark: '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>',
+    slider: '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><g stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 12h4M12 12h8M4 17h13"/><circle cx="16" cy="7" r="2" fill="none"/><circle cx="10" cy="12" r="2" fill="none"/><circle cx="19" cy="17" r="2" fill="none"/></g></svg>',
+    eye: '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>',
+    shield: '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 3l7 3v5c0 4.6-3 8.4-7 10-4-1.6-7-5.4-7-10V6z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  };
+  function placard(entryFeature) {
+    const m = M(); const P = m.PRICING;
+    m.track('pricing_viewed', entryFeature || 'placard');
+    ensureHost();
+    const card = $('.premium-card', host);
+    card.innerHTML = `
+      <p class="prem-eyebrow">Premium</p>
+      <h2 id="prem-title">Hear what Premium feels like — free for ${P.trialDays} days</h2>
+      <ul class="prem-benefits">
+        <li>${ICO.moon}<div><strong>Your Sleep &amp; Your Focus</strong><span>One-tap Moments built from your own preferences.</span></div></li>
+        <li>${ICO.spark}<div><strong>A profile that keeps learning</strong><span>It refines as your taste changes.</span></div></li>
+        <li>${ICO.slider}<div><strong>Sculpt your own sound</strong><span>And keep unlimited saves.</span></div></li>
+        <li>${ICO.eye}<div><strong>The full visual collection</strong><span>Calm environments for focus and sleep.</span></div></li>
+        <li>${ICO.shield}<div><strong>Cancel anytime — everything you saved stays yours</strong><span>Nothing you keep is ever taken away.</span></div></li>
+      </ul>
+      <p class="prem-badges">No account · No ads · Nothing leaves your device</p>
+      <p class="prem-check">✓ No payment due today</p>
+      <div class="prem-actions">
+        <button class="btn btn-primary btn-xl" data-prem="trial">Start my free week</button>
+        <button class="btn btn-ghost btn-xl" data-prem="free">Continue with Free</button>
+      </div>
+      <p class="prem-terms">Then ${money(P.annualPrice)}/year (${P.annualSavingsText}) or ${money(P.monthlyPrice)}/month unless cancelled. Cancel anytime.</p>
+      <p class="prem-links"><button class="linklike" data-prem="compare">See full comparison</button> · <button class="linklike" data-prem="restore">Restore purchases</button> · <a class="linklike" href="terms/">Terms</a> · <a class="linklike" href="privacy/">Privacy</a></p>`;
+    $('[data-prem="trial"]', card).addEventListener('click', () => { m.track('plan_selected', entryFeature || 'placard'); startTrial('PREMIUM_ANNUAL'); });
+    $('[data-prem="free"]', card).addEventListener('click', dismiss);
+    $('[data-prem="compare"]', card).addEventListener('click', () => plans(entryFeature));
+    $('[data-prem="restore"]', card).addEventListener('click', () => {
+      if (window.softwaveBilling && softwaveBilling.restore) { softwaveBilling.restore(); return; }
+      const app = window.softwaveApp; if (app && app.toast) app.toast('Purchases can be restored here once Premium launches.', 3600);
+    });
     open();
   }
 
@@ -163,5 +207,5 @@
     if (app && app.toast) app.toast(msg, 4200);
   }
 
-  window.softwavePremium = { gate, saveLimit, show, plans, dismiss };
+  window.softwavePremium = { gate, saveLimit, show, plans, placard, dismiss };
 })();
