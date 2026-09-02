@@ -11,7 +11,8 @@ const OUT = path.join(__dirname, 'www');
 const FILES = [
   'index.html', 'styles.css', 'site.css',
   'app.js', 'audio.js', 'field.js', 'visuals.js', 'focus.js', 'lab.js',
-  'monetization.js', 'cloud.js', 'cloud-config.js',
+  'monetization.js', 'premium.js', 'personal.js', 'assistant.js',
+  'cloud.js', 'cloud-config.js',
   'manifest.webmanifest', '404.html', 'og-image.png',
 ];
 const DIRS = [
@@ -89,4 +90,13 @@ function fixDirLinks(dir) {
   }
 }
 fixDirLinks(OUT);
-console.log('www built:', copied, 'entries copied to', OUT, '(queries stripped, CSS inlined, dir links resolved for the native scheme)');
+
+// Hard gate: every script index.html loads must exist in the bundle. A missing one ships a
+// silently degraded app (this is how the entire personalization layer once went missing).
+const idx = fs.readFileSync(path.join(OUT, 'index.html'), 'utf8');
+const refs = [...idx.matchAll(/src="([a-z0-9./-]+\.js)"/g)].map(m => m[1]).filter(s => !s.startsWith('http'));
+refs.push('lab.js');   // lazy-loaded from app.js
+let missing = false;
+for (const r of refs) if (!fs.existsSync(path.join(OUT, r))) { console.error('FATAL: index.html needs missing file:', r); missing = true; }
+if (missing) process.exit(1);
+console.log('www built:', copied, 'entries copied to', OUT, '(queries stripped, CSS inlined, dir links resolved, all', refs.length, 'scripts verified present)');
