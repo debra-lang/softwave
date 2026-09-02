@@ -26,7 +26,7 @@
     const SV = window.SoftwaveVisuals;
     const style = document.createElement('style');
     style.textContent = `
-      #fmqs-intro { position: fixed; inset: 0; z-index: 200; background: #0b1020; overflow: hidden;
+      #fmqs-intro { position: fixed; inset: 0; z-index: 400; background: #0b1020; overflow: hidden;
         opacity: 1; transition: opacity .9s ease; }
       #fmqs-intro.out { opacity: 0; pointer-events: none; }
       #fmqs-intro canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
@@ -200,13 +200,12 @@
       if (done) return; done = true;
       cancelAnimationFrame(raf);
       stopAudio();
+      // Open the placard BENEATH the film first (film sits at a higher z-index), then
+      // fade the film into it — the bare app is never visible in between.
+      // A skip goes straight to the app — no offer screen after a "no thanks".
+      if (!skipped) { try { window.softwavePremium && window.softwavePremium.placard('intro'); } catch (_) { } }
       ov.classList.add('out');
       setTimeout(() => { ov.remove(); style.remove(); }, 950);
-      // the film resolves into the Premium placard; either choice lands in the app.
-      // A skip goes straight to the app — no offer screen after a "no thanks".
-      if (!skipped) setTimeout(() => {
-        try { window.softwavePremium && window.softwavePremium.placard('intro'); } catch (_) { }
-      }, 550);
     }
     function begin() {
       if (started || done) return; started = true;
