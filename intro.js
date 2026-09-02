@@ -1,12 +1,26 @@
-/* Find My Quiet Sound — opening story (PROTOTYPE).
-   Active ONLY with ?intro=1 — not part of the product until approved.
-   Opens on a "Tap to begin" frame (the tap unlocks audio), then four scenes,
-   ~22 s, soft generated soundscape, tap anywhere to skip, reduced-motion aware.
-   Built from the app's own visual language: ripple rings, sound-orbs, the breathing circle. */
+/* Find My Quiet Sound — opening story.
+   Plays once on the native app's first launch (then never again), and anywhere
+   with ?intro=1 for previewing. Opens on a "Tap to begin" frame (the tap unlocks
+   audio), then five scenes, ~29 s, soft generated soundscape, tap anywhere to skip,
+   reduced-motion aware. Built from the app's own visual language. */
 (function () {
   'use strict';
   const qs = new URLSearchParams(location.search);
-  if (qs.get('intro') !== '1') return;
+  const preview = qs.get('intro') === '1';
+  let firstRun = false;
+  try {
+    const native = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+    firstRun = native && !localStorage.getItem('softwave:introSeen');
+  } catch (_) { }
+  if (!preview && !firstRun) return;
+  if (firstRun) {
+    // The film IS the first-run welcome: mark both so neither ever shows twice,
+    // even if the app is killed mid-film.
+    try {
+      localStorage.setItem('softwave:introSeen', '1');
+      localStorage.setItem('softwave:welcomed', 'true');
+    } catch (_) { }
+  }
 
   // ---- timeline (seconds) — tune freely ----
   const T = {
@@ -57,6 +71,7 @@
     `;
     document.head.appendChild(style);
 
+    if (firstRun) { const w = document.getElementById('welcome'); if (w) w.hidden = true; }
     const ov = document.createElement('div'); ov.id = 'fmqs-intro';
     ov.innerHTML = `
       <canvas></canvas>
@@ -203,7 +218,9 @@
       // Open the placard BENEATH the film first (film sits at a higher z-index), then
       // fade the film into it — the bare app is never visible in between.
       // A skip goes straight to the app — no offer screen after a "no thanks".
-      if (!skipped) { try { window.softwavePremium && window.softwavePremium.placard('intro'); } catch (_) { } }
+      // Web preview only for now: in the native app an offer without a real StoreKit
+      // purchase behind it risks App Store rejection — reconnect when IAP ships.
+      if (!skipped && preview) { try { window.softwavePremium && window.softwavePremium.placard('intro'); } catch (_) { } }
       ov.classList.add('out');
       setTimeout(() => { ov.remove(); style.remove(); }, 950);
     }
