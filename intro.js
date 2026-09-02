@@ -13,8 +13,9 @@
     s1: 0.0,   // the mark: ripple + logo bars + name
     s2: 4.2,   // "Everyone's tinnitus is different." — three distinct orbs
     s3: 10.0,  // A/B: "Better with A… or B?"
-    s4: 16.7,  // merge into the breathing circle: "Your sound. One tap away."
-    end: 22.0,
+    s4f: 16.7, // the breadth: constellation of orbs — everything the app offers
+    s4: 23.4,  // merge into the breathing circle: "Your sound. One tap away."
+    end: 28.8,
   };
 
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -62,9 +63,12 @@
       <div class="fi-line fi-big" data-at="${T.s2 + 0.4}" data-off="${T.s3 - 0.6}">Everyone’s tinnitus is different.</div>
       <div class="fi-line fi-sub" data-at="${T.s2 + 2.2}" data-off="${T.s3 - 0.6}">Your comfortable sound should be too.</div>
       <div class="fi-line fi-big" data-at="${T.s3 + 0.4}" data-off="${T.s3 + 3.1}">Better with A… or B?</div>
-      <div class="fi-line fi-sub fi-green" data-at="${T.s3 + 3.3}" data-off="${T.s4 - 0.4}">It learns what you prefer.</div>
+      <div class="fi-line fi-sub fi-green" data-at="${T.s3 + 3.3}" data-off="${T.s4f - 0.4}">It learns what you prefer.</div>
+      <div class="fi-line fi-big" data-at="${T.s4f + 0.4}" data-off="${T.s4 - 0.5}">More ways to find quiet.</div>
+      <div class="fi-line fi-sub" data-at="${T.s4f + 1.2}" data-off="${T.s4f + 3.7}">20 sounds &amp; environments · Sound Mixer</div>
+      <div class="fi-line fi-sub" data-at="${T.s4f + 3.9}" data-off="${T.s4 - 0.4}">Visual Focus · Sleep sessions · Moments · Ask</div>
       <div class="fi-line fi-big" data-at="${T.s4 + 0.8}" data-off="${T.end - 1.2}">Your sound. <span class="fi-green">One tap away.</span></div>
-      <div class="fi-ab" data-at="${T.s3 + 0.2}" data-off="${T.s4 - 0.2}"><span>A</span><span>B</span></div>
+      <div class="fi-ab" data-at="${T.s3 + 0.2}" data-off="${T.s4f - 0.2}"><span>A</span><span>B</span></div>
       <div class="fi-gate">Tap to begin</div>
       <button class="fi-skip" type="button">Skip</button>`;
     document.body.appendChild(ov);
@@ -134,6 +138,7 @@
           [110.0, 164.81, 220.0, 329.63, 493.88],    // Am9
           [146.83, 220.0, 293.66, 369.99, 493.88],   // D6/9 (the Dorian warmth)
           [98.0, 246.94, 293.66, 440.0, 587.33],     // G add9
+          [164.81, 246.94, 293.66, 369.99, 493.88],  // Em9 — gathering, anticipation
           [110.0, 164.81, 277.18, 440.0, 493.88],    // A major add9 — arrival
         ];
         const pans = [-0.15, 0.35, -0.4, 0.45, -0.25];
@@ -141,14 +146,15 @@
         const rates = [0.05, 0.075, 0.06, 0.09, 0.11];
         const vs = chords[0].map((f, i) => voice(f, pans[i], amps[i], rates[i], i * 0.7));
         const sub = voice(55.0, 0, 0.035, 0.04, 0.3); // deep floor under everything
-        const subRoots = [55.0, 73.42, 49.0, 55.0];
+        const subRoots = [55.0, 73.42, 49.0, 82.41, 55.0];
         const moveTo = (ci, at, glide) => {
           chords[ci].forEach((f, i) => vs[i].oscs.forEach(o => o.frequency.setTargetAtTime(f, at, glide)));
           sub.oscs.forEach(o => o.frequency.setTargetAtTime(subRoots[ci], at, glide + 0.3));
         };
         moveTo(1, t + T.s2, 1.1);
         moveTo(2, t + T.s3, 1.1);
-        moveTo(3, t + T.s4, 0.9);
+        moveTo(3, t + T.s4f, 1.1);
+        moveTo(4, t + T.s4, 0.9);
         // the arrival opens slightly — upper voices bloom, filter lifts a touch
         vs[3].g.gain.setTargetAtTime(0.045, t + T.s4, 1.4);
         vs[4].g.gain.setTargetAtTime(0.032, t + T.s4, 1.4);
@@ -171,6 +177,9 @@
         note(t + T.s3 + 0.7, 293.66, 0.05, 2.4);     // D4 — "A… or B?"
         note(t + T.s3 + 2.3, 329.63, 0.045, 2.4);    // E4 (the flip)
         note(t + T.s3 + 3.9, 392.0, 0.05, 3.0);      // G4 — "it learns"
+        note(t + T.s4f + 0.8, 329.63, 0.05, 2.6);    // E4 — the world opens
+        note(t + T.s4f + 2.7, 369.99, 0.045, 2.6);   // F#4
+        note(t + T.s4f + 4.4, 493.88, 0.04, 2.6);    // B4 — rising, almost there
         note(t + T.s4 + 1.0, 440.0, 0.06, 3.6);      // A4 — arrival
         note(t + T.s4 + 3.0, 554.37, 0.032, 3.2);    // C#5, very soft — the smile
         note(t + T.end - 2.8, 329.63, 0.035, 2.6);   // E4 — breath out
@@ -267,8 +276,8 @@
         orb(pOcean, w * 0.26, h * 0.01, u * 0.37, 4.2);
       }
       // ---- scene 3: A and B alternate glow ----
-      if (t >= T.s3 && t < T.s4 + 0.8) {
-        const a3 = ease(T.s3, T.s3 + 0.8, t) * (1 - ease(T.s4 - 0.5, T.s4 + 0.7, t));
+      if (t >= T.s3 && t < T.s4f + 0.8) {
+        const a3 = ease(T.s3, T.s3 + 0.8, t) * (1 - ease(T.s4f - 0.5, T.s4f + 0.7, t));
         const pulse = (Math.sin(t * 1.6) + 1) / 2;
         const box = Math.min(w, h) * 0.42;
         const orb = (p, ox, glow, ph) => {
@@ -279,6 +288,21 @@
         };
         orb(pBrown, -w * 0.2, 1 - pulse, 0);
         orb(pOcean, w * 0.2, pulse, 3.3);
+      }
+      // ---- scene 3b: the breadth — a constellation of small orbs, slowly turning ----
+      if (t >= T.s4f && t < T.s4 + 0.8) {
+        const a5 = ease(T.s4f, T.s4f + 1, t) * (1 - ease(T.s4 - 0.6, T.s4 + 0.7, t));
+        const u = Math.min(w, h), R = u * 0.3;
+        const ps = [pBrown, pBright, pOcean];
+        for (let i = 0; i < 10; i++) {
+          const ang = (i / 10) * Math.PI * 2 + t * 0.06;
+          const box = u * (0.09 + ((i * 37) % 5) * 0.012);
+          const ox = Math.cos(ang) * R, oy = Math.sin(ang) * R * 0.72;
+          ctx.save(); ctx.globalAlpha = a5 * (0.5 + 0.3 * Math.sin(t * 0.9 + i * 1.7));
+          ctx.translate(cx + ox - box / 2, cy + oy - box / 2);
+          SV.soundShape(ctx, box, box, ps[i % 3], t * 0.7 + i * 1.3, 0.1 + 0.08 * (1 + Math.sin(t * 0.9 + i)), { scale: 0.42 });
+          ctx.restore();
+        }
       }
       // ---- scene 4: one breathing circle — the hero is born ----
       if (t >= T.s4) {
