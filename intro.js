@@ -39,6 +39,7 @@
       .fi-sub  { top: 26%; font-size: clamp(1.125rem, 4vw, 1.375rem); color: #9aa7c4;
         font-family: Manrope, system-ui, sans-serif; font-weight: 500; letter-spacing: .02em; }
       .fi-green { color: #9fe0bb; }
+      .fi-learn { font-size: clamp(1.25rem, 4.4vw, 1.5rem); }
       .fi-skip { position: absolute; right: 18px; bottom: calc(18px + env(safe-area-inset-bottom, 0px));
         color: #9aa7c4; font: 600 .85rem Manrope, system-ui, sans-serif; letter-spacing: .06em;
         background: none; border: 0; padding: 10px 14px; cursor: pointer; opacity: .7; }
@@ -63,7 +64,7 @@
       <div class="fi-line fi-big" data-at="${T.s2 + 0.4}" data-off="${T.s3 - 0.6}">Everyone’s tinnitus is different.</div>
       <div class="fi-line fi-sub" data-at="${T.s2 + 2.2}" data-off="${T.s3 - 0.6}">Your comfortable sound should be too.</div>
       <div class="fi-line fi-big" data-at="${T.s3 + 0.4}" data-off="${T.s3 + 3.1}">Better with A… or B?</div>
-      <div class="fi-line fi-sub fi-green" data-at="${T.s3 + 3.3}" data-off="${T.s4f - 0.4}">It learns what you prefer.</div>
+      <div class="fi-line fi-sub fi-green fi-learn" data-at="${T.s3 + 3.3}" data-off="${T.s4f - 0.4}">It learns what you prefer.</div>
       <div class="fi-line fi-big" data-at="${T.s4f + 0.4}" data-off="${T.s4 - 0.5}">More ways to find quiet.</div>
       <div class="fi-line fi-sub" data-at="${T.s4f + 1.2}" data-off="${T.s4f + 3.7}">20 sounds &amp; environments · Sound Mixer</div>
       <div class="fi-line fi-sub" data-at="${T.s4f + 3.9}" data-off="${T.s4 - 0.4}">Visual Focus · Sleep sessions · Moments · Ask</div>
@@ -195,12 +196,17 @@
       } catch (_) { }
     }
 
-    function finish() {
+    function finish(skipped) {
       if (done) return; done = true;
       cancelAnimationFrame(raf);
       stopAudio();
       ov.classList.add('out');
       setTimeout(() => { ov.remove(); style.remove(); }, 950);
+      // the film resolves into the Premium placard; either choice lands in the app.
+      // A skip goes straight to the app — no offer screen after a "no thanks".
+      if (!skipped) setTimeout(() => {
+        try { window.softwavePremium && window.softwavePremium.placard('intro'); } catch (_) { }
+      }, 550);
     }
     function begin() {
       if (started || done) return; started = true;
@@ -208,8 +214,8 @@
       ov.classList.add('started');
       startAudio();
     }
-    ov.addEventListener('click', () => { started ? finish() : begin(); });
-    ov.querySelector('.fi-skip').addEventListener('click', (e) => { e.stopPropagation(); finish(); });
+    ov.addEventListener('click', () => { started ? finish(true) : begin(); });
+    ov.querySelector('.fi-skip').addEventListener('click', (e) => { e.stopPropagation(); finish(true); });
     if (reduced) {   // reduced motion: a calm 3-second title card, no sound, nothing moves
       ov.classList.add('started');
       titleEl.classList.add('on');
