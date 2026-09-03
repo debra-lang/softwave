@@ -103,7 +103,7 @@
   // any field without a code change. Evidence text is data, not hard-coded conclusions, so it
   // can be revised (or later fed from the central evidence database) as research changes.
   const NOTCH_DEF = {
-    widths: { narrow: { oct: 0.25, label: 'Narrow · ¼ octave' }, standard: { oct: 1, label: 'Standard · 1 octave' }, wide: { oct: 1.5, label: 'Wide · 1½ octaves' } },
+    widths: { narrow: { oct: 0.25, label: 'Narrow' }, standard: { oct: 1, label: 'Standard' }, wide: { oct: 1.5, label: 'Wide' } },
     depths: { gentle: { db: 12, label: 'Gentle' }, standard: { db: 24, label: 'Standard' }, strong: { db: 36, label: 'Strong' } },
     fcMin: 200, fcMax: 12500,
     researchHz: 8000,    // Teismann 2011: effects were seen ≤8 kHz, not above
@@ -112,7 +112,7 @@
     timers: [10, 20, 30, 60],
     evidence: {
       tier: 'Mixed', updated: '2026-09-03',
-      plain: 'Notched sound (and "tailor-made notched music") reduces a frequency band around a person’s estimated tinnitus pitch, instead of adding sound there. It has been studied as a possible tinnitus intervention, but research findings are mixed. It should not be considered a proven treatment or cure for tinnitus.',
+      plain: 'Notched sound (and "tailor-made notched music") reduces a frequency band around a person’s selected tinnitus pitch, instead of adding sound there. Personalized notched sound has been studied as a possible approach to tinnitus management, but research findings are mixed: some studies have reported changes in tinnitus measures for certain participants, while other controlled studies have not found significant benefit on their primary outcomes. More research is needed to determine whether it is beneficial, for whom, and under what conditions. Find My Quiet Sound provides this feature as an experimental sound-exploration tool, not as a medical treatment.',
       studies: [
         { ref: 'Okamoto et al. 2010, PNAS', n: '39 (three groups)', found: 'After 12 months of tailor-made notched music (1-octave notch), reported tinnitus loudness and related auditory-cortex activity decreased versus placebo-notched music.', kind: 'positive', url: 'https://pubmed.ncbi.nlm.nih.gov/20080545/' },
         { ref: 'Teismann et al. 2011, PLoS ONE', n: '20', found: 'Five days of intensive notched-music listening reduced loudness and distress for tinnitus pitches up to 8 kHz — but not above 8 kHz. Effects faded after training stopped.', kind: 'positive with limits', url: 'https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0024685' },
@@ -401,9 +401,9 @@
     // ---------- EXPLORE ----------
     {
       id: 'notched', name: 'Personalized Notched Sound', cat: 'Discover', evidence: 'mixed', from: 'Tailor-made notched music research (Okamoto 2010; Teismann 2011; Stein 2016)',
-      what: 'Find your tinnitus pitch, then listen to sound with a controlled band around that pitch turned down — a personalized “notch”. Switch instantly between Normal and Notched to compare.',
-      why: 'Notched listening has been studied as a possible tinnitus approach. Findings are mixed: some studies reported reduced tinnitus loudness; the largest three-month trial found no benefit on its main measures. Worth exploring — not a proven treatment.',
-      how: 'Set your tinnitus pitch (your saved sound match is used if you have one), choose a broadband sound, press Start, then compare NORMAL and NOTCHED and notice which feels more comfortable.',
+      what: 'Explore broadband sounds with a narrow range of frequencies reduced around your selected tinnitus pitch — a personalized “notch”. Switch between Normal and Notched at any time to hear the difference.',
+      why: 'Research on notched sound has produced mixed results, and it has not been established as an effective treatment for tinnitus. Some studies have reported benefits for certain participants, while others have not found meaningful improvements.',
+      how: 'Choose the pitch you hear (your saved sound match is offered if you have one), pick a broadband sound, press Start, then switch between NORMAL and NOTCHED. This feature is provided for personal sound exploration and tinnitus-management support — it does not diagnose, treat, or cure tinnitus.',
       whyTest: 'Research on notched sound is genuinely mixed — positive early studies, a null large trial, and a Cochrane review that calls sound-therapy evidence low-quality overall. We present it as an experiment with honest evidence, and your optional feedback helps us understand comfort, never medical outcomes.',
       custom: true, customFirst: true, defaults: {},
       buildUI(ctx, host) {
@@ -419,7 +419,7 @@
             <h3 class="nx-t">1 · Find your tinnitus pitch</h3>
             ${saved && saved.freq ? `<p class="muted small">You matched a tone of <strong>${hzLabel(saved.freq)}</strong> in Sound Matching${saved.when ? ' (' + new Date(saved.when).toLocaleDateString() + ')' : ''}. <button class="linklike" data-nx="usesaved">Use it</button></p>` : `<p class="muted small">Tip: the <button class="linklike" data-nx="gomatch">Sound Matching</button> tool gives a careful guided match you can reuse here.</p>`}
             <div class="nx-pitch">
-              <label class="small">Adjust until the tone is closest to your tinnitus <output data-nx="hzout">${N.hz ? hzLabel(N.hz) : '—'}</output></label>
+              <label class="small">Adjust the tone until it sounds approximately similar to the pitch you hear <output data-nx="hzout">${N.hz ? hzLabel(N.hz) : '—'}</output></label>
               <input type="range" min="0" max="1000" value="${N.hz ? Math.round(1000 * Math.log(N.hz / C.fcMin) / Math.log(C.fcMax / C.fcMin)) : 620}" data-nx="slider" aria-label="Tinnitus pitch">
               <div class="btn-row">
                 <button class="btn btn-secondary btn-sm" data-nx="play">▶ Play tone</button>
@@ -434,26 +434,28 @@
               <div class="chips">${[['left', 'Left ear'], ['right', 'Right ear'], ['both', 'Both ears'], ['head', 'In my head']].map(([v, l]) => `<button class="chip chip-sm" data-nxw="${v}" aria-pressed="${N.where === v}">${l}</button>`).join('')}</div>
               <span class="label-sm">How confident is the match?</span>
               <div class="chips">${[['low', 'Not sure'], ['mid', 'Fairly confident'], ['high', 'Very confident']].map(([v, l]) => `<button class="chip chip-sm" data-nxc="${v}" aria-pressed="${N.conf === v}">${l}</button>`).join('')}</div>
-              <p class="muted small">Self-matched pitch is an estimate, not a hearing test — it often drifts a little between sessions, and that’s normal.</p>
+              <p class="muted small">This is your personal estimate, not a clinical measurement or hearing test. It’s normal for it to drift a little between sessions.</p>
             </div>
             <div class="nx-confirm" data-nx="confirm" ${N.hz ? '' : 'hidden'}>
-              <p class="nx-big">Your estimated tinnitus pitch: <strong data-nx="hzbig">${N.hz ? hzLabel(N.hz) : ''}</strong></p>
+              <p class="nx-big">Your selected pitch: <strong data-nx="hzbig">${N.hz ? hzLabel(N.hz) : ''}</strong></p>
               <div class="btn-row"><button class="btn btn-primary btn-sm" data-nx="accept">${N.accepted ? '✓ Accepted' : 'Accept'}</button><button class="btn btn-ghost btn-sm" data-nx="retest">Test again</button></div>
               <p class="muted small" data-nx="hzwarn"></p>
             </div>
           </div>
           <div class="nx card lab-result">
             <h3 class="nx-t">2 · Choose your sound &amp; notch</h3>
+            <p class="muted small" style="margin-top:0">Notched sound reduces a narrow frequency region around your selected pitch. You can switch between Normal and Notched at any time to hear the difference.</p>
             <span class="label-sm">Sound</span>
             <div class="chips" data-nx="sources">${srcDefs.map(id => `<button class="chip chip-sm" data-nxs="${id}" aria-pressed="${N.source === id}">${engine.def(id).name}</button>`).join('')}<button class="chip chip-sm" data-nxs="myaudio" aria-pressed="false">🎵 My own audio…</button></div>
             <p class="muted small" data-nx="srcnote">Broadband sounds (noise, rain, water) carry energy around most tinnitus pitches, so the notch has something to remove. Your own music works too if it has energy near your pitch — it is processed on this device only and never uploaded.</p>
             <input type="file" accept="audio/*" data-nx="file" hidden>
             <span class="label-sm">Notch width</span>
-            <div class="chips">${Object.entries(C.widths).map(([k, w]) => `<button class="chip chip-sm" data-nxwidth="${k}" aria-pressed="${N.width === k}">${w.label}${k === 'standard' ? ' · used in the research' : ''}</button>`).join('')}</div>
+            <div class="chips">${Object.entries(C.widths).map(([k, w]) => `<button class="chip chip-sm" data-nxwidth="${k}" aria-pressed="${N.width === k}">${w.label}</button>`).join('')}</div>
             <span class="label-sm">Notch strength</span>
             <div class="chips">${Object.entries(C.depths).map(([k, d]) => `<button class="chip chip-sm" data-nxdepth="${k}" aria-pressed="${N.depth === k}">${d.label}</button>`).join('')}</div>
+            <p class="muted small">Width and strength set how wide and how deep the reduced band is. A stronger or wider notch is not more effective.</p>
             <details class="nx-adv"><summary class="muted small">Advanced details</summary><div class="muted small" data-nx="adv"></div></details>
-            <p class="muted small">Keep the volume low and comfortable — the aim is a sound you can forget about, never one that fights your tinnitus.</p>
+            <p class="muted small">Keep the volume at a low, comfortable level. Stop if the sound causes discomfort or seems to make your tinnitus worse.</p>
           </div>
           <div class="nx card lab-result" data-nx="live" hidden>
             <h3 class="nx-t">3 · Listen &amp; compare</h3>
@@ -461,7 +463,7 @@
               <button role="radio" aria-checked="false" data-nxab="off">NORMAL</button>
               <button role="radio" aria-checked="true" data-nxab="on">NOTCHED</button>
             </div>
-            <p class="muted small" style="text-align:center">Both versions play at the same level — switch freely and notice which is more comfortable.</p>
+            <p class="muted small" style="text-align:center">NORMAL plays the original sound. NOTCHED reduces frequencies around your selected pitch. Both play at the same level — switch as often as you like.</p>
             <div class="nx-viz"><canvas height="150" aria-label="Live audio spectrum with your notch region marked"></canvas><div class="nx-vizlab" data-nx="vizlab"></div></div>
             <p class="muted small" data-nx="suit"></p>
             <span class="label-sm">Sleep-style timer (optional)</span>
@@ -681,7 +683,7 @@
         const w = widthOct(N), d = depthDb(N);
         const lo = N.hz * Math.pow(2, -w / 2), hi = N.hz * Math.pow(2, w / 2);
         const des = notchDesign(N.hz, w, d);
-        el.adv.innerHTML = `Centre ${hzLabel(N.hz)} · band ${hzLabel(lo)} – ${hzLabel(hi)} (${w} octave${w === 1 ? '' : 's'}) · target depth −${d} dB at centre.<br>` +
+        el.adv.innerHTML = `Centre ${hzLabel(N.hz)} · band ${hzLabel(lo)} – ${hzLabel(hi)} (${w} octave${w === 1 ? '' : 's'}) · target depth −${d} dB at centre. The Standard width corresponds to the 1-octave band used in the published studies; Gentle/Standard/Strong are −12/−24/−36 dB at the centre.<br>` +
           `Three cascaded peaking cuts: ${des.map(p => `${Math.round(p.f)} Hz (Q ${p.Q.toFixed(1)}, ${p.g.toFixed(1)} dB)`).join(' · ')}.<br>` +
           `Measured response: centre within 0.8 dB of target, band edges ≈ −10 dB, outside the band flat within ~1 dB. All processing runs on this device.`;
       };
@@ -697,7 +699,8 @@
         const render = () => {
           const a = Math.round(st.hz * Math.pow(2, -st.delta / 2)), b = Math.round(st.hz * Math.pow(2, st.delta / 2));
           el.helperbox.hidden = false;
-          el.helperbox.innerHTML = `<p class="small">Round ${st.round}: which sounds closer to your tinnitus?</p>
+          el.helperbox.innerHTML = `<p class="muted small" style="margin-top:0">This assistant helps you compare tones — it does not measure your tinnitus.</p>
+            <p class="small">Round ${st.round}: which tone sounds closer to the pitch you hear?</p>
             <div class="btn-row"><button class="btn btn-secondary btn-sm" data-h="pa">▶ Tone A</button><button class="btn btn-secondary btn-sm" data-h="pb">▶ Tone B</button></div>
             <div class="btn-row"><button class="btn btn-ghost btn-sm" data-h="a">A is closer</button><button class="btn btn-ghost btn-sm" data-h="same">Can’t tell</button><button class="btn btn-ghost btn-sm" data-h="b">B is closer</button></div>`;
           $('[data-h="pa"]', el.helperbox).addEventListener('click', () => playTone(a));
@@ -783,7 +786,7 @@
       const r = engine.notchSet(N.hz, widthOct(N), depthDb(N));
       if (!r.ok) { app.toast(r.reason, 5000); return false; }
       if (N.abOn !== false) engine.notchEnable(true);
-      if (ctx.nEl && ctx.nEl.vizlab) ctx.nEl.vizlab.textContent = `Your tinnitus pitch: ${hzLabel(N.hz)} · notch ${hzLabel(r.lo)} – ${hzLabel(r.hi)}`;
+      if (ctx.nEl && ctx.nEl.vizlab) ctx.nEl.vizlab.textContent = `Your selected pitch: ${hzLabel(N.hz)} — the shaded band is being reduced`;
       return true;
     }
     async function startSource(ctx) {
@@ -802,7 +805,7 @@
     }
     async function start(ctx) {
       const N = ctx.n || {};
-      if (!N.hz || !N.accepted) throw new Error('set and accept your tinnitus pitch first (step 1)');
+      if (!N.hz || !N.accepted) throw new Error('set and accept your pitch first (step 1)');
       safeMaster();
       await startSource(ctx);
       const r = engine.notchSet(N.hz, widthOct(N), depthDb(N));
@@ -818,7 +821,7 @@
           $$('[data-nxab]', ctx.host).forEach(x => x.setAttribute('aria-checked', x.dataset.nxab === 'on'));
         }
       }, 1400);
-      if (ctx.nEl.vizlab) ctx.nEl.vizlab.textContent = `Your tinnitus pitch: ${hzLabel(N.hz)} · notch ${hzLabel(r.lo)} – ${hzLabel(r.hi)}`;
+      if (ctx.nEl.vizlab) ctx.nEl.vizlab.textContent = `Your selected pitch: ${hzLabel(N.hz)} — the shaded band is being reduced`;
       startViz(ctx);
     }
     function suitability(ctx) {
@@ -831,7 +834,7 @@
         const avg = (a, b) => { let s = 0, n = 0; for (let i = Math.max(1, Math.floor(a / binHz)); i <= Math.min(bins.length - 1, Math.ceil(b / binHz)); i++) { s += bins[i]; n++; } return n ? s / n : 0; };
         const band = avg(lo, hi), ref = avg(300, Math.min(10000, engine.ctx.sampleRate * 0.45));
         ctx.nEl.suit.textContent = (band < Math.max(10, ref * 0.18))
-          ? `⚠ This sound may not contain enough energy around your tinnitus pitch (${hzLabel(N.hz)}) for meaningful notching. A broadband sound — pink noise, rain, a waterfall — gives the notch more to work on.`
+          ? `⚠ This sound may not contain enough energy around your selected pitch (${hzLabel(N.hz)}) for meaningful notching. A broadband sound — pink noise, rain, a waterfall — gives the notch more to work on.`
           : '';
       } catch (_) { }
     }
@@ -887,16 +890,16 @@
       const N = ctx.n, host = ctx.nEl.feedback;
       host.hidden = false;
       host.innerHTML = `<h3 class="nx-t">Optional: what did you notice?</h3>
-        <span class="label-sm">Right after listening, the sound of your tinnitus is…</span>
-        <div class="chips">${[['much-quieter', 'Much quieter'], ['quieter', 'Slightly quieter'], ['same', 'No change'], ['louder', 'Slightly louder'], ['much-louder', 'Much louder'], ['unsure', 'Not sure']].map(([v, l]) => `<button class="chip" data-fl="${v}">${l}</button>`).join('')}</div>
-        <span class="label-sm">And separately — how bothersome does it feel right now?</span>
-        <div class="chips">${[['0', 'Not at all'], ['1', 'Slightly'], ['2', 'Moderately'], ['3', 'Very'], ['4', 'Extremely']].map(([v, l]) => `<button class="chip" data-fd="${v}">${l}</button>`).join('')}</div>
+        <span class="label-sm">Compared with before this session, how noticeable does your tinnitus feel right now?</span>
+        <div class="chips">${[['much-less', 'Much less noticeable'], ['less', 'Slightly less noticeable'], ['same', 'No change'], ['more', 'Slightly more noticeable'], ['much-more', 'Much more noticeable'], ['unsure', 'Not sure']].map(([v, l]) => `<button class="chip" data-fl="${v}">${l}</button>`).join('')}</div>
+        <span class="label-sm">And separately — compared with before this session, how bothersome does it feel?</span>
+        <div class="chips">${[['less', 'Less bothersome'], ['same', 'About the same'], ['more', 'More bothersome'], ['unsure', 'Not sure']].map(([v, l]) => `<button class="chip" data-fd="${v}">${l}</button>`).join('')}</div>
         <div class="btn-row"><button class="btn btn-secondary btn-sm" data-f="save" disabled>Save note</button><button class="btn btn-ghost btn-sm" data-f="skip">Skip</button></div>
-        <p class="muted small">A temporary quieting right after listening (“residual inhibition”) is common and short-lived — it is recorded as a short-term post-sound change, not as a treatment effect. Loudness and bothersomeness are kept separate on purpose.</p>`;
+        <p class="muted small">Some people notice a temporary change in tinnitus after listening to certain sounds — sometimes called residual inhibition. If it occurs, it is generally temporary and should not be interpreted as evidence that the tinnitus itself has been treated or permanently changed. Noticeability and bothersomeness are recorded separately on purpose.</p>`;
       let fl = null, fd = null;
       const upd = () => { $('[data-f="save"]', host).disabled = !(fl || fd); };
       $$('[data-fl]', host).forEach(b => b.addEventListener('click', () => { fl = b.dataset.fl; $$('[data-fl]', host).forEach(x => x.classList.toggle('active', x === b)); upd(); }));
-      $$('[data-fd]', host).forEach(b => b.addEventListener('click', () => { fd = +b.dataset.fd; $$('[data-fd]', host).forEach(x => x.classList.toggle('active', x === b)); upd(); }));
+      $$('[data-fd]', host).forEach(b => b.addEventListener('click', () => { fd = b.dataset.fd; $$('[data-fd]', host).forEach(x => x.classList.toggle('active', x === b)); upd(); }));
       $('[data-f="skip"]', host).addEventListener('click', () => { host.hidden = true; });
       $('[data-f="save"]', host).addEventListener('click', () => {
         const ss = store.get('notch:sessions', []);
@@ -926,10 +929,10 @@
       const box = ctx.nEl && ctx.nEl.feedback; if (!box) return;
       const ss = store.get('notch:sessions', []);
       if (!ss.length || !box.hidden) return;
-      const L = { 'much-quieter': 'much quieter', quieter: 'slightly quieter', same: 'no change', louder: 'slightly louder', 'much-louder': 'much louder', unsure: 'not sure' };
-      const D = ['not at all', 'slightly', 'moderately', 'very', 'extremely'];
+      const L = { 'much-less': 'much less noticeable', less: 'slightly less noticeable', same: 'no change', more: 'slightly more noticeable', 'much-more': 'much more noticeable', unsure: 'not sure', 'much-quieter': 'much quieter', quieter: 'slightly quieter', louder: 'slightly louder', 'much-louder': 'much louder' };
+      const D = (v) => typeof v === 'number' ? ['not at all', 'slightly', 'moderately', 'very', 'extremely'][v] : ({ less: 'less bothersome', same: 'about the same', more: 'more bothersome', unsure: 'not sure' })[v];
       box.hidden = false;
-      box.innerHTML = `<h3 class="nx-t">Your recent notes</h3><ul class="bullets small">${ss.slice(-6).reverse().map(s => `<li>${new Date(s.date).toLocaleDateString()} — ${s.mins} min of ${s.source === 'myaudio' ? 'my audio' : (engine.def(s.source) || {}).name || s.source} at ${hzLabel(s.hz)}: tinnitus ${L[s.postChange] || '—'}${s.distress != null ? `, bothered ${D[s.distress]}` : ''}</li>`).join('')}</ul><p class="muted small">Personal observations over time — not a measure of treatment effect.</p>`;
+      box.innerHTML = `<h3 class="nx-t">Your recent notes</h3><ul class="bullets small">${ss.slice(-6).reverse().map(s => `<li>${new Date(s.date).toLocaleDateString()} — ${s.mins} min of ${s.source === 'myaudio' ? 'my audio' : (engine.def(s.source) || {}).name || s.source} at ${hzLabel(s.hz)}: tinnitus ${L[s.postChange] || '—'}${s.distress != null ? `, ${D(s.distress) || ''}` : ''}</li>`).join('')}</ul><p class="muted small">Personal observations over time — not a measure of treatment effect.</p>`;
     }
     return { wire, start, stopped };
   })();
