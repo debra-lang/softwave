@@ -96,7 +96,36 @@
   const saveSound = (snd) => { const l = mySounds(); if (M() && !M().canCreateSavedItem(l.length)) { window.softwavePremium && softwavePremium.saveLimit('sounds'); return; } if (M()) M().track('sound_saved'); l.push(snd); store.set('lab:sounds', l); app.renderPresetsRemount ? app.renderPresetsRemount() : (app.renderPresets && app.renderPresets()); };
   // saving combos (environments/sessions) shares the same Free limit
   const canSaveCombo = () => { const n = store.get('combos', []).length; if (M() && !M().canCreateSavedItem(n)) { window.softwavePremium && softwavePremium.saveLimit('environments'); return false; } return true; };
-  const EV = { established: 'Well-studied principle', promising: 'Promising research', exploratory: 'Experimental — research is limited' };
+  const EV = { established: 'Well-studied principle', promising: 'Promising research', exploratory: 'Experimental — research is limited', mixed: 'Experimental — evidence is mixed' };
+
+  // ===== Personalized Notched Sound: configuration (admin-adjustable, see release report) =====
+  // Everything a researcher might tune lives here; store.set('notch:config', {...}) overrides
+  // any field without a code change. Evidence text is data, not hard-coded conclusions, so it
+  // can be revised (or later fed from the central evidence database) as research changes.
+  const NOTCH_DEF = {
+    widths: { narrow: { oct: 0.25, label: 'Narrow · ¼ octave' }, standard: { oct: 1, label: 'Standard · 1 octave' }, wide: { oct: 1.5, label: 'Wide · 1½ octaves' } },
+    depths: { gentle: { db: 12, label: 'Gentle' }, standard: { db: 24, label: 'Standard' }, strong: { db: 36, label: 'Strong' } },
+    fcMin: 200, fcMax: 12500,
+    researchHz: 8000,    // Teismann 2011: effects were seen ≤8 kHz, not above
+    hardwareHz: 10000,   // playback hardware varies widely up here
+    sources: ['pink', 'white', 'static', 'hiss', 'brown', 'rain', 'glassrain', 'ocean', 'lapping', 'stream', 'waterfall', 'wind', 'forest', 'leaves', 'summernight'],
+    timers: [10, 20, 30, 60],
+    evidence: {
+      tier: 'Mixed', updated: '2026-09-03',
+      plain: 'Notched sound (and "tailor-made notched music") reduces a frequency band around a person’s estimated tinnitus pitch, instead of adding sound there. It has been studied as a possible tinnitus intervention, but research findings are mixed. It should not be considered a proven treatment or cure for tinnitus.',
+      studies: [
+        { ref: 'Okamoto et al. 2010, PNAS', n: '39 (three groups)', found: 'After 12 months of tailor-made notched music (1-octave notch), reported tinnitus loudness and related auditory-cortex activity decreased versus placebo-notched music.', kind: 'positive', url: 'https://pubmed.ncbi.nlm.nih.gov/20080545/' },
+        { ref: 'Teismann et al. 2011, PLoS ONE', n: '20', found: 'Five days of intensive notched-music listening reduced loudness and distress for tinnitus pitches up to 8 kHz — but not above 8 kHz. Effects faded after training stopped.', kind: 'positive with limits', url: 'https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0024685' },
+        { ref: 'Wunderlich et al. 2015, PLoS ONE', n: '31', found: 'Compared ¼-, ½- and 1-octave notch widths; notch width made no measurable difference to outcomes.', kind: 'neutral', url: 'https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0138595' },
+        { ref: 'Stein et al. 2016 (Münster RCT)', n: '100', found: 'The largest randomized trial: three months, about two hours daily. No significant benefit over placebo on its primary outcome measures.', kind: 'null primary', url: 'https://pubmed.ncbi.nlm.nih.gov/27838685/' },
+        { ref: 'Sereda et al. 2018, Cochrane Review', n: '590 (8 trials, sound therapy broadly)', found: 'Across sound-therapy approaches generally, evidence quality is low and no approach is established as superior.', kind: 'context', url: 'https://www.cochranelibrary.com/cdsr/doi/10.1002/14651858.CD013094.pub2' },
+      ],
+      protocols: 'In research studies, participants typically listened 1–2 hours daily for months (Okamoto: ~12 months; Stein: 3 months), or intensively for a few days (Teismann: 6 h/day for 5 days). These are research protocols, not medical recommendations — there is no established "correct dose".',
+      limitations: 'Self-matched tinnitus pitch is approximate and can drift between sessions. Effects above 8 kHz were not supported in the research. Studies measured loudness and distress separately, and results differ between them. A temporary quieting right after listening (residual inhibition) is a different phenomenon from any long-term change.',
+    },
+  };
+  const NCFG = () => { const o = store.get('notch:config', {}); return Object.assign({}, NOTCH_DEF, o, { evidence: Object.assign({}, NOTCH_DEF.evidence, o.evidence || {}) }); };
+  const hzLabel = (hz) => hz >= 1000 ? (hz / 1000).toFixed(hz % 1000 === 0 ? 0 : 1) + ' kHz' : Math.round(hz) + ' Hz';
 
   // ---------- runtime ----------
   let running = null; const timers = new Set();
@@ -371,6 +400,96 @@
     },
     // ---------- EXPLORE ----------
     {
+      id: 'notched', name: 'Personalized Notched Sound', cat: 'Discover', evidence: 'mixed', from: 'Tailor-made notched music research (Okamoto 2010; Teismann 2011; Stein 2016)',
+      what: 'Find your tinnitus pitch, then listen to sound with a controlled band around that pitch turned down — a personalized “notch”. Switch instantly between Normal and Notched to compare.',
+      why: 'Notched listening has been studied as a possible tinnitus approach. Findings are mixed: some studies reported reduced tinnitus loudness; the largest three-month trial found no benefit on its main measures. Worth exploring — not a proven treatment.',
+      how: 'Set your tinnitus pitch (your saved sound match is used if you have one), choose a broadband sound, press Start, then compare NORMAL and NOTCHED and notice which feels more comfortable.',
+      whyTest: 'Research on notched sound is genuinely mixed — positive early studies, a null large trial, and a Cochrane review that calls sound-therapy evidence low-quality overall. We present it as an experiment with honest evidence, and your optional feedback helps us understand comfort, never medical outcomes.',
+      custom: true, customFirst: true, defaults: {},
+      buildUI(ctx, host) {
+        const C = NCFG();
+        const saved = store.get('match');                          // from the Sound Matching tool
+        const measures = store.get('notch:measures', []);
+        const lastM = measures[measures.length - 1];
+        ctx.n = ctx.n || { hz: lastM ? lastM.hz : (saved && saved.freq ? Math.round(saved.freq) : 0), where: lastM ? lastM.where : 'both', conf: lastM ? lastM.conf : '', accepted: !!lastM, source: 'pink', width: 'standard', depth: 'standard', buf: null };
+        const N = ctx.n;
+        const srcDefs = C.sources.filter(id => engine.def(id));
+        host.innerHTML = `
+          <div class="nx card lab-result">
+            <h3 class="nx-t">1 · Find your tinnitus pitch</h3>
+            ${saved && saved.freq ? `<p class="muted small">You matched a tone of <strong>${hzLabel(saved.freq)}</strong> in Sound Matching${saved.when ? ' (' + new Date(saved.when).toLocaleDateString() + ')' : ''}. <button class="linklike" data-nx="usesaved">Use it</button></p>` : `<p class="muted small">Tip: the <button class="linklike" data-nx="gomatch">Sound Matching</button> tool gives a careful guided match you can reuse here.</p>`}
+            <div class="nx-pitch">
+              <label class="small">Adjust until the tone is closest to your tinnitus <output data-nx="hzout">${N.hz ? hzLabel(N.hz) : '—'}</output></label>
+              <input type="range" min="0" max="1000" value="${N.hz ? Math.round(1000 * Math.log(N.hz / C.fcMin) / Math.log(C.fcMax / C.fcMin)) : 620}" data-nx="slider" aria-label="Tinnitus pitch">
+              <div class="btn-row">
+                <button class="btn btn-secondary btn-sm" data-nx="play">▶ Play tone</button>
+                <button class="btn btn-ghost btn-sm" data-nx="fdn">−2%</button>
+                <button class="btn btn-ghost btn-sm" data-nx="fup">+2%</button>
+                <button class="btn btn-ghost btn-sm" data-nx="helper">Narrow it down for me</button>
+              </div>
+              <div class="nx-helper" data-nx="helperbox" hidden></div>
+            </div>
+            <div class="nx-meta">
+              <span class="label-sm">Where do you hear it?</span>
+              <div class="chips">${[['left', 'Left ear'], ['right', 'Right ear'], ['both', 'Both ears'], ['head', 'In my head']].map(([v, l]) => `<button class="chip chip-sm" data-nxw="${v}" aria-pressed="${N.where === v}">${l}</button>`).join('')}</div>
+              <span class="label-sm">How confident is the match?</span>
+              <div class="chips">${[['low', 'Not sure'], ['mid', 'Fairly confident'], ['high', 'Very confident']].map(([v, l]) => `<button class="chip chip-sm" data-nxc="${v}" aria-pressed="${N.conf === v}">${l}</button>`).join('')}</div>
+              <p class="muted small">Self-matched pitch is an estimate, not a hearing test — it often drifts a little between sessions, and that’s normal.</p>
+            </div>
+            <div class="nx-confirm" data-nx="confirm" ${N.hz ? '' : 'hidden'}>
+              <p class="nx-big">Your estimated tinnitus pitch: <strong data-nx="hzbig">${N.hz ? hzLabel(N.hz) : ''}</strong></p>
+              <div class="btn-row"><button class="btn btn-primary btn-sm" data-nx="accept">${N.accepted ? '✓ Accepted' : 'Accept'}</button><button class="btn btn-ghost btn-sm" data-nx="retest">Test again</button></div>
+              <p class="muted small" data-nx="hzwarn"></p>
+            </div>
+          </div>
+          <div class="nx card lab-result">
+            <h3 class="nx-t">2 · Choose your sound &amp; notch</h3>
+            <span class="label-sm">Sound</span>
+            <div class="chips" data-nx="sources">${srcDefs.map(id => `<button class="chip chip-sm" data-nxs="${id}" aria-pressed="${N.source === id}">${engine.def(id).name}</button>`).join('')}<button class="chip chip-sm" data-nxs="myaudio" aria-pressed="false">🎵 My own audio…</button></div>
+            <p class="muted small" data-nx="srcnote">Broadband sounds (noise, rain, water) carry energy around most tinnitus pitches, so the notch has something to remove. Your own music works too if it has energy near your pitch — it is processed on this device only and never uploaded.</p>
+            <input type="file" accept="audio/*" data-nx="file" hidden>
+            <span class="label-sm">Notch width</span>
+            <div class="chips">${Object.entries(C.widths).map(([k, w]) => `<button class="chip chip-sm" data-nxwidth="${k}" aria-pressed="${N.width === k}">${w.label}${k === 'standard' ? ' · used in the research' : ''}</button>`).join('')}</div>
+            <span class="label-sm">Notch strength</span>
+            <div class="chips">${Object.entries(C.depths).map(([k, d]) => `<button class="chip chip-sm" data-nxdepth="${k}" aria-pressed="${N.depth === k}">${d.label}</button>`).join('')}</div>
+            <details class="nx-adv"><summary class="muted small">Advanced details</summary><div class="muted small" data-nx="adv"></div></details>
+            <p class="muted small">Keep the volume low and comfortable — the aim is a sound you can forget about, never one that fights your tinnitus.</p>
+          </div>
+          <div class="nx card lab-result" data-nx="live" hidden>
+            <h3 class="nx-t">3 · Listen &amp; compare</h3>
+            <div class="seg nx-ab" role="radiogroup" aria-label="Normal or notched">
+              <button role="radio" aria-checked="false" data-nxab="off">NORMAL</button>
+              <button role="radio" aria-checked="true" data-nxab="on">NOTCHED</button>
+            </div>
+            <p class="muted small" style="text-align:center">Both versions play at the same level — switch freely and notice which is more comfortable.</p>
+            <div class="nx-viz"><canvas height="150" aria-label="Live audio spectrum with your notch region marked"></canvas><div class="nx-vizlab" data-nx="vizlab"></div></div>
+            <p class="muted small" data-nx="suit"></p>
+            <span class="label-sm">Sleep-style timer (optional)</span>
+            <div class="chips" data-nx="timers">${C.timers.map(m => `<button class="chip chip-sm" data-nxt="${m}">${m} min</button>`).join('')}<button class="chip chip-sm" data-nxt="custom">Custom…</button></div>
+            <div class="btn-row">
+              <button class="btn btn-secondary btn-sm" data-nx="saveprof">Save this as a profile</button>
+              <button class="btn btn-ghost btn-sm" data-nx="recal">Recalibrate pitch</button>
+            </div>
+          </div>
+          <div class="nx card lab-result" data-nx="feedback" hidden></div>
+          <div class="nx" data-nx="profiles"></div>
+          <details class="lab-why nx-about"><summary>About notched sound &amp; the evidence</summary>
+            <p>${C.evidence.plain}</p>
+            <p><strong>What the studies found</strong> (evidence status: <strong>${C.evidence.tier}</strong>, reviewed ${C.evidence.updated}):</p>
+            <ul class="bullets">${C.evidence.studies.map(s => `<li><a href="${s.url}" target="_blank" rel="noopener">${s.ref}</a> — ${s.found}</li>`).join('')}</ul>
+            <p><strong>Listening schedules used in research.</strong> ${C.evidence.protocols}</p>
+            <p><strong>Limitations.</strong> ${C.evidence.limitations}</p>
+            <p><strong>Hearing loss.</strong> If you have hearing loss near your tinnitus pitch, the notched region may already be hard to hear, so the effect of notching may feel different. This tool does not test hearing and never boosts frequencies to compensate.</p>
+            <p><strong>Headphones.</strong> Headphones usually reproduce the frequency range more consistently than phone speakers, especially above a few kHz — but any comfortable listening setup is fine.</p>
+            <p class="muted small">Loudness and distress are tracked separately throughout, because research treats them as different outcomes. Nothing here diagnoses, treats or cures tinnitus.</p>
+          </details>`;
+        NotchedUI.wire(ctx, host);
+      },
+      async start(ctx) { await NotchedUI.start(ctx); },
+      onSetting() { },
+      stop(ctx) { NotchedUI.stopped(ctx); },
+    },
+    {
       id: 'generative', name: 'Generative Sound', cat: 'Explore', premium: true, evidence: 'exploratory', from: 'Generative audio / procedural sound design',
       what: 'Sounds that subtly evolve instead of repeating — rain, ocean, wind, forest, an abstract ambience or broadband noise — with one Stable ↔ Organic control.',
       why: 'Real rain never sounds the same twice. Small variation feels more natural and may be easier to stop noticing over a long session.',
@@ -516,6 +635,305 @@
     },
   ];
   const byId = Object.fromEntries(EXPERIMENTS.map(e => [e.id, e]));
+  // ===== Personalized Notched Sound: controller =====
+  const NotchedUI = (() => {
+    const notchDesign = (f, w, d) => window.SoftwaveAudio.Engine.notchDesign(f, w, d);
+    const sHz = (v) => { const c = NCFG(); return Math.round(c.fcMin * Math.pow(c.fcMax / c.fcMin, v / 1000)); };
+    const hzS = (hz) => { const c = NCFG(); return Math.round(1000 * Math.log(hz / c.fcMin) / Math.log(c.fcMax / c.fcMin)); };
+    let sessionStart = 0, vizRaf = 0, vizVisible = true, timerHooked = false;
+    const runningThis = () => running && running.exp.id === 'notched';
+    async function playTone(hz, ms = 900) {
+      try {
+        await engine.init(); const ac = engine.ctx; if (!ac) return;
+        const o = ac.createOscillator(); o.type = 'sine'; o.frequency.value = hz;
+        const g = ac.createGain(); const t = ac.currentTime;
+        g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.06, t + 0.05);
+        g.gain.setValueAtTime(0.06, t + ms / 1000 - 0.15); g.gain.exponentialRampToValueAtTime(0.0001, t + ms / 1000);
+        o.connect(g); g.connect(ac.destination);   // matching tones bypass the notch on purpose
+        o.start(t); o.stop(t + ms / 1000 + 0.05);
+      } catch (_) { }
+    }
+    function widthOct(N) { return NCFG().widths[N.width].oct; }
+    function depthDb(N) { return NCFG().depths[N.depth].db; }
+    function wire(ctx, host) {
+      const N = ctx.n, C = NCFG();
+      const q = (s) => $(s, host), qq = (s) => $$(s, host);
+      const el = ctx.nEl = {
+        out: q('[data-nx="hzout"]'), slider: q('[data-nx="slider"]'), confirm: q('[data-nx="confirm"]'),
+        hzbig: q('[data-nx="hzbig"]'), hzwarn: q('[data-nx="hzwarn"]'), accept: q('[data-nx="accept"]'),
+        adv: q('[data-nx="adv"]'), live: q('[data-nx="live"]'), suit: q('[data-nx="suit"]'),
+        viz: q('.nx-viz canvas'), vizlab: q('[data-nx="vizlab"]'), feedback: q('[data-nx="feedback"]'),
+        profiles: q('[data-nx="profiles"]'), file: q('[data-nx="file"]'), helperbox: q('[data-nx="helperbox"]'),
+      };
+      const setHz = (hz, fromSlider) => {
+        hz = Math.round(Math.min(Math.max(hz, C.fcMin), C.fcMax));
+        N.hz = hz; el.out.textContent = hzLabel(hz);
+        if (!fromSlider) el.slider.value = hzS(hz);
+        el.confirm.hidden = false; el.hzbig.textContent = hzLabel(hz);
+        let warn = '';
+        if (hz > C.researchHz) warn += 'Research note: notched-sound studies found effects mainly for tinnitus pitches up to 8 kHz — above that, benefits were not supported (the music simply has little energy up there). ';
+        if (hz > C.hardwareHz) warn += 'Very high-frequency pitch matching and notching may also be less accurate, because headphones and speakers differ in how well they reproduce high frequencies.';
+        el.hzwarn.textContent = warn;
+        updateAdv(); if (runningThis()) applyNotch(ctx);
+      };
+      const updateAdv = () => {
+        if (!N.hz) { el.adv.textContent = 'Set a pitch first.'; return; }
+        const w = widthOct(N), d = depthDb(N);
+        const lo = N.hz * Math.pow(2, -w / 2), hi = N.hz * Math.pow(2, w / 2);
+        const des = notchDesign(N.hz, w, d);
+        el.adv.innerHTML = `Centre ${hzLabel(N.hz)} · band ${hzLabel(lo)} – ${hzLabel(hi)} (${w} octave${w === 1 ? '' : 's'}) · target depth −${d} dB at centre.<br>` +
+          `Three cascaded peaking cuts: ${des.map(p => `${Math.round(p.f)} Hz (Q ${p.Q.toFixed(1)}, ${p.g.toFixed(1)} dB)`).join(' · ')}.<br>` +
+          `Measured response: centre within 0.8 dB of target, band edges ≈ −10 dB, outside the band flat within ~1 dB. All processing runs on this device.`;
+      };
+      el.slider.addEventListener('input', () => setHz(sHz(+el.slider.value), true));
+      q('[data-nx="play"]').addEventListener('click', () => { if (N.hz) playTone(N.hz); });
+      q('[data-nx="fdn"]').addEventListener('click', () => { if (N.hz) { setHz(N.hz * 0.98); playTone(N.hz); } });
+      q('[data-nx="fup"]').addEventListener('click', () => { if (N.hz) { setHz(N.hz * 1.02); playTone(N.hz); } });
+      const us = q('[data-nx="usesaved"]'); if (us) us.addEventListener('click', () => { const m = store.get('match'); if (m && m.freq) { setHz(m.freq); app.toast('Using your saved sound-match pitch. Fine-tune it if it has drifted.'); } });
+      const gm = q('[data-nx="gomatch"]'); if (gm) gm.addEventListener('click', () => app.showView('match'));
+      // progressive narrowing helper: two tones, pick the closer, range halves each round
+      q('[data-nx="helper"]').addEventListener('click', () => {
+        const st = { hz: N.hz || 4000, delta: 0.5, round: 1 };
+        const render = () => {
+          const a = Math.round(st.hz * Math.pow(2, -st.delta / 2)), b = Math.round(st.hz * Math.pow(2, st.delta / 2));
+          el.helperbox.hidden = false;
+          el.helperbox.innerHTML = `<p class="small">Round ${st.round}: which sounds closer to your tinnitus?</p>
+            <div class="btn-row"><button class="btn btn-secondary btn-sm" data-h="pa">▶ Tone A</button><button class="btn btn-secondary btn-sm" data-h="pb">▶ Tone B</button></div>
+            <div class="btn-row"><button class="btn btn-ghost btn-sm" data-h="a">A is closer</button><button class="btn btn-ghost btn-sm" data-h="same">Can’t tell</button><button class="btn btn-ghost btn-sm" data-h="b">B is closer</button></div>`;
+          $('[data-h="pa"]', el.helperbox).addEventListener('click', () => playTone(a));
+          $('[data-h="pb"]', el.helperbox).addEventListener('click', () => playTone(b));
+          const step = (dir) => {
+            if (dir) st.hz = st.hz * Math.pow(2, (dir === 'b' ? 1 : -1) * st.delta / 4);
+            st.delta *= 0.6; st.round++;
+            if (st.delta < 0.1 || st.round > 6) { el.helperbox.innerHTML = '<p class="small">Done — pitch set below. Fine-tune with −2% / +2% if needed.</p>'; setHz(st.hz); return; }
+            render();
+          };
+          $('[data-h="a"]', el.helperbox).addEventListener('click', () => step('a'));
+          $('[data-h="b"]', el.helperbox).addEventListener('click', () => step('b'));
+          $('[data-h="same"]', el.helperbox).addEventListener('click', () => step(null));
+        };
+        render();
+      });
+      qq('[data-nxw]').forEach(b => b.addEventListener('click', () => { N.where = b.dataset.nxw; qq('[data-nxw]').forEach(x => x.setAttribute('aria-pressed', x === b)); }));
+      qq('[data-nxc]').forEach(b => b.addEventListener('click', () => { N.conf = b.dataset.nxc; qq('[data-nxc]').forEach(x => x.setAttribute('aria-pressed', x === b)); }));
+      el.accept.addEventListener('click', () => {
+        if (!N.hz) return; N.accepted = true; el.accept.textContent = '✓ Accepted';
+        const ms = store.get('notch:measures', []);   // append-only history — never overwrite old measurements
+        ms.push({ hz: N.hz, where: N.where, conf: N.conf, date: new Date().toISOString() });
+        store.set('notch:measures', ms);
+        app.toast('Pitch saved. Choose your sound in step 2, then press Start Experiment.');
+      });
+      q('[data-nx="retest"]').addEventListener('click', () => { N.accepted = false; el.accept.textContent = 'Accept'; el.helperbox.hidden = true; app.toast('Adjust the tone, or use “Narrow it down for me”.'); });
+      qq('[data-nxs]').forEach(b => b.addEventListener('click', async () => {
+        if (b.dataset.nxs === 'myaudio') { el.file.click(); return; }
+        N.source = b.dataset.nxs; qq('[data-nxs]').forEach(x => x.setAttribute('aria-pressed', x === b));
+        if (runningThis()) { await engine.loadMix([{ id: N.source, volume: 0.55 }]); applyNotch(ctx); setTimeout(() => suitability(ctx), 1200); }
+      }));
+      el.file.addEventListener('change', async () => {
+        const f = el.file.files && el.file.files[0]; if (!f) return;
+        if (f.size > 30 * 1024 * 1024) { app.toast('That file is over 30 MB — please choose a shorter track.', 4000); return; }
+        try {
+          await engine.init();
+          const buf = await engine.ctx.decodeAudioData(await f.arrayBuffer());
+          if (buf.duration > 20 * 60) { app.toast('Tracks up to 20 minutes are supported.', 4000); return; }
+          N.buf = buf; N.source = 'myaudio';
+          qq('[data-nxs]').forEach(x => x.setAttribute('aria-pressed', x.dataset.nxs === 'myaudio'));
+          const chip = qq('[data-nxs]').find(x => x.dataset.nxs === 'myaudio'); if (chip) chip.textContent = '🎵 ' + (f.name.length > 26 ? f.name.slice(0, 24) + '…' : f.name);
+          app.toast('Loaded. Your audio is processed on this device only — it is never uploaded.', 4200);
+          if (runningThis()) startSource(ctx).then(() => { applyNotch(ctx); setTimeout(() => suitability(ctx), 1200); });
+        } catch (_) { app.toast('Could not read that audio file.', 4000); }
+      });
+      qq('[data-nxwidth]').forEach(b => b.addEventListener('click', () => { N.width = b.dataset.nxwidth; qq('[data-nxwidth]').forEach(x => x.setAttribute('aria-pressed', x === b)); updateAdv(); if (runningThis()) applyNotch(ctx); }));
+      qq('[data-nxdepth]').forEach(b => b.addEventListener('click', () => { N.depth = b.dataset.nxdepth; qq('[data-nxdepth]').forEach(x => x.setAttribute('aria-pressed', x === b)); updateAdv(); if (runningThis()) applyNotch(ctx); }));
+      qq('[data-nxab]').forEach(b => b.addEventListener('click', () => {
+        const on = b.dataset.nxab === 'on'; N.abOn = on; engine.notchEnable(on);
+        qq('[data-nxab]').forEach(x => x.setAttribute('aria-checked', (x.dataset.nxab === 'on') === on));
+      }));
+      qq('[data-nxt]').forEach(b => b.addEventListener('click', () => {
+        let m = b.dataset.nxt === 'custom' ? parseInt(prompt('Timer length in minutes (5–180):', '45'), 10) : +b.dataset.nxt;
+        if (!m || m < 5 || m > 180) return;
+        engine.setTimer(m, true); qq('[data-nxt]').forEach(x => x.classList.toggle('active', x === b));
+        app.toast(`Timer set: ${m} minutes with gentle fade. No particular duration is a medical recommendation.`, 4200);
+      }));
+      q('[data-nx="saveprof"]').addEventListener('click', () => {
+        const w = widthOct(N), d = depthDb(N);
+        const srcName = N.source === 'myaudio' ? 'My audio' : (engine.def(N.source) || {}).name || N.source;
+        const name = prompt('Name this profile:', `Notched ${srcName} · ${hzLabel(N.hz)}`); if (!name) return;
+        const ps = store.get('notch:profiles', []);
+        ps.push({
+          id: Date.now(), name, created: new Date().toISOString(),
+          hz: N.hz, where: N.where, conf: N.conf, source: N.source, width: N.width, depth: N.depth,
+          // canonical cross-platform spec (§ shared audio specification)
+          spec: { centerHz: N.hz, widthOct: w, lowHz: Math.round(N.hz * Math.pow(2, -w / 2)), highHz: Math.round(N.hz * Math.pow(2, w / 2)), attenuationDb: d, design: notchDesign(N.hz, w, d), master: engine.masterVolume, limiter: 'threshold -10 dB, knee 12, ratio 8', smoothing: 'setTargetAtTime tau 0.08 s', srAssumed: engine.ctx ? engine.ctx.sampleRate : 48000 },
+        });
+        store.set('notch:profiles', ps); renderProfiles(ctx); app.toast('Profile saved on this device.');
+      });
+      q('[data-nx="recal"]').addEventListener('click', () => {
+        const sec = host.querySelector('.nx'); const tb = document.querySelector('.topbar');
+        const off = (tb ? tb.getBoundingClientRect().height : 54) + 10;
+        window.scrollTo({ top: scrollY + sec.getBoundingClientRect().top - off, behavior: 'smooth' });
+      });
+      try { new IntersectionObserver((es) => { vizVisible = es[0].isIntersecting; }, { threshold: 0.05 }).observe(el.viz); } catch (_) { vizVisible = true; }
+      if (!timerHooked) { timerHooked = true; engine.on(type => { if (type === 'timerDone' && runningThis()) stopRunning('Session complete — rest well.', true); }); }
+      if (N.hz) setHz(N.hz); else updateAdv();
+      renderProfiles(ctx); renderHistory(ctx);
+    }
+    function applyNotch(ctx) {
+      const N = ctx.n;
+      const r = engine.notchSet(N.hz, widthOct(N), depthDb(N));
+      if (!r.ok) { app.toast(r.reason, 5000); return false; }
+      if (N.abOn !== false) engine.notchEnable(true);
+      if (ctx.nEl && ctx.nEl.vizlab) ctx.nEl.vizlab.textContent = `Your tinnitus pitch: ${hzLabel(N.hz)} · notch ${hzLabel(r.lo)} – ${hzLabel(r.hi)}`;
+      return true;
+    }
+    async function startSource(ctx) {
+      const N = ctx.n;
+      if (N.node) { try { N.node.stop(); } catch (_) { } N.node = null; }
+      if (N.source === 'myaudio' && N.buf) {
+        // a whisper of engine sound keeps the graph/master alive; the track rides through the same notch path
+        await engine.loadMix([{ id: 'brown', volume: 0.001 }]);
+        const src = engine.ctx.createBufferSource(); src.buffer = N.buf; src.loop = true;
+        const g = engine.ctx.createGain(); g.gain.value = 0.85;
+        src.connect(g); g.connect(engine.master); src.start();
+        N.node = src;
+      } else {
+        await engine.loadMix([{ id: N.source === 'myaudio' ? 'pink' : N.source, volume: 0.55 }]);
+      }
+    }
+    async function start(ctx) {
+      const N = ctx.n || {};
+      if (!N.hz || !N.accepted) throw new Error('set and accept your tinnitus pitch first (step 1)');
+      safeMaster();
+      await startSource(ctx);
+      const r = engine.notchSet(N.hz, widthOct(N), depthDb(N));
+      if (!r.ok) throw new Error(r.reason);
+      engine.notchEnable(false);            // begin in NORMAL for the suitability measurement…
+      ctx.nEl.live.hidden = false; ctx.nEl.feedback.hidden = true;
+      ctx.nEl.suit.textContent = '';
+      sessionStart = Date.now();
+      setTimeout(() => {
+        suitability(ctx);
+        if (runningThis() && N.abOn !== false) {   // …then land on NOTCHED
+          N.abOn = true; engine.notchEnable(true);
+          $$('[data-nxab]', ctx.host).forEach(x => x.setAttribute('aria-checked', x.dataset.nxab === 'on'));
+        }
+      }, 1400);
+      if (ctx.nEl.vizlab) ctx.nEl.vizlab.textContent = `Your tinnitus pitch: ${hzLabel(N.hz)} · notch ${hzLabel(r.lo)} – ${hzLabel(r.hi)}`;
+      startViz(ctx);
+    }
+    function suitability(ctx) {
+      try {
+        const N = ctx.n; if (!runningThis() || !engine.ctx) return;
+        const bins = new Uint8Array(engine.analyser.frequencyBinCount);
+        engine.analyser.getByteFrequencyData(bins);
+        const binHz = engine.ctx.sampleRate / engine.analyser.fftSize;
+        const w = widthOct(N), lo = N.hz * Math.pow(2, -w / 2), hi = N.hz * Math.pow(2, w / 2);
+        const avg = (a, b) => { let s = 0, n = 0; for (let i = Math.max(1, Math.floor(a / binHz)); i <= Math.min(bins.length - 1, Math.ceil(b / binHz)); i++) { s += bins[i]; n++; } return n ? s / n : 0; };
+        const band = avg(lo, hi), ref = avg(300, Math.min(10000, engine.ctx.sampleRate * 0.45));
+        ctx.nEl.suit.textContent = (band < Math.max(10, ref * 0.18))
+          ? `⚠ This sound may not contain enough energy around your tinnitus pitch (${hzLabel(N.hz)}) for meaningful notching. A broadband sound — pink noise, rain, a waterfall — gives the notch more to work on.`
+          : '';
+      } catch (_) { }
+    }
+    function startViz(ctx) {
+      cancelAnimationFrame(vizRaf);
+      const cv = ctx.nEl.viz, c2 = cv.getContext('2d');
+      const bins = new Uint8Array(512);
+      const css = getComputedStyle(document.documentElement);
+      const accent = css.getPropertyValue('--accent').trim() || '#7aa2ff';
+      let last = 0;
+      const FMIN = 150, FMAX = 14000;
+      const loop = (ts) => {
+        if (!runningThis()) return;                       // stops itself with the session
+        vizRaf = requestAnimationFrame(loop);
+        if (!vizVisible || document.hidden || ts - last < 66) return;   // ~15 fps, gated
+        last = ts;
+        if (!engine.ctx) return;
+        const N = ctx.n, w = cv.clientWidth || 300;
+        if (cv.width !== w * 2) { cv.width = w * 2; cv.height = 300; }
+        engine.analyser.getByteFrequencyData(bins);
+        const sr = engine.ctx.sampleRate, binHz = sr / engine.analyser.fftSize;
+        c2.clearRect(0, 0, cv.width, cv.height);
+        const X = (hz) => cv.width * Math.log(hz / FMIN) / Math.log(FMAX / FMIN);
+        const wOct = widthOct(N), lo = N.hz * Math.pow(2, -wOct / 2), hi = N.hz * Math.pow(2, wOct / 2);
+        c2.fillStyle = 'rgba(255,170,80,0.14)'; c2.fillRect(X(lo), 0, X(hi) - X(lo), cv.height);
+        c2.beginPath(); c2.moveTo(0, cv.height);
+        for (let px = 0; px <= cv.width; px += 4) {
+          const hz = FMIN * Math.pow(FMAX / FMIN, px / cv.width);
+          const v = bins[Math.min(bins.length - 1, Math.round(hz / binHz))] / 255;
+          c2.lineTo(px, cv.height - v * cv.height * 0.92);
+        }
+        c2.lineTo(cv.width, cv.height); c2.closePath();
+        c2.fillStyle = accent + '55'; c2.fill();
+        c2.strokeStyle = accent; c2.lineWidth = 2; c2.stroke();
+        c2.strokeStyle = 'rgba(255,170,80,0.9)'; c2.lineWidth = 2;
+        c2.beginPath(); c2.moveTo(X(N.hz), 0); c2.lineTo(X(N.hz), cv.height); c2.stroke();
+      };
+      vizRaf = requestAnimationFrame(loop);
+    }
+    function stopped(ctx) {
+      cancelAnimationFrame(vizRaf); vizRaf = 0;
+      engine.notchClear();
+      const N = ctx.n || {};
+      if (N.node) { try { N.node.stop(); } catch (_) { } N.node = null; }
+      if (ctx.nEl) {
+        ctx.nEl.live.hidden = true;
+        const mins = sessionStart ? Math.round((Date.now() - sessionStart) / 60000) : 0;
+        if (mins >= 2) showFeedback(ctx, mins);
+      }
+      sessionStart = 0;
+    }
+    function showFeedback(ctx, mins) {
+      const N = ctx.n, host = ctx.nEl.feedback;
+      host.hidden = false;
+      host.innerHTML = `<h3 class="nx-t">Optional: what did you notice?</h3>
+        <span class="label-sm">Right after listening, the sound of your tinnitus is…</span>
+        <div class="chips">${[['much-quieter', 'Much quieter'], ['quieter', 'Slightly quieter'], ['same', 'No change'], ['louder', 'Slightly louder'], ['much-louder', 'Much louder'], ['unsure', 'Not sure']].map(([v, l]) => `<button class="chip" data-fl="${v}">${l}</button>`).join('')}</div>
+        <span class="label-sm">And separately — how bothersome does it feel right now?</span>
+        <div class="chips">${[['0', 'Not at all'], ['1', 'Slightly'], ['2', 'Moderately'], ['3', 'Very'], ['4', 'Extremely']].map(([v, l]) => `<button class="chip" data-fd="${v}">${l}</button>`).join('')}</div>
+        <div class="btn-row"><button class="btn btn-secondary btn-sm" data-f="save" disabled>Save note</button><button class="btn btn-ghost btn-sm" data-f="skip">Skip</button></div>
+        <p class="muted small">A temporary quieting right after listening (“residual inhibition”) is common and short-lived — it is recorded as a short-term post-sound change, not as a treatment effect. Loudness and bothersomeness are kept separate on purpose.</p>`;
+      let fl = null, fd = null;
+      const upd = () => { $('[data-f="save"]', host).disabled = !(fl || fd); };
+      $$('[data-fl]', host).forEach(b => b.addEventListener('click', () => { fl = b.dataset.fl; $$('[data-fl]', host).forEach(x => x.classList.toggle('active', x === b)); upd(); }));
+      $$('[data-fd]', host).forEach(b => b.addEventListener('click', () => { fd = +b.dataset.fd; $$('[data-fd]', host).forEach(x => x.classList.toggle('active', x === b)); upd(); }));
+      $('[data-f="skip"]', host).addEventListener('click', () => { host.hidden = true; });
+      $('[data-f="save"]', host).addEventListener('click', () => {
+        const ss = store.get('notch:sessions', []);
+        ss.push({ date: new Date().toISOString(), mins, hz: N.hz, width: N.width, depth: N.depth, source: N.source, postChange: fl, distress: fd });
+        store.set('notch:sessions', ss); host.hidden = true; renderHistory(ctx);
+        app.toast('Noted — stored only on this device.');
+      });
+    }
+    function renderProfiles(ctx) {
+      const host = ctx.nEl && ctx.nEl.profiles; if (!host) return;
+      const ps = store.get('notch:profiles', []);
+      host.innerHTML = ps.length ? `<h3 class="nx-t">My notched profiles</h3><div class="chips">${ps.map(p => `<button class="chip chip-mine" data-pload="${p.id}"><strong>${p.name}</strong><span>${hzLabel(p.hz)} · ${NCFG().widths[p.width] ? NCFG().widths[p.width].label.split(' ·')[0] : p.width} · ${new Date(p.created).toLocaleDateString()}</span></button>`).join('')}</div><p class="muted small"><button class="linklike" data-pclear>Delete all profiles</button></p>` : '';
+      $$('[data-pload]', host).forEach(b => b.addEventListener('click', async () => {
+        const p = ps.find(x => x.id === +b.dataset.pload); if (!p) return;
+        Object.assign(ctx.n, { hz: p.hz, where: p.where, conf: p.conf, source: p.source, width: p.width, depth: p.depth, accepted: true });
+        ctx.nEl.slider.value = hzS(p.hz); ctx.nEl.out.textContent = hzLabel(p.hz);
+        ctx.nEl.confirm.hidden = false; ctx.nEl.hzbig.textContent = hzLabel(p.hz); ctx.nEl.accept.textContent = '✓ Accepted';
+        $$('[data-nxs]', ctx.host).forEach(x => x.setAttribute('aria-pressed', x.dataset.nxs === p.source));
+        $$('[data-nxwidth]', ctx.host).forEach(x => x.setAttribute('aria-pressed', x.dataset.nxwidth === p.width));
+        $$('[data-nxdepth]', ctx.host).forEach(x => x.setAttribute('aria-pressed', x.dataset.nxdepth === p.depth));
+        if (runningThis()) { await startSource(ctx); applyNotch(ctx); }
+        app.toast(`Loaded “${p.name}”. Press Start Experiment to listen.`);
+      }));
+      const pc = $('[data-pclear]', host); if (pc) pc.addEventListener('click', () => { if (confirm('Delete all saved notched profiles? Your measurement history is kept.')) { store.set('notch:profiles', []); renderProfiles(ctx); } });
+    }
+    function renderHistory(ctx) {
+      const box = ctx.nEl && ctx.nEl.feedback; if (!box) return;
+      const ss = store.get('notch:sessions', []);
+      if (!ss.length || !box.hidden) return;
+      const L = { 'much-quieter': 'much quieter', quieter: 'slightly quieter', same: 'no change', louder: 'slightly louder', 'much-louder': 'much louder', unsure: 'not sure' };
+      const D = ['not at all', 'slightly', 'moderately', 'very', 'extremely'];
+      box.hidden = false;
+      box.innerHTML = `<h3 class="nx-t">Your recent notes</h3><ul class="bullets small">${ss.slice(-6).reverse().map(s => `<li>${new Date(s.date).toLocaleDateString()} — ${s.mins} min of ${s.source === 'myaudio' ? 'my audio' : (engine.def(s.source) || {}).name || s.source} at ${hzLabel(s.hz)}: tinnitus ${L[s.postChange] || '—'}${s.distress != null ? `, bothered ${D[s.distress]}` : ''}</li>`).join('')}</ul><p class="muted small">Personal observations over time — not a measure of treatment effect.</p>`;
+    }
+    return { wire, start, stopped };
+  })();
+
   const CATS = [['Discover', 'Find and shape the sound that suits you'], ['Explore', 'Ways of listening you will not find in a noise machine'], ['Focus', 'Something to rest your attention on while you listen'], ['Sessions', 'Let the app build the whole experience']];
 
   // ---------- runtime ----------

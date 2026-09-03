@@ -427,6 +427,27 @@ input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.12); }
 .ev-established { background: rgba(76,175,120,.15); color: #2f8a5a; border-color: rgba(76,175,120,.3); }
 .ev-promising { background: rgba(63,108,240,.12); color: var(--accent); }
 .ev-exploratory { background: color-mix(in srgb, var(--lab) 16%, transparent); color: var(--lab); }
+.ev-mixed { background: rgba(233, 160, 60, .14); color: #b0781e; border-color: rgba(233, 160, 60, .35); }
+:root[data-theme="dark"] .ev-mixed { color: #f0bc72; }
+
+/* ---- Personalized Notched Sound ---- */
+.nx { margin: 14px 0; text-align: left; }
+.nx-t { margin: 0 0 10px; font-size: 1.05rem; }
+.nx .label-sm { display: block; margin-top: 12px; }
+.nx .chips { margin: 6px 0 2px; }
+.nx-pitch input[type="range"] { width: 100%; margin: 8px 0 6px; }
+.nx-pitch output { font-weight: 700; color: var(--accent); margin-left: 8px; font-variant-numeric: tabular-nums; }
+.nx-big { font-size: 1.08rem; margin: 12px 0 6px; }
+.nx-confirm { border-top: 1px solid var(--border); margin-top: 12px; padding-top: 4px; }
+.nx-helper { border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; margin-top: 8px; }
+.nx-ab { justify-content: center; margin: 4px 0 8px; }
+.nx-ab button { font-weight: 800; letter-spacing: .08em; padding: 12px 22px; font-size: .95rem; }
+.nx-viz { position: relative; margin: 10px 0 2px; }
+.nx-viz canvas { width: 100%; height: 150px; display: block; border-radius: 12px; background: color-mix(in srgb, var(--card-solid) 60%, transparent); }
+.nx-vizlab { font-size: .78rem; color: var(--muted); text-align: center; margin-top: 4px; font-variant-numeric: tabular-nums; }
+.nx-adv { margin-top: 10px; }
+.nx-adv > div { margin-top: 6px; line-height: 1.5; }
+.nx-about { margin-top: 14px; }
 .ev-limited { background: rgba(194,106,58,.14); color: #c26a3a; }
 :root[data-theme="dark"] .ev-established { color: #7ed6a3; } :root[data-theme="dark"] .ev-limited { color: #ffb088; }
 .lab-what { margin: 0; font-size: .95rem; }

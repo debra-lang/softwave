@@ -147,7 +147,18 @@
       this.masterFilter = ctx.createBiquadFilter(); this.masterFilter.type = 'lowpass'; this.masterFilter.frequency.value = 20000; this.masterFilter.Q.value = 0.5;
       this.masterPan = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
       this.master.connect(this.trim); this.trim.connect(this.masterFilter);
-      if (this.masterPan) { this.masterFilter.connect(this.masterPan); this.masterPan.connect(this.limiter); } else this.masterFilter.connect(this.limiter);
+      const preOut = this.masterPan ? (this.masterFilter.connect(this.masterPan), this.masterPan) : this.masterFilter;
+      // Personalized notch stage: parallel dry/wet paths into the limiter. The wet path
+      // holds three cascaded peaking cuts (see Engine.notchDesign); crossfading the two
+      // gains gives click-free NORMAL vs NOTCHED switching with no level jumps.
+      // Completely inert (dry=1, wet=0, filters at 0 dB) until notchSet() is called.
+      this.notchDry = ctx.createGain(); this.notchDry.gain.value = 1;
+      this.notchWet = ctx.createGain(); this.notchWet.gain.value = 0;
+      this.notchFilters = [0, 1, 2].map(() => { const f = ctx.createBiquadFilter(); f.type = 'peaking'; f.frequency.value = 1000; f.Q.value = 1; f.gain.value = 0; return f; });
+      preOut.connect(this.notchDry); this.notchDry.connect(this.limiter);
+      preOut.connect(this.notchFilters[0]);
+      this.notchFilters[0].connect(this.notchFilters[1]); this.notchFilters[1].connect(this.notchFilters[2]);
+      this.notchFilters[2].connect(this.notchWet); this.notchWet.connect(this.limiter);
       this.limiter.connect(this.analyser);
       // iOS native shell: WKWebView suspends bare Web Audio output when the screen locks,
       // but keeps HTMLMediaElement playback alive (that's what the background-audio mode
@@ -958,6 +969,59 @@
       this.timer = { endsAt: null, fade: this.timer.fade, durationMin: null };
       if (wasFading && this.ctx) this.setMasterVolume(this.masterVolume);
       if (!silent) this.emit('timer', this.timer);
+    }
+
+    // ---------- personalized notch (band-stop) ----------
+    // Canonical design shared by the audio path and the QA measurement harness, so both
+    // platforms and all tests interpret one specification (centre Hz, width in octaves,
+    // depth in dB). It approximates the one-octave Butterworth band-stop used in the
+    // tailor-made notched music studies (Okamoto 2010 PNAS; Teismann 2011; Stein 2016)
+    // with three cascaded IIR peaking cuts — one at the centre, one either side —
+    // overlapped so the stop band is roughly flat near depthDb between the cutoffs.
+    // IIR is used instead of the studies' offline FIR so the notch runs live, follows
+    // parameter changes smoothly, and stays stable at any supported sample rate.
+    static notchDesign(fc, widthOct, depthDb) {
+      // Constants fitted by grid search against the exact biquad magnitude response
+      // (2026-09-03; see release report). Measured at 48 kHz for the shipped presets:
+      // centre within 0.8 dB of the requested depth, nominal band edges ~ -10 dB,
+      // spill at 1.5x the edges <= 0.8 dB, far field flat within 0.2 dB.
+      const off = widthOct * 0.44;                // side-filter placement, octaves from centre
+      const q = 7.8 / widthOct;
+      return [
+        { f: fc * Math.pow(2, -off), Q: q, g: -depthDb * 0.54 },
+        { f: fc, Q: q * 0.8, g: -depthDb * 0.94 },
+        { f: fc * Math.pow(2, off), Q: q, g: -depthDb * 0.54 },
+      ];
+    }
+    notchSet(fcIn, widthOct = 1, depthDb = 24) {
+      if (!this.ctx || !this.notchFilters) return { ok: false, reason: 'audio not started' };
+      const ny = this.ctx.sampleRate / 2;
+      const fc = Math.min(Math.max(fcIn, 100), 13000);
+      const hi = fc * Math.pow(2, widthOct / 2);
+      // Nyquist/stability guard: never accept a configuration the device cannot reproduce.
+      if (hi > ny * 0.9) return { ok: false, reason: 'The upper edge of this notch is beyond what this device can reproduce. Lower the pitch or choose a narrower width.' };
+      const t = this.ctx.currentTime;
+      Engine.notchDesign(fc, widthOct, depthDb).forEach((d, i) => {
+        const f = this.notchFilters[i];
+        f.frequency.setTargetAtTime(d.f, t, 0.08);
+        f.Q.setTargetAtTime(d.Q, t, 0.08);
+        f.gain.setTargetAtTime(d.g, t, 0.08);
+      });
+      this.notchState = { fc, widthOct, depthDb, lo: fc * Math.pow(2, -widthOct / 2), hi };
+      return Object.assign({ ok: true }, this.notchState);
+    }
+    notchEnable(on) {
+      if (!this.ctx || !this.notchDry) return;
+      const t = this.ctx.currentTime;
+      this.notchDry.gain.setTargetAtTime(on ? 0 : 1, t, 0.05);
+      this.notchWet.gain.setTargetAtTime(on ? 1 : 0, t, 0.05);
+      this.notchOn = !!on;
+    }
+    notchClear() {
+      if (!this.ctx || !this.notchFilters) return;
+      this.notchEnable(false); this.notchState = null;
+      const t = this.ctx.currentTime;
+      this.notchFilters.forEach(f => f.gain.setTargetAtTime(0, t, 0.05));
     }
 
     // ---------- analyser data for visuals ----------
