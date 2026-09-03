@@ -293,19 +293,7 @@
           }, 150);
         };
         if (document.activeElement && document.activeElement.blur) document.activeElement.blur();   // stop iOS from anchoring the viewport to the Start button
-        // Phones: while the experiment runs, fold the explanation away so the whole
-        // comparison flow fits on screen. A small toggle keeps it one tap away.
-        const detailEl = host.closest('.lab-detail');
-        if (detailEl) {
-          if (!detailEl.querySelector('.about-toggle')) {
-            const t = document.createElement('button'); t.type = 'button'; t.className = 'about-toggle';
-            t.textContent = 'ⓘ About this experiment';
-            t.setAttribute('aria-expanded', 'false');
-            t.addEventListener('click', () => { const on = detailEl.classList.toggle('exp-peek'); t.setAttribute('aria-expanded', on); });
-            const dl = detailEl.querySelector('.lab-dl'); if (dl) dl.before(t);
-          }
-          detailEl.classList.add('exp-compact');
-        }
+        compactForRun(host.closest('.lab-detail'));
         await next();
       },
       stop(ctx) { (ctx && ctx.finished ? ['discoB'] : ['discoA', 'discoB']).forEach(id => engine.isActive(id) && engine.stopSound(id)); }, keepsSound: true,
@@ -561,6 +549,33 @@
     el.innerHTML = `${exp.featured ? '<div class="lab-orb"><canvas aria-hidden="true"></canvas></div><div class="lab-reco">Recommended starting point</div>' : ''}<div class="lab-card-head"><div><div class="lab-cat">${exp.cat}${exp.premium ? ' · <span class="tag tag-prem">Premium preview</span>' : ''}</div><h3>${exp.name}</h3></div><span class="ev ev-${exp.evidence}">${EV[exp.evidence]}</span></div><p class="lab-what">${exp.what}</p><div class="lab-actions"><button class="btn btn-primary" data-open="${exp.id}">Open</button>${f.rating ? `<span class="muted small">You said: ${f.rating === 'helpful' ? 'Helpful' : f.rating === 'not' ? 'Not for me' : 'Neutral'}</span>` : ''}${favs().includes(exp.id) ? '<span class="tag">★ Favourite</span>' : ''}</div>`;
     $('[data-open]', el).addEventListener('click', () => openExperiment(exp.id)); if (exp.featured) liveShape($('.lab-orb canvas', el), () => { const pp = profileParams(); return { p: pp ? Object.assign({}, pp, { nature: profile().nature }) : Object.assign(DEF(), { colour: 0.45, rich: 0.5, width: 0.5 }), live: true, speed: 0.7, scale: 0.42 }; }); return el;
   }
+  // ---------- shared run-mode positioning (the pattern proven on Find My Sound) ----------
+  // Phones: while an experiment runs, fold the explanation behind "ⓘ About this
+  // experiment" so the live controls fit on screen. Desktop CSS ignores the class.
+  function compactForRun(detailEl) {
+    if (!detailEl) return;
+    if (!detailEl.querySelector('.about-toggle')) {
+      const t = document.createElement('button'); t.type = 'button'; t.className = 'about-toggle';
+      t.textContent = 'ⓘ About this experiment';
+      t.setAttribute('aria-expanded', 'false');
+      t.addEventListener('click', () => { const on = detailEl.classList.toggle('exp-peek'); t.setAttribute('aria-expanded', on); });
+      const dl = detailEl.querySelector('.lab-dl'); if (dl) dl.before(t);
+    }
+    detailEl.classList.add('exp-compact');
+  }
+  // Bring the topmost visible control block to just below the real (measured) header,
+  // so a new user sees the experiment's adjustments without hunting for them.
+  function scrollToRunControls(panel) {
+    const el = ['[data-custom]', '[data-settings]', '.lab-run'].map(s => $(s, panel))
+      .filter(x => x && !x.hidden && x.offsetHeight > 0)
+      .sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top)[0];
+    if (!el) return;
+    const tb = document.querySelector('.topbar');
+    const off = (tb ? tb.getBoundingClientRect().height : 54) + 10;
+    const r = el.getBoundingClientRect();
+    if (r.top < off - 6 || r.top > innerHeight * 0.45) window.scrollTo({ top: scrollY + r.top - off, behavior: 'smooth' });
+  }
+
   function openExperiment(id) {
     const exp = byId[id]; if (!exp) return; const ctx = ctxFor(exp); const panel = $('#lab-detail'); panel.hidden = false; const f = fb()[exp.id] || {}; const isFav = favs().includes(exp.id);
     panel.innerHTML = `<div class="lab-detail-inner"><button class="btn btn-ghost btn-sm" data-close>← Experiments</button>
@@ -573,7 +588,7 @@
       <div data-after></div></div>`;
     ctx.host = panel; if (exp.id === 'session') $('[data-settings]', panel).hidden = true; renderSettings(exp, ctx, $('[data-settings]', panel)); if (exp.custom && exp.buildUI) exp.buildUI(ctx, $('[data-custom]', panel));
     $('[data-close]', panel).addEventListener('click', () => { if (running) stopRunning('Experiment stopped'); panel.hidden = true; panel.innerHTML = ''; });
-    $('[data-exp-start]', panel).addEventListener('click', async () => { if (!gate(exp)) return; if (running && running.exp !== exp) stopRunning(); else if (running) return; if (exp.id === 'discovery') store.set('lab:discoveries', store.get('lab:discoveries', 0) + 1); await engine.init(); running = { exp, ctx }; setFb(exp.id, { tries: ((fb()[exp.id] || {}).tries || 0) + 1, last: Date.now() }); store.set('lab:settings:' + exp.id, ctx.s); updateRunningUI(); try { await Promise.race([exp.start(ctx), new Promise((_, rej) => setTimeout(() => rej(new Error('timed out — check that sound is allowed in your browser')), 12000))]); } catch (e) { console.error(e); app.toast('Could not start: ' + e.message, 5000); if (running && running.exp === exp) { running = null; } updateRunningUI(); } renderLists(); });
+    $('[data-exp-start]', panel).addEventListener('click', async () => { if (!gate(exp)) return; if (running && running.exp !== exp) stopRunning(); else if (running) return; if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); if (exp.id === 'discovery') store.set('lab:discoveries', store.get('lab:discoveries', 0) + 1); await engine.init(); running = { exp, ctx }; setFb(exp.id, { tries: ((fb()[exp.id] || {}).tries || 0) + 1, last: Date.now() }); store.set('lab:settings:' + exp.id, ctx.s); updateRunningUI(); try { await Promise.race([exp.start(ctx), new Promise((_, rej) => setTimeout(() => rej(new Error('timed out — check that sound is allowed in your browser')), 12000))]); } catch (e) { console.error(e); app.toast('Could not start: ' + e.message, 5000); if (running && running.exp === exp) { running = null; } updateRunningUI(); } if (running && running.exp === exp && exp.id !== 'discovery') { compactForRun(panel.closest('.lab-detail') || panel); setTimeout(() => scrollToRunControls(panel), 120); } renderLists(); });   // discovery positions itself (specialized A/B flow)
     $('[data-stop]', panel).addEventListener('click', () => { if (running && running.exp === exp) stopRunning('Stopped'); else { try { exp.stop && exp.stop(ctx); } catch (_) { } } engine.stopAll(); });   // Stop means stop: the experiment and its sound, in one press
     $('[data-reset]', panel).addEventListener('click', () => { if (running && running.exp === exp) stopRunning(); store.del('lab:settings:' + exp.id); delete ctxs[exp.id]; openExperiment(exp.id); app.toast('Settings reset'); });
     $('[data-fav]', panel).addEventListener('click', e => { const l = favs(); const i = l.indexOf(exp.id); if (i >= 0) l.splice(i, 1); else l.push(exp.id); store.set('lab:favs', l); const on = i < 0; e.currentTarget.setAttribute('aria-pressed', on); e.currentTarget.textContent = on ? '★ Favourite' : '☆ Favourite'; renderLists(); });

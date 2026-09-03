@@ -1016,7 +1016,7 @@ html[data-theme="dark"] .row-title { color: rgba(238,240,244,.42); }
 .journey-chip { display: flex; align-items: center; gap: 8px; margin: 4px 0 14px; }
 .journey-chip .chip strong::before { content: "☀ "; }
 .journey-veil .journey-card .btn-row { flex-wrap: wrap; }
-.fa-tuned { font-size: .78rem; opacity: .85; }
+.fa-tuned, .field-actions .fa.fa-tuned { font-size: .9rem; opacity: .85; }
 /* a chip whose sound is currently playing — tap again to stop */
 .chip-playing { outline: 2px solid rgba(62, 154, 114, 0.55); outline-offset: -1px; }
 :root[data-theme="dark"] .chip-playing { outline-color: rgba(159, 224, 187, 0.6); }
