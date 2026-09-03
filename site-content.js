@@ -13,6 +13,10 @@ const SRC = {
   mixing: { t: 'Tinnitus retraining therapy: mixing point and total masking are equally effective (JAAA, 2012)', u: 'https://pubmed.ncbi.nlm.nih.gov/22609540/' },
   bbn: { t: 'A mixed-methods trial of broad band noise and nature sounds for tinnitus therapy (2017)', u: 'https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5343046/' },
   pitch: { t: 'Self-administered tinnitus pitch matching versus a conventional audiometric procedure (2017)', u: 'https://www.ncbi.nlm.nih.gov/pubmed/28423381' },
+  okamoto: { t: 'Listening to tailor-made notched music reduces tinnitus loudness — Okamoto et al., PNAS (2010)', u: 'https://pubmed.ncbi.nlm.nih.gov/20080545/' },
+  teismann: { t: 'Short and intense tailor-made notched music training against tinnitus — Teismann et al., PLoS ONE (2011)', u: 'https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0024685' },
+  wunderlich: { t: 'Impact of spectral notch width on plasticity and clinical effect — Wunderlich et al., PLoS ONE (2015)', u: 'https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0138595' },
+  stein: { t: 'Clinical trial on tonal tinnitus with tailor-made notched music training — Stein et al. (2016)', u: 'https://pubmed.ncbi.nlm.nih.gov/27838685/' },
   ipod: { t: 'Evaluation of iPod-based automated tinnitus pitch matching (2015)', u: 'https://pubmed.ncbi.nlm.nih.gov/25690779/' },
   ri: { t: 'Systematic review of sound stimulation to elicit tinnitus residual inhibition (ASHA Evidence Maps)', u: 'https://apps.asha.org/EvidenceMaps/Articles/ArticleSummary/92f96cdd-cf44-ed11-8139-005056834e2b' },
   sleepf: { t: 'Sleep Foundation — How to sleep with tinnitus', u: 'https://www.sleepfoundation.org/physical-health/how-to-sleep-with-tinnitus' },
@@ -245,6 +249,39 @@ learn({
 <ul><li>Sounds you actually like — you will use them longer.</li><li>Mixing and balance.</li><li>Sleep timer with fade.</li><li>Works offline, no account, no tracking of your hearing.</li><li>Honest wording: no promises of cures.</li></ul>
 <p>Try the <a href="/tinnitus-sound-generator/">Find My Quiet Sound sound generator</a>.</p>`,
   sources: ['nidcd', 'ata', 'who', 'harvard'],
+});
+
+learn({
+  slug: 'notched-sound-for-tinnitus',
+  title: 'Notched Sound for Tinnitus: What It Is and What the Evidence Says',
+  description: 'Personalized notched sound explained in plain language: how it differs from masking, what the mixed research actually found, and how to try it carefully with a free tool.',
+  h1: 'Notched sound for tinnitus',
+  intro: 'Notched sound takes a broadband sound — noise, rain, or music — and reduces a narrow band of frequencies around the pitch you associate with your tinnitus. It has been studied as a possible approach to tinnitus management, but research findings are mixed, and it has not been established as an effective treatment. Here is what it is, what the studies found, and how to explore it carefully.',
+  body: `
+<h2>How it differs from masking</h2>
+<p>Ordinary <a href="/learn/tinnitus-sound-masking/">masking</a> adds sound so the tinnitus has competition. Notched sound does something different: it <em>removes</em> sound in a narrow region around your selected tinnitus pitch, while everything around that region keeps playing. The idea studied in research — sometimes called "tailor-made notched music" — is that listening to sound with your tinnitus frequency missing might, over time, change how the brain responds around that frequency. Whether that translates into real-world benefit is exactly what the research disagrees about.</p>
+<h2>What the research actually found</h2>
+<p>The findings are genuinely mixed, and it matters to say so plainly:</p>
+<ul>
+<li>An early trial (Okamoto and colleagues, 2010) reported that about a year of daily listening to music with a notch at the tinnitus frequency was followed by lower reported tinnitus loudness than placebo-notched music, in a small group.</li>
+<li>A short intensive study (Teismann and colleagues, 2011) reported changes for participants whose tinnitus pitch was below about 8&nbsp;kHz — but not above it — and the effects faded after listening stopped.</li>
+<li>A comparison of different notch widths (Wunderlich and colleagues, 2015) found the width of the notch made no measurable difference.</li>
+<li>The largest randomized trial (Stein and colleagues, 2016 — 100 participants, three months, about two hours daily) found <strong>no significant benefit over placebo on its primary outcome measures</strong>.</li>
+<li>A Cochrane review of sound therapy broadly (2018) rated the overall evidence quality as low.</li>
+</ul>
+<p>In short: some studies have reported changes in tinnitus measures for certain participants, while other controlled studies have not found significant benefit. More research is needed to determine whether notched sound is beneficial, for whom, and under what conditions.</p>
+<h2>Trying it in Find My Quiet Sound</h2>
+<p>The <strong>Personalized Notched Sound</strong> experiment lives in the <a href="/#lab">Experiments</a> section, labelled honestly as experimental with mixed evidence. It works like this:</p>
+<ol>
+<li><strong>Choose your pitch.</strong> Adjust a tone until it sounds approximately similar to the pitch you hear, or let the comparison assistant narrow it down. This is your personal estimate, not a clinical measurement or hearing test.</li>
+<li><strong>Choose a sound.</strong> Broadband sounds — pink noise, rain, a waterfall — carry energy around most pitches, so the notch has something to remove. You can also use your own audio; it is processed on your device and never uploaded.</li>
+<li><strong>Listen and compare.</strong> A NORMAL / NOTCHED switch lets you hear the original and the notched version at the same level, any time. A live spectrum shows the band being reduced.</li>
+<li><strong>Keep the volume low and comfortable.</strong> Stop if the sound causes discomfort or seems to make your tinnitus worse.</li>
+</ol>
+<h2>Sensible expectations</h2>
+<p>Some people notice a temporary change in tinnitus after listening to certain sounds — sometimes called residual inhibition. If it occurs, it is generally temporary and should not be interpreted as evidence that the tinnitus itself has been treated or permanently changed. If you have hearing loss near your tinnitus pitch, the notched region may already be hard to hear, and the experience may feel different. And if your tinnitus pitch is very high, note both the research finding above 8&nbsp;kHz and the fact that headphones and speakers differ in how accurately they reproduce high frequencies.</p>
+<p>Find My Quiet Sound provides this feature as an experimental sound-exploration tool, not as a medical treatment. It does not diagnose, treat or cure tinnitus. If tinnitus is persistent or distressing, a hearing professional can evaluate it properly — counselling approaches such as CBT currently have the strongest evidence for reducing tinnitus distress.</p>`,
+  sources: ['okamoto', 'teismann', 'wunderlich', 'stein', 'cochrane', 'nidcd', 'ata'],
 });
 
 learn({

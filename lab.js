@@ -404,6 +404,7 @@
       what: 'Explore broadband sounds with a narrow range of frequencies reduced around your selected tinnitus pitch — a personalized “notch”. Switch between Normal and Notched at any time to hear the difference.',
       why: 'Research on notched sound has produced mixed results, and it has not been established as an effective treatment for tinnitus. Some studies have reported benefits for certain participants, while others have not found meaningful improvements.',
       how: 'Choose the pitch you hear (your saved sound match is offered if you have one), pick a broadband sound, press Start, then switch between NORMAL and NOTCHED. This feature is provided for personal sound exploration and tinnitus-management support — it does not diagnose, treat, or cure tinnitus.',
+      guide: 'learn/notched-sound-for-tinnitus/',
       whyTest: 'Research on notched sound is genuinely mixed — positive early studies, a null large trial, and a Cochrane review that calls sound-therapy evidence low-quality overall. We present it as an experiment with honest evidence, and your optional feedback helps us understand comfort, never medical outcomes.',
       custom: true, customFirst: true, defaults: {},
       buildUI(ctx, host) {
