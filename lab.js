@@ -950,13 +950,18 @@
       <p class="muted small">What you leaned toward — a preference, not a measurement of your hearing.</p>
       <div class="disc-primary"><button class="btn btn-primary btn-lg" data-r="quiet">Listen to Your Quiet</button><span class="muted small">Hear a sound created from your preferences.</span></div>
       <div class="btn-row"><button class="btn btn-secondary" data-r="moments">See Your Moments</button><button class="btn btn-secondary" data-r="tune">Fine-Tune Your Sound</button><button class="btn btn-secondary" data-r="save">Save This Sound</button></div>
-      <p class="muted small" style="margin:12px 0 0"><button type="button" class="linklike" data-r="again">Try Find My Sound again</button> — keep refining your preferences.</p><div data-saveform></div></div>`;
+      <div data-saveform></div></div>`;
     // The completed card is the END of the session: the active-experiment controls
-    // (Start/Stop/Reset/Favourite, ratings) no longer apply and are hidden, and a
-    // divider marks where the general Experiments page resumes.
+    // (Start/Stop/Reset/Favourite, ratings) no longer apply and are hidden. The one
+    // restart action sits at the bottom, just above the end-of-experiment marker;
+    // "Explore More Experiments" lives OUTSIDE this placard (see setExploreHeading).
     const run = $('.lab-run', panel); if (run) run.hidden = true;
     const rate = $('.lab-rate', panel); if (rate) rate.hidden = true;
-    const after = $('[data-after]', panel); if (after) after.innerHTML = '<div class="lab-end-note"><span class="label-sm">End of Find My Sound</span><h3 class="lab-group-title">Explore more experiments</h3></div>';
+    const after = $('[data-after]', panel); if (after) {
+      after.innerHTML = '<div class="btn-row" style="justify-content:center; margin-top:18px"><button class="btn btn-primary btn-lg" data-r-new>Start New Experiment</button></div><div class="lab-end-note"><span class="label-sm">End of Find My Sound</span></div>';
+      $('[data-r-new]', after).addEventListener('click', () => { ctx.finished = false; ctx.result = null; setExploreHeading(false); stopRunning(); openExperiment('discovery'); });
+    }
+    setExploreHeading(true);
     const R = $('[data-result]', host); liveShape($('.reveal-orb canvas', R), () => ({ p: Object.assign({}, best.params, { nature: best.nature }), live: true, scale: 0.42 }));
     // Returning from the Sounds-page destinations uses the app's own back button —
     // normally hidden on Sounds, shown here because there is a real place to go back to.
@@ -1002,16 +1007,40 @@
     $('[data-r="save"]', R).addEventListener('click', () => saveSoundForm($('[data-saveform]', R), snd, () => {
       savedNote('Saved. Find it any time under <strong>My Saved Sounds</strong> on the Sounds page. <button type="button" class="linklike" data-go="sounds|#my-sounds-row">Show me</button>');
     }));
-    $('[data-r="again"]', R).addEventListener('click', () => { ctx.finished = false; ctx.result = null; stopRunning(); openExperiment('discovery'); });
-    // Bring the card to just below the real (measured) header once layout settles.
-    setTimeout(() => {
-      const card = $('.disc-reveal', host); if (!card) return;
-      const tb = document.querySelector('.topbar');
-      const off = (tb ? tb.getBoundingClientRect().height : 54) + 10;
-      const r = card.getBoundingClientRect();
-      window.scrollTo({ top: scrollY + r.top - off, behavior: 'smooth' });
-    }, 150);
+    setTimeout(scrollToDiscResult, 150);
   }
+  // Bring the completed card to just below the real (measured) header.
+  function scrollToDiscResult() {
+    const card = document.querySelector('#lab-detail .disc-reveal'); if (!card) return;
+    const tb = document.querySelector('.topbar');
+    const off = (tb ? tb.getBoundingClientRect().height : 54) + 10;
+    const r = card.getBoundingClientRect();
+    window.scrollTo({ top: scrollY + r.top - off, behavior: 'smooth' });
+  }
+  // "Explore More Experiments" — a centred section heading BETWEEN the completed
+  // Find My Sound placard and the next experiment placards, never inside it.
+  function setExploreHeading(on) {
+    let hd = document.getElementById('lab-after-heading');
+    if (on) {
+      if (!hd) {
+        hd = document.createElement('h2'); hd.id = 'lab-after-heading'; hd.className = 'row-title lab-explore-more';
+        hd.textContent = 'Explore More Experiments';
+        const panel = $('#lab-detail'); if (panel) panel.after(hd);
+      }
+      hd.hidden = false;
+    } else if (hd) hd.hidden = true;
+  }
+  // Back (app back button, browser back, iPhone edge-swipe) into a finished session
+  // must land ON the completed result, not at the top of the Experiments page —
+  // the view switcher scrolls to top, so we re-position after it.
+  const backToResult = () => {
+    const h = location.hash;
+    if (h !== '#lab' && h !== '#find') return;
+    const ctx = ctxs.discovery;
+    const panel = document.getElementById('lab-detail');
+    if (ctx && ctx.finished && ctx.result && panel && !panel.hidden && panel.querySelector('.disc-reveal')) setTimeout(scrollToDiscResult, 300);
+  };
+  addEventListener('hashchange', backToResult); addEventListener('popstate', backToResult);
 
   // ---------- shared run-mode positioning (the pattern proven on Find My Sound) ----------
   // Phones: while an experiment runs, fold the explanation behind "ⓘ About this
@@ -1041,7 +1070,9 @@
   }
 
   function openExperiment(id) {
-    const exp = byId[id]; if (!exp) return; const ctx = ctxFor(exp); const panel = $('#lab-detail'); panel.hidden = false; const f = fb()[exp.id] || {}; const isFav = favs().includes(exp.id);
+    const exp = byId[id]; if (!exp) return; const ctx = ctxFor(exp); const panel = $('#lab-detail'); panel.hidden = false;
+    setExploreHeading(false);   // only the completed Find My Sound state shows it (restored below if so)
+    const f = fb()[exp.id] || {}; const isFav = favs().includes(exp.id);
     panel.innerHTML = `<div class="lab-detail-inner"><button class="btn btn-ghost btn-sm" data-close>← Experiments</button>
       <div class="lab-card-head"><div><div class="lab-cat">${exp.cat} · from ${exp.from}${exp.premium ? ' · <span class="tag tag-prem">' + PREMIUM_TAG() + '</span>' : ''}</div><h2>${exp.name}</h2></div><span class="ev ev-${exp.evidence}">${EV[exp.evidence]}</span></div>
       <dl class="lab-dl"><dt>What it does</dt><dd>${exp.what}</dd><dt>Why try it</dt><dd>${exp.why}</dd><dt>How to use it</dt><dd>${exp.how}${exp.guide ? ` <a href="${exp.guide}">Full step-by-step guide →</a>` : ''}</dd></dl>

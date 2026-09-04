@@ -1298,8 +1298,9 @@ html[data-theme="dark"] .lab-view { --lab-bg-a: #0f1320; --lab-bg-b: #090b12; }
 .disc-wrap { scroll-margin-top: 64px; }
 .disc-primary { display: flex; flex-direction: column; align-items: center; gap: 6px; margin: 16px 0 12px; }
 .lab-end-note { border-top: 1px solid var(--border); margin-top: 22px; padding-top: 16px; text-align: center; }
-.lab-end-note .label-sm { display: block; margin-bottom: 8px; }
-.lab-end-note .lab-group-title { margin: 0; }   /* land just below the sticky topbar when scrolled to */
+.lab-end-note .label-sm { display: block; margin-bottom: 0; }
+.lab-explore-more { text-align: center; margin: 30px 0 8px; }
+#lab-detail[hidden] + .lab-explore-more { display: none; }   /* land just below the sticky topbar when scrolled to */
 /* Phones, while an experiment runs: fold the What/Why/How explanation into a toggle so the
    whole comparison flow fits on one screen. Desktop keeps the full explanation as-is. */
 .about-toggle { display: none; }

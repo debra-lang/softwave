@@ -575,7 +575,20 @@
   const fx = $('#focus-exit'); if (fx) fx.addEventListener('click', exitFocus);
   // Two of the three stops leave for the Visual Focus landing page; sound-only stays put.
   const goLanding = () => { exitFocus(); setTimeout(() => { if (window.softwaveApp) app.showView('focus'); }, 60); };
-  $('#focus-stop-visual').addEventListener('click', () => { goLanding(); });
+  // Stop visual: the sound is untouched. If it is still playing, land the user on the
+  // Sounds page at the live player, so what they are hearing is immediately visible;
+  // with nothing playing, return to the Visual Focus landing page as before.
+  $('#focus-stop-visual').addEventListener('click', () => {
+    const soundOn = engine.activeList().length > 0 && engine.isPlaying;
+    exitFocus();
+    setTimeout(() => {
+      if (!window.softwaveApp) return;
+      if (soundOn) {
+        app.showView('sounds');
+        setTimeout(() => { const f = document.getElementById('field-wrap'); if (f) f.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 300);
+      } else app.showView('focus');
+    }, 60);
+  });
   $('#focus-stop-all').addEventListener('click', () => { (window.softwaveStopAll || engine.stopAll.bind(engine))(); goLanding(); });
   // player-style bar: keep name, playing state and volume readout in sync with the engine
   function syncFocusPlayer() {
@@ -584,6 +597,9 @@
     t.textContent = list.length ? list.map(x => x.name).join(' · ') : 'Nothing playing';
     s.textContent = list.length ? (playing ? 'Playing' : 'Paused') : 'Choose a sound to begin';
     const pb = $('#focus-play'); if (pb) pb.setAttribute('aria-pressed', playing);
+    // with no sound there is nothing to "change" — the same control invites adding one
+    const sb = document.querySelector('.focus-panes-row [data-open-pane="sound"]');
+    if (sb) sb.textContent = list.length ? 'Change sound' : '＋ Add sound';
   }
   engine.on(type => {
     if (type === 'sounds' || type === 'state') syncFocusPlayer();
