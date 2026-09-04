@@ -602,6 +602,12 @@
     app.togglePlay();
   });
   $('#focus-vol').addEventListener('input', e => app.setMaster(+e.target.value / 100, true));
+  // Stop means stop, one tap, without leaving the visual: sounds, experiments, tone and timer.
+  $('#focus-stop').addEventListener('click', () => {
+    (window.softwaveStopAll || engine.stopAll.bind(engine))();
+    const pane = $('.focus-pane[data-pane="sound"]'); if (pane && !pane.hidden) renderSoundPane();
+    app.toast('Stopped. The visual keeps running — pick a new sound or exit when ready.');
+  });
 
   // panels
   function openPanel(which) {
