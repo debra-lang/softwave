@@ -280,61 +280,9 @@
           // should never wonder what they are hearing. Nothing auto-starts — the next
           // sound begins only when they choose "Listen to Your Quiet".
           ['discoA', 'discoB', ...NATURES.filter(n => n !== 'none')].forEach(id => { if (engine.isActive(id)) engine.stopSound(id); });
-          $$('[data-sw],[data-pick]', host).forEach(b => b.disabled = true); $('[data-progress]', host).innerHTML = '<em>Done</em>'; $('[data-hint]', host).textContent = '';
-          const snd = { type: 'sculpt', params: best.params, nature: best.nature, natureVol: 0.35, name: 'My discovered sound' };
-          $('[data-result]', host).innerHTML = `<div class="card lab-result disc-result disc-reveal"><div class="reveal-orb"><canvas></canvas></div><div class="label-sm">Find My Sound · Complete</div><h3>Your Sound Profile is ready</h3>
-            <p class="disc-next">We learned the sound qualities you prefer. Your profile can now help personalize sounds throughout Find My Quiet Sound.</p>
-            <div class="desc-chips">${describe(best.params, best.nature).split(' · ').map(s => `<span>${s}</span>`).join('')}</div>
-            <p class="muted small">What you leaned toward — a preference, not a measurement of your hearing.</p>
-            <div class="disc-primary"><button class="btn btn-primary btn-lg" data-r="quiet">Listen to Your Quiet</button><span class="muted small">Hear a sound created from your preferences.</span></div>
-            <div class="btn-row"><button class="btn btn-secondary" data-r="moments">See Your Moments</button><button class="btn btn-secondary" data-r="tune">Fine-Tune Your Sound</button><button class="btn btn-secondary" data-r="save">Save This Sound</button></div>
-            <p class="muted small" style="margin:12px 0 0"><button type="button" class="linklike" data-r="again">Try Find My Sound again</button> — keep refining your preferences.</p><div data-saveform></div></div>`;
-          const R = $('[data-result]', host); liveShape($('.reveal-orb canvas', R), () => ({ p: Object.assign({}, best.params, { nature: best.nature }), live: true, scale: 0.42 }));
-          // Primary: into the existing Your Quiet Moment — the personalized sound starts
-          // only here, through the very same chip the Sounds page offers.
-          $('[data-r="quiet"]', R).addEventListener('click', () => {
-            app.showView('sounds');
-            setTimeout(() => {
-              const chip = document.querySelector('#moments-slot [data-chip-name="Your Quiet"]');
-              const row = document.querySelector('#moments-slot .moments-row');
-              if (row) { row.scrollIntoView({ behavior: 'smooth', block: 'center' }); row.classList.add('moments-hello'); setTimeout(() => row.classList.remove('moments-hello'), 2600); }
-              if (chip) { chip.click(); setTimeout(() => app.toast('✦ Personalized from your Sound Profile', 4200), 1000); }
-            }, 300);
-          });
-          $('[data-r="tune"]', R).addEventListener('click', async () => { await engine.loadMix(soundMix(snd)); store.set('lab:settings:sculptor', sculptSettingsFrom(best.params, best.nature)); delete ctxs.sculptor; openExperiment('sculptor'); });
-          // After Save / Add to favourites, say WHERE it went — with a one-tap jump to the spot.
-          const savedNote = (html) => {
-            let n = $('.disc-saved-note', R);
-            if (!n) { n = document.createElement('p'); n.className = 'disc-next disc-saved-note'; const sf = $('[data-saveform]', R); sf.parentNode.insertBefore(n, sf); }
-            n.innerHTML = html;
-            $('[data-go]', n).addEventListener('click', (ev) => {
-              const parts = ev.currentTarget.dataset.go.split('|');
-              app.showView(parts[0]);
-              setTimeout(() => { const spot = document.querySelector(parts[1]); if (spot) { spot.scrollIntoView({ behavior: 'smooth', block: 'center' }); spot.classList.add('row-hello'); setTimeout(() => spot.classList.remove('row-hello'), 2600); } }, 250);
-            });
-          };
-          $('[data-r="save"]', R).addEventListener('click', () => saveSoundForm($('[data-saveform]', R), snd, () => {
-            savedNote('Saved. Find it any time under <strong>My Saved Sounds</strong> on the Sounds page. <button type="button" class="linklike" data-go="sounds|#my-sounds-row">Show me</button>');
-          }));
-          $('[data-r="again"]', R).addEventListener('click', () => { stopRunning(); openExperiment('discovery'); });
-          $('[data-r="moments"]', R).addEventListener('click', () => {
-            app.showView('sounds');
-            setTimeout(() => {
-              const row = document.querySelector('#moments-slot .moments-row');
-              if (row) { row.scrollIntoView({ behavior: 'smooth', block: 'center' }); row.classList.add('moments-hello'); setTimeout(() => row.classList.remove('moments-hello'), 2600); }
-            }, 250);
-          });
+          $('[data-hint]', host).textContent = '';
           renderProfile(); stopRunning(null, true); if (M()) { M().track('find_my_sound_completed'); M().track('sound_profile_created'); }
-          // Bring the reveal card into view: it renders below the A/B area, and
-          // stopRunning just re-expanded the folded explanation, shifting layout —
-          // so measure after things settle, with the real topbar height as offset.
-          setTimeout(() => {
-            const card = $('.disc-reveal', host); if (!card) return;
-            const tb = document.querySelector('.topbar');
-            const off = (tb ? tb.getBoundingClientRect().height : 54) + 10;
-            const r = card.getBoundingClientRect();
-            window.scrollTo({ top: scrollY + r.top - off, behavior: 'smooth' });
-          }, 150);
+          showDiscoveryResult(ctx);
         };
         if (document.activeElement && document.activeElement.blur) document.activeElement.blur();   // stop iOS from anchoring the viewport to the Start button
         compactForRun(host.closest('.lab-detail'));
@@ -986,6 +934,85 @@
     el.innerHTML = `${exp.featured ? '<div class="lab-orb"><canvas aria-hidden="true"></canvas></div><div class="lab-reco">Recommended starting point</div>' : ''}<div class="lab-card-head"><div><div class="lab-cat">${exp.cat}${exp.premium ? ' · <span class="tag tag-prem">Premium preview</span>' : ''}</div><h3>${exp.name}</h3></div><span class="ev ev-${exp.evidence}">${EV[exp.evidence]}</span></div><p class="lab-what">${exp.what}</p><div class="lab-actions"><button class="btn btn-primary" data-open="${exp.id}">Open</button>${f.rating ? `<span class="muted small">You said: ${f.rating === 'helpful' ? 'Helpful' : f.rating === 'not' ? 'Not for me' : 'Neutral'}</span>` : ''}${favs().includes(exp.id) ? '<span class="tag">★ Favourite</span>' : ''}</div>`;
     $('[data-open]', el).addEventListener('click', () => openExperiment(exp.id)); if (exp.featured) liveShape($('.lab-orb canvas', el), () => { const pp = profileParams(); return { p: pp ? Object.assign({}, pp, { nature: profile().nature }) : Object.assign(DEF(), { colour: 0.45, rich: 0.5, width: 0.5 }), live: true, speed: 0.7, scale: 0.42 }; }); return el;
   }
+  // ---------- Find My Sound: the completed-result experience ----------
+  // One renderer for the completion card, used at finish AND whenever the user returns
+  // to a finished session (nav tab, back gesture, "Back to your result") — so the
+  // completed state survives navigation until "Try Find My Sound again" clears it.
+  function showDiscoveryResult(ctx) {
+    const host = ctx.host || $('#lab-detail'); const best = ctx.result; if (!host || !best) return;
+    const panel = host.closest('.lab-detail') || host;
+    const snd = { type: 'sculpt', params: best.params, nature: best.nature, natureVol: 0.35, name: 'My discovered sound' };
+    $$('[data-sw],[data-pick]', host).forEach(b => b.disabled = true);
+    const pr = $('[data-progress]', host); if (pr) pr.innerHTML = '<em>Done</em>';
+    $('[data-result]', host).innerHTML = `<div class="card lab-result disc-result disc-reveal"><div class="reveal-orb"><canvas></canvas></div><div class="label-sm">Find My Sound · Complete</div><h3>Your Sound Profile is ready</h3>
+      <p class="disc-next">We learned the sound qualities you prefer. Your profile can now help personalize sounds throughout Find My Quiet Sound.</p>
+      <div class="desc-chips">${describe(best.params, best.nature).split(' · ').map(s => `<span>${s}</span>`).join('')}</div>
+      <p class="muted small">What you leaned toward — a preference, not a measurement of your hearing.</p>
+      <div class="disc-primary"><button class="btn btn-primary btn-lg" data-r="quiet">Listen to Your Quiet</button><span class="muted small">Hear a sound created from your preferences.</span></div>
+      <div class="btn-row"><button class="btn btn-secondary" data-r="moments">See Your Moments</button><button class="btn btn-secondary" data-r="tune">Fine-Tune Your Sound</button><button class="btn btn-secondary" data-r="save">Save This Sound</button></div>
+      <p class="muted small" style="margin:12px 0 0"><button type="button" class="linklike" data-r="again">Try Find My Sound again</button> — keep refining your preferences.</p><div data-saveform></div></div>`;
+    // The completed card is the END of the session: the active-experiment controls
+    // (Start/Stop/Reset/Favourite, ratings) no longer apply and are hidden, and a
+    // divider marks where the general Experiments page resumes.
+    const run = $('.lab-run', panel); if (run) run.hidden = true;
+    const rate = $('.lab-rate', panel); if (rate) rate.hidden = true;
+    const after = $('[data-after]', panel); if (after) after.innerHTML = '<div class="lab-end-note"><span class="label-sm">End of Find My Sound</span><h3 class="lab-group-title">Explore more experiments</h3></div>';
+    const R = $('[data-result]', host); liveShape($('.reveal-orb canvas', R), () => ({ p: Object.assign({}, best.params, { nature: best.nature }), live: true, scale: 0.42 }));
+    // Returning from the Sounds-page destinations uses the app's own back button —
+    // normally hidden on Sounds, shown here because there is a real place to go back to.
+    const backable = () => setTimeout(() => { const b = document.getElementById('nav-back'); if (b) b.hidden = false; }, 80);
+    $('[data-r="quiet"]', R).addEventListener('click', () => {
+      app.showView('sounds'); backable();
+      setTimeout(() => {
+        const chip = document.querySelector('#moments-slot [data-chip-name="Your Quiet"]');
+        const row = document.querySelector('#moments-slot .moments-row');
+        if (row) { row.scrollIntoView({ behavior: 'smooth', block: 'center' }); row.classList.add('moments-hello'); setTimeout(() => row.classList.remove('moments-hello'), 2600); }
+        if (chip) { chip.click(); setTimeout(() => app.toast('✦ Personalized from your Sound Profile', 4200), 1000); }
+      }, 300);
+    });
+    $('[data-r="moments"]', R).addEventListener('click', () => {
+      app.showView('sounds'); backable();
+      setTimeout(() => {
+        const row = document.querySelector('#moments-slot .moments-row');
+        if (row) { row.scrollIntoView({ behavior: 'smooth', block: 'center' }); row.classList.add('moments-hello'); setTimeout(() => row.classList.remove('moments-hello'), 2600); }
+      }, 250);
+    });
+    $('[data-r="tune"]', R).addEventListener('click', async () => {
+      await engine.loadMix(soundMix(snd)); store.set('lab:settings:sculptor', sculptSettingsFrom(best.params, best.nature)); delete ctxs.sculptor; openExperiment('sculptor');
+      // a way home: same ghost-button style as the panel's own "← Experiments"
+      setTimeout(() => {
+        const p = $('#lab-detail'); const close = $('[data-close]', p);
+        if (close && !$('[data-back-result]', p)) {
+          const b = document.createElement('button'); b.className = 'btn btn-ghost btn-sm'; b.setAttribute('data-back-result', ''); b.textContent = '← Back to your result';
+          close.after(b);
+          b.addEventListener('click', () => { if (running) stopRunning(); openExperiment('discovery'); });
+        }
+      }, 100);
+    });
+    const savedNote = (html) => {
+      let n = $('.disc-saved-note', R);
+      if (!n) { n = document.createElement('p'); n.className = 'disc-next disc-saved-note'; const sf = $('[data-saveform]', R); sf.parentNode.insertBefore(n, sf); }
+      n.innerHTML = html;
+      $('[data-go]', n).addEventListener('click', (ev) => {
+        const parts = ev.currentTarget.dataset.go.split('|');
+        app.showView(parts[0]); backable();
+        setTimeout(() => { const spot = document.querySelector(parts[1]); if (spot) { spot.scrollIntoView({ behavior: 'smooth', block: 'center' }); spot.classList.add('row-hello'); setTimeout(() => spot.classList.remove('row-hello'), 2600); } }, 250);
+      });
+    };
+    $('[data-r="save"]', R).addEventListener('click', () => saveSoundForm($('[data-saveform]', R), snd, () => {
+      savedNote('Saved. Find it any time under <strong>My Saved Sounds</strong> on the Sounds page. <button type="button" class="linklike" data-go="sounds|#my-sounds-row">Show me</button>');
+    }));
+    $('[data-r="again"]', R).addEventListener('click', () => { ctx.finished = false; ctx.result = null; stopRunning(); openExperiment('discovery'); });
+    // Bring the card to just below the real (measured) header once layout settles.
+    setTimeout(() => {
+      const card = $('.disc-reveal', host); if (!card) return;
+      const tb = document.querySelector('.topbar');
+      const off = (tb ? tb.getBoundingClientRect().height : 54) + 10;
+      const r = card.getBoundingClientRect();
+      window.scrollTo({ top: scrollY + r.top - off, behavior: 'smooth' });
+    }, 150);
+  }
+
   // ---------- shared run-mode positioning (the pattern proven on Find My Sound) ----------
   // Phones: while an experiment runs, fold the explanation behind "ⓘ About this
   // experiment" so the live controls fit on screen. Desktop CSS ignores the class.
@@ -1031,6 +1058,9 @@
     $('[data-fav]', panel).addEventListener('click', e => { const l = favs(); const i = l.indexOf(exp.id); if (i >= 0) l.splice(i, 1); else l.push(exp.id); store.set('lab:favs', l); const on = i < 0; e.currentTarget.setAttribute('aria-pressed', on); e.currentTarget.textContent = on ? '★ Favourite' : '☆ Favourite'; renderLists(); });
     $$('[data-rate]', panel).forEach(b => b.addEventListener('click', () => { setFb(exp.id, { rating: b.dataset.rate }); $$('[data-rate]', panel).forEach(x => x.setAttribute('aria-checked', x === b)); renderLists(); renderProfile(); }));
     updateRunningUI(); panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // A finished Find My Sound session survives navigation: any return to it shows the
+    // completed result, until "Try Find My Sound again" starts a fresh one.
+    if (id === 'discovery' && ctx.finished && ctx.result && !(running && running.exp === exp)) showDiscoveryResult(ctx);
   }
 
   // ---------- lists ----------

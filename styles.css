@@ -1296,7 +1296,10 @@ html[data-theme="dark"] .lab-view { --lab-bg-a: #0f1320; --lab-bg-b: #090b12; }
 .disc-wrap .ab-obj .lbl, .disc-wrap .ab-obj[aria-pressed="true"] .lbl { position: absolute; left: 50%; top: 100%; transform: translate(-50%, 4px); width: auto; height: auto; background: transparent; color: var(--sf-ink); font-family: var(--sf-display); font-weight: 300; font-size: 1.6rem; letter-spacing: .1em; }
 .disc-wrap .ab-obj:disabled { opacity: .35; }
 .disc-wrap { scroll-margin-top: 64px; }
-.disc-primary { display: flex; flex-direction: column; align-items: center; gap: 6px; margin: 16px 0 12px; }   /* land just below the sticky topbar when scrolled to */
+.disc-primary { display: flex; flex-direction: column; align-items: center; gap: 6px; margin: 16px 0 12px; }
+.lab-end-note { border-top: 1px solid var(--border); margin-top: 22px; padding-top: 16px; text-align: center; }
+.lab-end-note .label-sm { display: block; margin-bottom: 8px; }
+.lab-end-note .lab-group-title { margin: 0; }   /* land just below the sticky topbar when scrolled to */
 /* Phones, while an experiment runs: fold the What/Why/How explanation into a toggle so the
    whole comparison flow fits on one screen. Desktop keeps the full explanation as-is. */
 .about-toggle { display: none; }
