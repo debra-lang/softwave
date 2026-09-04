@@ -275,14 +275,32 @@
         let e2 = null;
         ctx.answer = (pick) => { const winner = pick === 'B' ? cand : best; if (pick !== 'same') learn(winner.params, winner.nature); best = pick === 'same' ? best : winner; round++; if (round >= rounds) { finish(); return; } cand = perturb(best); clearTimeout(e2); roundNote(); next(); };
         const finish = async () => {
-          clearTimers(); ctx.result = best; ctx.finished = true; store.set('lab:discoveries', store.get('lab:discoveries', 0) + 1); sides.A = best; sides.B = best; engine.setSculpt(best.params, 'discoA'); ctx.switchTo('A'); if (engine.isActive('discoB')) engine.stopSound('discoB'); for (const n of NATURES) if (n !== 'none' && engine.isActive(n) && best.nature !== n) engine.stopSound(n);
+          clearTimers(); ctx.result = best; ctx.finished = true; store.set('lab:discoveries', store.get('lab:discoveries', 0) + 1); sides.A = best; sides.B = best;
+          // The comparison audio ends here, cleanly (the normal fade/teardown): the user
+          // should never wonder what they are hearing. Nothing auto-starts — the next
+          // sound begins only when they choose "Listen to Your Quiet".
+          ['discoA', 'discoB', ...NATURES.filter(n => n !== 'none')].forEach(id => { if (engine.isActive(id)) engine.stopSound(id); });
           $$('[data-sw],[data-pick]', host).forEach(b => b.disabled = true); $('[data-progress]', host).innerHTML = '<em>Done</em>'; $('[data-hint]', host).textContent = '';
           const snd = { type: 'sculpt', params: best.params, nature: best.nature, natureVol: 0.35, name: 'My discovered sound' };
-          $('[data-result]', host).innerHTML = `<div class="card lab-result disc-result disc-reveal"><div class="reveal-orb"><canvas></canvas></div><div class="label-sm">Your preferred sound</div><h3>${describe(best.params, best.nature).split(' · ').map(s => s[0].toUpperCase() + s.slice(1)).join(' · ')}</h3><div class="desc-chips">${describe(best.params, best.nature).split(' · ').map(s => `<span>${s}</span>`).join('')}</div><p class="muted small">This is what you chose most often. A preference, not a measurement of your hearing.</p>
-            <p class="disc-next">Your Sound Profile is ready. It now powers <strong>Your Moments</strong> — one-tap Quiet, Sleep and Focus at the top of the Sounds page — and gently tunes everything you play. It keeps learning every time you use Find My Sound.</p>
-            <div class="btn-row"><button class="btn btn-primary" data-r="moments">See Your Moments</button><button class="btn btn-secondary" data-r="listen">Listen</button><button class="btn btn-secondary" data-r="tune">Fine tune in Sound Sculptor</button><button class="btn btn-secondary" data-r="save">Save</button><button class="btn btn-ghost" data-r="fav">Add to favourites</button><button class="btn btn-ghost" data-r="sleep">Use for sleep</button><button class="btn btn-ghost" data-r="visual">Add visual</button><button class="btn btn-ghost" data-r="again">Try again</button></div><div data-saveform></div></div>`;
+          $('[data-result]', host).innerHTML = `<div class="card lab-result disc-result disc-reveal"><div class="reveal-orb"><canvas></canvas></div><div class="label-sm">Find My Sound · Complete</div><h3>Your Sound Profile is ready</h3>
+            <p class="disc-next">We learned the sound qualities you prefer. Your profile can now help personalize sounds throughout Find My Quiet Sound.</p>
+            <div class="desc-chips">${describe(best.params, best.nature).split(' · ').map(s => `<span>${s}</span>`).join('')}</div>
+            <p class="muted small">What you leaned toward — a preference, not a measurement of your hearing.</p>
+            <div class="disc-primary"><button class="btn btn-primary btn-lg" data-r="quiet">Listen to Your Quiet</button><span class="muted small">Hear a sound created from your preferences.</span></div>
+            <div class="btn-row"><button class="btn btn-secondary" data-r="moments">See Your Moments</button><button class="btn btn-secondary" data-r="tune">Fine-Tune Your Sound</button><button class="btn btn-secondary" data-r="save">Save This Sound</button></div>
+            <p class="muted small" style="margin:12px 0 0"><button type="button" class="linklike" data-r="again">Try Find My Sound again</button> — keep refining your preferences.</p><div data-saveform></div></div>`;
           const R = $('[data-result]', host); liveShape($('.reveal-orb canvas', R), () => ({ p: Object.assign({}, best.params, { nature: best.nature }), live: true, scale: 0.42 }));
-          $('[data-r="listen"]', R).addEventListener('click', async () => { await engine.loadMix(soundMix(snd)); });
+          // Primary: into the existing Your Quiet Moment — the personalized sound starts
+          // only here, through the very same chip the Sounds page offers.
+          $('[data-r="quiet"]', R).addEventListener('click', () => {
+            app.showView('sounds');
+            setTimeout(() => {
+              const chip = document.querySelector('#moments-slot [data-chip-name="Your Quiet"]');
+              const row = document.querySelector('#moments-slot .moments-row');
+              if (row) { row.scrollIntoView({ behavior: 'smooth', block: 'center' }); row.classList.add('moments-hello'); setTimeout(() => row.classList.remove('moments-hello'), 2600); }
+              if (chip) { chip.click(); setTimeout(() => app.toast('✦ Personalized from your Sound Profile', 4200), 1000); }
+            }, 300);
+          });
           $('[data-r="tune"]', R).addEventListener('click', async () => { await engine.loadMix(soundMix(snd)); store.set('lab:settings:sculptor', sculptSettingsFrom(best.params, best.nature)); delete ctxs.sculptor; openExperiment('sculptor'); });
           // After Save / Add to favourites, say WHERE it went — with a one-tap jump to the spot.
           const savedNote = (html) => {
@@ -298,9 +316,6 @@
           $('[data-r="save"]', R).addEventListener('click', () => saveSoundForm($('[data-saveform]', R), snd, () => {
             savedNote('Saved. Find it any time under <strong>My Saved Sounds</strong> on the Sounds page. <button type="button" class="linklike" data-go="sounds|#my-sounds-row">Show me</button>');
           }));
-          $('[data-r="fav"]', R).addEventListener('click', async () => { if (!canSaveCombo()) return; await engine.loadMix(soundMix(snd)); const combos = store.get('combos', []); combos.push({ name: 'My discovered sound', mix: engine.snapshot(), master: engine.masterVolume, visual: store.get('visual', 'ocean'), motion: store.get('motion', 'low'), timer: 0 }); store.set('combos', combos); if (window.softwaveFocus && softwaveFocus.refreshFavs) softwaveFocus.refreshFavs(); app.toast('Added to My Saved Environments (Visual Focus).'); savedNote('Added to <strong>My Saved Environments</strong> in Visual Focus — your sound and its visual together, one tap. <button type="button" class="linklike" data-go="focus|#fav-section">Show me</button>'); });
-          $('[data-r="sleep"]', R).addEventListener('click', async () => { await engine.loadMix(soundMix(Object.assign({}, snd, { params: Object.assign({}, best.params, { moving: 0 }) }), 0.5)); engine.setTimer(60, true); app.showView('sleep'); app.toast('Sleep: 60-minute timer with gentle fade.'); });
-          $('[data-r="visual"]', R).addEventListener('click', async () => { await engine.loadMix(soundMix(snd)); focus.setVisual(visualForProfile()); focus.enterFocus(); });
           $('[data-r="again"]', R).addEventListener('click', () => { stopRunning(); openExperiment('discovery'); });
           $('[data-r="moments"]', R).addEventListener('click', () => {
             app.showView('sounds');
