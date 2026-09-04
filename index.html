@@ -32,7 +32,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400&display=swap">
-  <link rel="stylesheet" href="styles.css?v=68">
+  <link rel="stylesheet" href="styles.css?v=69">
   <script type="application/ld+json">
   {"@context":"https://schema.org","@graph":[
     {"@type":"Organization","@id":"https://findmyquietsound.com/#org","name":"Find My Quiet Sound","url":"https://findmyquietsound.com/","logo":"https://findmyquietsound.com/icons/icon-512.png","sameAs":["https://github.com/debra-lang/softwave"]},
@@ -156,7 +156,7 @@
           <div><h3>Who it is for</h3><p>People with tinnitus who want an easy, free way to add a comfortable background sound — at a desk, in a quiet room or at bedtime. It works with speakers, headphones or a pillow speaker, on phones, tablets and computers.</p></div>
           <div><h3>How to start</h3><p>Tap a sound, keep the level low — just enough to blend with the tinnitus — and try others until one feels comfortable. There is no single sound that works for everyone.</p></div>
         </div>
-        <p class="muted small">Sound masking and relaxation — not a medical treatment. Read <a href="learn/tinnitus-sound-masking/">what tinnitus masking is</a>, compare <a href="learn/white-vs-pink-vs-brown-noise/">white, pink and brown noise</a>, or browse all <a href="learn/">guides</a>. <a href="tinnitus-sound-generator/">More about the sound generator</a> · <a href="about/">About Find My Quiet Sound</a> · <a href="premium/">Free &amp; Premium</a>. <span class="muted small" id="build-tag">· v141</span></p>
+        <p class="muted small">Sound masking and relaxation — not a medical treatment. Read <a href="learn/tinnitus-sound-masking/">what tinnitus masking is</a>, compare <a href="learn/white-vs-pink-vs-brown-noise/">white, pink and brown noise</a>, or browse all <a href="learn/">guides</a>. <a href="tinnitus-sound-generator/">More about the sound generator</a> · <a href="about/">About Find My Quiet Sound</a> · <a href="premium/">Free &amp; Premium</a>. <span class="muted small" id="build-tag">· v142</span></p>
         </details>
       </section>
     </section>
@@ -567,7 +567,6 @@
       <div class="focus-names"><span id="focus-visual-name" class="focus-visual-name">Ocean Waves</span><span id="focus-sound-name" class="focus-sound-name">No sound</span></div>
       <div class="focus-top-actions">
         <button id="focus-fullscreen" class="btn btn-ghost btn-sm">Full screen</button>
-        <button id="focus-exit" class="btn btn-ghost btn-sm">Exit</button>
       </div>
     </div>
     <div id="focus-panel" class="focus-panel" hidden>
@@ -598,16 +597,28 @@
       </div>
     </div>
     <div class="focus-bar focus-ui">
-      <button id="focus-play" class="play-btn" aria-label="Play" aria-pressed="false">
-        <svg class="ico-play" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>
-        <svg class="ico-pause" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M7 5h4v14H7zM13 5h4v14h-4z" fill="currentColor"/></svg>
-      </button>
-      <button id="focus-stop" class="btn btn-ghost btn-sm" aria-label="Stop all sound">Stop</button>
-      <div class="focus-vol"><label for="focus-vol" class="sr-only">Volume</label><input id="focus-vol" type="range" min="0" max="100" value="35"></div>
-      <button class="btn btn-ghost btn-sm" data-open-pane="sound">Change sound</button>
-      <button class="btn btn-ghost btn-sm" data-open-pane="visual">Change visual</button>
-      <button class="btn btn-ghost btn-sm" data-open-pane="timer"><span id="focus-timer-label">Timer</span></button>
-      <button class="btn btn-ghost btn-sm" data-open-pane="motion"><span id="focus-motion-label">Movement: Low</span></button>
+      <div class="focus-panes-row">
+        <button class="btn btn-ghost btn-sm" data-open-pane="sound">Change sound</button>
+        <button class="btn btn-ghost btn-sm" data-open-pane="visual">Change visual</button>
+        <button class="btn btn-ghost btn-sm" data-open-pane="timer"><span id="focus-timer-label">Timer</span></button>
+        <button class="btn btn-ghost btn-sm" data-open-pane="motion"><span id="focus-motion-label">Movement: Low</span></button>
+      </div>
+      <div class="focus-player" role="region" aria-label="Now playing">
+        <button id="focus-play" class="play-btn" aria-label="Play" aria-pressed="false">
+          <svg class="ico-play" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>
+          <svg class="ico-pause" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M7 5h4v14H7zM13 5h4v14h-4z" fill="currentColor"/></svg>
+        </button>
+        <div class="player-info"><div id="focus-now-title" class="player-title">Nothing playing</div><div id="focus-now-sub" class="player-sub">Choose a sound to begin</div></div>
+        <div class="player-vol">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z" fill="currentColor"/><path d="M16 9a3.5 3.5 0 0 1 0 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <label for="focus-vol" class="sr-only">Volume</label>
+          <input id="focus-vol" type="range" min="0" max="100" value="35">
+          <output id="focus-vol-out" for="focus-vol">35%</output>
+        </div>
+        <button id="focus-stop" class="btn btn-ghost btn-sm">Stop sound</button>
+        <button id="focus-stop-visual" class="btn btn-ghost btn-sm">Stop visual</button>
+        <button id="focus-stop-all" class="btn btn-ghost btn-sm">Stop everything</button>
+      </div>
     </div>
   </div>
 
@@ -635,6 +646,6 @@
   <script src="visuals.js?v=26" defer></script>
   <script src="field.js?v=13" defer></script>
   <script src="app.js?v=70" defer></script>
-  <script src="focus.js?v=45" defer></script>
+  <script src="focus.js?v=46" defer></script>
 </body>
 </html>

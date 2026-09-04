@@ -544,7 +544,7 @@
     if (P.dim > 0.005) { ctx.fillStyle = `rgba(2,4,12,${Math.min(0.85, P.dim)})`; ctx.fillRect(0, 0, focus.w, focus.h); }
     // drift the pointer effect off when idle
   }
-  function showControls() { screen.classList.remove('idle'); clearTimeout(focus.hideT); focus.hideT = setTimeout(() => { if (!$('#focus-panel').classList.contains('open')) screen.classList.add('idle'); }, 4500); }
+  function showControls() { screen.classList.remove('idle'); clearTimeout(focus.hideT); focus.hideT = setTimeout(() => { if (!$('#focus-panel').classList.contains('open')) screen.classList.add('idle'); }, 7500); }
   let enteredVia = null;
   function enterViaTransition(id) { if (window.softwaveTransition && !$('#view-sounds').hidden) { enteredVia = id; window.softwaveTransition.to(id, () => enterFocus(false, true)); } else enterFocus(true); }
   async function enterFocus(transition, fromTransition) {
@@ -553,7 +553,7 @@
     if (transition) { document.body.classList.add('entering'); await new Promise(r => setTimeout(r, 520)); document.body.classList.remove('entering'); }
     focus.load(S.visual); screen.hidden = false; document.body.style.overflow = 'hidden'; resize(); focus.last = performance.now(); loop(focus.last);
     if (window.softwaveBg) window.softwaveBg.running = false;
-    updateFocusBar(); showControls(); syncSettings(); $('#focus-exit').focus();
+    updateFocusBar(); showControls(); syncSettings(); syncFocusPlayer(); const fp = $('#focus-play'); if (fp) fp.focus();
     try { if (navigator.wakeLock) focus.wake = await navigator.wakeLock.request('screen'); } catch (_) { }
     if (engine.activeList().length && !engine.isPlaying) engine.playAll();
   }
@@ -572,7 +572,23 @@
     if (focus.wake) { focus.wake.release().catch(() => { }); focus.wake = null; }
     if (window.softwaveBg) { window.softwaveBg.running = true; window.softwaveBg.loop(); }
   }
-  $('#focus-exit').addEventListener('click', exitFocus);
+  const fx = $('#focus-exit'); if (fx) fx.addEventListener('click', exitFocus);
+  // Two of the three stops leave for the Visual Focus landing page; sound-only stays put.
+  const goLanding = () => { exitFocus(); setTimeout(() => { if (window.softwaveApp) app.showView('focus'); }, 60); };
+  $('#focus-stop-visual').addEventListener('click', () => { goLanding(); });
+  $('#focus-stop-all').addEventListener('click', () => { (window.softwaveStopAll || engine.stopAll.bind(engine))(); goLanding(); });
+  // player-style bar: keep name, playing state and volume readout in sync with the engine
+  function syncFocusPlayer() {
+    const t = $('#focus-now-title'), s = $('#focus-now-sub'); if (!t) return;
+    const list = engine.activeList(), playing = engine.isPlaying;
+    t.textContent = list.length ? list.map(x => x.name).join(' · ') : 'Nothing playing';
+    s.textContent = list.length ? (playing ? 'Playing' : 'Paused') : 'Choose a sound to begin';
+    const pb = $('#focus-play'); if (pb) pb.setAttribute('aria-pressed', playing);
+  }
+  engine.on(type => {
+    if (type === 'sounds' || type === 'state') syncFocusPlayer();
+    if (type === 'master') { const v = Math.round(engine.masterVolume * 100); const sl = $('#focus-vol'), o = $('#focus-vol-out'); if (sl) sl.value = v; if (o) o.textContent = v + '%'; }
+  });
   const fe = $('#focus-enter'); if (fe) fe.addEventListener('click', () => enterFocus());
   $('#focus-fullscreen').addEventListener('click', () => { if (document.fullscreenElement) document.exitFullscreen(); else screen.requestFullscreen && screen.requestFullscreen().catch(() => { }); });
   $('#focus-pause-visual').addEventListener('click', e => { S.paused = !S.paused; e.currentTarget.setAttribute('aria-pressed', S.paused); e.currentTarget.textContent = S.paused ? 'Resume visual' : 'Pause visual'; syncSettings(); });
@@ -601,12 +617,12 @@
     if (!engine.activeList().length && !(engine.tone && engine.tone.playing)) { openPanel('sound'); app.toast('Pick a sound to play here.'); return; }
     app.togglePlay();
   });
-  $('#focus-vol').addEventListener('input', e => app.setMaster(+e.target.value / 100, true));
-  // Stop means stop, one tap, without leaving the visual: sounds, experiments, tone and timer.
+  $('#focus-vol').addEventListener('input', e => { app.setMaster(+e.target.value / 100, true); const o = $('#focus-vol-out'); if (o) o.textContent = e.target.value + '%'; });
+  // Stop sound: one tap, without leaving the visual — sounds, experiments, tone and timer.
   $('#focus-stop').addEventListener('click', () => {
     (window.softwaveStopAll || engine.stopAll.bind(engine))();
     const pane = $('.focus-pane[data-pane="sound"]'); if (pane && !pane.hidden) renderSoundPane();
-    app.toast('Stopped. The visual keeps running — pick a new sound or exit when ready.');
+    app.toast('Sound stopped. The visual keeps running.');
   });
 
   // panels
