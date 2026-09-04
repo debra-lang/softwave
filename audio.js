@@ -165,6 +165,7 @@
       // covers). So on the native app the whole mix is routed through a hidden media
       // element instead of ctx.destination. Everywhere else: direct output, unchanged.
       const nativeIOS = window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform() === 'ios';
+      this.nativeIOS = nativeIOS;
       let routed = false;
       if (nativeIOS) {
         try {
@@ -206,7 +207,12 @@
     _setupBackground() {
       // iOS/Safari keep Web Audio alive in the background only while an HTML
       // media element is playing. A silent looping clip + Media Session does it.
+      // NOT on the native shell: there the routed mediaOut element already provides
+      // the background keep-alive, and iOS can emit an audible click at this loop's
+      // 1-second boundary — heard as a repeating tick that survives screen lock
+      // (a pause() racing a pending play() can leave the element running).
       try {
+        if (!this.nativeIOS) {
         const el = document.createElement('audio');
         el.loop = true; el.volume = 0.01; el.setAttribute('playsinline', '');
         // One real second of silence. The previous WAV had a ZERO-length data chunk — looping a
@@ -219,6 +225,7 @@
         dv.setUint16(32, 2, true); dv.setUint16(34, 16, true); wstr(36, 'data'); dv.setUint32(40, n * 2, true);
         el.src = URL.createObjectURL(new Blob([wav], { type: 'audio/wav' }));
         this.silentEl = el;
+        }
       } catch (e) { }
       if ('mediaSession' in navigator) {
         try {
@@ -231,9 +238,7 @@
     }
     _keepAlive(on) {
       if (this.mediaOut && on) this.mediaOut.play().catch(() => { });   // the routed output must be playing whenever sound plays
-      if (!this.silentEl) return;
-      if (on) { this.silentEl.play().catch(() => { }); }
-      else { this.silentEl.pause(); }
+      if (this.silentEl) { if (on) this.silentEl.play().catch(() => { }); else this.silentEl.pause(); }
       if ('mediaSession' in navigator) navigator.mediaSession.playbackState = on ? 'playing' : 'paused';
     }
 
