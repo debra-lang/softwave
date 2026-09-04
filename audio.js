@@ -48,7 +48,7 @@
     white: 0.16, pink: 0.32, brown: 0.9, static: 0.22, hiss: 0.26,
     rain: 0.45, ocean: 0.85, stream: 0.4, waterfall: 0.38, forest: 0.6,
     wind: 0.8, fan: 0.5, fire: 0.9, night: 0.7,
-    glassrain: 0.55, lapping: 0.8, crickets: 1.0, cicadas: 0.14, summernight: 0.6, leaves: 0.6,
+    glassrain: 0.55, lapping: 0.8, crickets: 1.0, cicadas: 0.14, summernight: 0.6, leaves: 0.95,
     thunder: 1.0, city: 0.9, cabin: 0.8, chimes: 0.5, paint: 0.3, sculpt: 0.42, discoA: 0.42, discoB: 0.42,
   };
 
@@ -271,6 +271,10 @@
 
     async startSound(id, volume = 0.6, balance = 0) {
       await this.init();
+      // Starting a sound must always wake the engine: iOS suspends (or "interrupts")
+      // the context whenever it idles, and a sound added to a sleeping context is
+      // silent — the one-tap-to-play contract broke exactly there.
+      if (this.ctx.state !== 'running') await this.resume();
       if (this.active.has(id)) { this.setVolume(id, volume); return true; }
       const MZ = global.softwaveMonetization;
       const lim = MZ && MZ.activeLayerLimit ? Math.min(MAX_ACTIVE, MZ.activeLayerLimit()) : MAX_ACTIVE;  // Free: 3 layers once monetization is on
@@ -301,7 +305,13 @@
       e.gain.gain.linearRampToValueAtTime(0, t + FADE_OUT);
       e.timers.forEach(clearTimeout); if (e._tex) { clearInterval(e._tex); e._tex = null; }
       const nodes = e.nodes.concat(e.sculpt ? e.sculpt.lfos : []); if (e.sculpt) e.sculpt.lfos = [];
-      setTimeout(() => { nodes.forEach(n => { try { n.stop && n.stop(); } catch (_) { } try { n.disconnect(); } catch (_) { } }); try { e.gain.disconnect(); } catch (_) { } }, FADE_OUT * 1000 + 60);
+      // Teardown well after the fade has fully settled, with the chain pinned at zero
+      // first, so a hard stop() on a mid-envelope scheduled event can never click through.
+      setTimeout(() => {
+        try { e.gain.gain.cancelScheduledValues(0); e.gain.gain.value = 0; } catch (_) { }
+        nodes.forEach(n => { try { n.stop && n.stop(); } catch (_) { } try { n.disconnect(); } catch (_) { } });
+        try { e.gain.disconnect(); } catch (_) { }
+      }, FADE_OUT * 1000 + 250);
       this.active.delete(id);
       if (!this.isPlaying) this._keepAlive(false);
       this.emit('sounds', this.activeList());
@@ -754,25 +764,25 @@
         case 'leaves': {
           // Foliage, not forest: a papery leaf band that breathes with slow, soft gusts,
           // fine leaf-flicker shimmer, and a movement that wanders through the canopy.
-          const s = this._src(B.pink); const hp = this._filter('highpass', 900, 0.6); const bp = this._filter('bandpass', 2400, 0.7); const lp = this._filter('lowpass', 7000, 0.6);
-          const gust = ctx.createGain(); gust.gain.value = 0.28;
+          const s = this._src(B.pink); const hp = this._filter('highpass', 550, 0.6); const bp = this._filter('bandpass', 1900, 0.7); const lp = this._filter('lowpass', 6500, 0.6);
+          const gust = ctx.createGain(); gust.gain.value = 0.32;
           const flutter = ctx.createGain(); flutter.gain.value = 1;
           const drift = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
           if (drift) { this._chain(e, [s, hp, bp, lp, gust, flutter, drift], out); }
           else this._chain(e, [s, hp, bp, lp, gust, flutter], out);
-          e.nodes.push(...this._lfo(10.5, 0.13, flutter.gain, 1));
-          e.nodes.push(...this._lfo(3.3, 0.08, flutter.gain, 1));
-          const s2 = this._src(B.pink); const bp2 = this._filter('bandpass', 420, 0.9); const g2 = ctx.createGain(); g2.gain.value = 0.10;
-          e.nodes.push(...this._lfo(0.04, 0.05, g2.gain, 0.10));
+          e.nodes.push(...this._lfo(10.5, 0.18, flutter.gain, 1));
+          e.nodes.push(...this._lfo(3.3, 0.12, flutter.gain, 1));
+          const s2 = this._src(B.pink); const bp2 = this._filter('bandpass', 500, 0.8); const g2 = ctx.createGain(); g2.gain.value = 0.32;
+          e.nodes.push(...this._lfo(0.04, 0.1, g2.gain, 0.32));
           this._chain(e, [s2, bp2, g2], out);
-          let gustEnd = 0.28;   // deterministic anchor: blows never overlap, so the value at each start is the previous end
+          let gustEnd = 0.32;   // deterministic anchor: blows never overlap, so the value at each start is the previous end
           const blow = (t) => {
             const up = 1.4 + Math.random() * 1.8, hold = 0.8 + Math.random() * 2.2, down = 2.0 + Math.random() * 2.2;
             gust.gain.setValueAtTime(gustEnd, t);
-            gust.gain.linearRampToValueAtTime(0.5 + Math.random() * 0.35, t + up);
-            gustEnd = 0.24 + Math.random() * 0.08;
+            gust.gain.linearRampToValueAtTime(0.58 + Math.random() * 0.35, t + up);
+            gustEnd = 0.28 + Math.random() * 0.08;
             gust.gain.linearRampToValueAtTime(gustEnd, t + up + hold + down);
-            bp.frequency.setTargetAtTime(1900 + Math.random() * 1400, t, up);
+            bp.frequency.setTargetAtTime(1500 + Math.random() * 1100, t, up);
             if (drift) drift.pan.setTargetAtTime((Math.random() * 2 - 1) * 0.3, t, up + 1);
             return up + hold + down + 1 + Math.random() * 5;
           };

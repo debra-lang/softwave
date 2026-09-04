@@ -373,11 +373,14 @@ input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.12); }
 .focus-player .player-vol { display: flex; align-items: center; gap: 8px; color: rgba(255, 255, 255, .75); }
 .focus-player .player-vol input { width: 120px; }
 .focus-player .player-vol output { font-size: .8rem; min-width: 34px; text-align: right; font-variant-numeric: tabular-nums; }
+.focus-stops { display: contents; }   /* desktop: buttons flow inline, Stop everything centred among the stops */
 @media (max-width: 700px) {
   .focus-player { gap: 6px 8px; padding: 6px 10px 8px; }
   .focus-player .player-vol { width: 100%; order: 10; padding: 0 4px; }
   .focus-player .player-vol input { width: auto; flex: 1; }
   .focus-player .player-sub { display: none; }
+  /* phones: the three stops get their own centred row between the name and the volume */
+  .focus-stops { display: flex; width: 100%; order: 5; justify-content: center; gap: 6px; flex-wrap: wrap; }
 }
 .focus-vol { width: 160px; }
 .focus-vol input[type="range"]::-webkit-slider-runnable-track { background: linear-gradient(90deg, #fff var(--pct), rgba(255,255,255,.25) var(--pct)); }
@@ -400,6 +403,14 @@ input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.12); }
 .pane-sound, .pane-visual { font: inherit; font-weight: 600; font-size: .9rem; padding: 9px 14px; border-radius: 999px; border: 1px solid rgba(255,255,255,.15); background: rgba(255,255,255,.05); color: #e8ecf7; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; min-height: 40px; }
 .pane-sound.on, .pane-visual.on { background: #7c9cff; border-color: #7c9cff; color: #0b1020; }
 .pane-sound .ico { font-size: 1rem; }
+
+/* ---- add-sound sheet (Sounds view) — same picker pattern, app-theme colors ---- */
+.addsound-sheet { position: fixed; inset: 0; z-index: 60; background: rgba(8, 11, 20, .45); display: flex; align-items: flex-end; justify-content: center; }
+.addsound-sheet[hidden] { display: none; }
+.addsound-card { width: min(680px, 100%); max-height: 70vh; overflow-y: auto; border-radius: 22px 22px 0 0; padding: 16px 16px calc(18px + env(safe-area-inset-bottom, 0px)); }
+.addsound-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.addsound-sheet .pane-sound { border-color: var(--border); background: var(--card); color: var(--text); }
+.addsound-sheet .pane-sound.on { background: var(--accent); border-color: var(--accent); color: #fff; }
 @media (max-width: 800px) {
   .focus-setup-grid { grid-template-columns: 1fr 1fr; }
   .setup-cta { grid-column: 1 / -1; flex-direction: row; flex-wrap: wrap; }

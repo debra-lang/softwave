@@ -209,7 +209,9 @@
         btn.addEventListener('click', async () => {
           const wasActive = engine.isActive(d.id);
           const ok = await engine.toggleSound(d.id, (+$('input', card).value) / 100);
-          if (!wasActive && ok !== false && innerWidth < 700 && !$('#field').getBoundingClientRect().bottom > 0) { $('#field-wrap').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+          // Bring the player into view when a sound starts and it's off-screen (phones).
+          // The old check had an operator-precedence typo and never fired.
+          if (!wasActive && ok !== false && innerWidth < 700) { const r = $('#field').getBoundingClientRect(); if (r.bottom < 0 || r.top > innerHeight) $('#field-wrap').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
           if (ok === false) toast(`You can layer up to ${MAX_ACTIVE} sounds. Turn one off to add another.`);
         });
         const slider = $('input', card);
@@ -306,8 +308,10 @@
   });
   async function togglePlay() {
     if (!engine.ctx) { if (!engine.activeList().length) return toast('Choose a sound to begin'); }
+    // iOS also has a non-standard "interrupted" state — anything that isn't running
+    // with sounds queued means "resume", or the first press does nothing.
     if (engine.ctx && engine.ctx.state === 'running' && engine.isPlaying) await engine.pauseAll();
-    else if (engine.isPlaying || (engine.ctx && engine.ctx.state === 'suspended' && engine.active.size)) await engine.playAll();
+    else if (engine.isPlaying || (engine.ctx && engine.ctx.state !== 'running' && engine.active.size)) await engine.playAll();
     else toast('Choose a sound to begin');
   }
   $('#player-toggle').addEventListener('click', togglePlay);
@@ -460,6 +464,31 @@
     const txt = `${m}:${String(s).padStart(2, '0')}`;
     el.hidden = false; el.textContent = (t.fading ? 'Fading · ' : '⏾ ') + txt; rem.textContent = (t.fading ? 'Fading out · ' : 'Sound stops in ') + txt;
   }
+
+  // ---------- add-sound sheet: choose more sounds without scrolling back to the library.
+  // Reuses the Visual Focus sound-pane pattern; volumes and balance stay the Mixer's job.
+  (function addSoundSheet() {
+    const faRow = $('#field-controls .field-actions'); if (!faRow) return;
+    const ab = document.createElement('button'); ab.type = 'button'; ab.className = 'fa'; ab.id = 'add-sound-btn'; ab.textContent = '＋ Add sound';
+    faRow.insertBefore(ab, faRow.firstChild);
+    const sheet = document.createElement('div'); sheet.id = 'addsound-sheet'; sheet.className = 'addsound-sheet'; sheet.hidden = true;
+    sheet.innerHTML = `<div class="addsound-card card" role="dialog" aria-label="Add a sound"><div class="addsound-head"><strong>Add a sound</strong><button class="btn btn-ghost btn-sm" data-as-close>Done</button></div><div class="pane-sounds" data-as-grid></div><p class="muted small">Tap to add or remove — up to ${MAX_ACTIVE} at once. Fine volumes and balance live in the Mixer.</p></div>`;
+    document.body.appendChild(sheet);
+    const renderGrid = () => {
+      const g = $('[data-as-grid]', sheet); g.innerHTML = '';
+      engine.defs().forEach(d => {
+        const on = engine.isActive(d.id);
+        const b = document.createElement('button'); b.className = 'pane-sound' + (on ? ' on' : ''); b.setAttribute('aria-pressed', on);
+        b.innerHTML = `<span class="ico">${d.icon}</span>${d.name}`;
+        b.addEventListener('click', async () => { const ok = await engine.toggleSound(d.id, 0.5); if (ok === false) toast(`You can layer up to ${MAX_ACTIVE} sounds. Turn one off to add another.`); });
+        g.appendChild(b);
+      });
+    };
+    ab.addEventListener('click', () => { sheet.hidden = false; renderGrid(); });
+    $('[data-as-close]', sheet).addEventListener('click', () => { sheet.hidden = true; });
+    sheet.addEventListener('click', e => { if (e.target === sheet) sheet.hidden = true; });
+    engine.on(type => { if (type === 'sounds' && !sheet.hidden) renderGrid(); });
+  })();
 
   // ---------- welcome ----------
   const welcome = $('#welcome');

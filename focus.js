@@ -399,7 +399,7 @@
   const MOTION = { still: 0, low: 0.4, medium: 0.8, high: 5.4 };
   const S = {
     visual: app.store.get('visual', 'ocean'),
-    motion: app.store.get('motion', 'low'),
+    motion: app.store.get('motion', 'medium'),
     reduced: app.store.get('reduceMotion', matchMedia('(prefers-reduced-motion: reduce)').matches),
     breathText: app.store.get('breathText', true),
     paused: false,
