@@ -84,7 +84,7 @@
   function ensureLab() {
     if (window.softwaveLab) return Promise.resolve();
     if (labPromise) return labPromise;
-    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=55'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
+    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=56'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
     return labPromise;
   }
   window.softwaveEnsureLab = ensureLab;
@@ -593,7 +593,31 @@
   $('#field-vol').addEventListener('input', e => setMaster(+e.target.value / 100, true));
   $('#field-pause').addEventListener('click', async () => { if (engine.ctx && engine.ctx.state === 'running') await engine.pauseAll(); else await engine.playAll(); });
   $('#field-stop').addEventListener('click', () => { engine.stopAll(); toast('All sounds stopped'); });
-  $$('[data-fa]').forEach(b => b.addEventListener('click', () => { const k = b.dataset.fa; if (k === 'timer') { const cur = engine.timer.durationMin || 0; const next = cur === 0 ? 30 : cur === 30 ? 60 : cur === 60 ? 90 : 0; engine.setTimer(next, true); toast(next ? `Timer: ${next} minutes with gentle fade` : 'Timer off'); } if (k === 'visual') { showView('focus'); setTimeout(() => { const st = $('#env-stage'); st && st.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 250); } if (k === 'mixer') showView('mixer'); if (k === 'save') { showView('mixer'); setTimeout(() => { $('#mix-save').click(); $('#mix-save').scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 150); } if (k === 'immerse') openNow(); }));
+  // Timer: a small picker instead of cycling values on each press.
+  let timerSheet = null;
+  function openTimerSheet() {
+    if (!timerSheet) {
+      timerSheet = document.createElement('div'); timerSheet.className = 'addsound-sheet'; timerSheet.hidden = true;
+      timerSheet.innerHTML = '<div class="addsound-card card" role="dialog" aria-label="Sleep timer"><div class="addsound-head"><strong>Timer</strong><button class="btn btn-ghost btn-sm" data-t-close>Close</button></div><div class="chips" data-t-opts></div><p class="muted small">The sound fades out gently before the timer ends.</p></div>';
+      document.body.appendChild(timerSheet);
+      $('[data-t-close]', timerSheet).addEventListener('click', () => { timerSheet.hidden = true; });
+      timerSheet.addEventListener('click', e => { if (e.target === timerSheet) timerSheet.hidden = true; });
+    }
+    const host = $('[data-t-opts]', timerSheet); host.innerHTML = '';
+    const cur = engine.timer.durationMin || 0;
+    [[15, '15 min'], [30, '30 min'], [60, '60 min'], [90, '90 min'], ['custom', 'Custom…'], [0, 'Off']].forEach(([v, l]) => {
+      const b = document.createElement('button'); b.className = 'chip' + (v === cur ? ' active' : ''); b.textContent = l;
+      b.addEventListener('click', () => {
+        let m = v === 'custom' ? parseInt(prompt('Timer length in minutes (5–180):', '45'), 10) : v;
+        if (v === 'custom' && (!m || m < 5 || m > 180)) return;
+        engine.setTimer(m, true); toast(m ? `Timer: ${m} minutes with gentle fade` : 'Timer off');
+        timerSheet.hidden = true;
+      });
+      host.appendChild(b);
+    });
+    timerSheet.hidden = false;
+  }
+  $$('[data-fa]').forEach(b => b.addEventListener('click', () => { const k = b.dataset.fa; if (k === 'timer') openTimerSheet(); if (k === 'visual') { showView('focus'); setTimeout(() => { const st = $('#env-stage'); st && st.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 250); } if (k === 'mixer') showView('mixer'); if (k === 'save') { showView('mixer'); setTimeout(() => { $('#mix-save').click(); $('#mix-save').scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 150); } if (k === 'immerse') openNow(); }));
 
   // ---------- sound environment, orb player and Now Playing ----------
   const SV = window.SoftwaveVisuals;

@@ -211,7 +211,7 @@
       <div class="btn-row"><button class="btn btn-primary btn-sm" data-p="play" ${pr.rounds ? '' : 'disabled'}>Play my sound</button><button class="btn btn-secondary btn-sm" data-p="sound" ${pr.rounds ? '' : 'disabled'}>Fine tune</button><button class="btn btn-secondary btn-sm" data-p="visual" ${pr.rounds ? '' : 'disabled'}>Add visual</button><button class="btn btn-secondary btn-sm" data-p="sleep" ${pr.rounds ? '' : 'disabled'}>Build sleep session</button><button class="btn btn-ghost btn-sm" data-p="explore">Try another experiment</button></div>
       <p class="muted small">A sound preference profile — not a hearing profile, not a diagnosis. Built only from your own taps; stored only on this device. <button class="btn btn-ghost btn-sm" data-p="clear">Clear</button></p>`;
     $('[data-p="play"]', el).addEventListener('click', async () => { safeMaster(); await engine.loadMix(soundMix({ params: pr.pp, nature: pr.nature, natureVol: 0.3 })); app.toast('Playing the sound you preferred.'); });
-    $('[data-p="sound"]', el).addEventListener('click', async () => { safeMaster(); await engine.loadMix(soundMix({ params: pr.pp, nature: pr.nature, natureVol: 0.3 })); store.set('lab:settings:sculptor', sculptSettingsFrom(pr.pp, pr.nature)); delete ctxs.sculptor; openExperiment('sculptor'); });
+    $('[data-p="sound"]', el).addEventListener('click', async () => { safeMaster(); await engine.loadMix(soundMix({ params: pr.pp, nature: pr.nature, natureVol: 0.3 })); await openSculptorRunning(pr.pp, pr.nature); });
     $('[data-p="sleep"]', el).addEventListener('click', async () => { safeMaster(); const p = Object.assign({}, pr.pp, { colour: Math.min(pr.pp.colour, 0.45), soft: Math.min(pr.pp.soft, -0.2), moving: 0 }); await engine.loadMix(soundMix({ params: p, nature: pr.nature === 'none' ? 'rain' : pr.nature, natureVol: 0.25 }, 0.5)); engine.setTimer(60, true); app.showView('sleep'); app.toast('Sleep session ready: 60-minute timer with gentle fade.'); });
     $('[data-p="visual"]', el).addEventListener('click', async () => { if (!engine.activeList().length) { safeMaster(); await engine.loadMix(soundMix({ params: pr.pp, nature: pr.nature, natureVol: 0.3 })); } focus.setVisual(visualForProfile()); focus.enterFocus(); });
     $('[data-p="explore"]', el).addEventListener('click', () => $('#thelab').scrollIntoView({ behavior: 'smooth' }));
@@ -934,6 +934,34 @@
     el.innerHTML = `${exp.featured ? '<div class="lab-orb"><canvas aria-hidden="true"></canvas></div><div class="lab-reco">Recommended starting point</div>' : ''}<div class="lab-card-head"><div><div class="lab-cat">${exp.cat}${exp.premium ? ' · <span class="tag tag-prem">Premium preview</span>' : ''}</div><h3>${exp.name}</h3></div><span class="ev ev-${exp.evidence}">${EV[exp.evidence]}</span></div><p class="lab-what">${exp.what}</p><div class="lab-actions"><button class="btn btn-primary" data-open="${exp.id}">Open</button>${f.rating ? `<span class="muted small">You said: ${f.rating === 'helpful' ? 'Helpful' : f.rating === 'not' ? 'Not for me' : 'Neutral'}</span>` : ''}${favs().includes(exp.id) ? '<span class="tag">★ Favourite</span>' : ''}</div>`;
     $('[data-open]', el).addEventListener('click', () => openExperiment(exp.id)); if (exp.featured) liveShape($('.lab-orb canvas', el), () => { const pp = profileParams(); return { p: pp ? Object.assign({}, pp, { nature: profile().nature }) : Object.assign(DEF(), { colour: 0.45, rich: 0.5, width: 0.5 }), live: true, speed: 0.7, scale: 0.42 }; }); return el;
   }
+  // Open Sound Sculptor ALREADY RUNNING, seeded from the given preference params —
+  // used by every "fine-tune" entry point, so the panel always says "Running…"
+  // instead of offering Start while the sound is audibly playing. The engine keeps
+  // an already-active 'sculpt' sound through the handoff, so nothing restarts.
+  async function openSculptorRunning(params, nature) {
+    store.set('lab:settings:sculptor', sculptSettingsFrom(params, nature)); delete ctxs.sculptor;
+    openExperiment('sculptor');
+    try {
+      const sc = byId.sculptor; const sctx = ctxFor(sc); sctx.host = $('#lab-detail');
+      if (running) stopRunning();
+      running = { exp: sc, ctx: sctx };
+      setFb(sc.id, { tries: ((fb()[sc.id] || {}).tries || 0) + 1, last: Date.now() });
+      await sc.start(sctx);
+      updateRunningUI();
+      compactForRun(sctx.host.closest('.lab-detail') || sctx.host);
+      setTimeout(() => scrollToRunControls(sctx.host), 120);
+    } catch (e) { console.error(e); running = null; updateRunningUI(); }
+    // a way back to the completed result, when one exists
+    if (ctxs.discovery && ctxs.discovery.finished && ctxs.discovery.result) setTimeout(() => {
+      const p = $('#lab-detail'); const close = $('[data-close]', p);
+      if (close && !$('[data-back-result]', p)) {
+        const b = document.createElement('button'); b.className = 'btn btn-ghost btn-sm'; b.setAttribute('data-back-result', ''); b.textContent = '← Back to your result';
+        close.after(b);
+        b.addEventListener('click', () => { if (running) stopRunning(); openExperiment('discovery'); });
+      }
+    }, 100);
+  }
+
   // ---------- Find My Sound: the completed-result experience ----------
   // One renderer for the completion card, used at finish AND whenever the user returns
   // to a finished session (nav tab, back gesture, "Back to your result") — so the
@@ -983,30 +1011,8 @@
       }, 250);
     });
     $('[data-r="tune"]', R).addEventListener('click', async () => {
-      await engine.loadMix(soundMix(snd)); store.set('lab:settings:sculptor', sculptSettingsFrom(best.params, best.nature)); delete ctxs.sculptor; openExperiment('sculptor');
-      // Arriving with sound already playing, the sculptor opens ALREADY RUNNING —
-      // sliders live immediately, and the panel shows "Running…", never a Start
-      // button contradicting what the user can hear. The engine keeps the active
-      // sound through the handoff, so nothing restarts.
-      try {
-        const sc = byId.sculptor; const sctx = ctxFor(sc); sctx.host = $('#lab-detail');
-        if (running) stopRunning();
-        running = { exp: sc, ctx: sctx };
-        setFb(sc.id, { tries: ((fb()[sc.id] || {}).tries || 0) + 1, last: Date.now() });
-        await sc.start(sctx);
-        updateRunningUI();
-        compactForRun(sctx.host.closest('.lab-detail') || sctx.host);
-        setTimeout(() => scrollToRunControls(sctx.host), 120);
-      } catch (e) { console.error(e); running = null; updateRunningUI(); }
-      // a way home: same ghost-button style as the panel's own "← Experiments"
-      setTimeout(() => {
-        const p = $('#lab-detail'); const close = $('[data-close]', p);
-        if (close && !$('[data-back-result]', p)) {
-          const b = document.createElement('button'); b.className = 'btn btn-ghost btn-sm'; b.setAttribute('data-back-result', ''); b.textContent = '← Back to your result';
-          close.after(b);
-          b.addEventListener('click', () => { if (running) stopRunning(); openExperiment('discovery'); });
-        }
-      }, 100);
+      await engine.loadMix(soundMix(snd));
+      await openSculptorRunning(best.params, best.nature);
     });
     const savedNote = (html) => {
       let n = $('.disc-saved-note', R);
@@ -1100,7 +1106,7 @@
       <dl class="lab-dl"><dt>What it does</dt><dd>${exp.what}</dd><dt>Why try it</dt><dd>${exp.why}</dd><dt>How to use it</dt><dd>${exp.how}${exp.guide ? ` <a href="${exp.guide}">Full step-by-step guide →</a>` : ''}</dd></dl>
       <details class="lab-why"><summary>Why are we testing this?</summary><p>${exp.whyTest}</p><p class="muted small">Not a medical treatment. Stop at any time with the Stop button below or in the player bar.</p></details>
       ${exp.customFirst ? '<div data-custom></div><div class="lab-settings" data-settings></div>' : '<div class="lab-settings" data-settings></div><div data-custom></div>'}
-      <div class="lab-run"><button class="btn btn-primary btn-lg" data-exp-start="${exp.id}">Start Experiment</button><button class="btn btn-ghost" data-stop>Stop</button><button class="btn btn-ghost" data-reset>Reset</button><button class="btn btn-secondary" data-fav aria-pressed="${isFav}">${isFav ? '★ Favourite' : '☆ Favourite'}</button></div>
+      <div class="lab-run"><button class="btn btn-primary btn-lg" data-exp-start="${exp.id}">Start Experiment</button><button class="btn btn-ghost" data-stop>Stop</button><button class="btn btn-ghost" data-reset>Reset</button><button class="btn btn-secondary" data-fav aria-pressed="${isFav}">${isFav ? '★ Favourited' : '☆ Favourite'}</button></div>
       <div class="lab-rate"><span class="label-sm">Rate this experiment</span><div class="seg" role="radiogroup" aria-label="Rating"><button role="radio" aria-checked="${f.rating === 'helpful'}" data-rate="helpful">Helpful</button><button role="radio" aria-checked="${f.rating === 'neutral'}" data-rate="neutral">Neutral</button><button role="radio" aria-checked="${f.rating === 'not'}" data-rate="not">Not for me</button></div></div>
       <div data-after></div></div>`;
     ctx.host = panel; if (exp.id === 'session') $('[data-settings]', panel).hidden = true; renderSettings(exp, ctx, $('[data-settings]', panel)); if (exp.custom && exp.buildUI) exp.buildUI(ctx, $('[data-custom]', panel));
@@ -1108,7 +1114,7 @@
     $('[data-exp-start]', panel).addEventListener('click', async () => { if (!gate(exp)) return; if (running && running.exp !== exp) stopRunning(); else if (running) return; if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); if (exp.id === 'discovery') store.set('lab:discoveries', store.get('lab:discoveries', 0) + 1); await engine.init(); running = { exp, ctx }; setFb(exp.id, { tries: ((fb()[exp.id] || {}).tries || 0) + 1, last: Date.now() }); store.set('lab:settings:' + exp.id, ctx.s); updateRunningUI(); try { await Promise.race([exp.start(ctx), new Promise((_, rej) => setTimeout(() => rej(new Error('timed out — check that sound is allowed in your browser')), 12000))]); } catch (e) { console.error(e); app.toast('Could not start: ' + e.message, 5000); if (running && running.exp === exp) { running = null; } updateRunningUI(); } if (running && running.exp === exp && exp.id !== 'discovery') { compactForRun(panel.closest('.lab-detail') || panel); setTimeout(() => scrollToRunControls(panel), 120); } renderLists(); });   // discovery positions itself (specialized A/B flow)
     $('[data-stop]', panel).addEventListener('click', () => { if (running && running.exp === exp) stopRunning('Stopped'); else { try { exp.stop && exp.stop(ctx); } catch (_) { } } engine.stopAll(); });   // Stop means stop: the experiment and its sound, in one press
     $('[data-reset]', panel).addEventListener('click', () => { if (running && running.exp === exp) stopRunning(); store.del('lab:settings:' + exp.id); delete ctxs[exp.id]; openExperiment(exp.id); app.toast('Settings reset'); });
-    $('[data-fav]', panel).addEventListener('click', e => { const l = favs(); const i = l.indexOf(exp.id); if (i >= 0) l.splice(i, 1); else l.push(exp.id); store.set('lab:favs', l); const on = i < 0; e.currentTarget.setAttribute('aria-pressed', on); e.currentTarget.textContent = on ? '★ Favourite' : '☆ Favourite'; renderLists(); });
+    $('[data-fav]', panel).addEventListener('click', e => { const l = favs(); const i = l.indexOf(exp.id); if (i >= 0) l.splice(i, 1); else l.push(exp.id); store.set('lab:favs', l); const on = i < 0; e.currentTarget.setAttribute('aria-pressed', on); e.currentTarget.textContent = on ? '★ Favourited' : '☆ Favourite'; app.toast(on ? '★ Added to Favourites — find it in the Favourites group on the Experiments page.' : 'Removed from Favourites.', 3600); renderLists(); });
     $$('[data-rate]', panel).forEach(b => b.addEventListener('click', () => { setFb(exp.id, { rating: b.dataset.rate }); $$('[data-rate]', panel).forEach(x => x.setAttribute('aria-checked', x === b)); renderLists(); renderProfile(); }));
     updateRunningUI();
     // A finished Find My Sound session survives navigation: any return to it shows the
