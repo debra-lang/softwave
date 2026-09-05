@@ -84,7 +84,7 @@
   function ensureLab() {
     if (window.softwaveLab) return Promise.resolve();
     if (labPromise) return labPromise;
-    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=58'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
+    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=60'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
     return labPromise;
   }
   window.softwaveEnsureLab = ensureLab;
@@ -109,6 +109,20 @@
     if (!row) { const tpl = $('#presets-template'); if (!tpl) return null; presetsSlot().appendChild(tpl.content.cloneNode(true)); row = $('.presets-row'); }
     return row;
   }
+  // One-tap presets carry the user onward: a few seconds after a preset starts,
+  // open the matching full-screen player (Immerse from Sounds, the Sleep Screen
+  // from Sleep) — but only if the sound is still playing, they are still on that
+  // page, and no full-screen view opened meanwhile. A new tap restarts the wait.
+  let autoAdvT = null;
+  function scheduleAutoAdvance(kind) {
+    clearTimeout(autoAdvT);
+    autoAdvT = setTimeout(() => {
+      if (!engine.isPlaying) return;
+      const fsOpen = !$('#now').hidden || !$('#focus-screen').hidden || !$('#sleep-screen').hidden;
+      if (kind === 'immerse' && !$('#view-sounds').hidden && !fsOpen) openNow();
+      if (kind === 'sleep' && !$('#view-sleep').hidden && $('#sleep-screen').hidden && $('#now').hidden && $('#focus-screen').hidden) $('#sleep-enter').click();
+    }, 5000);
+  }
   function renderPresets() {
     const make = (container, includeCustom) => {
       container.innerHTML = '';
@@ -118,7 +132,7 @@
       list.forEach(p => {
         const b = document.createElement('button'); b.className = 'chip'; b.setAttribute('role', 'listitem'); b.dataset.preset = p.id; b.dataset.chipName = p.name;
         b.innerHTML = `<strong>${p.name}</strong><span>${p.desc}</span>`;
-        b.addEventListener('click', () => loadPreset(p));
+        b.addEventListener('click', () => { loadPreset(p); scheduleAutoAdvance(container.id === 'sleep-presets' ? 'sleep' : 'immerse'); });
         container.appendChild(b);
       });
       if (includeCustom && !custom.length) {
