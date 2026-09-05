@@ -1007,15 +1007,23 @@
     $('[data-r="save"]', R).addEventListener('click', () => saveSoundForm($('[data-saveform]', R), snd, () => {
       savedNote('Saved. Find it any time under <strong>My Saved Sounds</strong> on the Sounds page. <button type="button" class="linklike" data-go="sounds|#my-sounds-row">Show me</button>');
     }));
-    setTimeout(scrollToDiscResult, 150);
+    settleOnDiscResult();
   }
   // Bring the completed card to just below the real (measured) header.
-  function scrollToDiscResult() {
+  function scrollToDiscResult(instant) {
     const card = document.querySelector('#lab-detail .disc-reveal'); if (!card) return;
     const tb = document.querySelector('.topbar');
     const off = (tb ? tb.getBoundingClientRect().height : 54) + 10;
     const r = card.getBoundingClientRect();
-    window.scrollTo({ top: scrollY + r.top - off, behavior: 'smooth' });
+    if (instant) { if (Math.abs(r.top - off) > 40) window.scrollTo(0, scrollY + r.top - off); }
+    else window.scrollTo({ top: scrollY + r.top - off, behavior: 'smooth' });
+  }
+  // Smooth first; then an instant correction once everything (layout, the view
+  // switcher's own scroll, any late browser restoration) has settled — an instant
+  // snap cannot be overridden, so the card reliably ends under the header.
+  function settleOnDiscResult() {
+    setTimeout(() => scrollToDiscResult(false), 200);
+    setTimeout(() => scrollToDiscResult(true), 1000);
   }
   // "Explore More Experiments" — a centred section heading BETWEEN the completed
   // Find My Sound placard and the next experiment placards, never inside it.
@@ -1038,7 +1046,7 @@
     if (h !== '#lab' && h !== '#find') return;
     const ctx = ctxs.discovery;
     const panel = document.getElementById('lab-detail');
-    if (ctx && ctx.finished && ctx.result && panel && !panel.hidden && panel.querySelector('.disc-reveal')) setTimeout(scrollToDiscResult, 300);
+    if (ctx && ctx.finished && ctx.result && panel && !panel.hidden && panel.querySelector('.disc-reveal')) settleOnDiscResult();
   };
   addEventListener('hashchange', backToResult); addEventListener('popstate', backToResult);
 
@@ -1088,10 +1096,13 @@
     $('[data-reset]', panel).addEventListener('click', () => { if (running && running.exp === exp) stopRunning(); store.del('lab:settings:' + exp.id); delete ctxs[exp.id]; openExperiment(exp.id); app.toast('Settings reset'); });
     $('[data-fav]', panel).addEventListener('click', e => { const l = favs(); const i = l.indexOf(exp.id); if (i >= 0) l.splice(i, 1); else l.push(exp.id); store.set('lab:favs', l); const on = i < 0; e.currentTarget.setAttribute('aria-pressed', on); e.currentTarget.textContent = on ? '★ Favourite' : '☆ Favourite'; renderLists(); });
     $$('[data-rate]', panel).forEach(b => b.addEventListener('click', () => { setFb(exp.id, { rating: b.dataset.rate }); $$('[data-rate]', panel).forEach(x => x.setAttribute('aria-checked', x === b)); renderLists(); renderProfile(); }));
-    updateRunningUI(); panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    updateRunningUI();
     // A finished Find My Sound session survives navigation: any return to it shows the
-    // completed result, until "Try Find My Sound again" starts a fresh one.
-    if (id === 'discovery' && ctx.finished && ctx.result && !(running && running.exp === exp)) showDiscoveryResult(ctx);
+    // completed result (which positions itself on the card — no competing scroll here),
+    // until "Start New Experiment" begins a fresh one.
+    const restoring = id === 'discovery' && ctx.finished && ctx.result && !(running && running.exp === exp);
+    if (!restoring) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (restoring) showDiscoveryResult(ctx);
   }
 
   // ---------- lists ----------

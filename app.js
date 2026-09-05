@@ -56,6 +56,9 @@
 
   // ---------- views ----------
   const views = ['sounds', 'focus', 'lab', 'mixer', 'frequency', 'match', 'sleep', 'learn'];
+  // The app owns all scroll positions (every navigation re-scrolls deliberately);
+  // the browser's async restoration on Back would fight and override those scrolls.
+  try { if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; } catch (_) { }
   function showView(name, opts = {}) {
     // #find = the Find My Sound feature (lives in the Lab): show the Lab and open it directly
     if (name === 'find') { const wanted = opts.push === false ? 'replace' : 'push'; showView('lab', { push: false, keepHash: true }); if (location.hash !== '#find') { if (wanted === 'replace') history.replaceState(null, '', '#find'); else history.pushState(null, '', '#find'); } $$('.nav a').forEach(a => a.classList.toggle('active', a.dataset.view === 'find')); ensureLab().then(() => { if (window.softwaveLab) softwaveLab.open('discovery'); }).catch(() => { }); return; }
@@ -81,7 +84,7 @@
   function ensureLab() {
     if (window.softwaveLab) return Promise.resolve();
     if (labPromise) return labPromise;
-    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=53'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
+    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=54'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
     return labPromise;
   }
   window.softwaveEnsureLab = ensureLab;
