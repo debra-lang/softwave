@@ -984,6 +984,20 @@
     });
     $('[data-r="tune"]', R).addEventListener('click', async () => {
       await engine.loadMix(soundMix(snd)); store.set('lab:settings:sculptor', sculptSettingsFrom(best.params, best.nature)); delete ctxs.sculptor; openExperiment('sculptor');
+      // Arriving with sound already playing, the sculptor opens ALREADY RUNNING —
+      // sliders live immediately, and the panel shows "Running…", never a Start
+      // button contradicting what the user can hear. The engine keeps the active
+      // sound through the handoff, so nothing restarts.
+      try {
+        const sc = byId.sculptor; const sctx = ctxFor(sc); sctx.host = $('#lab-detail');
+        if (running) stopRunning();
+        running = { exp: sc, ctx: sctx };
+        setFb(sc.id, { tries: ((fb()[sc.id] || {}).tries || 0) + 1, last: Date.now() });
+        await sc.start(sctx);
+        updateRunningUI();
+        compactForRun(sctx.host.closest('.lab-detail') || sctx.host);
+        setTimeout(() => scrollToRunControls(sctx.host), 120);
+      } catch (e) { console.error(e); running = null; updateRunningUI(); }
       // a way home: same ghost-button style as the panel's own "← Experiments"
       setTimeout(() => {
         const p = $('#lab-detail'); const close = $('[data-close]', p);
