@@ -1169,7 +1169,10 @@
   const lf = $('#lab-field'); if (lf) liveShape(lf, () => ({ field: true }));
   const flag = $('#lab-flagship canvas'); if (flag) liveShape(flag, () => { const pp = profileParams(); return { p: pp ? Object.assign({}, pp, { nature: profile().nature }) : Object.assign(DEF(), { colour: 0.4, width: 0.5, moving: 0.2 }), live: true, speed: 0.7, scale: 0.4 }; });
 
-  window.softwaveLab = { open: openExperiment, stop: stopRunning, experiments: EXPERIMENTS, isRunning: () => !!running, mySounds, soundMix, onTap() { const p = focus.getParam && focus.getParam(); if (!p || !p.soundTouch) return; engine.setMasterTone(2200, 0.08); later(() => engine.setMasterTone(20000, 0.6), 350); } };
+  window.softwaveLab = { open: openExperiment, stop: stopRunning, experiments: EXPERIMENTS, isRunning: () => !!running,
+    // The Experiments tab means "show me the list": close a non-running panel so the
+    // focused view never traps the user; a running experiment keeps its panel.
+    showList: () => { if (running) return; const c = document.querySelector('#lab-detail [data-close]'); if (c) c.click(); else setFocusedExp(false); }, mySounds, soundMix, onTap() { const p = focus.getParam && focus.getParam(); if (!p || !p.soundTouch) return; engine.setMasterTone(2200, 0.08); later(() => engine.setMasterTone(20000, 0.6), 350); } };
   addEventListener('unhandledrejection', e => { if (running) { console.error(e.reason); app.toast('Something went wrong in this experiment. Press Stop and try again.', 5000); } });
   renderLists(); renderProfile();
   const qe = new URLSearchParams(location.search).get('exp'); if (qe && byId[qe]) setTimeout(() => openExperiment(qe), 120);

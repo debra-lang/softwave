@@ -63,7 +63,13 @@
     // #find = the Find My Sound feature (lives in the Lab): show the Lab and open it directly
     if (name === 'find') { const wanted = opts.push === false ? 'replace' : 'push'; showView('lab', { push: false, keepHash: true }); if (location.hash !== '#find') { if (wanted === 'replace') history.replaceState(null, '', '#find'); else history.pushState(null, '', '#find'); } $$('.nav a').forEach(a => a.classList.toggle('active', a.dataset.view === 'find')); ensureLab().then(() => { if (window.softwaveLab) softwaveLab.open('discovery'); }).catch(() => { }); return; }
     if (!views.includes(name)) name = 'sounds';
-    if (name === 'lab') ensureLab();
+    if (name === 'lab') {
+      ensureLab();
+      // A deliberate visit to the Experiments tab shows the LIST (closes a non-running
+      // panel); history/back navigations (push:false) keep the open panel — that's how
+      // Back returns to a completed Find My Sound result.
+      if (opts.push !== false && window.softwaveLab && softwaveLab.showList) softwaveLab.showList();
+    }
     views.forEach(v => { const el = $('#view-' + v); el.hidden = v !== name; el.classList.toggle('active', v === name); });
     $$('.nav a').forEach(a => a.classList.toggle('active', a.dataset.view === name));
     if (!opts.keepHash && location.hash !== '#' + name) { if (opts.push === false) history.replaceState(null, '', '#' + name); else history.pushState(null, '', '#' + name); }
@@ -84,7 +90,7 @@
   function ensureLab() {
     if (window.softwaveLab) return Promise.resolve();
     if (labPromise) return labPromise;
-    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=60'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
+    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=61'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
     return labPromise;
   }
   window.softwaveEnsureLab = ensureLab;
