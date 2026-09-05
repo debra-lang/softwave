@@ -495,6 +495,7 @@ input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.12); }
 .lab-setting output { color: var(--accent); font-variant-numeric: tabular-nums; }
 .lab-run { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding-top: 10px; border-top: 1px solid var(--border); }
 .lab-rate { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.lab-run[hidden], .lab-rate[hidden] { display: none; }   /* the completed state hides these; flex must not override [hidden] */
 .lab-rate .seg { margin: 0; }
 .lab-countdown { font-weight: 800; color: var(--lab); font-variant-numeric: tabular-nums; min-height: 1.2em; }
 .lab-result { margin-top: 8px; }
