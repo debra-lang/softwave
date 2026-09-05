@@ -84,7 +84,7 @@
   function ensureLab() {
     if (window.softwaveLab) return Promise.resolve();
     if (labPromise) return labPromise;
-    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=56'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
+    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=57'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
     return labPromise;
   }
   window.softwaveEnsureLab = ensureLab;
@@ -324,6 +324,7 @@
   function updatePlayer() {
     const list = engine.activeList();
     const playing = engine.isPlaying;
+    const ln = $('.field-learn-note'); if (ln) ln.hidden = list.length > 0;   // the pre-play invitation retires once something plays
     const names = list.map(s => engine.def(s.id).name);
     if (engine.tone && engine.tone.playing) names.push(`Tone ${fmt(engine.tone.freq)} Hz`);
     $('#player').classList.toggle('player-hidden', !names.length);
@@ -454,6 +455,7 @@
   $('#sleep-exit').addEventListener('click', exitSleep);
   screen.addEventListener('keydown', e => { if (e.key === 'Escape') exitSleep(); });
   $('#sleep-toggle').addEventListener('click', togglePlay);
+  $('#sleep-screen-timer').addEventListener('click', () => openTimerSheet());
   $('#sleep-vol-down').addEventListener('click', () => setMaster(clamp(engine.masterVolume - 0.05, 0, 1)));
   $('#sleep-vol-up').addEventListener('click', () => setMaster(clamp(engine.masterVolume + 0.05, 0, 1)));
   function clockTick() { const d = new Date(); $('#sleep-clock').textContent = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); }
@@ -461,6 +463,8 @@
   engine.on(type => { if (type === 'state') $('#sleep-toggle').textContent = engine.isPlaying ? '❚❚' : '▶'; });
   engine.on(type => { if (type === 'state') { const paused = !(engine.ctx && engine.ctx.state === 'running'); $$('.vol-pause').forEach(b => { b.classList.toggle('paused', paused); b.setAttribute('aria-label', paused ? 'Resume playback' : 'Pause playback'); }); } });
   function renderTimer(t) {
+    // every timer button label follows the engine, no matter where the timer was set
+    const nb = $('[data-now="timer"]'); if (nb) nb.textContent = t.durationMin ? `Timer · ${t.durationMin} min` : 'Timer';
     const el = $('#player-timer'), rem = $('#sleep-remaining');
     if (!t.endsAt) { el.hidden = true; rem.textContent = 'Continuous'; if (!t.durationMin) $$('.timer-seg [data-min]').forEach(x => x.setAttribute('aria-checked', x.dataset.min === '0')); return; }
     const left = Math.max(0, t.endsAt - Date.now()); const m = Math.floor(left / 60000), s = Math.floor((left % 60000) / 1000);
@@ -645,7 +649,7 @@
   $('#now-orb').addEventListener('click', async e => { const b = e.currentTarget; b.classList.add('pressed'); setTimeout(() => b.classList.remove('pressed'), 400); await togglePlay(); syncEnvironment(); });
   $('#player-toggle').addEventListener('click', e => { const b = e.currentTarget; b.classList.add('pressed'); setTimeout(() => b.classList.remove('pressed'), 400); });
   $('#now-vol').addEventListener('input', e => setMaster(+e.target.value / 100, true));
-  $$('[data-now]').forEach(b => b.addEventListener('click', () => { const k = b.dataset.now; if (k === 'timer') { const cur = engine.timer.durationMin || 0; const next = cur === 0 ? 30 : cur === 30 ? 60 : cur === 60 ? 90 : 0; engine.setTimer(next, true); toast(next ? `Timer: ${next} minutes with gentle fade` : 'Timer off'); b.textContent = next ? `Timer · ${next} min` : 'Timer'; return; } closeNow(); if (k === 'change') { showView('sounds'); setTimeout(() => $('#sound-groups').scrollIntoView({ behavior: 'smooth', block: 'start' }), 150); } if (k === 'visual') { if (window.softwaveFocus) softwaveFocus.openChooser(); else showView('focus'); } }));
+  $$('[data-now]').forEach(b => b.addEventListener('click', () => { const k = b.dataset.now; if (k === 'timer') { openTimerSheet(); return; } closeNow(); if (k === 'change') { showView('sounds'); setTimeout(() => $('#sound-groups').scrollIntoView({ behavior: 'smooth', block: 'start' }), 150); } if (k === 'visual') { if (window.softwaveFocus) softwaveFocus.openChooser(); else showView('focus'); } }));
   document.addEventListener('click', e => { if (e.target.closest('#fav-save, #mix-save, [data-save], [data-save-session], [data-r="save"]')) { const b = e.target.closest('button'); b.classList.add('saved-pop'); setTimeout(() => b.classList.remove('saved-pop'), 520); } }, true);
 
   // ---------- Back: closes any open overlay first, then steps back through views ----------
@@ -653,7 +657,10 @@
     if (transit.active) { clearTransit(); }
     const overlays = [['#now', () => closeNow()], ['#focus-screen', () => window.softwaveFocus && softwaveFocus.exitFocus()], ['#eyes-screen', () => window.softwaveLab && softwaveLab.stop()], ['#sleep-screen', () => exitSleep()], ['#lab-detail', () => { if (window.softwaveLab && softwaveLab.isRunning()) softwaveLab.stop('Experiment stopped'); const d = $('#lab-detail'); d.hidden = true; d.innerHTML = ''; }]];
     for (const [sel, close] of overlays) { const el = $(sel); if (el && !el.hidden) { close(); return; } }
-    if (history.length > 1 && location.hash && location.hash !== '#sounds') history.back(); else showView('sounds');
+    // Back also works ON the Sounds page (it only appears there after completion-card
+    // navigation, with a real place to return to — the old '#sounds' guard made the
+    // button a silent no-op exactly then).
+    if (history.length > 1 && location.hash) history.back(); else showView('sounds');
   }
   $('#nav-back').addEventListener('click', goBack);
   document.addEventListener('keydown', e => { const tgt = e.target && e.target.matches ? e.target : document.body; if (e.key === 'Backspace' && !tgt.matches('input, textarea, select, [contenteditable]')) { e.preventDefault(); goBack(); } if (e.key === 'Escape' && transit.active) clearTransit(); });

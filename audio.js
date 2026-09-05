@@ -44,11 +44,14 @@
   const FADE_OUT = 0.8;   // seconds
 
   // Per-sound loudness trim so the mixer feels balanced at equal slider values.
+  // Level-matched 2026-09-05 by A-weighted measurement at equal settings (build v151):
+  // spread was 21 dB (lapping +14.4 over median!); corrections bring the library to
+  // ~±2 dB of the median, tempered for sparse chirpy sounds so peaks stay gentle.
   const TRIM = {
-    white: 0.16, pink: 0.32, brown: 0.9, static: 0.22, hiss: 0.26,
-    rain: 0.45, ocean: 0.85, stream: 0.4, waterfall: 0.38, forest: 0.6,
-    wind: 0.8, fan: 0.5, fire: 0.9, night: 0.7,
-    glassrain: 0.55, lapping: 0.8, crickets: 1.0, cicadas: 0.14, summernight: 0.6, leaves: 0.95,
+    white: 0.11, pink: 0.32, brown: 0.49, static: 0.15, hiss: 0.4,
+    rain: 0.45, ocean: 0.71, stream: 0.4, waterfall: 0.38, forest: 0.76,
+    wind: 0.64, fan: 0.5, fire: 1.15, night: 1.03,
+    glassrain: 0.55, lapping: 0.15, crickets: 1.55, cicadas: 0.19, summernight: 1.0, leaves: 0.71,
     thunder: 1.0, city: 0.9, cabin: 0.8, chimes: 0.5, paint: 0.3, sculpt: 0.42, discoA: 0.42, discoB: 0.42,
   };
 
@@ -237,7 +240,12 @@
       }
     }
     _keepAlive(on) {
-      if (this.mediaOut && on) this.mediaOut.play().catch(() => { });   // the routed output must be playing whenever sound plays
+      // The routed output must be playing whenever sound plays — and must be RELEASED
+      // when nothing plays: a media element held open against a silent graph keeps the
+      // iOS audio session active for the app's whole lifetime, and the OS layer emits
+      // periodic clicks through it (measured: the app's own output was pure silence
+      // while clicks were audible — they are born below us, in the held-open session).
+      if (this.mediaOut) { if (on) this.mediaOut.play().catch(() => { }); else this.mediaOut.pause(); }
       if (this.silentEl) { if (on) this.silentEl.play().catch(() => { }); else this.silentEl.pause(); }
       if ('mediaSession' in navigator) navigator.mediaSession.playbackState = on ? 'playing' : 'paused';
     }

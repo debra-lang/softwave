@@ -13,14 +13,9 @@
     firstRun = native && !localStorage.getItem('softwave:introSeen');
   } catch (_) { }
   if (!preview && !firstRun) return;
-  if (firstRun) {
-    // Mark the film as seen up front so it never replays, even if the app is
-    // killed mid-film.
-    try { localStorage.setItem('softwave:introSeen', '1'); } catch (_) { }
-  }
-  // The film IS the welcome, in every mode: without this, skipping the film on the
-  // web drops the viewer onto the old welcome dialog waiting underneath it.
-  try { localStorage.setItem('softwave:welcomed', 'true'); } catch (_) { }
+  // NOTE: the seen/welcomed flags are set inside run(), only once the film is truly
+  // on screen — setting them here at script load burned the one first-launch chance
+  // whenever anything prevented the film from appearing, permanently and silently.
 
   // ---- timeline (seconds) — tune freely ----
   const T = {
@@ -88,6 +83,11 @@
       <div class="fi-gate">Tap to begin</div>
       <button class="fi-skip" type="button">Skip</button>`;
     document.body.appendChild(ov);
+    // The film is now genuinely on screen — only now does it count as seen (a failed
+    // attempt costs nothing and simply tries again next launch), and only now does it
+    // replace the old welcome dialog.
+    if (firstRun) { try { localStorage.setItem('softwave:introSeen', '1'); } catch (_) { } }
+    try { localStorage.setItem('softwave:welcomed', 'true'); } catch (_) { }
 
     const cv = ov.querySelector('canvas');
     const ctx = cv.getContext('2d');
