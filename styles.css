@@ -498,6 +498,9 @@ input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.12); }
 .lab-run[hidden], .lab-rate[hidden] { display: none; }   /* the completed state hides these; flex must not override [hidden] */
 /* class-wide guards: any element whose class sets display would otherwise ignore [hidden] */
 .btn[hidden], .chip[hidden], .lab-settings[hidden], .field-learn-note[hidden] { display: none; }
+/* the pre-play invitation: set apart, in the app's soft serif voice */
+.field-desc.field-learn-note { margin-top: 26px; font-family: 'Fraunces', Georgia, serif; font-style: italic; font-weight: 300; font-size: 1.02rem; letter-spacing: .01em; color: var(--muted); }
+.field-desc.field-learn-note .linklike { font-family: inherit; font-style: inherit; font-size: inherit; }
 /* favourited = unmistakably on: filled accent, not just a star swap */
 [data-fav][aria-pressed="true"] { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; border-color: transparent; box-shadow: 0 6px 18px var(--ring); }
 .lab-rate .seg { margin: 0; }
@@ -1279,7 +1282,7 @@ html[data-theme="dark"] .lab-view { --lab-bg-a: #0f1320; --lab-bg-b: #090b12; }
 /* Build My Session: one question at a time */
 .sess-wrap { text-align: center; padding: 6px 0 4px; }
 .sess-progress { display: flex; justify-content: center; gap: 8px; margin-bottom: 14px; }
-.sess-progress span { flex: 0 0 22px; width: 22px; height: 3px; border-radius: 2px; background: var(--sf-line); }   /* flex-basis: upcoming steps must hold their slot, or the track "grows" instead of filling */
+.sess-progress span { flex: 0 0 22px; width: 22px; height: 3px; border-radius: 2px; background: color-mix(in srgb, var(--text) 28%, transparent); }   /* upcoming steps must be clearly VISIBLE, or the 4-step track reads as fewer bars */
 .sess-progress span.done { background: var(--sf-accent); } .sess-progress span.now { background: var(--sf-ink); }
 .sess-q { font-family: var(--sf-display); font-weight: 300; font-size: clamp(1.5rem, 3vw, 2.1rem); margin: 0 0 16px; letter-spacing: -.01em; }
 .sess-options { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-bottom: 12px; }

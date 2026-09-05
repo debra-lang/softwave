@@ -335,7 +335,7 @@
       how: 'Press Start, pick a base (deep, balanced or bright), move the sliders slowly, add a nature texture if you like, then Save.',
       whyTest: 'An interface experiment: do plain-language controls help people reach a comfortable sound faster than technical ones? No clinical claim.',
       settings: [
-        { key: 'colour', label: 'Base', type: 'buttons', options: [[0.1, 'Deep'], [0.45, 'Balanced'], [0.85, 'Bright']] },
+        { key: 'colour', label: 'Base character', type: 'buttons', options: [[0.1, 'Deep'], [0.45, 'Balanced'], [0.85, 'Bright']] },
         { key: 'warm', label: 'Warm ↔ Bright', ends: ['Warm', 'Bright'], type: 'range', min: -100, max: 100, fmt: v => v < -20 ? 'Warm' : v > 20 ? 'Bright' : 'Neutral' },
         { key: 'deep', label: 'Deep ↔ Airy', ends: ['Deep', 'Airy'], type: 'range', min: -100, max: 100, fmt: v => v < -20 ? 'Deep' : v > 20 ? 'Airy' : 'Neutral' },
         { key: 'smooth', label: 'Smooth ↔ Textured', ends: ['Smooth', 'Textured'], type: 'range', min: -100, max: 100, fmt: v => v < -20 ? 'Smooth' : v > 20 ? 'Textured' : 'Neutral' },
