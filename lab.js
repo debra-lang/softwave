@@ -1170,9 +1170,20 @@
   const flag = $('#lab-flagship canvas'); if (flag) liveShape(flag, () => { const pp = profileParams(); return { p: pp ? Object.assign({}, pp, { nature: profile().nature }) : Object.assign(DEF(), { colour: 0.4, width: 0.5, moving: 0.2 }), live: true, speed: 0.7, scale: 0.4 }; });
 
   window.softwaveLab = { open: openExperiment, stop: stopRunning, experiments: EXPERIMENTS, isRunning: () => !!running,
-    // The Experiments tab means "show me the list": close a non-running panel so the
-    // focused view never traps the user; a running experiment keeps its panel.
-    showList: () => { if (running) return; const c = document.querySelector('#lab-detail [data-close]'); if (c) c.click(); else setFocusedExp(false); }, mySounds, soundMix, onTap() { const p = focus.getParam && focus.getParam(); if (!p || !p.soundTouch) return; engine.setMasterTone(2200, 0.08); later(() => engine.setMasterTone(20000, 0.6), 350); } };
+    // Arriving at the Experiments page shows the LIST, with exactly two protected
+    // states: a running experiment, and (for history/Back arrivals) the completed
+    // Find My Sound result. A merely-opened placard always folds back into the list —
+    // one Back press must land somewhere meaningful, never on leftover panel state.
+    showList: (force) => {
+      if (running) return;
+      const panel = document.getElementById('lab-detail');
+      if (!force) {
+        const ctx = ctxs.discovery;
+        if (ctx && ctx.finished && ctx.result && panel && !panel.hidden && panel.querySelector('.disc-reveal')) return;
+      }
+      const c = panel && panel.querySelector('[data-close]');
+      if (c) c.click(); else setFocusedExp(false);
+    }, mySounds, soundMix, onTap() { const p = focus.getParam && focus.getParam(); if (!p || !p.soundTouch) return; engine.setMasterTone(2200, 0.08); later(() => engine.setMasterTone(20000, 0.6), 350); } };
   addEventListener('unhandledrejection', e => { if (running) { console.error(e.reason); app.toast('Something went wrong in this experiment. Press Stop and try again.', 5000); } });
   renderLists(); renderProfile();
   const qe = new URLSearchParams(location.search).get('exp'); if (qe && byId[qe]) setTimeout(() => openExperiment(qe), 120);
