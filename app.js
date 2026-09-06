@@ -159,11 +159,21 @@
   // open the matching full-screen player (Immerse from Sounds, the Sleep Screen
   // from Sleep) — but only if the sound is still playing, they are still on that
   // page, and no full-screen view opened meanwhile. A new tap restarts the wait.
-  let autoAdvT = null;
+  // The wait counts QUIET time: any tap or scroll restarts it, so browsing and
+  // layering sounds is never interrupted — the transition comes once hands are still.
+  let autoAdvT = null, lastActivity = 0;
+  const noteActivity = () => { lastActivity = Date.now(); };
+  document.addEventListener('pointerdown', noteActivity, { passive: true, capture: true });
+  addEventListener('scroll', noteActivity, { passive: true });
+  addEventListener('wheel', noteActivity, { passive: true });
   function scheduleAutoAdvance(kind, ms) {
     clearTimeout(autoAdvT);
+    const wait = ms || 5000, armed = Date.now();
+    // the full wait since the sound started, extended by any later interaction
+    const quietFor = () => Date.now() - Math.max(lastActivity, armed);
     const attempt = (retries) => {
       autoAdvT = setTimeout(() => {
+        if (quietFor() < wait - 150) { attempt(retries); return; }   // still interacting — wait out the remainder
         if (!engine.isPlaying) {
           // iOS can report a non-running audio context for a moment even while
           // sounds are queued — retry briefly instead of silently giving up
@@ -175,7 +185,7 @@
         const fsOpen = !$('#now').hidden || !$('#focus-screen').hidden || !$('#sleep-screen').hidden;
         if (kind === 'immerse' && !$('#view-sounds').hidden && !fsOpen) openNow();
         if (kind === 'sleep' && !$('#view-sleep').hidden && $('#sleep-screen').hidden && $('#now').hidden && $('#focus-screen').hidden) $('#sleep-enter').click();
-      }, retries === 3 ? (ms || 5000) : 1500);
+      }, retries === 3 ? Math.max(300, wait - quietFor()) : 1500);
     };
     attempt(3);
   }
@@ -255,7 +265,7 @@
     const sleepRow = $('#sleep-profile-row'); if (sleepRow) sleepRow.hidden = !pp;
     const vs = $('#visual-profile-suggest'); if (vs) { if (pp) { const v = profileVisual(); const name = (window.softwaveFocus && softwaveFocus.allVisuals.find(x => x.id === v) || {}).name || v; vs.hidden = false; vs.innerHTML = `Based on your preferences, try <button class="linklike" data-pv="${v}">${name}</button>.`; $('[data-pv]', vs).addEventListener('click', () => { softwaveFocus.setVisual(v); toast(`Visual: ${name}`); }); } else vs.hidden = true; }
   }
-  $('#sleep-from-profile').addEventListener('click', async () => { const mix = profileMix({ sleep: true }); if (!mix) return; if (engine.masterVolume > 0.5) setMaster(0.4); await engine.loadMix(mix); engine.setTimer(60, true); toast('Sleep session from your profile: 60-minute timer with gentle fade.'); });
+  $('#sleep-from-profile').addEventListener('click', async () => { const mix = profileMix({ sleep: true }); if (!mix) return; toast('Building your sleep session from your Sound Profile…'); if (engine.masterVolume > 0.5) setMaster(0.4); await engine.loadMix(mix); engine.setTimer(60, true); toast('Sleep session ready — 60-minute timer with gentle fade. Opening your sleep screen…', 4200); scheduleAutoAdvance('sleep', 4000); });
   addEventListener('storage', renderProfileHooks); document.addEventListener('softwave:profile', renderProfileHooks);
   window.softwaveProfile = { params: profileParams, mix: profileMix, visual: profileVisual, refresh: renderProfileHooks };
 
@@ -282,11 +292,8 @@
         btn.addEventListener('click', async () => {
           const wasActive = engine.isActive(d.id);
           const ok = await engine.toggleSound(d.id, (+$('input', card).value) / 100);
-          // Bring the player into view when a sound starts and it's off-screen (phones).
-          // The old check had an operator-precedence typo and never fired.
-          if (!wasActive && ok !== false && innerWidth < 700) { const r = $('#field').getBoundingClientRect(); if (r.bottom < 0 || r.top > innerHeight) $('#field-wrap').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
-          // ~4s pause before the full-screen sound view — room to layer more sounds
-          // first; every new start resets the wait
+          // Stay on the grid — no jump to the player — so more sounds can be added;
+          // ~4s of quiet later the full-screen sound view opens on its own.
           if (!wasActive && ok !== false) scheduleAutoAdvance('immerse', 4000);
           if (ok === false) toast(`You can layer up to ${MAX_ACTIVE} sounds. Turn one off to add another.`);
         });
