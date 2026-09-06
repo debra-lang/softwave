@@ -42,7 +42,8 @@
 
     // The quiet indicator: a small chip beside the field actions, only when tuning is possible.
     function syncChip() {
-      const hostRow = $('#field-controls .field-actions'); if (!hostRow) return;
+      // the controller's status line; the actions row is the fallback for older markup
+      const hostRow = $('#field-controls .field-status') || $('#field-controls .field-actions'); if (!hostRow) return;
       let chip = $('#tuned-chip');
       const eligible = confident() && profile.params();
       if (!eligible) { if (chip) chip.remove(); return; }

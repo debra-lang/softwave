@@ -558,8 +558,9 @@
   // Reuses the Visual Focus sound-pane pattern; volumes and balance stay the Mixer's job.
   (function addSoundSheet() {
     const faRow = $('#field-controls .field-actions'); if (!faRow) return;
-    const ab = document.createElement('button'); ab.type = 'button'; ab.className = 'fa'; ab.id = 'add-sound-btn'; ab.textContent = '＋ Add sound';
-    faRow.insertBefore(ab, faRow.firstChild);
+    // the controller renders the button in its standard slot; create one only for older markup
+    let ab = $('#add-sound-btn');
+    if (!ab) { ab = document.createElement('button'); ab.type = 'button'; ab.className = 'fa'; ab.id = 'add-sound-btn'; ab.textContent = '＋ Add sound'; faRow.insertBefore(ab, faRow.firstChild); }
     const sheet = document.createElement('div'); sheet.id = 'addsound-sheet'; sheet.className = 'addsound-sheet'; sheet.hidden = true;
     sheet.innerHTML = `<div class="addsound-card card" role="dialog" aria-label="Add a sound"><div class="addsound-head"><strong>Add a sound</strong><button class="btn btn-ghost btn-sm" data-as-close>Done</button></div><div class="pane-sounds" data-as-grid></div><p class="muted small">Tap to add or remove — up to ${MAX_ACTIVE} at once. Fine volumes and balance live in the Mixer.</p></div>`;
     document.body.appendChild(sheet);
