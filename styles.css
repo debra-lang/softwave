@@ -392,6 +392,11 @@ input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.12); }
 .focus-panel-head { display: flex; justify-content: flex-end; }
 .focus-panel .row-title { color: #97a2c4; margin: 16px 0 8px; }
 .focus-panel .chip { background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.12); color: #e8ecf7; box-shadow: none; }
+/* symmetric tiles in the Change sound pane: presets and layer pills fill uniform columns */
+.focus-panel .chips { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.focus-panel .chips .chip { width: 100%; }
+.focus-panel .pane-sounds { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.focus-panel .pane-sounds .pane-sound { width: 100%; justify-content: flex-start; }
 .focus-panel .chip span { color: #97a2c4; }
 .focus-panel .seg { background: rgba(255,255,255,.08); }
 .focus-panel .seg button { color: #97a2c4; }
@@ -1322,6 +1327,10 @@ html[data-theme="dark"] .lab-view { --lab-bg-a: #0f1320; --lab-bg-b: #090b12; }
 @media (max-width: 640px) {
   #moments, #presets, #sleep-presets { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   #moments .chip, #presets .chip, #sleep-presets .chip { width: auto; margin: 0; }
+  #mix-add-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  #mix-add-list .pane-sound { width: 100%; justify-content: flex-start; }
+  .addsound-card .pane-sounds { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .addsound-card .pane-sound { width: 100%; justify-content: flex-start; }
 }
 /* setting labels always get their own line above the control (fixes BASE overlap) */
 .lab-setting > .label-sm { display: block; margin-bottom: 6px; }

@@ -71,9 +71,7 @@
     let t = 0; const tex = new NoiseTex(72, 96); const embers = Array.from({ length: 40 }, () => ({ x: rnd(0.62, 0.38), y: rnd(0.78, 0.3), s: rnd(0.14, 0.05), r: rnd(2.2, 0.8), ph: Math.random() * 6 }));
     return { draw(ctx, w, h, e) { t += e.dt * e.speed;
       sky(ctx, w, h, '#07040a', '#1a0c06'); const base = h * 0.8;
-      // hearth stones
-      ctx.fillStyle = '#1c1410'; ctx.fillRect(w * 0.22, h * 0.25, w * 0.56, h * 0.6); for (let i = 0; i < 30; i++) { const bx = w * 0.22 + (i % 6) * w * 0.0933, by = h * 0.25 + Math.floor(i / 6) * h * 0.12; ctx.fillStyle = `hsl(20 18% ${11 + (i * 7) % 6}%)`; ctx.fillRect(bx + 2, by + 2, w * 0.0933 - 4, h * 0.12 - 4); }
-      ctx.fillStyle = '#050304'; ctx.fillRect(w * 0.28, h * 0.33, w * 0.44, h * 0.47);
+      // open fire — no surround: just the flames, logs and embers in the dark
       // glow on the room
       glow(ctx, w * 0.5, base - h * 0.1, w * 0.5, 'rgba(255,120,40,A)', 0.25 + e.level * 0.15 + Math.sin(t * 3) * 0.02);
       // logs (behind the flames), rounded with a glowing underside
@@ -82,8 +80,8 @@
       // flames: noise-driven, rising; white-hot core → yellow → orange → transparent
       tex.render((u, v) => { const x = (u - 0.5) * 2; const vv = 1 - v; const n = fbm(u * 4 + Math.sin(t) * 0.2, v * 6 + t * 2.4, t * 0.5, 4); const n2 = fbm(u * 9 + 3, v * 12 + t * 3.5, t, 2); const shape = Math.max(0, 1 - Math.abs(x) * (1.0 + vv * 1.8)) * Math.pow(1 - vv, 0.6); const f = shape * (0.45 + n * 1.2 + (n2 - 0.5) * 0.5) - vv * 0.35; const i = Math.max(0, Math.min(1, f * 1.5)); const core = Math.max(0, i - 0.88) * 8; return [255, 40 + 150 * i + 40 * core, 10 + 25 * i * i + 120 * core, Math.pow(i, 1.3) * 255]; }, 1);
       ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.filter = 'blur(8px)'; ctx.globalAlpha = 0.35; ctx.drawImage(tex.c, w * 0.28, base - h * 0.46, w * 0.44, h * 0.5); ctx.filter = 'none'; ctx.globalAlpha = 1; ctx.drawImage(tex.c, w * 0.3, base - h * 0.44, w * 0.4, h * 0.47); ctx.restore();
-      // embers, kept inside the firebox
-      ctx.save(); ctx.beginPath(); ctx.rect(w * 0.28, h * 0.33, w * 0.44, h * 0.47); ctx.clip();
+      // embers drifting freely above the fire
+      ctx.save();
       for (const m of embers) { m.y -= m.s * e.dt * e.speed; m.x += Math.sin(t * 1.5 + m.ph + m.y * 8) * 0.0007; if (m.y < 0.3) { m.y = rnd(0.78, 0.7); m.x = rnd(0.6, 0.4); } const a = Math.max(0, 1 - (0.78 - m.y) * 2.2); ctx.fillStyle = `rgba(255,${120 + Math.floor(a * 110)},50,${a})`; ctx.beginPath(); ctx.arc(m.x * w, m.y * h, m.r * (0.6 + a * 0.6), 0, TAU); ctx.fill(); }
       ctx.restore();
     } }; } });

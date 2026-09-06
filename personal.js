@@ -65,7 +65,9 @@
     // profile does. The row exists in the DOM only when a profile exists.
     const MOMENTS = [
       { id: 'quiet', name: 'Your Quiet', desc: 'Your sound, ready now', run: async () => {
-          safeMaster(0.35); await engine.loadMix(profile.mix()); } },
+          safeMaster(0.35); await engine.loadMix(profile.mix());
+          // carry the listener onward to the sound image, like the one-tap presets
+          if (app.scheduleAutoAdvance) app.scheduleAutoAdvance('immerse'); } },
       { id: 'sleep', name: 'Your Sleep', desc: '60 min · gentle fade', run: async () => {
           safeMaster(0.3); await engine.loadMix(profile.mix({ sleep: true })); engine.setTimer(60, true); app.showView('sleep'); } },
       { id: 'focus', name: 'Your Focus', desc: 'Sound + your visual', run: async () => {

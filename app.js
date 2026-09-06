@@ -160,14 +160,16 @@
   // from Sleep) — but only if the sound is still playing, they are still on that
   // page, and no full-screen view opened meanwhile. A new tap restarts the wait.
   let autoAdvT = null;
-  function scheduleAutoAdvance(kind) {
+  function scheduleAutoAdvance(kind, ms) {
     clearTimeout(autoAdvT);
     autoAdvT = setTimeout(() => {
       if (!engine.isPlaying) return;
+      // an open Add-sound/Timer sheet means they're still choosing — check again later
+      if ([...document.querySelectorAll('.addsound-sheet')].some(s => !s.hidden)) { scheduleAutoAdvance(kind, ms); return; }
       const fsOpen = !$('#now').hidden || !$('#focus-screen').hidden || !$('#sleep-screen').hidden;
       if (kind === 'immerse' && !$('#view-sounds').hidden && !fsOpen) openNow();
       if (kind === 'sleep' && !$('#view-sleep').hidden && $('#sleep-screen').hidden && $('#now').hidden && $('#focus-screen').hidden) $('#sleep-enter').click();
-    }, 5000);
+    }, ms || 5000);
   }
   function renderPresets() {
     const make = (container, includeCustom) => {
@@ -275,6 +277,9 @@
           // Bring the player into view when a sound starts and it's off-screen (phones).
           // The old check had an operator-precedence typo and never fired.
           if (!wasActive && ok !== false && innerWidth < 700) { const r = $('#field').getBoundingClientRect(); if (r.bottom < 0 || r.top > innerHeight) $('#field-wrap').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+          // ~4s pause before the full-screen sound view — room to layer more sounds
+          // first; every new start resets the wait
+          if (!wasActive && ok !== false) scheduleAutoAdvance('immerse', 4000);
           if (ok === false) toast(`You can layer up to ${MAX_ACTIVE} sounds. Turn one off to add another.`);
         });
         const slider = $('input', card);
@@ -551,7 +556,7 @@
         const on = engine.isActive(d.id);
         const b = document.createElement('button'); b.className = 'pane-sound' + (on ? ' on' : ''); b.setAttribute('aria-pressed', on);
         b.innerHTML = `<span class="ico">${d.icon}</span>${d.name}`;
-        b.addEventListener('click', async () => { const ok = await engine.toggleSound(d.id, 0.5); if (ok === false) toast(`You can layer up to ${MAX_ACTIVE} sounds. Turn one off to add another.`); });
+        b.addEventListener('click', async () => { const wasOn = engine.isActive(d.id); const ok = await engine.toggleSound(d.id, 0.5); if (ok === false) toast(`You can layer up to ${MAX_ACTIVE} sounds. Turn one off to add another.`); else if (!wasOn) scheduleAutoAdvance('immerse', 4000); });
         g.appendChild(b);
       });
     };
@@ -772,7 +777,7 @@
     let reloaded = false; navigator.serviceWorker.addEventListener('controllerchange', () => { if (reloaded || !navigator.serviceWorker.controller) return; reloaded = true; if (!engine.isPlaying) location.reload(); });
   });
 
-  window.softwaveApp = { renderPresetsRemount, loadPreset, setMaster, togglePlay, toast, store, PRESETS, paintRange, showView, renderPresets: renderPresetsRemount };
+  window.softwaveApp = { renderPresetsRemount, loadPreset, setMaster, togglePlay, toast, store, PRESETS, paintRange, showView, scheduleAutoAdvance, renderPresets: renderPresetsRemount };
 
   // ---------- init ----------
   renderSounds(); renderPresets(); renderMixer([]); updatePlayer(); renderProfileHooks(); if (window.SoftwaveField) syncField();
