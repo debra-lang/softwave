@@ -59,9 +59,21 @@
   // The app owns all scroll positions (every navigation re-scrolls deliberately);
   // the browser's async restoration on Back would fight and override those scrolls.
   try { if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; } catch (_) { }
+  // Layered surfaces (sheets, Immerse, sleep screen) each own one same-URL history
+  // entry, so every kind of Back — the ← button, browser Back, and the iPhone edge
+  // swipe — peels the topmost layer instead of navigating the page underneath.
+  const layers = { stack: [], stale: 0 };
+  function layerPush(closeFn) { layers.stack.push(closeFn); try { history.pushState({ swLayer: layers.stack.length }, '', location.href); } catch (_) { } }
+  function layersClose() { if (layers.stack.length) history.back(); }
+  // Hopping between top tabs replaces the current section entry rather than stacking
+  // one per visit — Back returns to where you were before the section, not a replay.
+  function tabReplace(opts) { return opts.push === false || (opts.tab && location.hash && location.hash !== '#sounds'); }
   function showView(name, opts = {}) {
+    // Any real navigation collapses open layers first (their history entries become
+    // stale; the popstate handler swallows those silently on a later Back).
+    if (layers.stack.length) { while (layers.stack.length) { try { layers.stack.pop()(); } catch (_) { } layers.stale++; } }
     // #find = the Find My Sound feature (lives in the Lab): show the Lab and open it directly
-    if (name === 'find') { const wanted = opts.push === false ? 'replace' : 'push'; showView('lab', { push: false, keepHash: true }); if (location.hash !== '#find') { if (wanted === 'replace') history.replaceState(null, '', '#find'); else history.pushState(null, '', '#find'); } $$('.nav a').forEach(a => a.classList.toggle('active', a.dataset.view === 'find')); ensureLab().then(() => { if (window.softwaveLab) softwaveLab.open('discovery'); }).catch(() => { }); return; }
+    if (name === 'find') { const wanted = tabReplace(opts) ? 'replace' : 'push'; showView('lab', { push: false, keepHash: true }); if (location.hash !== '#find') { if (wanted === 'replace') history.replaceState(null, '', '#find'); else history.pushState(null, '', '#find'); } $$('.nav a').forEach(a => a.classList.toggle('active', a.dataset.view === 'find')); ensureLab().then(() => { if (window.softwaveLab) softwaveLab.open('discovery'); }).catch(() => { }); return; }
     if (!views.includes(name)) name = 'sounds';
     if (name === 'lab') {
       ensureLab();
@@ -71,7 +83,7 @@
     }
     views.forEach(v => { const el = $('#view-' + v); el.hidden = v !== name; el.classList.toggle('active', v === name); });
     $$('.nav a').forEach(a => a.classList.toggle('active', a.dataset.view === name));
-    if (!opts.keepHash && location.hash !== '#' + name) { if (opts.push === false) history.replaceState(null, '', '#' + name); else history.pushState(null, '', '#' + name); }
+    if (!opts.keepHash && location.hash !== '#' + name) { if (tabReplace(opts)) history.replaceState(null, '', '#' + name); else history.pushState(null, '', '#' + name); }
     const back = $('#nav-back'); if (back) back.hidden = name === 'sounds';
     window.scrollTo({ top: 0, behavior: 'smooth' });
     bg.setMode(name === 'lab' ? 'lab' : engine.isActive('rain') ? 'rain' : 'calm');
@@ -79,10 +91,18 @@
   document.addEventListener('click', e => {
     const sc = e.target.closest('[data-scroll]'); if (sc) { e.preventDefault(); const tgt = $(sc.getAttribute('href')); tgt && tgt.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
     const a = e.target.closest('[data-view]'); if (!a) return;
-    e.preventDefault(); showView(a.dataset.view);
+    // only the top nav bar counts as tab-hopping; in-page links (Choose sounds,
+    // My Custom Mix…) are forward steps and keep their history entry
+    e.preventDefault(); showView(a.dataset.view, { tab: !!a.closest('.nav') });
   });
   addEventListener('hashchange', () => showView(location.hash.slice(1), { push: false }));
-  addEventListener('popstate', () => showView((location.hash || '#sounds').slice(1), { push: false }));
+  addEventListener('popstate', () => {
+    // Back peels the topmost open layer (sheet/overlay) before any view navigation.
+    if (layers.stack.length) { const fn = layers.stack.pop(); try { fn(); } catch (_) { } return; }
+    // A layer entry whose surface was already closed elsewhere: swallow it and keep going.
+    if (layers.stale > 0) { layers.stale--; history.back(); return; }
+    showView((location.hash || '#sounds').slice(1), { push: false });
+  });
 
   // Lazy-load The Lab (experiments) only when needed, so the homepage stays light.
   let labPromise = null;
@@ -467,13 +487,17 @@
     if (!engine.activeList().length) await loadPreset(PRESETS[1]);
     else await engine.playAll();
     screen.hidden = false; document.body.style.overflow = 'hidden'; $('#sleep-toggle').focus();
+    layerPush(exitSleepUI);
     try { if (navigator.wakeLock) wake = await navigator.wakeLock.request('screen'); } catch (_) { }
   });
   let wake = null;
-  function exitSleep() { screen.hidden = true; document.body.style.overflow = ''; if (wake) { wake.release().catch(() => { }); wake = null; } }
+  function exitSleepUI() { screen.hidden = true; document.body.style.overflow = ''; if (wake) { wake.release().catch(() => { }); wake = null; } }
+  // exiting goes through history so the layer's Back entry is consumed with it
+  function exitSleep() { if (!screen.hidden) layersClose(); }
   $('#sleep-exit').addEventListener('click', exitSleep);
   screen.addEventListener('keydown', e => { if (e.key === 'Escape') exitSleep(); });
   $('#sleep-toggle').addEventListener('click', togglePlay);
+  $('#sleep-stop').addEventListener('click', () => { engine.stopAll(); toast('All sounds stopped'); });
   $('#sleep-screen-timer').addEventListener('click', () => openTimerSheet());
   $('#sleep-vol-down').addEventListener('click', () => setMaster(clamp(engine.masterVolume - 0.05, 0, 1)));
   $('#sleep-vol-up').addEventListener('click', () => setMaster(clamp(engine.masterVolume + 0.05, 0, 1)));
@@ -510,9 +534,9 @@
         g.appendChild(b);
       });
     };
-    ab.addEventListener('click', () => { sheet.hidden = false; renderGrid(); });
-    $('[data-as-close]', sheet).addEventListener('click', () => { sheet.hidden = true; });
-    sheet.addEventListener('click', e => { if (e.target === sheet) sheet.hidden = true; });
+    ab.addEventListener('click', () => { if (!sheet.hidden) return; sheet.hidden = false; renderGrid(); layerPush(() => { sheet.hidden = true; }); });
+    $('[data-as-close]', sheet).addEventListener('click', () => layersClose());
+    sheet.addEventListener('click', e => { if (e.target === sheet) layersClose(); });
     engine.on(type => { if (type === 'sounds' && !sheet.hidden) renderGrid(); });
   })();
 
@@ -623,8 +647,8 @@
       timerSheet = document.createElement('div'); timerSheet.className = 'addsound-sheet'; timerSheet.hidden = true;
       timerSheet.innerHTML = '<div class="addsound-card card" role="dialog" aria-label="Sleep timer"><div class="addsound-head"><strong>Timer</strong><button class="btn btn-ghost btn-sm" data-t-close>Close</button></div><div class="chips" data-t-opts></div><p class="muted small">The sound fades out gently before the timer ends.</p></div>';
       document.body.appendChild(timerSheet);
-      $('[data-t-close]', timerSheet).addEventListener('click', () => { timerSheet.hidden = true; });
-      timerSheet.addEventListener('click', e => { if (e.target === timerSheet) timerSheet.hidden = true; });
+      $('[data-t-close]', timerSheet).addEventListener('click', () => layersClose());
+      timerSheet.addEventListener('click', e => { if (e.target === timerSheet) layersClose(); });
     }
     const host = $('[data-t-opts]', timerSheet); host.innerHTML = '';
     const cur = engine.timer.durationMin || 0;
@@ -634,11 +658,11 @@
         let m = v === 'custom' ? parseInt(prompt('Timer length in minutes (5–180):', '45'), 10) : v;
         if (v === 'custom' && (!m || m < 5 || m > 180)) return;
         engine.setTimer(m, true); toast(m ? `Timer: ${m} minutes with gentle fade` : 'Timer off');
-        timerSheet.hidden = true;
+        layersClose();
       });
       host.appendChild(b);
     });
-    timerSheet.hidden = false;
+    if (timerSheet.hidden) { timerSheet.hidden = false; layerPush(() => { timerSheet.hidden = true; }); }
   }
   $$('[data-fa]').forEach(b => b.addEventListener('click', () => { const k = b.dataset.fa; if (k === 'timer') openTimerSheet(); if (k === 'visual') { showView('focus'); setTimeout(() => { const st = $('#env-stage'); st && st.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 250); } if (k === 'mixer') showView('mixer'); if (k === 'save') { showView('mixer'); setTimeout(() => { $('#mix-save').click(); $('#mix-save').scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 150); } if (k === 'immerse') openNow(); }));
 
@@ -658,8 +682,9 @@
   function syncEnvironment() { const id = dominant(); bg.setEnv(id); document.body.dataset.sound = id || ''; const p = dominantParams(); const names = engine.activeList().map(s => engine.def(s.id).name); $('#now-name').textContent = names.length ? names.join(' + ') : 'Nothing playing'; $('#now-desc').textContent = names.length ? describeSound(p) : 'Choose a sound to begin'; const on = engine.isPlaying; $('#now-orb').setAttribute('aria-pressed', on); $('#now-orb').setAttribute('aria-label', on ? 'Pause' : 'Play'); }
   engine.on(type => { if (['sounds', 'state', 'tone', 'master'].includes(type)) syncEnvironment(); if (type === 'master') { const v = $('#now-vol'); v.value = Math.round(engine.masterVolume * 100); paintRange(v); $('#now-vol-out').textContent = v.value + '%'; } });
   let nowHideT; function nowShowUI() { $('#now').classList.remove('idle'); clearTimeout(nowHideT); nowHideT = setTimeout(() => $('#now').classList.add('idle'), 5000); }
-  function openNow() { $('#now').hidden = false; document.body.style.overflow = 'hidden'; syncEnvironment(); if (fieldBig) fieldBig.set(fieldIds()); nowShowUI(); $('#now-orb').focus(); }
-  function closeNow() { $('#now').hidden = true; document.body.style.overflow = ''; }
+  function openNow() { if (!$('#now').hidden) return; $('#now').hidden = false; document.body.style.overflow = 'hidden'; syncEnvironment(); if (fieldBig) fieldBig.set(fieldIds()); nowShowUI(); $('#now-orb').focus(); layerPush(closeNowUI); }
+  function closeNowUI() { $('#now').hidden = true; document.body.style.overflow = ''; }
+  function closeNow() { if (!$('#now').hidden) layersClose(); }
   $('#now').addEventListener('pointermove', nowShowUI); $('#now').addEventListener('pointerdown', nowShowUI);
   $('#player-title').addEventListener('click', () => { if (engine.activeList().length) openNow(); });
   $('#player-title').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (engine.activeList().length) openNow(); } });
@@ -668,17 +693,33 @@
   $('#now-orb').addEventListener('click', async e => { const b = e.currentTarget; b.classList.add('pressed'); setTimeout(() => b.classList.remove('pressed'), 400); await togglePlay(); syncEnvironment(); });
   $('#player-toggle').addEventListener('click', e => { const b = e.currentTarget; b.classList.add('pressed'); setTimeout(() => b.classList.remove('pressed'), 400); });
   $('#now-vol').addEventListener('input', e => setMaster(+e.target.value / 100, true));
-  $$('[data-now]').forEach(b => b.addEventListener('click', () => { const k = b.dataset.now; if (k === 'timer') { openTimerSheet(); return; } closeNow(); if (k === 'change') { showView('sounds'); setTimeout(() => $('#sound-groups').scrollIntoView({ behavior: 'smooth', block: 'start' }), 150); } if (k === 'visual') { if (window.softwaveFocus) softwaveFocus.openChooser(); else showView('focus'); } }));
+  // navigating away from the Immerse overlay: consume its history entry first,
+  // then move once the popstate has settled — keeps the stack clean for Back
+  $$('[data-now]').forEach(b => b.addEventListener('click', () => { const k = b.dataset.now; if (k === 'timer') { openTimerSheet(); return; } closeNow(); setTimeout(() => { if (k === 'change') { showView('sounds'); setTimeout(() => $('#sound-groups').scrollIntoView({ behavior: 'smooth', block: 'start' }), 150); } if (k === 'visual') { if (window.softwaveFocus) softwaveFocus.openChooser(); else showView('focus'); } }, 80); }));
   document.addEventListener('click', e => { if (e.target.closest('#fav-save, #mix-save, [data-save], [data-save-session], [data-r="save"]')) { const b = e.target.closest('button'); b.classList.add('saved-pop'); setTimeout(() => b.classList.remove('saved-pop'), 520); } }, true);
 
   // ---------- Back: closes any open overlay first, then steps back through views ----------
   function goBack() {
     if (transit.active) { clearTransit(); }
-    const overlays = [['#now', () => closeNow()], ['#focus-screen', () => window.softwaveFocus && softwaveFocus.exitFocus()], ['#eyes-screen', () => window.softwaveLab && softwaveLab.stop()], ['#sleep-screen', () => exitSleep()], ['#lab-detail', () => { if (window.softwaveLab && softwaveLab.isRunning()) softwaveLab.stop('Experiment stopped'); const d = $('#lab-detail'); d.hidden = true; d.innerHTML = ''; }]];
+    // 1. Topmost layered surface (sheet, Immerse, sleep screen) — one press, one layer.
+    if (layers.stack.length) { history.back(); return; }
+    // 2. Full-screen surfaces that manage themselves.
+    const overlays = [['#now', () => closeNowUI()], ['#sleep-screen', () => exitSleepUI()], ['#focus-screen', () => window.softwaveFocus && softwaveFocus.exitFocus()], ['#eyes-screen', () => window.softwaveLab && softwaveLab.stop()]];
     for (const [sel, close] of overlays) { const el = $(sel); if (el && !el.hidden) { close(); return; } }
-    // Back also works ON the Sounds page (it only appears there after completion-card
-    // navigation, with a real place to return to — the old '#sounds' guard made the
-    // button a silent no-op exactly then).
+    // 3. An open experiment panel — only when the Experiments view is actually on
+    //    screen (a completed card parked in the hidden view must not swallow Back).
+    const d = $('#lab-detail'), labView = $('#view-lab');
+    if (d && !d.hidden && labView && !labView.hidden) {
+      const lab = window.softwaveLab;
+      if (lab && lab.isRunning()) { lab.stop('Experiment stopped'); return; }
+      // On the Find My Sound tab the placard IS the page: Back leaves the section.
+      if (location.hash !== '#find') {
+        const c = d.querySelector('[data-close]');
+        if (c) { c.click(); return; }
+        d.hidden = true; d.innerHTML = ''; return;
+      }
+    }
+    // 4. Real history navigation.
     if (history.length > 1 && location.hash) history.back(); else showView('sounds');
   }
   $('#nav-back').addEventListener('click', goBack);
