@@ -1057,7 +1057,15 @@ html[data-theme="dark"] .row-title { color: rgba(238,240,244,.42); }
 .field-vol input[type="range"]::-moz-range-thumb, .focus-screen .focus-vol input[type="range"]::-moz-range-thumb { width: 16px; height: 16px; background: var(--sf-ink); border: 0; }
 /* Master volume by the field: prominent, labeled, hard to miss */
 .field-vol { width: min(440px, 86vw); gap: 12px; }
-.field-vol .field-vol-label { display: flex; align-items: center; gap: 7px; color: var(--sf-ink-3); font-size: .8rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; white-space: nowrap; }
+.field-vol .field-vol-label, .now-vol .field-vol-label { display: flex; align-items: center; gap: 7px; color: var(--sf-ink-3); font-size: .8rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; white-space: nowrap; }
+#now .now-vol .field-vol-label { color: var(--muted); }
+/* the standard volume row, tinted for the dark sleep screen */
+.sleep-vol { width: min(420px, 88%); }
+.sleep-screen .field-vol .vol-pause, .sleep-screen .field-vol .vol-stop { background: #0d1526; border-color: #1d2742; color: #8fa0cf; }
+.sleep-screen .field-vol-label { color: #5f6a90; }
+.sleep-screen .field-vol output { color: #8fa0cf; }
+.sleep-screen .field-vol input[type="range"]::-webkit-slider-thumb { background: #8fa0cf; }
+.sleep-screen .field-vol input[type="range"]::-moz-range-thumb { background: #8fa0cf; }
 .field-vol input[type="range"] { height: 24px; }
 .field-vol input[type="range"]::-webkit-slider-runnable-track { height: 5px; border-radius: 3px; }
 .field-vol input[type="range"]::-webkit-slider-thumb { width: 22px; height: 22px; margin-top: -8.5px; }

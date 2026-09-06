@@ -68,7 +68,7 @@
     } }; } });
 
   add({ id: 'fireplace', name: 'Fireplace', cat: 'Nature', desc: 'Low flames and drifting embers.', make() {
-    let t = 0; const tex = new NoiseTex(72, 96); const embers = Array.from({ length: 40 }, () => ({ x: rnd(0.62, 0.38), y: rnd(0.78, 0.3), s: rnd(0.14, 0.05), r: rnd(2.2, 0.8), ph: Math.random() * 6 }));
+    let t = 0; const tex = new NoiseTex(72, 96); const embers = Array.from({ length: 40 }, () => ({ x: rnd(0.66, 0.34), y: rnd(0.78, 0.15), s: rnd(0.14, 0.05), r: rnd(2.2, 0.8), ph: Math.random() * 6 }));
     return { draw(ctx, w, h, e) { t += e.dt * e.speed;
       sky(ctx, w, h, '#07040a', '#1a0c06'); const base = h * 0.8;
       // open fire — no surround: just the flames, logs and embers in the dark
@@ -76,13 +76,13 @@
       glow(ctx, w * 0.5, base - h * 0.1, w * 0.5, 'rgba(255,120,40,A)', 0.25 + e.level * 0.15 + Math.sin(t * 3) * 0.02);
       // logs (behind the flames), rounded with a glowing underside
       for (const [lx, ly, lw, a] of [[0.37, 0.775, 0.26, -0.07], [0.39, 0.75, 0.24, 0.09]]) { ctx.save(); ctx.translate(w * lx + w * lw / 2, h * ly); ctx.rotate(a); const lg = ctx.createLinearGradient(0, -h * 0.02, 0, h * 0.02); lg.addColorStop(0, '#3a1d0c'); lg.addColorStop(1, '#6a2c0a'); ctx.fillStyle = lg; ctx.beginPath(); ctx.roundRect(-w * lw / 2, -h * 0.02, w * lw, h * 0.04, h * 0.02); ctx.fill(); ctx.restore(); }
-      glow(ctx, w * 0.5, base - h * 0.03, w * 0.14, 'rgba(255,140,40,A)', 0.7 + Math.sin(t * 2.1) * 0.1);
+      glow(ctx, w * 0.5, base - h * 0.03, w * 0.22, 'rgba(255,140,40,A)', 0.7 + Math.sin(t * 2.1) * 0.1);
       // flames: noise-driven, rising; white-hot core → yellow → orange → transparent
       tex.render((u, v) => { const x = (u - 0.5) * 2; const vv = 1 - v; const n = fbm(u * 4 + Math.sin(t) * 0.2, v * 6 + t * 2.4, t * 0.5, 4); const n2 = fbm(u * 9 + 3, v * 12 + t * 3.5, t, 2); const shape = Math.max(0, 1 - Math.abs(x) * (1.0 + vv * 1.8)) * Math.pow(1 - vv, 0.6); const f = shape * (0.45 + n * 1.2 + (n2 - 0.5) * 0.5) - vv * 0.35; const i = Math.max(0, Math.min(1, f * 1.5)); const core = Math.max(0, i - 0.88) * 8; return [255, 40 + 150 * i + 40 * core, 10 + 25 * i * i + 120 * core, Math.pow(i, 1.3) * 255]; }, 1);
-      ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.filter = 'blur(8px)'; ctx.globalAlpha = 0.35; ctx.drawImage(tex.c, w * 0.28, base - h * 0.46, w * 0.44, h * 0.5); ctx.filter = 'none'; ctx.globalAlpha = 1; ctx.drawImage(tex.c, w * 0.3, base - h * 0.44, w * 0.4, h * 0.47); ctx.restore();
+      ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.filter = 'blur(10px)'; ctx.globalAlpha = 0.35; ctx.drawImage(tex.c, w * 0.10, base - h * 0.88, w * 0.80, h * 0.92); ctx.filter = 'none'; ctx.globalAlpha = 1; ctx.drawImage(tex.c, w * 0.14, base - h * 0.83, w * 0.72, h * 0.87); ctx.restore();
       // embers drifting freely above the fire
       ctx.save();
-      for (const m of embers) { m.y -= m.s * e.dt * e.speed; m.x += Math.sin(t * 1.5 + m.ph + m.y * 8) * 0.0007; if (m.y < 0.3) { m.y = rnd(0.78, 0.7); m.x = rnd(0.6, 0.4); } const a = Math.max(0, 1 - (0.78 - m.y) * 2.2); ctx.fillStyle = `rgba(255,${120 + Math.floor(a * 110)},50,${a})`; ctx.beginPath(); ctx.arc(m.x * w, m.y * h, m.r * (0.6 + a * 0.6), 0, TAU); ctx.fill(); }
+      for (const m of embers) { m.y -= m.s * e.dt * e.speed; m.x += Math.sin(t * 1.5 + m.ph + m.y * 8) * 0.0007; if (m.y < 0.12) { m.y = rnd(0.78, 0.7); m.x = rnd(0.64, 0.36); } const a = Math.max(0, 1 - (0.78 - m.y) * 1.4); ctx.fillStyle = `rgba(255,${120 + Math.floor(a * 110)},50,${a})`; ctx.beginPath(); ctx.arc(m.x * w, m.y * h, m.r * (0.6 + a * 0.6), 0, TAU); ctx.fill(); }
       ctx.restore();
     } }; } });
 

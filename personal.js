@@ -69,7 +69,8 @@
           // carry the listener onward to the sound image, like the one-tap presets
           if (app.scheduleAutoAdvance) app.scheduleAutoAdvance('immerse'); } },
       { id: 'sleep', name: 'Your Sleep', desc: '60 min · gentle fade', run: async () => {
-          safeMaster(0.3); await engine.loadMix(profile.mix({ sleep: true })); engine.setTimer(60, true); app.showView('sleep'); } },
+          safeMaster(0.3); await engine.loadMix(profile.mix({ sleep: true })); engine.setTimer(60, true); app.showView('sleep');
+          if (app.scheduleAutoAdvance) app.scheduleAutoAdvance('sleep', 4000); } },
       { id: 'focus', name: 'Your Focus', desc: 'Sound + your visual', run: async () => {
           safeMaster(0.35); await engine.loadMix(profile.mix()); const F = window.softwaveFocus; if (F) { F.setVisual(profile.visual()); F.enterFocus(); } } },
       { id: 'night', name: 'Woke Up at Night', desc: 'Extra gentle · 30 min', run: async () => {

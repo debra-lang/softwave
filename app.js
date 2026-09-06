@@ -130,7 +130,7 @@
   function ensureLab() {
     if (window.softwaveLab) return Promise.resolve();
     if (labPromise) return labPromise;
-    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=62'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
+    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=63'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
     return labPromise;
   }
   window.softwaveEnsureLab = ensureLab;
@@ -162,14 +162,22 @@
   let autoAdvT = null;
   function scheduleAutoAdvance(kind, ms) {
     clearTimeout(autoAdvT);
-    autoAdvT = setTimeout(() => {
-      if (!engine.isPlaying) return;
-      // an open Add-sound/Timer sheet means they're still choosing — check again later
-      if ([...document.querySelectorAll('.addsound-sheet')].some(s => !s.hidden)) { scheduleAutoAdvance(kind, ms); return; }
-      const fsOpen = !$('#now').hidden || !$('#focus-screen').hidden || !$('#sleep-screen').hidden;
-      if (kind === 'immerse' && !$('#view-sounds').hidden && !fsOpen) openNow();
-      if (kind === 'sleep' && !$('#view-sleep').hidden && $('#sleep-screen').hidden && $('#now').hidden && $('#focus-screen').hidden) $('#sleep-enter').click();
-    }, ms || 5000);
+    const attempt = (retries) => {
+      autoAdvT = setTimeout(() => {
+        if (!engine.isPlaying) {
+          // iOS can report a non-running audio context for a moment even while
+          // sounds are queued — retry briefly instead of silently giving up
+          if (engine.activeList().length > 0 && retries > 0) attempt(retries - 1);
+          return;
+        }
+        // an open Add-sound/Timer sheet means they're still choosing — check again later
+        if ([...document.querySelectorAll('.addsound-sheet')].some(s => !s.hidden)) { scheduleAutoAdvance(kind, ms); return; }
+        const fsOpen = !$('#now').hidden || !$('#focus-screen').hidden || !$('#sleep-screen').hidden;
+        if (kind === 'immerse' && !$('#view-sounds').hidden && !fsOpen) openNow();
+        if (kind === 'sleep' && !$('#view-sleep').hidden && $('#sleep-screen').hidden && $('#now').hidden && $('#focus-screen').hidden) $('#sleep-enter').click();
+      }, retries === 3 ? (ms || 5000) : 1500);
+    };
+    attempt(3);
   }
   function renderPresets() {
     const make = (container, includeCustom) => {
@@ -525,11 +533,9 @@
   $('#sleep-toggle').addEventListener('click', togglePlay);
   $('#sleep-stop').addEventListener('click', () => { engine.stopAll(); toast('All sounds stopped'); });
   $('#sleep-screen-timer').addEventListener('click', () => openTimerSheet());
-  $('#sleep-vol-down').addEventListener('click', () => setMaster(clamp(engine.masterVolume - 0.05, 0, 1)));
-  $('#sleep-vol-up').addEventListener('click', () => setMaster(clamp(engine.masterVolume + 0.05, 0, 1)));
+  $('#sleep-vol').addEventListener('input', e => setMaster(+e.target.value / 100, true));
   function clockTick() { const d = new Date(); $('#sleep-clock').textContent = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); }
   setInterval(clockTick, 1000); clockTick();
-  engine.on(type => { if (type === 'state') $('#sleep-toggle').textContent = engine.isPlaying ? '❚❚' : '▶'; });
   engine.on(type => { if (type === 'state') { const paused = !(engine.ctx && engine.ctx.state === 'running'); $$('.vol-pause').forEach(b => { b.classList.toggle('paused', paused); b.setAttribute('aria-label', paused ? 'Resume playback' : 'Pause playback'); }); } });
   function renderTimer(t) {
     // every timer button label follows the engine, no matter where the timer was set
@@ -706,7 +712,7 @@
     for (const [sel, scale] of orbs) { const c = $(sel); if (!c) continue; const r = c.getBoundingClientRect(); if (!r.width) continue; const dpr = Math.min(devicePixelRatio || 1, FIELD && FIELD.LOW ? 1 : 1.5); if (c.width !== Math.round(r.width * dpr)) { c.width = Math.round(r.width * dpr); c.height = Math.round(r.height * dpr); } const ctx = c.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, r.width, r.height); SV.soundShape(ctx, r.width, r.height, p, orbT, lv, { scale, glow: sel === '#now-canvas' }); } }
   requestAnimationFrame(orbLoop);
   function syncEnvironment() { const id = dominant(); bg.setEnv(id); document.body.dataset.sound = id || ''; const p = dominantParams(); const names = engine.activeList().map(s => engine.def(s.id).name); $('#now-name').textContent = names.length ? names.join(' + ') : 'Nothing playing'; $('#now-desc').textContent = names.length ? describeSound(p) : 'Choose a sound to begin'; const on = engine.isPlaying; $('#now-orb').setAttribute('aria-pressed', on); $('#now-orb').setAttribute('aria-label', on ? 'Pause' : 'Play'); }
-  engine.on(type => { if (['sounds', 'state', 'tone', 'master'].includes(type)) syncEnvironment(); if (type === 'master') { const v = $('#now-vol'); v.value = Math.round(engine.masterVolume * 100); paintRange(v); $('#now-vol-out').textContent = v.value + '%'; } });
+  engine.on(type => { if (['sounds', 'state', 'tone', 'master'].includes(type)) syncEnvironment(); if (type === 'master') { for (const [vid, oid] of [['#now-vol', '#now-vol-out'], ['#sleep-vol', '#sleep-vol-out']]) { const v = $(vid); if (!v) continue; v.value = Math.round(engine.masterVolume * 100); paintRange(v); $(oid).textContent = v.value + '%'; } } });
   let nowHideT; function nowShowUI() { $('#now').classList.remove('idle'); clearTimeout(nowHideT); nowHideT = setTimeout(() => $('#now').classList.add('idle'), 5000); }
   function openNow() { if (!$('#now').hidden) return; $('#now').hidden = false; document.body.style.overflow = 'hidden'; syncEnvironment(); if (fieldBig) fieldBig.set(fieldIds()); nowShowUI(); $('#now-orb').focus(); layerPush(closeNowUI); }
   function closeNowUI() { $('#now').hidden = true; document.body.style.overflow = ''; }
