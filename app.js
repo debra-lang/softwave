@@ -63,17 +63,22 @@
   // entry, so every kind of Back — the ← button, browser Back, and the iPhone edge
   // swipe — peels the topmost layer instead of navigating the page underneath.
   const layers = { stack: [], stale: 0 };
-  function layerPush(closeFn) { layers.stack.push(closeFn); try { history.pushState({ swLayer: layers.stack.length }, '', location.href); } catch (_) { } }
+  // navDepth counts undoable in-app steps (pushes). Tab switches keep it at 0, so
+  // Back stops — and hides — at every section's main page: Back undoes the user's
+  // own steps inside a journey but never dumps them into another section.
+  let navDepth = 0;
+  function layerPush(closeFn) { layers.stack.push(closeFn); try { history.pushState({ swLayer: layers.stack.length, d: navDepth }, '', location.href); } catch (_) { } updateBackBtn(); }
   function layersClose() { if (layers.stack.length) history.back(); }
-  // Hopping between top tabs replaces the current section entry rather than stacking
-  // one per visit — Back returns to where you were before the section, not a replay.
-  function tabReplace(opts) { return opts.push === false || (opts.tab && location.hash && location.hash !== '#sounds'); }
+  // Tabs are for switching sections and never create a Back step; only push:false
+  // (history/boot navigations) shares the replace path.
+  function tabReplace(opts) { return opts.push === false || !!opts.tab; }
+  function writeState(mode, hash) { if (mode === 'replace') history.replaceState({ d: navDepth }, '', hash); else { navDepth++; history.pushState({ d: navDepth }, '', hash); } }
   function showView(name, opts = {}) {
     // Any real navigation collapses open layers first (their history entries become
     // stale; the popstate handler swallows those silently on a later Back).
     if (layers.stack.length) { while (layers.stack.length) { try { layers.stack.pop()(); } catch (_) { } layers.stale++; } }
     // #find = the Find My Sound feature (lives in the Lab): show the Lab and open it directly
-    if (name === 'find') { const wanted = tabReplace(opts) ? 'replace' : 'push'; showView('lab', { push: false, keepHash: true }); if (location.hash !== '#find') { if (wanted === 'replace') history.replaceState(null, '', '#find'); else history.pushState(null, '', '#find'); } $$('.nav a').forEach(a => a.classList.toggle('active', a.dataset.view === 'find')); ensureLab().then(() => { if (window.softwaveLab) softwaveLab.open('discovery'); }).catch(() => { }); return; }
+    if (name === 'find') { const wanted = tabReplace(opts) ? 'replace' : 'push'; showView('lab', { push: false, keepHash: true }); if (location.hash !== '#find') writeState(wanted, '#find'); $$('.nav a').forEach(a => a.classList.toggle('active', a.dataset.view === 'find')); ensureLab().then(() => { if (window.softwaveLab) softwaveLab.open('discovery'); }).catch(() => { }); updateBackBtn(); return; }
     if (!views.includes(name)) name = 'sounds';
     if (name === 'lab') {
       ensureLab();
@@ -83,8 +88,8 @@
     }
     views.forEach(v => { const el = $('#view-' + v); el.hidden = v !== name; el.classList.toggle('active', v === name); });
     $$('.nav a').forEach(a => a.classList.toggle('active', a.dataset.view === name));
-    if (!opts.keepHash && location.hash !== '#' + name) { if (tabReplace(opts)) history.replaceState(null, '', '#' + name); else history.pushState(null, '', '#' + name); }
-    const back = $('#nav-back'); if (back) back.hidden = name === 'sounds';
+    if (!opts.keepHash && location.hash !== '#' + name) writeState(tabReplace(opts) ? 'replace' : 'push', '#' + name);
+    updateBackBtn();
     window.scrollTo({ top: 0, behavior: 'smooth' });
     bg.setMode(name === 'lab' ? 'lab' : engine.isActive('rain') ? 'rain' : 'calm');
   }
@@ -96,13 +101,29 @@
     e.preventDefault(); showView(a.dataset.view, { tab: !!a.closest('.nav') });
   });
   addEventListener('hashchange', () => showView(location.hash.slice(1), { push: false }));
-  addEventListener('popstate', () => {
+  addEventListener('popstate', e => {
+    // the landed-on entry knows its depth; layer entries carry the depth beneath them
+    const st = e.state; navDepth = st && typeof st.d === 'number' ? st.d : 0;
     // Back peels the topmost open layer (sheet/overlay) before any view navigation.
-    if (layers.stack.length) { const fn = layers.stack.pop(); try { fn(); } catch (_) { } return; }
+    if (layers.stack.length) { const fn = layers.stack.pop(); try { fn(); } catch (_) { } updateBackBtn(); return; }
     // A layer entry whose surface was already closed elsewhere: swallow it and keep going.
     if (layers.stale > 0) { layers.stale--; history.back(); return; }
     showView((location.hash || '#sounds').slice(1), { push: false });
   });
+  // The ← button shows only when Back has a real step to undo: an open layer or
+  // overlay, an in-section experiment step, or a pushed navigation (navDepth).
+  // At a section's main page it hides — Back never crosses into another section.
+  function updateBackBtn() {
+    const b = $('#nav-back'); if (!b) return;
+    const overlay = ['#now', '#sleep-screen', '#focus-screen', '#eyes-screen'].some(s => { const el = $(s); return el && !el.hidden; });
+    const d = $('#lab-detail'), lv = $('#view-lab');
+    const labStep = !!(d && !d.hidden && lv && !lv.hidden && (location.hash !== '#find' || d.querySelector('[data-back-result]') || (window.softwaveLab && softwaveLab.isRunning())));
+    b.hidden = !(layers.stack.length || overlay || labStep || navDepth > 0);
+  }
+  // panel open/close and fine-tune states change outside showView — refresh shortly
+  // after any tap (180ms clears the fine-tune button's own 100ms injection delay)
+  document.addEventListener('click', () => setTimeout(updateBackBtn, 180));
+  try { history.replaceState({ d: 0 }, '', location.href); } catch (_) { }
 
   // Lazy-load The Lab (experiments) only when needed, so the homepage stays light.
   let labPromise = null;
@@ -711,16 +732,21 @@
     const d = $('#lab-detail'), labView = $('#view-lab');
     if (d && !d.hidden && labView && !labView.hidden) {
       const lab = window.softwaveLab;
-      if (lab && lab.isRunning()) { lab.stop('Experiment stopped'); return; }
-      // On the Find My Sound tab the placard IS the page: Back leaves the section.
+      // Fine-tune (Sound Sculptor opened from a completed result): Back does what its
+      // own "← Back to your result" does — restore the card — never "stop and review".
+      const br = d.querySelector('[data-back-result]');
+      if (br) { br.click(); setTimeout(updateBackBtn, 120); return; }
+      if (lab && lab.isRunning()) { lab.stop('Experiment stopped'); setTimeout(updateBackBtn, 120); return; }
+      // On the Find My Sound tab the placard IS the page — it is the section's root.
       if (location.hash !== '#find') {
         const c = d.querySelector('[data-close]');
-        if (c) { c.click(); return; }
-        d.hidden = true; d.innerHTML = ''; return;
+        if (c) { c.click(); setTimeout(updateBackBtn, 120); return; }
+        d.hidden = true; d.innerHTML = ''; setTimeout(updateBackBtn, 120); return;
       }
     }
-    // 4. Real history navigation.
-    if (history.length > 1 && location.hash) history.back(); else showView('sounds');
+    // 4. A pushed step exists: undo it. At a section's main page there is none —
+    //    Back stops here by design (the button hides itself via updateBackBtn).
+    if (navDepth > 0 && location.hash) history.back();
   }
   $('#nav-back').addEventListener('click', goBack);
   document.addEventListener('keydown', e => { const tgt = e.target && e.target.matches ? e.target : document.body; if (e.key === 'Backspace' && !tgt.matches('input, textarea, select, [contenteditable]')) { e.preventDefault(); goBack(); } if (e.key === 'Escape' && transit.active) clearTransit(); });
