@@ -145,7 +145,7 @@
   function ensureLab() {
     if (window.softwaveLab) return Promise.resolve();
     if (labPromise) return labPromise;
-    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=69'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
+    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=70'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
     return labPromise;
   }
   window.softwaveEnsureLab = ensureLab;
@@ -183,7 +183,7 @@
   addEventListener('wheel', noteActivity, { passive: true });
   function scheduleAutoAdvance(kind, ms) {
     clearTimeout(autoAdvT);
-    const wait = ms || 5000, armed = Date.now();
+    const wait = ms || 5000, armed = Date.now(); const armedView = (document.querySelector('.view:not([hidden])') || {}).id;
     // the full wait since the sound started, extended by any later interaction
     const quietFor = () => Date.now() - Math.max(lastActivity, armed);
     const attempt = (retries) => {
@@ -198,7 +198,7 @@
         // an open Add-sound/Timer sheet means they're still choosing — check again later
         if ([...document.querySelectorAll('.addsound-sheet')].some(s => !s.hidden)) { scheduleAutoAdvance(kind, ms); return; }
         const fsOpen = !$('#now').hidden || !$('#focus-screen').hidden || !$('#sleep-screen').hidden;
-        if (kind === 'immerse' && !$('#view-sounds').hidden && !fsOpen) openNow();
+        if (kind === 'immerse' && (document.querySelector('.view:not([hidden])') || {}).id === armedView && !fsOpen) openNow();
         if (kind === 'sleep' && !$('#view-sleep').hidden && $('#sleep-screen').hidden && $('#now').hidden && $('#focus-screen').hidden) $('#sleep-enter').click();
         if (kind === 'focus' && !$('#view-sounds').hidden && !fsOpen && window.softwaveFocus) softwaveFocus.enterFocus();
       }, retries === 3 ? Math.max(300, wait - quietFor()) : 1500);
@@ -261,7 +261,7 @@
     if (!row || !host) { renderPresetsRemount(); return; }   // the row was removed earlier; rebuild the template
     host.innerHTML = '';
     ms.forEach((snd, i) => { const b = document.createElement('button'); b.className = 'chip chip-mine'; b.setAttribute('role', 'listitem'); b.dataset.chipName = snd.name; b.innerHTML = `<strong>${SAVED_ICO}${snd.name}</strong><span>${snd.type === 'paint' ? 'Painted sound' : 'Custom sound'}${snd.nature && snd.nature !== 'none' && engine.def(snd.nature) ? ' + ' + engine.def(snd.nature).name.toLowerCase() : ''}</span>`;
-      b.addEventListener('click', async () => { const mix = [{ id: snd.type === 'paint' ? 'paint' : 'sculpt', volume: 0.55, balance: 0 }]; if (snd.type === 'paint') mix[0].curve = snd.curve; else mix[0].params = snd.params; if (snd.nature && snd.nature !== 'none') mix.push({ id: snd.nature, volume: snd.natureVol || 0.35, balance: 0 }); await loadPreset({ name: snd.name, mix, master: Math.min(engine.masterVolume, 0.45) }); });
+      b.addEventListener('click', async () => { const mix = [{ id: snd.type === 'paint' ? 'paint' : 'sculpt', volume: 0.55, balance: 0 }]; if (snd.type === 'paint') mix[0].curve = snd.curve; else mix[0].params = snd.params; if (snd.nature && snd.nature !== 'none') mix.push({ id: snd.nature, volume: snd.natureVol || 0.35, balance: 0 }); await loadPreset({ name: snd.name, mix, master: Math.min(engine.masterVolume, 0.45) }); scheduleAutoAdvance('immerse'); });
       const del = document.createElement('button'); del.className = 'chip-del'; del.setAttribute('aria-label', 'Delete ' + snd.name); del.textContent = '×'; del.addEventListener('click', e => { e.stopPropagation(); ms.splice(i, 1); store.set('lab:sounds', ms); renderPresetsRemount(); toast('Sound deleted'); }); b.appendChild(del); host.appendChild(b); });
     if (!host.children.length) row.remove();   // the section exists only with content
     updateMixSaved();
@@ -274,7 +274,7 @@
     custom.forEach((m, i) => {
       const b = document.createElement('button'); b.className = 'chip'; b.dataset.chipName = m.name;
       b.innerHTML = `<strong>${SAVED_ICO}${m.name}</strong><span>${describeMix(m, true)}</span>`;
-      b.addEventListener('click', () => restoreMix(m));
+      b.addEventListener('click', () => { restoreMix(m); scheduleAutoAdvance('immerse'); });
       const del = document.createElement('button'); del.className = 'btn btn-ghost btn-sm'; del.textContent = '⋯'; del.setAttribute('aria-label', 'Manage ' + m.name);
       del.addEventListener('click', e => { e.stopPropagation(); openMixMenu(m); });
       const wrap = document.createElement('div'); wrap.style.display = 'flex'; wrap.style.gap = '6px'; wrap.style.alignItems = 'center'; wrap.append(b, del); saved.appendChild(wrap);
@@ -715,6 +715,8 @@
   setInterval(clockTick, 1000); clockTick();
   engine.on(type => { if (type === 'state') { const paused = !(engine.ctx && engine.ctx.state === 'running'); $$('.vol-pause').forEach(b => { b.classList.toggle('paused', paused); b.setAttribute('aria-label', paused ? 'Resume playback' : 'Pause playback'); }); } });
   function renderTimer(t) {
+    // the Sleep page's timer choices mirror the real timer (Your Sleep = 60, Woke Up at Night = 30, none = Continuous)
+    { const cur = t.endsAt ? (t.durationMin || 0) : 0; $$('.timer-seg [data-min]').forEach(x => x.setAttribute('aria-checked', String(+x.dataset.min === cur))); }
     // every timer button label follows the engine, no matter where the timer was set
     const nb = $('[data-now="timer"]'); if (nb) nb.textContent = t.durationMin ? `Timer · ${t.durationMin} min` : 'Timer';
     const el = $('#player-timer'), rem = $('#sleep-remaining');

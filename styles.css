@@ -963,6 +963,8 @@ body { overflow-x: hidden; }
 .chip-more { font-size: 1.05rem; letter-spacing: .05em; }
 .mix-menu-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
 .btn-danger { color: #ff8a80; border-color: rgba(255,138,128,.45); }
+/* Find My Sound: the three choices carry a green frame so they read as one clear decision */
+#view-lab [data-pick] { border: 1.5px solid var(--lab); }
 /* controller status line (✦ Tuned to you · on); collapses when nothing is personalized */
 .field-status { display: flex; justify-content: center; margin-top: -10px; }   /* status line sits closer under the actions; the rows above do not move */
 .field-status:empty { display: none; }

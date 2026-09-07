@@ -594,7 +594,7 @@
         await engine.loadMix(soundMix({ params, nature, natureVol: 0.3 }, s.doing === 'sleep' ? 0.45 : 0.55));
         if (s.var === 'explore') engine.setVariation(0.45, 7);
         if (s.doing === 'sleep') engine.setTimer(60, true);
-        if (s.vis !== 'no') { const v = s.vis === 'surprise' ? VISUALS[Math.floor(Math.random() * VISUALS.length)].id : s.doing === 'sleep' ? 'nightsky' : nature === 'rain' ? 'rainwindow' : nature === 'ocean' ? 'ocean' : nature === 'forest' ? 'forest' : visualForProfile(); focus.setVisual(v); focus.enterFocus(); } else if (s.doing === 'sleep') app.showView('sleep');
+        if (s.vis !== 'no') { const v = s.vis === 'surprise' ? VISUALS[Math.floor(Math.random() * VISUALS.length)].id : s.doing === 'sleep' ? (store.get('focus:userVisual') || 'underwater') : nature === 'rain' ? 'rainwindow' : nature === 'ocean' ? 'ocean' : nature === 'forest' ? 'forest' : (store.get('focus:userVisual') || 'underwater'); focus.setVisual(v); focus.enterFocus(); } else if (s.doing === 'sleep') app.showView('sleep');
         app.toast(s.doing === 'sleep' ? 'Sleep session: 60-minute timer with gentle fade.' : 'Session ready — adjust anything you like.');
       },
       stop() { engine.setVariation(0); engine.resetMasterShape(); }, keepsSound: true,
