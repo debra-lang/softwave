@@ -492,18 +492,25 @@
   }
 
   // ---------- favourites (sound + visual + movement + timer) ----------
+  // Saved sessions (sound + visual + movement + timer): views of the one saved-creation
+  // store, so a rename or delete here is the same record changing everywhere.
+  async function startSaved(f) {
+    if (f.motion) { S.motion = f.motion; app.store.set('motion', f.motion); syncSettings(); }
+    setVisual(f.visual);
+    await app.loadPreset({ name: f.name, mix: f.mix, master: f.master });
+    const t = f.timer && typeof f.timer === 'object' ? f.timer : { min: +f.timer || 0, fade: true };
+    engine.setTimer(t.min || 0, t.fade !== false);
+    enterFocus();
+  }
   function renderFavs() {
-    const host = $('#fav-list'); host.innerHTML = ''; const favs = app.store.get('combos', []); const sec = $('#fav-section'); if (sec) sec.hidden = !favs.length;
-    favs.forEach((f, i) => {
+    const host = $('#fav-list'); if (!host) return; host.innerHTML = '';
+    const favs = app.savedSessions ? app.savedSessions() : []; const sec = $('#fav-section'); if (sec) sec.hidden = !favs.length;
+    favs.forEach(f => {
       const el = document.createElement('div'); el.className = 'fav-card';
-      const lines = f.mix.map(m => `${m.params ? 'Custom sound' : m.curve ? 'Painted sound' : engine.def(m.id).name} — ${Math.round(m.volume * 100)}%`); lines.push(`Visual — ${byId[f.visual] ? byId[f.visual].name : f.visual}`); lines.push(`Movement — ${f.motion[0].toUpperCase() + f.motion.slice(1)}`); if (f.timer) lines.push(`Timer — ${f.timer} minutes`);
+      const lines = f.mix.map(m => `${m.params ? 'Custom sound' : m.curve ? 'Painted sound' : engine.def(m.id).name} — ${Math.round(m.volume * 100)}%`); lines.push(`Visual — ${byId[f.visual] ? byId[f.visual].name : f.visual}`); if (f.motion) lines.push(`Movement — ${f.motion[0].toUpperCase() + f.motion.slice(1)}`); const tm = f.timer && typeof f.timer === 'object' ? f.timer.min : +f.timer; if (tm) lines.push(`Timer — ${tm} minutes`);
       el.innerHTML = `<div class="fav-name">${app.SAVED_ICO || ''}${f.name}</div><div class="fav-lines">${lines.map(l => `<div>${l}</div>`).join('')}</div><div class="btn-row"><button class="btn btn-primary btn-sm" data-start>Start</button><button class="btn btn-ghost btn-sm" data-manage aria-label="Manage ${f.name}">⋯</button></div>`;
-      $('[data-start]', el).addEventListener('click', async () => { S.motion = f.motion; app.store.set('motion', f.motion); syncSettings(); setVisual(f.visual); await app.loadPreset({ name: f.name, mix: f.mix, master: f.master }); engine.setTimer(f.timer || 0, true); enterFocus(); });
-      $('[data-manage]', el).addEventListener('click', () => app.openManageMenu({
-        title: f.name, desc: lines.join(' · '), deleteNote: 'This removes the environment from this list.',
-        rename: name => { const all = app.store.get('combos', []); if (all[i]) all[i].name = name; app.store.set('combos', all); renderFavs(); },
-        del: () => { const all = app.store.get('combos', []); all.splice(i, 1); app.store.set('combos', all); renderFavs(); }
-      }));
+      $('[data-start]', el).addEventListener('click', () => startSaved(f));
+      $('[data-manage]', el).addEventListener('click', () => app.openMixMenu(f));
       host.appendChild(el);
     });
   }
@@ -516,7 +523,7 @@
     form = document.createElement('form'); form.id = 'fav-form'; form.className = 'inline-form';
     form.innerHTML = `<label class="sr-only" for="fav-name">Name</label><input id="fav-name" class="select" maxlength="40" value="My Focus" style="min-width:200px"><button type="submit" class="btn btn-primary btn-sm">Save</button><button type="button" class="btn btn-ghost btn-sm" data-cancel>Cancel</button>`;
     $('#env-stage').after(form); const inp = $('#fav-name', form); inp.focus(); inp.select(); $('[data-cancel]', form).addEventListener('click', () => form.remove());
-    form.addEventListener('submit', e => { e.preventDefault(); const favs = app.store.get('combos', []); const MZ = window.softwaveMonetization; if (MZ && !MZ.canCreateSavedItem(favs.length)) { if (window.softwavePremium) softwavePremium.saveLimit('environments'); return; } favs.push({ name: inp.value.trim() || 'My Focus', mix: engine.snapshot(), master: engine.masterVolume, visual: S.visual, motion: S.motion, timer: engine.timer.durationMin || 0 }); app.store.set('combos', favs); form.remove(); renderFavs(); app.toast('Saved on this device'); });
+    form.addEventListener('submit', e => { e.preventDefault(); if (window.softwaveMonetization) softwaveMonetization.track('environment_saved'); const ok = app.saveCurrentMix(inp.value.trim() || 'My Focus', { visual: S.visual, motion: S.motion, source: 'focus' }); if (ok) { form.remove(); app.toast('Saved to My Saved Sessions', 3200); } });
   });
 
   // ---------- settings UI ----------
@@ -674,7 +681,7 @@
   $('#freq-visualizer').addEventListener('click', async () => { if (!(engine.tone && engine.tone.playing)) $('#freq-play').click(); setVisual('frequency'); enterFocus(); });
 
   // expose for app
-  window.softwaveFocus = { enterFocus, exitFocus, enterViaTransition, setVisual, crossfadeTo, openChooser, refreshFavs: renderFavs, visuals: V.filter(v => !v.hidden), allVisuals: V, setParam: (k, v) => { P[k] = v; }, getParam: () => P };
+  window.softwaveFocus = { enterFocus, exitFocus, enterViaTransition, setVisual, crossfadeTo, openChooser, refreshFavs: renderFavs, startSaved, visuals: V.filter(v => !v.hidden), allVisuals: V, setParam: (k, v) => { P[k] = v; }, getParam: () => P };
 
   // ---------- init ----------
   if (!byId[S.visual]) S.visual = 'ocean';   // a stored visual id that no longer exists must not break init

@@ -143,7 +143,7 @@
   function ensureLab() {
     if (window.softwaveLab) return Promise.resolve();
     if (labPromise) return labPromise;
-    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=67'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
+    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=68'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
     return labPromise;
   }
   window.softwaveEnsureLab = ensureLab;
@@ -221,7 +221,7 @@
     if (prow && !anyPresets && !ms.length) { prow.remove(); try { make($('#sleep-presets'), false); } catch (e) { console.error(e); } updateMixSaved(); return; }
     try { make($('#presets'), false); } catch (e) { console.error(e); } try { make($('#sleep-presets'), false); } catch (e) { console.error(e); }
     // My Saved Mixes: the user's own combinations — kept apart from the built-in presets
-    const mixes = validMixes();
+    const mixes = savedMixesOnly();
     const mrow = $('#my-mixes-row'), mhost = $('#my-mixes');
     if (!mhost && mixes.length) { renderPresetsRemount(); return; }
     if (mhost) {
@@ -236,6 +236,23 @@
         b.appendChild(more); mhost.appendChild(b);
       });
     }
+    // My Saved Sessions: creations with a visual — the same records Visual Focus lists
+    const sessions = savedSessions();
+    const srow = $('#my-sessions-row'), shost = $('#my-sessions');
+    if (!shost && sessions.length) { renderPresetsRemount(); return; }
+    if (shost) {
+      shost.innerHTML = '';
+      if (!sessions.length) { if (srow) srow.remove(); }
+      else sessions.forEach(m => {
+        const b = document.createElement('button'); b.className = 'chip chip-mine'; b.setAttribute('role', 'listitem'); b.dataset.chipName = m.name; b.dataset.mixId = m.id;
+        b.innerHTML = `<strong>${SAVED_ICO}${m.name}</strong><span>${describeMix(m)}</span>`;
+        b.addEventListener('click', () => restoreMix(m));
+        const more = document.createElement('button'); more.className = 'chip-del chip-more'; more.setAttribute('aria-label', 'Manage ' + m.name); more.textContent = '⋯';
+        more.addEventListener('click', e => { e.stopPropagation(); openMixMenu(m); });
+        b.appendChild(more); shost.appendChild(b);
+      });
+    }
+    if (window.softwaveFocus && softwaveFocus.refreshFavs) softwaveFocus.refreshFavs();   // Visual Focus lists the same sessions
     if (!$('#presets').children.length) { const pr2 = $('.presets-row'); const msRow = $('#my-sounds-row'); if (pr2 && msRow && !ms.length) { pr2.remove(); updateMixSaved(); return; } }
     const row = $('#my-sounds-row'); const host = $('#my-sounds');
     if (!ms.length) { if (row) row.remove(); updateMixSaved(); return; }
@@ -250,7 +267,7 @@
   function renderPresetsRemount() { const r = $('.presets-row'); if (r) r.remove(); renderPresets(); }
   function updateMixSaved() {
     const saved = $('#saved-mixes'); if (!saved) return; saved.innerHTML = '';
-    const custom = validMixes();
+    const custom = savedMixesOnly();
     if (!custom.length) saved.innerHTML = '<p class="muted">Nothing saved yet. Build a mix and tap "Save".</p>';
     custom.forEach((m, i) => {
       const b = document.createElement('button'); b.className = 'chip'; b.dataset.chipName = m.name;
@@ -379,29 +396,43 @@
   // "My Saved Mixes" on the Sounds page and in the Mixer's list.
   // ★ is reserved for Favourite experiments; saved creations carry a bookmark mark.
   const SAVED_ICO = '<svg class="ico-saved" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4.2L5 21V4a1 1 0 0 1 1-1z" fill="currentColor"/></svg>';
+  // ONE saved-creation store. A creation without a visual is a mix (My Saved Mixes);
+  // with a visual it is a session (My Saved Sessions — also Visual Focus's list, and
+  // where Build My Session saves land). Legacy "environments" migrate in once.
   const validMixes = () => {
     const all = store.get('mixes', []); let changed = false;
+    const legacy = store.get('combos', null);
+    if (Array.isArray(legacy) && legacy.length) {
+      legacy.forEach((c, i) => { if (c && Array.isArray(c.mix)) all.push({ id: 'mx' + Date.now() + '_env' + i, name: c.name || 'My Focus', mix: c.mix, master: c.master, timer: { min: +c.timer || 0, fade: true }, visual: c.visual, motion: c.motion || 'low', source: 'env', saved: Date.now() }); });
+      store.set('combos', []); changed = true;
+    }
     all.forEach((m, i) => { if (m && !m.id) { m.id = 'mx' + (m.saved || Date.now()) + '_' + i; changed = true; } });
     if (changed) store.set('mixes', all);
     return all.filter(m => m && Array.isArray(m.mix) && m.mix.every(x => engine.def(x.id)));
   };
   function describeMix(m, levels) {
     const parts = m.mix.filter(x => engine.def(x.id)).map(x => engine.def(x.id).name + (levels ? ' ' + Math.round(x.volume * 100) + '%' : ''));
+    if (m.visual) parts.push(visualName(m.visual));
     if (m.timer && m.timer.min) parts.push(`Timer ${m.timer.min} min`);
     return parts.join(' · ');
   }
-  function saveCurrentMix(name) {
+  const savedSessions = () => validMixes().filter(m => m.visual);
+  const savedMixesOnly = () => validMixes().filter(m => !m.visual);
+  const visualName = (id) => { const F = window.softwaveFocus; const v = F && F.allVisuals ? F.allVisuals.find(x => x.id === id) : null; return v ? v.name : id; };
+  // extra: { visual, motion, source } turns the creation into a session
+  function saveCurrentMix(name, extra) {
     if (!engine.activeList().length) { toast('Add some sounds first'); return false; }
-    const mixes = store.get('mixes', []);
+    const mixes = validMixes();
     const MZ = window.softwaveMonetization; if (MZ && !MZ.canCreateSavedItem(mixes.length)) { if (window.softwavePremium) softwavePremium.saveLimit('mixes'); return false; }
     const t = engine.timer;
-    const now = Date.now(); mixes.push({ id: 'mx' + now + '_' + mixes.length, name, mix: engine.snapshot(), master: engine.masterVolume, timer: { min: t.durationMin || 0, fade: t.fade !== false }, saved: now });
+    const now = Date.now(); mixes.push(Object.assign({ id: 'mx' + now + '_' + mixes.length, name, mix: engine.snapshot(), master: engine.masterVolume, timer: { min: t.durationMin || 0, fade: t.fade !== false }, saved: now }, extra || {}));
     store.set('mixes', mixes);
     // the save is done once it is stored — a rendering hiccup must never hide that
     try { renderPresetsRemount(); } catch (e) { console.error(e); }
     return true;
   }
   async function restoreMix(m) {
+    if (m.visual && window.softwaveFocus && softwaveFocus.startSaved) { await softwaveFocus.startSaved(m); return; }
     await loadPreset({ name: m.name, mix: m.mix, master: m.master });
     // the timer is part of the setup — restored exactly (off if it was saved without one)
     if (engine.activeList().length && m.timer) engine.setTimer(m.timer.min || 0, m.timer.fade !== false);
@@ -452,12 +483,12 @@
   function openMixMenu(m) {
     openManageMenu({
       title: m.name, desc: describeMix(m, true) + (m.master != null ? ` · master ${Math.round(m.master * 100)}%` : ''),
-      deleteNote: 'This removes the mix from My Saved Mixes and the Mixer.',
+      deleteNote: m.visual ? 'This removes the session from My Saved Sessions and Visual Focus.' : 'This removes the mix from My Saved Mixes and the Mixer.',
       rename: name => withMixes(all => { const x = all.find(y => y.id === m.id); if (x) x.name = name; }),
       update: () => {
         if (!engine.activeList().length) return 'Nothing is playing — start the sounds you want this mix to hold, then update.';
         const t = engine.timer;
-        withMixes(all => { const x = all.find(y => y.id === m.id); if (x) Object.assign(x, { mix: engine.snapshot(), master: engine.masterVolume, timer: { min: t.durationMin || 0, fade: t.fade !== false }, saved: Date.now() }); });
+        withMixes(all => { const x = all.find(y => y.id === m.id); if (x) { Object.assign(x, { mix: engine.snapshot(), master: engine.masterVolume, timer: { min: t.durationMin || 0, fade: t.fade !== false }, saved: Date.now() }); if (x.visual) { x.visual = store.get('visual', x.visual); x.motion = store.get('motion', x.motion); } } });
         return '';
       },
       del: () => withMixes(all => { const i = all.findIndex(y => y.id === m.id); if (i >= 0) all.splice(i, 1); })
@@ -929,7 +960,7 @@
     let reloaded = false; navigator.serviceWorker.addEventListener('controllerchange', () => { if (reloaded || !navigator.serviceWorker.controller) return; reloaded = true; if (!engine.isPlaying) location.reload(); });
   });
 
-  window.softwaveApp = { renderPresetsRemount, loadPreset, saveCurrentMix, restoreMix, openSaveSheet, openManageMenu, SAVED_ICO, setMaster, togglePlay, toast, store, PRESETS, paintRange, showView, scheduleAutoAdvance, renderPresets: renderPresetsRemount };
+  window.softwaveApp = { renderPresetsRemount, loadPreset, saveCurrentMix, restoreMix, openSaveSheet, openManageMenu, openMixMenu, savedSessions, SAVED_ICO, setMaster, togglePlay, toast, store, PRESETS, paintRange, showView, scheduleAutoAdvance, renderPresets: renderPresetsRemount };
 
   // ---------- init ----------
   renderSounds(); renderPresets(); renderMixer([]); updatePlayer(); renderProfileHooks(); if (window.SoftwaveField) syncField();
