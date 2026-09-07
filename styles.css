@@ -935,7 +935,7 @@ body { overflow-x: hidden; }
 .field-vol input[type="range"]::-webkit-slider-thumb { width: 18px; height: 18px; background: var(--sf-ink); border: 0; box-shadow: 0 2px 10px rgba(0,0,0,.25); }
 .field-vol input[type="range"]::-moz-range-thumb { width: 18px; height: 18px; background: var(--sf-ink); border: 0; }
 .field-vol output { font-size: .78rem; color: var(--sf-ink-3); width: 3ch; }
-.field-actions { gap: clamp(22px, 4vw, 44px); }
+.field-actions { column-gap: clamp(22px, 4vw, 44px); row-gap: 6px; }   /* wrapped actions stay one grouped control */
 .field-actions .fa, .field-status .fa, .fa-immerse { all: unset; cursor: pointer; font-size: .84rem; letter-spacing: .06em; color: var(--sf-ink-2); padding: 8px 2px; position: relative; font-weight: 500; transition: color .3s; }
 /* narrow phones: keep the five actions on one line, as in the reference */
 @media (max-width: 400px) { .field-actions { gap: 12px; flex-wrap: nowrap; } .field-actions .fa { font-size: .78rem; letter-spacing: .04em; white-space: nowrap; } }
@@ -1042,7 +1042,7 @@ html[data-theme="dark"] .row-title { color: rgba(238,240,244,.42); }
   .sf-hero h1 { font-size: 1.7rem; }
   .sf-hero .lead { font-size: 1rem; }
   .field-vol { width: 80vw; }
-  .field-actions { gap: 18px; }
+  .field-actions { column-gap: 18px; row-gap: 6px; }
   .sound-grid { gap: 2px 8px; justify-content: flex-start; }
   .sound-card { width: calc(50% - 6px); padding: 8px 2px 10px; }
   .tile-preview { width: 112px; height: 75px; max-width: 100%; }
@@ -1100,7 +1100,7 @@ html[data-theme="dark"] .row-title { color: rgba(238,240,244,.42); }
 .journey-chip { display: flex; align-items: center; gap: 8px; margin: 4px 0 14px; }
 .journey-chip .chip strong::before { content: "☀ "; }
 .journey-veil .journey-card .btn-row { flex-wrap: wrap; }
-.fa-tuned, .field-actions .fa.fa-tuned { font-size: .9rem; opacity: .85; }
+.fa-tuned, .field-actions .fa.fa-tuned, .field-status .fa.fa-tuned { font-size: 1.1rem; opacity: .85; }   /* +2 steps from the 13.4px it rendered at */
 /* a chip whose sound is currently playing — tap again to stop */
 .chip-playing { outline: 2px solid rgba(62, 154, 114, 0.55); outline-offset: -1px; }
 :root[data-theme="dark"] .chip-playing { outline-color: rgba(159, 224, 187, 0.6); }
