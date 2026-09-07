@@ -15,8 +15,8 @@
   // The standard action vocabulary — label and position are fixed per key so the
   // same function always looks and sits the same wherever it appears.
   const ACTIONS = {
-    add:    { label: '＋ Add sound', id: 'add-sound-btn' },
-    timer:  { label: 'Timer', fa: 'timer', labelId: 'field-timer-label' },
+    add:    { label: '＋ Add sound' },
+    timer:  { label: 'Timer', fa: 'timer', timerLabel: true },
     visual: { label: 'Add Visual', fa: 'visual' },
     mixer:  { label: 'Mixer', fa: 'mixer' },
     save:   { label: 'Save', fa: 'save' }
@@ -29,7 +29,9 @@
    *   pause    show the play/pause circle (default true)
    *   stop     show the stop circle (default true)
    *   volume   initial slider value 0–100 (default 35)
-   *   actions  array of keys from ACTIONS, or {key,label,fa,id} objects (default none)
+   *   actions  array of keys from ACTIONS, or {key,label,fa} objects (default none)
+   *            every action renders as #<prefix>-<key> with data-act="<key>"
+   *   hooks    also emit data-fa hooks for the app's global action bindings (default false)
    *   status   reserve the personalization status line (default false)
    *   immerse  show the IMMERSE bottom action (default false)
    * Returns the host. Callers bind behavior to the ids / data-fa hooks.
@@ -49,10 +51,10 @@
     if (actions.length) {
       parts.push('<div class="field-actions">');
       for (const a of actions) {
-        const id = a.id ? ` id="${esc(a.id)}"` : '';
-        const fa = a.fa ? ` data-fa="${esc(a.fa)}"` : '';
-        const label = a.labelId ? `<span id="${esc(a.labelId)}">${esc(a.label)}</span>` : esc(a.label);
-        parts.push(`<button type="button" class="fa"${id}${fa}>${label}</button>`);
+        const id = ` id="${p}-${esc(a.key)}"`;
+        const fa = cfg.hooks && a.fa ? ` data-fa="${esc(a.fa)}"` : '';
+        const label = a.timerLabel ? `<span id="${p}-timer-label">${esc(a.label)}</span>` : esc(a.label);
+        parts.push(`<button type="button" class="fa"${id} data-act="${esc(a.key)}"${fa}>${label}</button>`);
       }
       parts.push('</div>');
     }
@@ -69,6 +71,12 @@
   render(document.getElementById('field-controls'), {
     prefix: 'field', pause: true, stop: true, volume: 35,
     actions: ['add', 'timer', 'visual', 'mixer', 'save'],
-    status: true, immerse: true
+    status: true, immerse: true, hooks: true
+  });
+  // The full sound view (Immerse): the same controller minus IMMERSE (you are in it).
+  render(document.getElementById('now-controls'), {
+    prefix: 'now', pause: true, stop: true, volume: 35,
+    actions: ['add', 'timer', 'visual', 'mixer', 'save'],
+    status: true, immerse: false
   });
 })();

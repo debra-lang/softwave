@@ -559,8 +559,10 @@
   (function addSoundSheet() {
     const faRow = $('#field-controls .field-actions'); if (!faRow) return;
     // the controller renders the button in its standard slot; create one only for older markup
-    let ab = $('#add-sound-btn');
-    if (!ab) { ab = document.createElement('button'); ab.type = 'button'; ab.className = 'fa'; ab.id = 'add-sound-btn'; ab.textContent = '＋ Add sound'; faRow.insertBefore(ab, faRow.firstChild); }
+    let ab = $('#field-add');
+    if (!ab) { ab = document.createElement('button'); ab.type = 'button'; ab.className = 'fa'; ab.id = 'field-add'; ab.textContent = '＋ Add sound'; faRow.insertBefore(ab, faRow.firstChild); }
+    // the Immerse controller's ＋ Add sound opens the same sheet
+    const nab = $('#now-add'); if (nab) nab.addEventListener('click', () => ab.click());
     const sheet = document.createElement('div'); sheet.id = 'addsound-sheet'; sheet.className = 'addsound-sheet'; sheet.hidden = true;
     sheet.innerHTML = `<div class="addsound-card card" role="dialog" aria-label="Add a sound"><div class="addsound-head"><strong>Add a sound</strong><button class="btn btn-ghost btn-sm" data-as-close>Done</button></div><div class="pane-sounds" data-as-grid></div><p class="muted small">Tap to add or remove — up to ${MAX_ACTIVE} at once. Fine volumes and balance live in the Mixer.</p></div>`;
     document.body.appendChild(sheet);
@@ -654,7 +656,7 @@
     $('#field-controls').hidden = !any; const core = $('#field-core'); core.classList.toggle('idle', !any); core.setAttribute('aria-pressed', playing); core.setAttribute('aria-label', !any ? 'Choose a sound to begin' : playing ? 'Pause' : 'Play');
     $('#field').dataset.state = !any ? 'idle' : playing ? 'playing' : 'paused';
     const v = $('#field-vol'); v.value = Math.round(engine.masterVolume * 100); paintRange(v); $('#field-vol-out').textContent = v.value + '%';
-    const t = engine.timer; $('#field-timer-label').textContent = t.endsAt ? `Timer · ${Math.max(1, Math.ceil((t.endsAt - Date.now()) / 60000))} min` : 'Timer';
+    const t = engine.timer; $$('.sound-controller [data-act="timer"] span').forEach(el => { el.textContent = t.endsAt ? `Timer · ${Math.max(1, Math.ceil((t.endsAt - Date.now()) / 60000))} min` : 'Timer'; });
     const atmo = !any ? '' : ['brown', 'fire', 'cabin', 'thunder', 'city'].includes(top.id) ? 'warm' : ['night'].includes(top.id) ? 'dark' : ['rain', 'waterfall', 'static', 'hiss', 'white'].includes(top.id) ? 'muted' : 'cool'; document.body.dataset.atmo = atmo;
   }
   engine.on(type => { if (['sounds', 'state', 'master', 'timer', 'tone'].includes(type)) syncField(); });
@@ -719,10 +721,10 @@
     const lv = engine.isPlaying ? Math.min(1, engine.getLevels(orbSpec) * 6) : 0; const p = dominantParams();
     for (const [sel, scale] of orbs) { const c = $(sel); if (!c) continue; const r = c.getBoundingClientRect(); if (!r.width) continue; const dpr = Math.min(devicePixelRatio || 1, FIELD && FIELD.LOW ? 1 : 1.5); if (c.width !== Math.round(r.width * dpr)) { c.width = Math.round(r.width * dpr); c.height = Math.round(r.height * dpr); } const ctx = c.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, r.width, r.height); SV.soundShape(ctx, r.width, r.height, p, orbT, lv, { scale, glow: sel === '#now-canvas' }); } }
   requestAnimationFrame(orbLoop);
-  function syncEnvironment() { const id = dominant(); bg.setEnv(id); document.body.dataset.sound = id || ''; const p = dominantParams(); const names = engine.activeList().map(s => engine.def(s.id).name); $('#now-name').textContent = names.length ? names.join(' + ') : 'Nothing playing'; $('#now-desc').textContent = names.length ? describeSound(p) : 'Choose a sound to begin'; const on = engine.isPlaying; $('#now-orb').setAttribute('aria-pressed', on); $('#now-orb').setAttribute('aria-label', on ? 'Pause' : 'Play'); }
+  function syncEnvironment() { const id = dominant(); bg.setEnv(id); document.body.dataset.sound = id || ''; const p = dominantParams(); const names = engine.activeList().map(s => engine.def(s.id).name); $('#now-name').textContent = names.length ? names.join(' + ') : 'Nothing playing'; $('#now-desc').textContent = names.length ? describeSound(p) : 'Choose a sound to begin'; }
   engine.on(type => { if (['sounds', 'state', 'tone', 'master'].includes(type)) syncEnvironment(); if (type === 'master') { for (const [vid, oid] of [['#now-vol', '#now-vol-out'], ['#sleep-vol', '#sleep-vol-out']]) { const v = $(vid); if (!v) continue; v.value = Math.round(engine.masterVolume * 100); paintRange(v); $(oid).textContent = v.value + '%'; } } });
   let nowHideT; function nowShowUI() { $('#now').classList.remove('idle'); clearTimeout(nowHideT); nowHideT = setTimeout(() => $('#now').classList.add('idle'), 5000); }
-  function openNow() { if (!$('#now').hidden) return; $('#now').hidden = false; document.body.style.overflow = 'hidden'; syncEnvironment(); if (fieldBig) fieldBig.set(fieldIds()); nowShowUI(); $('#now-orb').focus(); layerPush(closeNowUI); }
+  function openNow() { if (!$('#now').hidden) return; $('#now').hidden = false; document.body.style.overflow = 'hidden'; syncEnvironment(); if (fieldBig) fieldBig.set(fieldIds()); nowShowUI(); const f = $('#now-pause'); if (f) f.focus(); layerPush(closeNowUI); }
   function closeNowUI() { $('#now').hidden = true; document.body.style.overflow = ''; }
   function closeNow() { if (!$('#now').hidden) layersClose(); }
   $('#now').addEventListener('pointermove', nowShowUI); $('#now').addEventListener('pointerdown', nowShowUI);
@@ -730,7 +732,14 @@
   $('#player-title').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (engine.activeList().length) openNow(); } });
   $('#now-close').addEventListener('click', closeNow);
   $('#now').addEventListener('keydown', e => { if (e.key === 'Escape') closeNow(); });
-  $('#now-orb').addEventListener('click', async e => { const b = e.currentTarget; b.classList.add('pressed'); setTimeout(() => b.classList.remove('pressed'), 400); await togglePlay(); syncEnvironment(); });
+  // Immerse controller: same functions as the Sounds player, wired for a full-screen layer
+  $('#now-pause').addEventListener('click', async () => { if (engine.ctx && engine.ctx.state === 'running') await engine.pauseAll(); else await engine.playAll(); });
+  $('#now-stop').addEventListener('click', () => { engine.stopAll(); toast('All sounds stopped'); });
+  $('#now-timer').addEventListener('click', () => openTimerSheet());
+  const leaveNow = (then) => { closeNow(); setTimeout(then, 80); };
+  $('#now-visual').addEventListener('click', () => leaveNow(() => { if (window.softwaveFocus) softwaveFocus.openChooser(); else showView('focus'); }));
+  $('#now-mixer').addEventListener('click', () => leaveNow(() => showView('mixer')));
+  $('#now-save').addEventListener('click', () => leaveNow(() => { showView('mixer'); setTimeout(() => { $('#mix-save').click(); $('#mix-save').scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 150); }));
   $('#player-toggle').addEventListener('click', e => { const b = e.currentTarget; b.classList.add('pressed'); setTimeout(() => b.classList.remove('pressed'), 400); });
   $('#now-vol').addEventListener('input', e => setMaster(+e.target.value / 100, true));
   // navigating away from the Immerse overlay: consume its history entry first,

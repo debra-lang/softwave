@@ -10,6 +10,7 @@
     const app = window.softwaveApp, profile = window.softwaveProfile, engine = window.softwave;
     if (!app || !profile || !engine) { setTimeout(boot, 150); return; }
     const $ = (s, r = document) => r.querySelector(s);
+    const $$ = (s, r = document) => [...r.querySelectorAll(s)];
     const store = app.store;
     const M = () => window.softwaveMonetization;
     const gate = (key) => !M() || M().canUse(key) || (window.softwavePremium ? softwavePremium.gate(key) : true);
@@ -42,23 +43,22 @@
 
     // The quiet indicator: a small chip beside the field actions, only when tuning is possible.
     function syncChip() {
-      // the controller's status line; the actions row is the fallback for older markup
-      const hostRow = $('#field-controls .field-status') || $('#field-controls .field-actions'); if (!hostRow) return;
-      let chip = $('#tuned-chip');
+      // one status chip per Master Sound Controller (Sounds player, Immerse, …)
+      const slots = $$('.sound-controller .field-status'); if (!slots.length) return;
       const eligible = confident() && profile.params();
-      if (!eligible) { if (chip) chip.remove(); return; }
-      if (!chip) {
-        chip = document.createElement('button'); chip.id = 'tuned-chip'; chip.className = 'fa fa-tuned';
-        chip.addEventListener('click', () => {
-          const now = !tunedOn(); store.set('tuned:on', now);
-          if (M()) M().track(now ? 'tuning_on' : 'tuning_off');
-          applyTuning();
-          app.toast(now ? 'Tuned to you: your learned preferences gently shape what plays.' : 'Tuned to you is off — sounds play exactly as designed.', 3600);
-        });
-        hostRow.appendChild(chip);
-      }
-      chip.textContent = 'Tuned to you · ' + (tunedOn() ? 'on' : 'off');
-      chip.setAttribute('aria-pressed', tunedOn());
+      const toggle = () => {
+        const now = !tunedOn(); store.set('tuned:on', now);
+        if (M()) M().track(now ? 'tuning_on' : 'tuning_off');
+        applyTuning(); syncChip();
+        app.toast(now ? 'Tuned to you: your learned preferences gently shape what plays.' : 'Tuned to you is off — sounds play exactly as designed.', 3600);
+      };
+      slots.forEach(slot => {
+        let chip = slot.querySelector('.fa-tuned');
+        if (!eligible) { if (chip) chip.remove(); return; }
+        if (!chip) { chip = document.createElement('button'); chip.className = 'fa fa-tuned'; if (!document.getElementById('tuned-chip')) chip.id = 'tuned-chip'; chip.addEventListener('click', toggle); slot.appendChild(chip); }
+        chip.textContent = 'Tuned to you · ' + (tunedOn() ? 'on' : 'off');
+        chip.setAttribute('aria-pressed', tunedOn());
+      });
     }
 
     // ================= PERSONALIZED MOMENTS =================
