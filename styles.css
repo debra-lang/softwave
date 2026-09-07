@@ -942,8 +942,18 @@ body { overflow-x: hidden; }
 /* the Immerse full sound view carries the same controller under the name/descriptor */
 #now .sound-controller { margin-top: 8px; }
 #now .now-name { margin-top: 0; }
+/* the controller inside each section */
+.focus-screen .focus-player { flex-direction: column; align-items: center; gap: 4px; }
+.focus-screen .focus-player .player-info { text-align: center; }
+#focus-controls { gap: 8px; margin-top: 4px; width: 100%; }
+#focus-controls .field-vol { width: min(440px, 92%); }
+#focus-controls .field-actions { flex-wrap: wrap; row-gap: 6px; }   /* six section actions: two grouped lines on phones */
+.sleep-screen .field-actions .fa { color: #8fa0cf; }
+.sleep-screen .field-actions .fa:hover { color: #c5cfe8; }
+#sleep-controls { gap: 14px; margin-top: 6px; }
+#mix-controls { margin: 0 auto 18px; }
 /* controller status line (✦ Tuned to you · on); collapses when nothing is personalized */
-.field-status { display: flex; justify-content: center; }
+.field-status { display: flex; justify-content: center; margin-top: -10px; }   /* status line sits closer under the actions; the rows above do not move */
 .field-status:empty { display: none; }
 .field-actions .fa::after { content: ""; position: absolute; left: 50%; right: 50%; bottom: 2px; height: 1px; background: var(--sf-accent); transition: left .3s, right .3s; }
 .field-actions .fa:hover { color: var(--sf-ink); } .field-actions .fa:hover::after { left: 0; right: 0; }

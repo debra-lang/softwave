@@ -351,7 +351,9 @@
     engine.defs().filter(d => !engine.isActive(d.id)).forEach(d => { const b = document.createElement('button'); b.className = 'pane-sound add-pill'; b.style.setProperty('--hue', d.hue); b.disabled = full; b.innerHTML = `<span class="ico" aria-hidden="true">${d.icon}</span>${d.name}`; b.setAttribute('aria-label', 'Add ' + d.name); b.addEventListener('click', async () => { b.disabled = true; b.classList.add('adding'); await engine.startSound(d.id, 0.5); }); add.appendChild(b); });
   }
   function panLabel(b) { if (Math.abs(b) < 0.05) return 'Centre'; return (b < 0 ? 'L ' : 'R ') + Math.round(Math.abs(b) * 100) + '%'; }
-  $('#mix-play').addEventListener('click', () => togglePlay());
+  $('#mix-pause').addEventListener('click', () => togglePlay());
+  $('#mix-timer').addEventListener('click', () => openTimerSheet());
+  $('#mix-vol').addEventListener('input', e => setMaster(+e.target.value / 100, true));
   $('#mix-stop').addEventListener('click', () => { stopEverything(); toast('All sounds stopped'); });
   $('#mix-reset').addEventListener('click', () => { engine.activeList().forEach(s => { engine.setVolume(s.id, 0.5); engine.setBalance(s.id, 0); }); setMaster(0.35); renderMixer(engine.activeList()); syncCards(engine.activeList()); toast('Levels reset'); });
   // ---------- the one Save system ----------
@@ -451,7 +453,6 @@
     $('#player-title').textContent = names.length ? names.join(' + ') : 'Nothing playing';
     $('#player-sub').textContent = names.length ? (playing ? 'Playing · keep it low and comfortable' : 'Paused') : 'Choose a sound to begin';
     const t = $('#player-toggle'); t.setAttribute('aria-pressed', playing); t.setAttribute('aria-label', playing ? 'Pause' : 'Play');
-    $('#mix-play').textContent = playing ? 'Pause' : 'Play';
     $('#sleep-now-list').textContent = names.length ? names.join(' + ') : 'Nothing yet — pick a preset below or choose sounds.';
     $('#sleep-sounds').textContent = names.join(' · ');
     const fs = $('#focus-setup-sound'); if (fs) fs.textContent = names.length ? names.join(' + ') : 'No sound yet';
@@ -567,7 +568,7 @@
   $('#sleep-enter').addEventListener('click', async () => {
     if (!engine.activeList().length) await loadPreset(PRESETS[1]);
     else await engine.playAll();
-    screen.hidden = false; document.body.style.overflow = 'hidden'; $('#sleep-toggle').focus();
+    screen.hidden = false; document.body.style.overflow = 'hidden'; $('#sleep-pause').focus();
     layerPush(exitSleepUI);
     try { if (navigator.wakeLock) wake = await navigator.wakeLock.request('screen'); } catch (_) { }
   });
@@ -577,9 +578,10 @@
   function exitSleep() { if (!screen.hidden) layersClose(); }
   $('#sleep-exit').addEventListener('click', exitSleep);
   screen.addEventListener('keydown', e => { if (e.key === 'Escape') exitSleep(); });
-  $('#sleep-toggle').addEventListener('click', togglePlay);
+  $('#sleep-pause').addEventListener('click', togglePlay);
+  $('#sleep-save').addEventListener('click', () => openSaveSheet());
   $('#sleep-stop').addEventListener('click', () => { engine.stopAll(); toast('All sounds stopped'); });
-  $('#sleep-screen-timer').addEventListener('click', () => openTimerSheet());
+  $('#sleep-timer').addEventListener('click', () => openTimerSheet());
   $('#sleep-vol').addEventListener('input', e => setMaster(+e.target.value / 100, true));
   function clockTick() { const d = new Date(); $('#sleep-clock').textContent = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); }
   setInterval(clockTick, 1000); clockTick();
@@ -762,7 +764,7 @@
     for (const [sel, scale] of orbs) { const c = $(sel); if (!c) continue; const r = c.getBoundingClientRect(); if (!r.width) continue; const dpr = Math.min(devicePixelRatio || 1, FIELD && FIELD.LOW ? 1 : 1.5); if (c.width !== Math.round(r.width * dpr)) { c.width = Math.round(r.width * dpr); c.height = Math.round(r.height * dpr); } const ctx = c.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, r.width, r.height); SV.soundShape(ctx, r.width, r.height, p, orbT, lv, { scale, glow: sel === '#now-canvas' }); } }
   requestAnimationFrame(orbLoop);
   function syncEnvironment() { const id = dominant(); bg.setEnv(id); document.body.dataset.sound = id || ''; const p = dominantParams(); const names = engine.activeList().map(s => engine.def(s.id).name); $('#now-name').textContent = names.length ? names.join(' + ') : 'Nothing playing'; $('#now-desc').textContent = names.length ? describeSound(p) : 'Choose a sound to begin'; }
-  engine.on(type => { if (['sounds', 'state', 'tone', 'master'].includes(type)) syncEnvironment(); if (type === 'master') { for (const [vid, oid] of [['#now-vol', '#now-vol-out'], ['#sleep-vol', '#sleep-vol-out']]) { const v = $(vid); if (!v) continue; v.value = Math.round(engine.masterVolume * 100); paintRange(v); $(oid).textContent = v.value + '%'; } } });
+  engine.on(type => { if (['sounds', 'state', 'tone', 'master'].includes(type)) syncEnvironment(); if (type === 'master') { for (const [vid, oid] of [['#now-vol', '#now-vol-out'], ['#sleep-vol', '#sleep-vol-out'], ['#mix-vol', '#mix-vol-out']]) { const v = $(vid); if (!v) continue; v.value = Math.round(engine.masterVolume * 100); paintRange(v); $(oid).textContent = v.value + '%'; } } });
   let nowHideT; function nowShowUI() { $('#now').classList.remove('idle'); clearTimeout(nowHideT); nowHideT = setTimeout(() => $('#now').classList.add('idle'), 5000); }
   function openNow() { if (!$('#now').hidden) return; $('#now').hidden = false; document.body.style.overflow = 'hidden'; syncEnvironment(); if (fieldBig) fieldBig.set(fieldIds()); nowShowUI(); const f = $('#now-pause'); if (f) f.focus(); layerPush(closeNowUI); }
   function closeNowUI() { $('#now').hidden = true; document.body.style.overflow = ''; }

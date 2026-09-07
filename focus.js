@@ -551,7 +551,7 @@
     if (transition) { document.body.classList.add('entering'); await new Promise(r => setTimeout(r, 520)); document.body.classList.remove('entering'); }
     focus.load(S.visual); screen.hidden = false; document.body.style.overflow = 'hidden'; resize(); focus.last = performance.now(); loop(focus.last);
     if (window.softwaveBg) window.softwaveBg.running = false;
-    updateFocusBar(); showControls(); syncSettings(); syncFocusPlayer(); const fp = $('#focus-play'); if (fp) fp.focus();
+    updateFocusBar(); showControls(); syncSettings(); syncFocusPlayer(); const fp = $('#focus-pause'); if (fp) fp.focus();
     try { if (navigator.wakeLock) focus.wake = await navigator.wakeLock.request('screen'); } catch (_) { }
     if (engine.activeList().length && !engine.isPlaying) engine.playAll();
   }
@@ -576,7 +576,7 @@
   // Stop visual: the sound is untouched. If it is still playing, land the user on the
   // Sounds page at the live player, so what they are hearing is immediately visible;
   // with nothing playing, return to the Visual Focus landing page as before.
-  $('#focus-stop-visual').addEventListener('click', () => {
+  $('#focus-stopvisual').addEventListener('click', () => {
     const soundOn = engine.activeList().length > 0 && engine.isPlaying;
     exitFocus();
     setTimeout(() => {
@@ -587,16 +587,16 @@
       } else app.showView('focus');
     }, 60);
   });
-  $('#focus-stop-all').addEventListener('click', () => { (window.softwaveStopAll || engine.stopAll.bind(engine))(); goLanding(); });
+  $('#focus-stopall').addEventListener('click', () => { (window.softwaveStopAll || engine.stopAll.bind(engine))(); goLanding(); });
   // player-style bar: keep name, playing state and volume readout in sync with the engine
   function syncFocusPlayer() {
     const t = $('#focus-now-title'), s = $('#focus-now-sub'); if (!t) return;
     const list = engine.activeList(), playing = engine.isPlaying;
     t.textContent = list.length ? list.map(x => x.name).join(' · ') : 'Nothing playing';
     s.textContent = list.length ? (playing ? 'Playing' : 'Paused') : 'Choose a sound to begin';
-    const pb = $('#focus-play'); if (pb) pb.setAttribute('aria-pressed', playing);
+    const pb = $('#focus-pause'); if (pb) pb.setAttribute('aria-pressed', playing);
     // with no sound there is nothing to "change" — the same control invites adding one
-    const sb = document.querySelector('.focus-panes-row [data-open-pane="sound"]');
+    const sb = document.querySelector('#focus-controls [data-open-pane="sound"]');
     if (sb) sb.textContent = list.length ? 'Change sound' : '＋ Add sound';
   }
   engine.on(type => {
@@ -617,7 +617,7 @@
 
   // focus bar: play/pause, volume, change sound, change visual, timer
   function updateFocusBar() {
-    const playing = engine.isPlaying; const b = $('#focus-play'); b.setAttribute('aria-pressed', playing); b.setAttribute('aria-label', playing ? 'Pause' : 'Play');
+    const playing = engine.isPlaying; const b = $('#focus-pause'); b.setAttribute('aria-pressed', playing); b.setAttribute('aria-label', playing ? 'Pause' : 'Play');
     const names = engine.activeList().map(s => engine.def(s.id).name); if (engine.tone && engine.tone.playing) names.push(`Tone ${Math.round(engine.tone.freq).toLocaleString()} Hz`);
     $('#focus-sound-name').textContent = names.length ? names.join(' + ') : 'No sound';
     const v = $('#focus-vol'); v.value = Math.round(engine.masterVolume * 100); app.paintRange(v);
@@ -625,7 +625,7 @@
     $$('#focus-panel [data-min]').forEach(x => x.setAttribute('aria-checked', String(+x.dataset.min === (t.durationMin || 0))));
   }
   engine.on(type => { if (!screen.hidden && ['sounds', 'state', 'tone', 'timer', 'master'].includes(type)) updateFocusBar(); if (type === 'sounds') renderStage(); });
-  $('#focus-play').addEventListener('click', () => {
+  $('#focus-pause').addEventListener('click', () => {
     // With nothing chosen, "play" silently did nothing (the toast renders under this screen).
     // Now it opens the sound picker — the action the tap actually means.
     if (!engine.activeList().length && !(engine.tone && engine.tone.playing)) { openPanel('sound'); app.toast('Pick a sound to play here.'); return; }
