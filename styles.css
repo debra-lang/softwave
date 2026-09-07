@@ -943,6 +943,8 @@ body { overflow-x: hidden; }
 .field-actions .fa, .field-status .fa, .fa-immerse { all: unset; cursor: pointer; font-size: .84rem; letter-spacing: .06em; color: var(--sf-ink-2); padding: 8px 2px; position: relative; font-weight: 500; transition: color .3s; }
 /* narrow phones: keep the five actions on one line, as in the reference */
 @media (max-width: 400px) { .field-actions { gap: 12px; flex-wrap: nowrap; } .field-actions .fa { font-size: .78rem; letter-spacing: .04em; white-space: nowrap; } }
+/* very narrow phones (320px class): the five actions wrap into two grouped lines instead of overflowing */
+@media (max-width: 345px) { .field-actions { flex-wrap: wrap; row-gap: 6px; } }
 /* the Immerse full sound view carries the same controller under the name/descriptor */
 #now .sound-controller { margin-top: 8px; }
 #now .now-name { margin-top: 0; }
