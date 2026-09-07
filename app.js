@@ -143,7 +143,7 @@
   function ensureLab() {
     if (window.softwaveLab) return Promise.resolve();
     if (labPromise) return labPromise;
-    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=66'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
+    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=67'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
     return labPromise;
   }
   window.softwaveEnsureLab = ensureLab;
@@ -229,7 +229,7 @@
       if (!mixes.length) { if (mrow) mrow.remove(); }
       else mixes.forEach(m => {
         const b = document.createElement('button'); b.className = 'chip chip-mine'; b.setAttribute('role', 'listitem'); b.dataset.chipName = m.name; b.dataset.mixId = m.id;
-        b.innerHTML = `<strong>★ ${m.name}</strong><span>${describeMix(m)}</span>`;
+        b.innerHTML = `<strong>${SAVED_ICO}${m.name}</strong><span>${describeMix(m)}</span>`;
         b.addEventListener('click', () => { restoreMix(m); scheduleAutoAdvance('immerse'); });
         const more = document.createElement('button'); more.className = 'chip-del chip-more'; more.setAttribute('aria-label', 'Manage ' + m.name); more.textContent = '⋯';
         more.addEventListener('click', e => { e.stopPropagation(); openMixMenu(m); });
@@ -241,7 +241,7 @@
     if (!ms.length) { if (row) row.remove(); updateMixSaved(); return; }
     if (!row || !host) { renderPresetsRemount(); return; }   // the row was removed earlier; rebuild the template
     host.innerHTML = '';
-    ms.forEach((snd, i) => { const b = document.createElement('button'); b.className = 'chip chip-mine'; b.setAttribute('role', 'listitem'); b.dataset.chipName = snd.name; b.innerHTML = `<strong>★ ${snd.name}</strong><span>${snd.type === 'paint' ? 'Painted sound' : 'Custom sound'}${snd.nature && snd.nature !== 'none' && engine.def(snd.nature) ? ' + ' + engine.def(snd.nature).name.toLowerCase() : ''}</span>`;
+    ms.forEach((snd, i) => { const b = document.createElement('button'); b.className = 'chip chip-mine'; b.setAttribute('role', 'listitem'); b.dataset.chipName = snd.name; b.innerHTML = `<strong>${SAVED_ICO}${snd.name}</strong><span>${snd.type === 'paint' ? 'Painted sound' : 'Custom sound'}${snd.nature && snd.nature !== 'none' && engine.def(snd.nature) ? ' + ' + engine.def(snd.nature).name.toLowerCase() : ''}</span>`;
       b.addEventListener('click', async () => { const mix = [{ id: snd.type === 'paint' ? 'paint' : 'sculpt', volume: 0.55, balance: 0 }]; if (snd.type === 'paint') mix[0].curve = snd.curve; else mix[0].params = snd.params; if (snd.nature && snd.nature !== 'none') mix.push({ id: snd.nature, volume: snd.natureVol || 0.35, balance: 0 }); await loadPreset({ name: snd.name, mix, master: Math.min(engine.masterVolume, 0.45) }); });
       const del = document.createElement('button'); del.className = 'chip-del'; del.setAttribute('aria-label', 'Delete ' + snd.name); del.textContent = '×'; del.addEventListener('click', e => { e.stopPropagation(); ms.splice(i, 1); store.set('lab:sounds', ms); renderPresetsRemount(); toast('Sound deleted'); }); b.appendChild(del); host.appendChild(b); });
     if (!host.children.length) row.remove();   // the section exists only with content
@@ -254,7 +254,7 @@
     if (!custom.length) saved.innerHTML = '<p class="muted">Nothing saved yet. Build a mix and tap "Save".</p>';
     custom.forEach((m, i) => {
       const b = document.createElement('button'); b.className = 'chip'; b.dataset.chipName = m.name;
-      b.innerHTML = `<strong>${m.name}</strong><span>${describeMix(m, true)}</span>`;
+      b.innerHTML = `<strong>${SAVED_ICO}${m.name}</strong><span>${describeMix(m, true)}</span>`;
       b.addEventListener('click', () => restoreMix(m));
       const del = document.createElement('button'); del.className = 'btn btn-ghost btn-sm'; del.textContent = '⋯'; del.setAttribute('aria-label', 'Manage ' + m.name);
       del.addEventListener('click', e => { e.stopPropagation(); openMixMenu(m); });
@@ -377,6 +377,8 @@
   // balance, the FULL recipe of personalized sounds (sculpt/paint parameters — never
   // just the label), the master volume, and the timer. One store ('mixes'), shown in
   // "My Saved Mixes" on the Sounds page and in the Mixer's list.
+  // ★ is reserved for Favourite experiments; saved creations carry a bookmark mark.
+  const SAVED_ICO = '<svg class="ico-saved" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4.2L5 21V4a1 1 0 0 1 1-1z" fill="currentColor"/></svg>';
   const validMixes = () => {
     const all = store.get('mixes', []); let changed = false;
     all.forEach((m, i) => { if (m && !m.id) { m.id = 'mx' + (m.saved || Date.now()) + '_' + i; changed = true; } });
@@ -415,38 +417,51 @@
   function mixId(m) { return m.id; }
   function withMixes(fn) { const all = store.get('mixes', []); const r = fn(all); store.set('mixes', all); renderPresetsRemount(); return r; }
   let mixMenu = null;
-  function openMixMenu(m) {
+  // One compact management sheet for every saved creation (mixes, environments, sessions):
+  // Rename · Update to current setup (when the caller offers it) · Delete with a second tap.
+  function openManageMenu(opts) {
     if (!mixMenu) {
       mixMenu = document.createElement('div'); mixMenu.className = 'addsound-sheet'; mixMenu.hidden = true;
-      mixMenu.innerHTML = '<div class="addsound-card card mix-menu" role="dialog" aria-label="Manage saved mix"><div class="addsound-head"><strong data-mm-title></strong><button type="button" class="btn btn-ghost btn-sm" data-mm-close>Close</button></div><p class="muted small" data-mm-desc></p><div class="btn-row mix-menu-actions"><button type="button" class="btn btn-ghost btn-sm" data-mm="rename">Rename</button><button type="button" class="btn btn-ghost btn-sm" data-mm="update">Update to current setup</button><button type="button" class="btn btn-ghost btn-sm" data-mm="delete">Delete</button></div><form data-mm-rename hidden style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px"><label class="sr-only" for="mix-rename">New name</label><input id="mix-rename" class="select" maxlength="40" style="flex:1;min-width:180px"><button type="submit" class="btn btn-primary btn-sm">Save name</button></form><p class="muted small" data-mm-note hidden></p></div>';
+      mixMenu.innerHTML = '<div class="addsound-card card mix-menu" role="dialog" aria-label="Manage saved item"><div class="addsound-head"><strong data-mm-title></strong><button type="button" class="btn btn-ghost btn-sm" data-mm-close>Close</button></div><p class="muted small" data-mm-desc></p><div class="btn-row mix-menu-actions"><button type="button" class="btn btn-ghost btn-sm" data-mm="rename">Rename</button><button type="button" class="btn btn-ghost btn-sm" data-mm="update">Update to current setup</button><button type="button" class="btn btn-ghost btn-sm" data-mm="delete">Delete</button></div><form data-mm-rename hidden style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px"><label class="sr-only" for="mix-rename">New name</label><input id="mix-rename" class="select" maxlength="40" style="flex:1;min-width:180px"><button type="submit" class="btn btn-primary btn-sm">Save name</button></form><p class="muted small" data-mm-note hidden></p></div>';
       document.body.appendChild(mixMenu);
       $('[data-mm-close]', mixMenu).addEventListener('click', () => layersClose());
       mixMenu.addEventListener('click', e => { if (e.target === mixMenu) layersClose(); });
       const note = (t) => { const n = $('[data-mm-note]', mixMenu); n.textContent = t; n.hidden = !t; };
-      $('[data-mm="rename"]', mixMenu).addEventListener('click', () => { const f = $('[data-mm-rename]', mixMenu); f.hidden = !f.hidden; if (!f.hidden) { const i = $('#mix-rename', mixMenu); i.value = mixMenu._mix.name; setTimeout(() => { i.focus(); i.select(); }, 50); } });
+      $('[data-mm="rename"]', mixMenu).addEventListener('click', () => { const f = $('[data-mm-rename]', mixMenu); f.hidden = !f.hidden; if (!f.hidden) { const i = $('#mix-rename', mixMenu); i.value = mixMenu._opts.title; setTimeout(() => { i.focus(); i.select(); }, 50); } });
       $('[data-mm-rename]', mixMenu).addEventListener('submit', e => {
         e.preventDefault(); const name = $('#mix-rename', mixMenu).value.trim(); if (!name) return;
-        const id = mixMenu._mix.id; withMixes(all => { const x = all.find(y => y.id === id); if (x) x.name = name; });
-        layersClose(); toast(`Renamed to “${name}”`, 3000);
+        mixMenu._opts.rename(name); layersClose(); toast(`Renamed to “${name}”`, 3000);
       });
       $('[data-mm="update"]', mixMenu).addEventListener('click', () => {
-        if (!engine.activeList().length) { note('Nothing is playing — start the sounds you want this mix to hold, then update.'); return; }
-        const id = mixMenu._mix.id; const t = engine.timer;
-        withMixes(all => { const x = all.find(y => y.id === id); if (x) Object.assign(x, { mix: engine.snapshot(), master: engine.masterVolume, timer: { min: t.durationMin || 0, fade: t.fade !== false }, saved: Date.now() }); });
-        layersClose(); toast(`“${mixMenu._mix.name}” now holds what is playing`, 3200);
+        const o = mixMenu._opts; if (!o.update) return; const problem = o.update(); if (problem) { note(problem); return; }
+        layersClose(); toast(`“${o.title}” now holds what is playing`, 3200);
       });
       $('[data-mm="delete"]', mixMenu).addEventListener('click', e => {
         const b = e.currentTarget;
-        if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'Tap again to delete'; b.classList.add('btn-danger'); note('This removes the mix from My Saved Mixes and the Mixer.'); return; }
-        const id = mixMenu._mix.id; withMixes(all => { const i = all.findIndex(y => y.id === id); if (i >= 0) all.splice(i, 1); });
-        layersClose(); toast('Mix deleted', 2600);
+        if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'Tap again to delete'; b.classList.add('btn-danger'); note(mixMenu._opts.deleteNote || 'This removes it from every list it appears in.'); return; }
+        mixMenu._opts.del(); layersClose(); toast('Deleted', 2600);
       });
     }
-    mixMenu._mix = m;
-    $('[data-mm-title]', mixMenu).textContent = m.name; $('[data-mm-desc]', mixMenu).textContent = describeMix(m, true) + (m.master != null ? ` · master ${Math.round(m.master * 100)}%` : '');
+    mixMenu._opts = opts;
+    $('[data-mm-title]', mixMenu).textContent = opts.title; $('[data-mm-desc]', mixMenu).textContent = opts.desc || '';
+    $('[data-mm="update"]', mixMenu).hidden = !opts.update;
     const del = $('[data-mm="delete"]', mixMenu); delete del.dataset.armed; del.textContent = 'Delete'; del.classList.remove('btn-danger');
     $('[data-mm-rename]', mixMenu).hidden = true; const n = $('[data-mm-note]', mixMenu); n.hidden = true; n.textContent = '';
     if (mixMenu.hidden) { mixMenu.hidden = false; layerPush(() => { mixMenu.hidden = true; }); }
+  }
+  function openMixMenu(m) {
+    openManageMenu({
+      title: m.name, desc: describeMix(m, true) + (m.master != null ? ` · master ${Math.round(m.master * 100)}%` : ''),
+      deleteNote: 'This removes the mix from My Saved Mixes and the Mixer.',
+      rename: name => withMixes(all => { const x = all.find(y => y.id === m.id); if (x) x.name = name; }),
+      update: () => {
+        if (!engine.activeList().length) return 'Nothing is playing — start the sounds you want this mix to hold, then update.';
+        const t = engine.timer;
+        withMixes(all => { const x = all.find(y => y.id === m.id); if (x) Object.assign(x, { mix: engine.snapshot(), master: engine.masterVolume, timer: { min: t.durationMin || 0, fade: t.fade !== false }, saved: Date.now() }); });
+        return '';
+      },
+      del: () => withMixes(all => { const i = all.findIndex(y => y.id === m.id); if (i >= 0) all.splice(i, 1); })
+    });
   }
   let saveSheet = null;
   function openSaveSheet() {
@@ -914,7 +929,7 @@
     let reloaded = false; navigator.serviceWorker.addEventListener('controllerchange', () => { if (reloaded || !navigator.serviceWorker.controller) return; reloaded = true; if (!engine.isPlaying) location.reload(); });
   });
 
-  window.softwaveApp = { renderPresetsRemount, loadPreset, saveCurrentMix, restoreMix, openSaveSheet, setMaster, togglePlay, toast, store, PRESETS, paintRange, showView, scheduleAutoAdvance, renderPresets: renderPresetsRemount };
+  window.softwaveApp = { renderPresetsRemount, loadPreset, saveCurrentMix, restoreMix, openSaveSheet, openManageMenu, SAVED_ICO, setMaster, togglePlay, toast, store, PRESETS, paintRange, showView, scheduleAutoAdvance, renderPresets: renderPresetsRemount };
 
   // ---------- init ----------
   renderSounds(); renderPresets(); renderMixer([]); updatePlayer(); renderProfileHooks(); if (window.SoftwaveField) syncField();

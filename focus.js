@@ -497,14 +497,21 @@
     favs.forEach((f, i) => {
       const el = document.createElement('div'); el.className = 'fav-card';
       const lines = f.mix.map(m => `${m.params ? 'Custom sound' : m.curve ? 'Painted sound' : engine.def(m.id).name} — ${Math.round(m.volume * 100)}%`); lines.push(`Visual — ${byId[f.visual] ? byId[f.visual].name : f.visual}`); lines.push(`Movement — ${f.motion[0].toUpperCase() + f.motion.slice(1)}`); if (f.timer) lines.push(`Timer — ${f.timer} minutes`);
-      el.innerHTML = `<div class="fav-name">${f.name}</div><div class="fav-lines">${lines.map(l => `<div>${l}</div>`).join('')}</div><div class="btn-row"><button class="btn btn-primary btn-sm" data-start>Start</button><button class="btn btn-ghost btn-sm" data-del aria-label="Delete ${f.name}">Delete</button></div>`;
+      el.innerHTML = `<div class="fav-name">${app.SAVED_ICO || ''}${f.name}</div><div class="fav-lines">${lines.map(l => `<div>${l}</div>`).join('')}</div><div class="btn-row"><button class="btn btn-primary btn-sm" data-start>Start</button><button class="btn btn-ghost btn-sm" data-manage aria-label="Manage ${f.name}">⋯</button></div>`;
       $('[data-start]', el).addEventListener('click', async () => { S.motion = f.motion; app.store.set('motion', f.motion); syncSettings(); setVisual(f.visual); await app.loadPreset({ name: f.name, mix: f.mix, master: f.master }); engine.setTimer(f.timer || 0, true); enterFocus(); });
-      $('[data-del]', el).addEventListener('click', () => { favs.splice(i, 1); app.store.set('combos', favs); renderFavs(); });
+      $('[data-manage]', el).addEventListener('click', () => app.openManageMenu({
+        title: f.name, desc: lines.join(' · '), deleteNote: 'This removes the environment from this list.',
+        rename: name => { const all = app.store.get('combos', []); if (all[i]) all[i].name = name; app.store.set('combos', all); renderFavs(); },
+        del: () => { const all = app.store.get('combos', []); all.splice(i, 1); app.store.set('combos', all); renderFavs(); }
+      }));
       host.appendChild(el);
     });
   }
   document.addEventListener('softwave:profile', () => { if (window.softwaveProfile) softwaveProfile.refresh(); });
-  $('#fav-save').addEventListener('click', () => { if (window.softwaveMonetization) softwaveMonetization.track('environment_saved');
+  $('#fav-save').addEventListener('click', () => {
+    // an environment is sound + visual: nothing playing means nothing to keep
+    if (!engine.activeList().length) { app.toast('Start a sound first — an environment is your sound plus the visual.', 3600); return; }
+    if (window.softwaveMonetization) softwaveMonetization.track('environment_saved');
     let form = $('#fav-form'); if (form) { form.remove(); return; }
     form = document.createElement('form'); form.id = 'fav-form'; form.className = 'inline-form';
     form.innerHTML = `<label class="sr-only" for="fav-name">Name</label><input id="fav-name" class="select" maxlength="40" value="My Focus" style="min-width:200px"><button type="submit" class="btn btn-primary btn-sm">Save</button><button type="button" class="btn btn-ghost btn-sm" data-cancel>Cancel</button>`;
