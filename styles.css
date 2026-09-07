@@ -948,6 +948,7 @@ body { overflow-x: hidden; }
 #focus-controls { gap: 8px; margin-top: 4px; width: 100%; }
 #focus-controls .field-vol { width: min(440px, 92%); }
 #focus-controls .field-actions { flex-wrap: wrap; row-gap: 6px; }   /* six section actions: two grouped lines on phones */
+#focus-stopall { font-size: 1.1rem; }   /* Stop everything: two steps larger, by request */
 .sleep-screen .field-actions .fa { color: #8fa0cf; }
 .sleep-screen .field-actions .fa:hover { color: #c5cfe8; }
 #sleep-controls { gap: 14px; margin-top: 6px; }

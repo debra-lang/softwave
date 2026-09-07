@@ -352,6 +352,7 @@
   }
   function panLabel(b) { if (Math.abs(b) < 0.05) return 'Centre'; return (b < 0 ? 'L ' : 'R ') + Math.round(Math.abs(b) * 100) + '%'; }
   $('#mix-pause').addEventListener('click', () => togglePlay());
+  $('#mix-pick').addEventListener('click', () => { const l = $('#mix-add-list'); if (l) l.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
   $('#mix-timer').addEventListener('click', () => openTimerSheet());
   $('#mix-vol').addEventListener('input', e => setMaster(+e.target.value / 100, true));
   $('#mix-stop').addEventListener('click', () => { stopEverything(); toast('All sounds stopped'); });
