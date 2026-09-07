@@ -509,7 +509,7 @@ input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.12); }
 .field-desc.field-learn-note .linklike { font-family: inherit; font-style: inherit; font-size: inherit; }
 /* favourited = unmistakably on: filled accent, not just a star swap */
 /* Favourite = bookmark an experiment: a quiet control by the heading, never a selected-option look */
-.lab-fav { margin-top: 8px; }
+.lab-fav { margin-top: 8px; white-space: nowrap; align-self: flex-start; }
 .lab-fav[aria-pressed="true"] { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, transparent); background: color-mix(in srgb, var(--accent) 10%, transparent); box-shadow: none; }
 .ico-saved { width: 13px; height: 13px; vertical-align: -1px; margin-right: 5px; opacity: .9; }
 .lab-rate .seg { margin: 0; }
