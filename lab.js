@@ -514,7 +514,7 @@
       whyTest: 'A randomised trial of an attention-training game reduced tinnitus distress more than a control game; small multisensory-training trials showed modest effects. We removed every stressful element. Promising for distress, no claim about loudness.',
       settings: [{ key: 'act', label: 'Activity', type: 'buttons', options: [['followlight', 'Follow the Light'], ['bubble', 'Floating Bubble'], ['touchwater', 'Ripple'], ['noticechange', 'Notice the Change']] }, { key: 'sync', label: 'Let the sound follow the light (Follow the Light only)', type: 'toggle' }],
       defaults: { act: 'followlight', sync: true },
-      async start(ctx) { safeMaster(); if (!engine.activeList().length) await engine.startSound('pink', 0.4); if (ctx.s.act === 'followlight' && ctx.s.sync) { focus.setParam('target', 'light'); focus.setParam('sync', true); focus.setVisual('target'); } else focus.setVisual(ctx.s.act); focus.setParam('soundTouch', ctx.s.act === 'touchwater'); focus.enterFocus(); },
+      async start(ctx) { safeMaster(); if (!engine.activeList().length) await engine.startSound('pink', app.soundVol ? app.soundVol('pink') : 0.45); if (ctx.s.act === 'followlight' && ctx.s.sync) { focus.setParam('target', 'light'); focus.setParam('sync', true); focus.setVisual('target'); } else focus.setVisual(ctx.s.act); focus.setParam('soundTouch', ctx.s.act === 'touchwater'); focus.enterFocus(); },
       stop() { engine.resetMasterShape(); focus.setParam('soundTouch', false); }, keepsSound: true,
     },
     {
@@ -887,6 +887,17 @@
         if (runningThis()) { await startSource(ctx); applyNotch(ctx); }
         app.toast(`Loaded “${p.name}”. Press Start Experiment to listen.`);
       }));
+      // the same ⋯ Rename / Delete-with-confirm sheet as every other saved item; profile data untouched
+      $$('[data-pload]', host).forEach(b => {
+        const p = ps.find(x => x.id === +b.dataset.pload); if (!p || !app.openManageMenu) return;
+        const more = document.createElement('button'); more.type = 'button'; more.className = 'chip-del chip-more'; more.setAttribute('aria-label', 'Manage ' + p.name); more.textContent = '⋯';
+        more.addEventListener('click', e => { e.stopPropagation(); app.openManageMenu({
+          title: p.name, desc: hzLabel(p.hz), deleteNote: 'This removes the profile from My notched profiles. Your measurement history is kept.',
+          rename: name => { const all = store.get('notch:profiles', []); const x = all.find(y => y.id === p.id); if (x) x.name = name; store.set('notch:profiles', all); renderProfiles(ctx); },
+          del: () => { store.set('notch:profiles', store.get('notch:profiles', []).filter(y => y.id !== p.id)); renderProfiles(ctx); }
+        }); });
+        b.appendChild(more);
+      });
       const pc = $('[data-pclear]', host); if (pc) pc.addEventListener('click', () => { if (confirm('Delete all saved notched profiles? Your measurement history is kept.')) { store.set('notch:profiles', []); renderProfiles(ctx); } });
     }
     function renderHistory(ctx) {

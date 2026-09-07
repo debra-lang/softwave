@@ -299,11 +299,11 @@
       else await this.startSound(id, volume);
     }
 
-    async startSound(id, volume = 0.6, balance = 0) {
+    async startSound(id, volume = 0.45, balance = 0) {
       this._pendingStarts = (this._pendingStarts || 0) + 1;
       try { return await this._startSound(id, volume, balance); } finally { this._pendingStarts--; }
     }
-    async _startSound(id, volume = 0.6, balance = 0) {
+    async _startSound(id, volume = 0.45, balance = 0) {
       await this.init();
       // Starting a sound must always wake the engine: iOS suspends (or "interrupts")
       // the context whenever it idles, and a sound added to a sleeping context is

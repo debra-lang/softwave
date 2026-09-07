@@ -76,10 +76,12 @@
           safeMaster(0.35); await engine.loadMix(profile.mix()); const F = window.softwaveFocus;
           // same rhythm as every carry-forward: a short quiet wait, then the destination —
           // here Visual Focus, because this moment is sound + your visual
-          if (F) { F.setVisual(profile.visual()); app.toast('Your Focus is ready — opening your visual…', 4000); if (app.scheduleAutoAdvance) app.scheduleAutoAdvance('focus', 4000); else F.enterFocus(); } } },
+          // last visual the user chose themselves, otherwise Float (automatic picks never overwrite it)
+          if (F) { F.setVisual(store.get('focus:userVisual') || 'float'); app.toast('Your Focus is ready — opening your visual…', 4000); if (app.scheduleAutoAdvance) app.scheduleAutoAdvance('focus', 4000); else F.enterFocus(); } } },
       { id: 'night', name: 'Woke Up at Night', desc: 'Extra gentle · 30 min', run: async () => {
           safeMaster(0.22); const m = profile.mix({ sleep: true }); (m || []).forEach(s => s.volume = Math.min(s.volume, 0.45)); await engine.loadMix(m); engine.setTimer(30, true);
-          if (app.scheduleAutoAdvance) app.scheduleAutoAdvance('immerse', 4000); } },
+          // extra-gentle levels and the 30-minute timer stay; the destination is the sleep screen
+          app.showView('sleep'); if (app.scheduleAutoAdvance) app.scheduleAutoAdvance('sleep', 4000); } },
     ];
     function safeMaster(v) { if (engine.masterVolume > v) app.setMaster(v); }
     function renderMoments() {

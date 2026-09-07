@@ -99,6 +99,7 @@
       { key: 'visual', label: 'Change visual', data: { 'open-pane': 'visual' } },
       { key: 'timer', label: 'Timer', timerLabel: true, data: { 'open-pane': 'timer' } },
       { key: 'motion', label: 'Movement: Medium', spanId: 'focus-motion-label', data: { 'open-pane': 'motion' } },
+      { key: 'save', label: 'Save' },
       { key: 'stopall', label: 'Stop everything' },
       { key: 'stopvisual', label: 'Stop visual' }
     ],

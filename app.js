@@ -145,7 +145,7 @@
   function ensureLab() {
     if (window.softwaveLab) return Promise.resolve();
     if (labPromise) return labPromise;
-    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=68'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
+    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=69'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
     return labPromise;
   }
   window.softwaveEnsureLab = ensureLab;
@@ -314,6 +314,12 @@
   addEventListener('storage', renderProfileHooks); document.addEventListener('softwave:profile', renderProfileHooks);
   window.softwaveProfile = { params: profileParams, mix: profileMix, visual: profileVisual, refresh: renderProfileHooks };
 
+  // One default for every normal single-sound start, then the user's own last level per sound
+  // (tile slider or Mixer channel). Presets, moments, saved mixes and sessions keep their
+  // explicit levels so they restore exactly as designed.
+  const DEFAULT_VOL = 0.45;
+  const soundVol = (id) => { const v = store.get('soundvol:' + id, null); return typeof v === 'number' && v >= 0 && v <= 1 ? v : DEFAULT_VOL; };
+  const rememberVol = (id, v) => store.set('soundvol:' + id, Math.max(0, Math.min(1, v)));
   // ---------- sound cards ----------
   const tilePreviews = new Map();
   function renderSounds() {
@@ -329,7 +335,7 @@
         const FD = (window.SoftwaveField && window.SoftwaveField.DESC[d.id]) || d.desc;
         card.innerHTML = `
           <button class="card-btn" aria-pressed="false" aria-label="${d.name}: ${FD}"><span class="tile-preview" aria-hidden="true"><canvas class="tile-canvas"></canvas></span></button>
-          <div class="vol"><button class="vol-pause" aria-label="Pause or resume playback"><svg class="vp-pause" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M7 5h4v14H7zM13 5h4v14h-4z" fill="currentColor"/></svg><svg class="vp-play" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg></button><label class="sr-only" for="vol-${d.id}">${d.name} volume</label><input id="vol-${d.id}" type="range" min="0" max="100" value="60"><output>60%</output><button class="vol-stop" aria-label="Stop ${d.name}"><svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><path d="M6 6h12v12H6z" fill="currentColor"/></svg></button></div>
+          <div class="vol"><button class="vol-pause" aria-label="Pause or resume playback"><svg class="vp-pause" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M7 5h4v14H7zM13 5h4v14h-4z" fill="currentColor"/></svg><svg class="vp-play" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg></button><label class="sr-only" for="vol-${d.id}">${d.name} volume</label><input id="vol-${d.id}" type="range" min="0" max="100" value="${Math.round(soundVol(d.id) * 100)}"><output>60%</output><button class="vol-stop" aria-label="Stop ${d.name}"><svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><path d="M6 6h12v12H6z" fill="currentColor"/></svg></button></div>
           <span class="name">${d.name}</span><span class="desc">${FD}</span>`;
         const btn = $('.card-btn', card);
         $$('.name, .desc', card).forEach(el => el.addEventListener('click', () => btn.click()));
@@ -343,7 +349,7 @@
           if (ok === false) toast(`You can layer up to ${MAX_ACTIVE} sounds. Turn one off to add another.`);
         });
         const slider = $('input', card);
-        slider.addEventListener('input', () => { engine.setVolume(d.id, +slider.value / 100); $('output', card).textContent = slider.value + '%'; });
+        slider.addEventListener('input', () => { engine.setVolume(d.id, +slider.value / 100); rememberVol(d.id, +slider.value / 100); $('output', card).textContent = slider.value + '%'; });
         $('.vol-pause', card).addEventListener('click', async () => { if (engine.ctx && engine.ctx.state === 'running') await engine.pauseAll(); else await engine.playAll(); });
         $('.vol-stop', card).addEventListener('click', () => engine.stopSound(d.id));
         grid.appendChild(card);
@@ -374,7 +380,7 @@
         </div>
         <div class="ch-actions"><button class="btn btn-ghost btn-sm" aria-label="Remove ${d.name}">Off</button></div>`;
       const [v, p] = $$('input', ch);
-      v.addEventListener('input', () => { engine.setVolume(s.id, +v.value / 100); $('output', v.parentElement).textContent = v.value + '%'; syncCards(engine.activeList()); });
+      v.addEventListener('input', () => { engine.setVolume(s.id, +v.value / 100); rememberVol(s.id, +v.value / 100); $('output', v.parentElement).textContent = v.value + '%'; syncCards(engine.activeList()); });
       p.addEventListener('input', () => { engine.setBalance(s.id, +p.value / 100); $('output', p.parentElement).textContent = panLabel(+p.value / 100); });
       p.addEventListener('dblclick', () => { p.value = 0; p.dispatchEvent(new Event('input')); });
       $('button', ch).addEventListener('click', () => engine.stopSound(s.id));
@@ -382,7 +388,7 @@
     });
     const add = $('#mix-add-list'); add.innerHTML = '';
     const full = list.length >= MAX_ACTIVE; $('#mix-add-title').textContent = full ? `Up to ${MAX_ACTIVE} sounds — turn one off to add another` : 'Add a sound';
-    engine.defs().filter(d => !engine.isActive(d.id)).forEach(d => { const b = document.createElement('button'); b.className = 'pane-sound add-pill'; b.style.setProperty('--hue', d.hue); b.disabled = full; b.innerHTML = `<span class="ico" aria-hidden="true">${d.icon}</span>${d.name}`; b.setAttribute('aria-label', 'Add ' + d.name); b.addEventListener('click', async () => { b.disabled = true; b.classList.add('adding'); await engine.startSound(d.id, 0.5); }); add.appendChild(b); });
+    engine.defs().filter(d => !engine.isActive(d.id)).forEach(d => { const b = document.createElement('button'); b.className = 'pane-sound add-pill'; b.style.setProperty('--hue', d.hue); b.disabled = full; b.innerHTML = `<span class="ico" aria-hidden="true">${d.icon}</span>${d.name}`; b.setAttribute('aria-label', 'Add ' + d.name); b.addEventListener('click', async () => { b.disabled = true; b.classList.add('adding'); await engine.startSound(d.id, soundVol(d.id)); }); add.appendChild(b); });
   }
   function panLabel(b) { if (Math.abs(b) < 0.05) return 'Centre'; return (b < 0 ? 'L ' : 'R ') + Math.round(Math.abs(b) * 100) + '%'; }
   $('#mix-pause').addEventListener('click', () => togglePlay());
@@ -497,8 +503,9 @@
     });
   }
   let saveSheet = null;
-  function openSaveSheet() {
+  function openSaveSheet(extra) {
     if (!engine.activeList().length) { toast('Add some sounds first'); return; }
+    const asSession = !!(extra && extra.visual);
     if (!saveSheet) {
       saveSheet = document.createElement('div'); saveSheet.className = 'addsound-sheet'; saveSheet.hidden = true;
       saveSheet.innerHTML = '<div class="addsound-card card" role="dialog" aria-label="Save this mix"><div class="addsound-head"><strong>Save this mix</strong><button type="button" class="btn btn-ghost btn-sm" data-sv-close>Cancel</button></div><form data-sv-form style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><label class="sr-only" for="save-mix-name">Mix name</label><input id="save-mix-name" class="select" maxlength="40" value="My Custom Mix" style="flex:1;min-width:180px"><button type="submit" id="save-mix-submit" class="btn btn-primary btn-sm">Save</button></form><p class="muted small" data-sv-warn hidden></p><p class="muted small" data-sv-desc></p></div>';
@@ -511,12 +518,13 @@
         e.preventDefault(); const name = $('#save-mix-name', saveSheet).value.trim() || 'My Custom Mix';
         const dup = validMixes().some(m => m.name.toLowerCase() === name.toLowerCase());
         if (dup && !form.dataset.confirmed) { form.dataset.confirmed = '1'; const w = $('[data-sv-warn]', saveSheet); w.textContent = `You already have a mix called “${name}”. Tap Save again to keep both.`; w.hidden = false; $('#save-mix-submit', saveSheet).textContent = 'Save anyway'; return; }
-        if (saveCurrentMix(name)) { layersClose(); toast(`Saved — find “${name}” under My Saved Mixes`, 3600); }
+        const ex = saveSheet._extra; if (saveCurrentMix(name, ex)) { layersClose(); toast(`Saved — find “${name}” under ${ex && ex.visual ? 'My Saved Sessions' : 'My Saved Mixes'}`, 3600); }
       });
     }
     const t = engine.timer;
-    $('[data-sv-desc]', saveSheet).textContent = 'Saves ' + describeMix({ mix: engine.snapshot(), timer: { min: t.durationMin || 0 } }, true) + ` · master ${Math.round(engine.masterVolume * 100)}%` + ' — exactly as it plays now, on this device.';
-    const inp = $('#save-mix-name', saveSheet); inp.value = suggestMixName(); delete $('[data-sv-form]', saveSheet).dataset.confirmed; $('[data-sv-warn]', saveSheet).hidden = true; $('#save-mix-submit', saveSheet).textContent = 'Save';
+    saveSheet._extra = extra || null; $('.addsound-head strong', saveSheet).textContent = asSession ? 'Save this session' : 'Save this mix';
+    $('[data-sv-desc]', saveSheet).textContent = 'Saves ' + describeMix({ mix: engine.snapshot(), timer: { min: t.durationMin || 0 }, visual: asSession ? extra.visual : undefined }, true) + ` · master ${Math.round(engine.masterVolume * 100)}%` + ' — exactly as it plays now, on this device.';
+    const inp = $('#save-mix-name', saveSheet); inp.value = asSession ? `${suggestMixName()} + ${visualName(extra.visual)}` : suggestMixName(); delete $('[data-sv-form]', saveSheet).dataset.confirmed; $('[data-sv-warn]', saveSheet).hidden = true; $('#save-mix-submit', saveSheet).textContent = 'Save';
     if (saveSheet.hidden) { saveSheet.hidden = false; layerPush(() => { saveSheet.hidden = true; }); }
     setTimeout(() => { inp.focus(); inp.select(); }, 60);
   }
@@ -734,7 +742,7 @@
         const on = engine.isActive(d.id);
         const b = document.createElement('button'); b.className = 'pane-sound' + (on ? ' on' : ''); b.setAttribute('aria-pressed', on);
         b.innerHTML = `<span class="ico">${d.icon}</span>${d.name}`;
-        b.addEventListener('click', async () => { const wasOn = engine.isActive(d.id); const ok = await engine.toggleSound(d.id, 0.5); if (ok === false) toast(`You can layer up to ${MAX_ACTIVE} sounds. Turn one off to add another.`); else if (!wasOn) scheduleAutoAdvance('immerse', 4000); });
+        b.addEventListener('click', async () => { const wasOn = engine.isActive(d.id); const ok = await engine.toggleSound(d.id, soundVol(d.id)); if (ok === false) toast(`You can layer up to ${MAX_ACTIVE} sounds. Turn one off to add another.`); else if (!wasOn) scheduleAutoAdvance('immerse', 4000); });
         g.appendChild(b);
       });
     };
@@ -962,7 +970,7 @@
     let reloaded = false; navigator.serviceWorker.addEventListener('controllerchange', () => { if (reloaded || !navigator.serviceWorker.controller) return; reloaded = true; if (!engine.isPlaying) location.reload(); });
   });
 
-  window.softwaveApp = { renderPresetsRemount, loadPreset, saveCurrentMix, restoreMix, openSaveSheet, openManageMenu, openMixMenu, savedSessions, SAVED_ICO, setMaster, togglePlay, toast, store, PRESETS, paintRange, showView, scheduleAutoAdvance, renderPresets: renderPresetsRemount };
+  window.softwaveApp = { renderPresetsRemount, loadPreset, saveCurrentMix, restoreMix, openSaveSheet, openManageMenu, openMixMenu, savedSessions, soundVol, SAVED_ICO, setMaster, togglePlay, toast, store, PRESETS, paintRange, showView, scheduleAutoAdvance, renderPresets: renderPresetsRemount };
 
   // ---------- init ----------
   renderSounds(); renderPresets(); renderMixer([]); updatePlayer(); renderProfileHooks(); if (window.SoftwaveField) syncField();

@@ -439,7 +439,7 @@
     const host = $('#env-mosaic'); if (!host) return; host.innerHTML = '';
     FEATURED.forEach((id, i) => { const v = byId[id]; if (!v) return; const t = document.createElement('button'); t.className = 'env-tile' + (i < 2 ? ' big' : '') + (v.id === S.visual ? ' active' : ''); t.dataset.id = id; t.setAttribute('aria-label', `${v.name}: ${v.desc}`);
       t.innerHTML = `<canvas width="360" height="240" aria-hidden="true"></canvas><span class="env-tile-name">${v.name}</span>`; const c = $('canvas', t); previews.set(c, { inst: v.make(), visible: false }); io.observe(c);
-      t.addEventListener('click', () => { setVisual(id); renderStage(); $('#env-stage').scrollIntoView({ behavior: 'smooth', block: 'center' }); }); t.addEventListener('dblclick', () => { setVisual(id); enterFocus(); }); host.appendChild(t); });
+      t.addEventListener('click', () => { pickVisual(id); renderStage(); $('#env-stage').scrollIntoView({ behavior: 'smooth', block: 'center' }); }); t.addEventListener('dblclick', () => { setVisual(id); enterFocus(); }); host.appendChild(t); });
   }
   // One selection system: "Add Visual" opens the Visual Focus chooser (the page itself). Sound keeps playing.
   function openChooser() { app.showView('focus'); setTimeout(() => { const st = $('#env-stage'); st && st.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 250); }
@@ -462,13 +462,15 @@
         const card = document.createElement('div'); card.className = 'vis-card' + (v.id === S.visual ? ' active' : ''); card.dataset.id = v.id; card.setAttribute('role', 'listitem');
         card.innerHTML = `<canvas width="320" height="200" aria-hidden="true"></canvas><div class="vis-meta"><div class="vis-name">${v.name}${v.interactive ? ' <span class="tag">Touch</span>' : ''}${v.reactive ? ' <span class="tag">Sound</span>' : ''}</div><div class="vis-desc">${v.desc}</div></div><div class="vis-actions"><button class="btn btn-secondary btn-sm" data-select>Use this visual</button><button class="btn btn-primary btn-sm" data-open>Open in Focus</button></div>`;
         const c = $('canvas', card); previews.set(c, { inst: v.make(), visible: false }); io.observe(c);
-        $('[data-select]', card).addEventListener('click', () => { setVisual(v.id); app.toast(`Visual: ${v.name}`); });
-        $('[data-open]', card).addEventListener('click', () => { setVisual(v.id); enterFocus(); });
+        $('[data-select]', card).addEventListener('click', () => { pickVisual(v.id); app.toast(`Visual: ${v.name}`); });
+        $('[data-open]', card).addEventListener('click', () => { pickVisual(v.id); enterFocus(); });
         grid.appendChild(card);
       });
       host.appendChild(sec);
     });
   }
+  // a pick made by the user (tiles, library, Change visual pane) is remembered for Your Focus
+  function pickVisual(id) { setVisual(id); if (byId[id]) app.store.set('focus:userVisual', id); }
   function setVisual(id) { if (!byId[id]) return; const MZ = window.softwaveMonetization; if (MZ && !MZ.canUse('visual:' + id)) { if (window.softwavePremium && !softwavePremium.gate('visual:' + id)) return; } S.visual = id; app.store.set('visual', id); $$('.vis-card').forEach(c => c.classList.toggle('active', c.dataset.id === id)); const cv = $('#current-visual-name'); if (cv) cv.textContent = byId[id].name; if (focus.inst && focus.visualId !== id) focus.load(id); renderStage(); }
 
   // ---------- pairings ----------
@@ -601,6 +603,8 @@
       } else app.showView('focus');
     }, 60);
   });
+  // Save on the full-screen controller: listen first, then keep it as a session
+  $('#focus-save').addEventListener('click', () => { if (app.openSaveSheet) app.openSaveSheet({ visual: S.visual, motion: S.motion, source: 'focus' }); });
   $('#focus-stopall').addEventListener('click', () => { (window.softwaveStopAll || engine.stopAll.bind(engine))(); goLanding(); });
   // player-style bar: keep name, playing state and volume readout in sync with the engine
   function syncFocusPlayer() {
@@ -667,13 +671,13 @@
     const pre = document.createElement('div'); pre.className = 'chips'; app.PRESETS.forEach(p => { const b = document.createElement('button'); b.className = 'chip'; b.innerHTML = `<strong>${p.name}</strong><span>${p.desc}</span>`; b.addEventListener('click', () => { app.loadPreset(p); renderSoundPane(); }); pre.appendChild(b); }); host.appendChild(pre);
     const h = document.createElement('div'); h.className = 'row-title'; h.textContent = 'Layer sounds (up to 5)'; host.appendChild(h);
     const grid = document.createElement('div'); grid.className = 'pane-sounds';
-    engine.defs().forEach(d => { const on = engine.isActive(d.id); const b = document.createElement('button'); b.className = 'pane-sound' + (on ? ' on' : ''); b.setAttribute('aria-pressed', on); b.innerHTML = `<span class="ico">${d.icon}</span>${d.name}`; b.addEventListener('click', async () => { const ok = await engine.toggleSound(d.id, 0.5); if (ok === false) app.toast('Up to 5 sounds at once'); renderSoundPane(); }); grid.appendChild(b); });
+    engine.defs().forEach(d => { const on = engine.isActive(d.id); const b = document.createElement('button'); b.className = 'pane-sound' + (on ? ' on' : ''); b.setAttribute('aria-pressed', on); b.innerHTML = `<span class="ico">${d.icon}</span>${d.name}`; b.addEventListener('click', async () => { const ok = await engine.toggleSound(d.id, app.soundVol ? app.soundVol(d.id) : 0.45); if (ok === false) app.toast('Up to 5 sounds at once'); renderSoundPane(); }); grid.appendChild(b); });
     host.appendChild(grid);
     const foot = document.createElement('div'); foot.className = 'btn-row'; foot.innerHTML = '<button class="btn btn-ghost btn-sm" id="pane-stop">Stop all</button>'; host.appendChild(foot); $('#pane-stop', foot).addEventListener('click', () => { (window.softwaveStopAll || engine.stopAll.bind(engine))(); renderSoundPane(); });
   }
   function renderVisualPane() {
     const host = $('[data-pane="visual"] .pane-body'); host.innerHTML = '';
-    CATS.forEach(cat => { const h = document.createElement('div'); h.className = 'row-title'; h.textContent = cat; host.appendChild(h); const g = document.createElement('div'); g.className = 'pane-visuals'; V.filter(v => v.cat === cat && !v.hidden).forEach(v => { const b = document.createElement('button'); b.className = 'pane-visual' + (v.id === S.visual ? ' on' : ''); b.setAttribute('aria-pressed', v.id === S.visual); b.textContent = v.name; b.addEventListener('click', () => { setVisual(v.id); renderVisualPane(); }); g.appendChild(b); }); host.appendChild(g); });
+    CATS.forEach(cat => { const h = document.createElement('div'); h.className = 'row-title'; h.textContent = cat; host.appendChild(h); const g = document.createElement('div'); g.className = 'pane-visuals'; V.filter(v => v.cat === cat && !v.hidden).forEach(v => { const b = document.createElement('button'); b.className = 'pane-visual' + (v.id === S.visual ? ' on' : ''); b.setAttribute('aria-pressed', v.id === S.visual); b.textContent = v.name; b.addEventListener('click', () => { pickVisual(v.id); renderVisualPane(); }); g.appendChild(b); }); host.appendChild(g); });
   }
   $$('#focus-panel [data-min]').forEach(b => b.addEventListener('click', () => { engine.setTimer(+b.dataset.min, true); updateFocusBar(); if (+b.dataset.min) app.toast(`Timer: ${b.dataset.min} minutes, with gentle fade`); }));
 
