@@ -114,11 +114,13 @@
   addEventListener('popstate', e => {
     // the landed-on entry knows its depth; layer entries carry the depth beneath them
     const st = e.state; navDepth = st && typeof st.d === 'number' ? st.d : 0;
+    // Our own reconcile step (a layer we already closed) arrives first — it must be
+    // swallowed BEFORE the stack check, or a nested layer beneath it gets popped too.
+    if (layers.reconcile > 0 && Date.now() - (layers.reconcileAt || 0) < 1500) { layers.reconcile--; updateBackBtn(); return; }
     // Back peels the topmost open layer (sheet/overlay) before any view navigation.
     if (layers.stack.length) { const fn = layers.stack.pop(); try { fn(); } catch (_) { } updateBackBtn(); return; }
-    // our own reconcile step arriving (fresh): swallow silently; a late one means the
-    // user pressed Back onto a stale entry — skip past it
-    if (layers.reconcile > 0) { layers.reconcile--; if (Date.now() - (layers.reconcileAt || 0) > 1500) history.back(); return; }
+    // a late reconcile means the user pressed Back onto a stale entry — skip past it
+    if (layers.reconcile > 0) { layers.reconcile--; history.back(); return; }
     // A layer entry whose surface was already closed elsewhere: swallow it and keep going.
     if (layers.stale > 0) { layers.stale--; history.back(); return; }
     showView((location.hash || '#sounds').slice(1), { push: false });
