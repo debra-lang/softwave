@@ -194,23 +194,34 @@
       container.innerHTML = '';
       const list = [...PRESETS];
       const custom = store.get('mixes', []).filter(m => m && Array.isArray(m.mix) && m.mix.every(x => engine.def(x.id)));
-      if (includeCustom) custom.forEach((m, i) => list.push({ id: 'custom-' + i, name: m.name, desc: m.mix.map(x => engine.def(x.id).name).join(' + '), mix: m.mix, master: m.master, custom: true, index: i }));
       list.forEach(p => {
         const b = document.createElement('button'); b.className = 'chip'; b.setAttribute('role', 'listitem'); b.dataset.preset = p.id; b.dataset.chipName = p.name;
         b.innerHTML = `<strong>${p.name}</strong><span>${p.desc}</span>`;
         b.addEventListener('click', () => { loadPreset(p); scheduleAutoAdvance(container.id === 'sleep-presets' ? 'sleep' : 'immerse'); });
         container.appendChild(b);
       });
-      if (includeCustom && !custom.length) {
-        const b = document.createElement('a'); b.className = 'chip'; b.href = '#mixer'; b.dataset.view = 'mixer';
-        b.innerHTML = '<strong>My Custom Mix</strong><span>Build one in the Mixer and save it</span>'; container.appendChild(b);
-      }
     };
     const anyPresets = PRESETS.length > 0 || store.get('mixes', []).length > 0;
     const ms = store.get('lab:sounds', []).filter(x => x && x.name);
     const prow = mountPresets();
     if (prow && !anyPresets && !ms.length) { prow.remove(); try { make($('#sleep-presets'), false); } catch (e) { console.error(e); } updateMixSaved(); return; }
-    try { make($('#presets'), true); } catch (e) { console.error(e); } try { make($('#sleep-presets'), false); } catch (e) { console.error(e); }
+    try { make($('#presets'), false); } catch (e) { console.error(e); } try { make($('#sleep-presets'), false); } catch (e) { console.error(e); }
+    // My Saved Mixes: the user's own combinations — kept apart from the built-in presets
+    const mixes = validMixes();
+    const mrow = $('#my-mixes-row'), mhost = $('#my-mixes');
+    if (!mhost && mixes.length) { renderPresetsRemount(); return; }
+    if (mhost) {
+      mhost.innerHTML = '';
+      if (!mixes.length) { if (mrow) mrow.remove(); }
+      else mixes.forEach((m, i) => {
+        const b = document.createElement('button'); b.className = 'chip chip-mine'; b.setAttribute('role', 'listitem'); b.dataset.chipName = m.name;
+        b.innerHTML = `<strong>★ ${m.name}</strong><span>${describeMix(m)}</span>`;
+        b.addEventListener('click', () => { restoreMix(m); scheduleAutoAdvance('immerse'); });
+        const del = document.createElement('button'); del.className = 'chip-del'; del.setAttribute('aria-label', 'Delete ' + m.name); del.textContent = '×';
+        del.addEventListener('click', e => { e.stopPropagation(); const all = store.get('mixes', []); const idx = all.indexOf(m); if (idx >= 0) all.splice(idx, 1); else all.splice(i, 1); store.set('mixes', all); renderPresetsRemount(); toast('Mix deleted'); });
+        b.appendChild(del); mhost.appendChild(b);
+      });
+    }
     if (!$('#presets').children.length) { const pr2 = $('.presets-row'); const msRow = $('#my-sounds-row'); if (pr2 && msRow && !ms.length) { pr2.remove(); updateMixSaved(); return; } }
     const row = $('#my-sounds-row'); const host = $('#my-sounds'); host.innerHTML = '';
     if (!ms.length) { if (row) row.remove(); updateMixSaved(); return; }
@@ -225,11 +236,11 @@
   function updateMixSaved() {
     const saved = $('#saved-mixes'); if (!saved) return; saved.innerHTML = '';
     const custom = store.get('mixes', []);
-    if (!custom.length) saved.innerHTML = '<p class="muted">Nothing saved yet. Build a mix and tap "Save as My Custom Mix".</p>';
+    if (!custom.length) saved.innerHTML = '<p class="muted">Nothing saved yet. Build a mix and tap "Save".</p>';
     custom.forEach((m, i) => {
       const b = document.createElement('button'); b.className = 'chip'; b.dataset.chipName = m.name;
-      b.innerHTML = `<strong>${m.name}</strong><span>${m.mix.filter(x => engine.def(x.id)).map(x => engine.def(x.id).name + ' ' + Math.round(x.volume * 100) + '%').join(' · ')}</span>`;
-      b.addEventListener('click', () => loadPreset({ name: m.name, mix: m.mix, master: m.master }));
+      b.innerHTML = `<strong>${m.name}</strong><span>${describeMix(m, true)}</span>`;
+      b.addEventListener('click', () => restoreMix(m));
       const del = document.createElement('button'); del.className = 'btn btn-ghost btn-sm'; del.textContent = 'Delete'; del.setAttribute('aria-label', 'Delete ' + m.name);
       del.addEventListener('click', e => { e.stopPropagation(); custom.splice(i, 1); store.set('mixes', custom); renderPresets(); toast('Mix deleted'); });
       const wrap = document.createElement('div'); wrap.style.display = 'flex'; wrap.style.gap = '6px'; wrap.style.alignItems = 'center'; wrap.append(b, del); saved.appendChild(wrap);
@@ -343,22 +354,51 @@
   $('#mix-play').addEventListener('click', () => togglePlay());
   $('#mix-stop').addEventListener('click', () => { stopEverything(); toast('All sounds stopped'); });
   $('#mix-reset').addEventListener('click', () => { engine.activeList().forEach(s => { engine.setVolume(s.id, 0.5); engine.setBalance(s.id, 0); }); setMaster(0.35); renderMixer(engine.activeList()); syncCards(engine.activeList()); toast('Levels reset'); });
-  $('#mix-save').addEventListener('click', () => {
-    const list = engine.activeList(); if (!list.length) return toast('Add some sounds first');
-    let form = $('#mix-name-form');
-    if (form) { form.remove(); return; }
-    form = document.createElement('form'); form.id = 'mix-name-form'; form.className = 'add-row'; form.style.cssText = 'display:flex;gap:8px;justify-content:center;flex-wrap:wrap';
-    form.innerHTML = '<label class="sr-only" for="mix-name">Mix name</label><input id="mix-name" class="select" maxlength="40" value="My Custom Mix" style="min-width:220px"><button type="submit" class="btn btn-primary btn-sm">Save</button><button type="button" class="btn btn-ghost btn-sm" data-cancel>Cancel</button>';
-    $('.mixer-toolbar').after(form); const inp = $('#mix-name', form); inp.focus(); inp.select();
-    $('[data-cancel]', form).addEventListener('click', () => form.remove());
-    form.addEventListener('submit', e => {
-      e.preventDefault(); const name = inp.value.trim() || 'My Custom Mix';
-      const mixes = store.get('mixes', []);
-      const MZ = window.softwaveMonetization; if (MZ && !MZ.canCreateSavedItem(mixes.length)) { if (window.softwavePremium) softwavePremium.saveLimit('mixes'); return; }
-      mixes.push({ name, mix: engine.activeList().map(s => ({ id: s.id, volume: s.volume, balance: s.balance })), master: engine.masterVolume });
-      store.set('mixes', mixes); renderPresets(); form.remove(); toast(`Saved “${name}” on this device`);
-    });
-  });
+  // ---------- the one Save system ----------
+  // A saved mix is a complete, restorable setup: every active sound with its level and
+  // balance, the FULL recipe of personalized sounds (sculpt/paint parameters — never
+  // just the label), the master volume, and the timer. One store ('mixes'), shown in
+  // "My Saved Mixes" on the Sounds page and in the Mixer's list.
+  const validMixes = () => store.get('mixes', []).filter(m => m && Array.isArray(m.mix) && m.mix.every(x => engine.def(x.id)));
+  function describeMix(m, levels) {
+    const parts = m.mix.filter(x => engine.def(x.id)).map(x => engine.def(x.id).name + (levels ? ' ' + Math.round(x.volume * 100) + '%' : ''));
+    if (m.timer && m.timer.min) parts.push(`Timer ${m.timer.min} min`);
+    return parts.join(' · ');
+  }
+  function saveCurrentMix(name) {
+    if (!engine.activeList().length) { toast('Add some sounds first'); return false; }
+    const mixes = store.get('mixes', []);
+    const MZ = window.softwaveMonetization; if (MZ && !MZ.canCreateSavedItem(mixes.length)) { if (window.softwavePremium) softwavePremium.saveLimit('mixes'); return false; }
+    const t = engine.timer;
+    mixes.push({ name, mix: engine.snapshot(), master: engine.masterVolume, timer: { min: t.durationMin || 0, fade: t.fade !== false }, saved: Date.now() });
+    store.set('mixes', mixes); renderPresets(); return true;
+  }
+  async function restoreMix(m) {
+    await loadPreset({ name: m.name, mix: m.mix, master: m.master });
+    // the timer is part of the setup — restored exactly (off if it was saved without one)
+    if (engine.activeList().length && m.timer) engine.setTimer(m.timer.min || 0, m.timer.fade !== false);
+  }
+  let saveSheet = null;
+  function openSaveSheet() {
+    if (!engine.activeList().length) { toast('Add some sounds first'); return; }
+    if (!saveSheet) {
+      saveSheet = document.createElement('div'); saveSheet.className = 'addsound-sheet'; saveSheet.hidden = true;
+      saveSheet.innerHTML = '<div class="addsound-card card" role="dialog" aria-label="Save this mix"><div class="addsound-head"><strong>Save this mix</strong><button type="button" class="btn btn-ghost btn-sm" data-sv-close>Cancel</button></div><form data-sv-form style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><label class="sr-only" for="save-mix-name">Mix name</label><input id="save-mix-name" class="select" maxlength="40" value="My Custom Mix" style="flex:1;min-width:180px"><button type="submit" class="btn btn-primary btn-sm">Save</button></form><p class="muted small" data-sv-desc></p></div>';
+      document.body.appendChild(saveSheet);
+      $('[data-sv-close]', saveSheet).addEventListener('click', () => layersClose());
+      saveSheet.addEventListener('click', e => { if (e.target === saveSheet) layersClose(); });
+      $('[data-sv-form]', saveSheet).addEventListener('submit', e => {
+        e.preventDefault(); const name = $('#save-mix-name', saveSheet).value.trim() || 'My Custom Mix';
+        if (saveCurrentMix(name)) { toast(`Saved “${name}” — find it under My Saved Mixes`, 3600); layersClose(); }
+      });
+    }
+    const t = engine.timer;
+    $('[data-sv-desc]', saveSheet).textContent = 'Saves ' + describeMix({ mix: engine.snapshot(), timer: { min: t.durationMin || 0 } }, true) + ` · master ${Math.round(engine.masterVolume * 100)}%` + ' — exactly as it plays now, on this device.';
+    const inp = $('#save-mix-name', saveSheet); inp.value = 'My Custom Mix';
+    if (saveSheet.hidden) { saveSheet.hidden = false; layerPush(() => { saveSheet.hidden = true; }); }
+    setTimeout(() => { inp.focus(); inp.select(); }, 60);
+  }
+  $('#mix-save').addEventListener('click', openSaveSheet);
 
   // ---------- player bar ----------
   const masterEl = $('#master-vol');
@@ -706,7 +746,7 @@
     });
     if (timerSheet.hidden) { timerSheet.hidden = false; layerPush(() => { timerSheet.hidden = true; }); }
   }
-  $$('[data-fa]').forEach(b => b.addEventListener('click', () => { const k = b.dataset.fa; if (k === 'timer') openTimerSheet(); if (k === 'visual') { showView('focus'); setTimeout(() => { const st = $('#env-stage'); st && st.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 250); } if (k === 'mixer') showView('mixer'); if (k === 'save') { showView('mixer'); setTimeout(() => { $('#mix-save').click(); $('#mix-save').scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 150); } if (k === 'immerse') openNow(); }));
+  $$('[data-fa]').forEach(b => b.addEventListener('click', () => { const k = b.dataset.fa; if (k === 'timer') openTimerSheet(); if (k === 'visual') { showView('focus'); setTimeout(() => { const st = $('#env-stage'); st && st.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 250); } if (k === 'mixer') showView('mixer'); if (k === 'save') openSaveSheet(); if (k === 'immerse') openNow(); }));
 
   // ---------- sound environment, orb player and Now Playing ----------
   const SV = window.SoftwaveVisuals;
@@ -739,7 +779,7 @@
   const leaveNow = (then) => { closeNow(); setTimeout(then, 80); };
   $('#now-visual').addEventListener('click', () => leaveNow(() => { if (window.softwaveFocus) softwaveFocus.openChooser(); else showView('focus'); }));
   $('#now-mixer').addEventListener('click', () => leaveNow(() => showView('mixer')));
-  $('#now-save').addEventListener('click', () => leaveNow(() => { showView('mixer'); setTimeout(() => { $('#mix-save').click(); $('#mix-save').scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 150); }));
+  $('#now-save').addEventListener('click', () => openSaveSheet());
   $('#player-toggle').addEventListener('click', e => { const b = e.currentTarget; b.classList.add('pressed'); setTimeout(() => b.classList.remove('pressed'), 400); });
   $('#now-vol').addEventListener('input', e => setMaster(+e.target.value / 100, true));
   // navigating away from the Immerse overlay: consume its history entry first,
@@ -800,7 +840,7 @@
     let reloaded = false; navigator.serviceWorker.addEventListener('controllerchange', () => { if (reloaded || !navigator.serviceWorker.controller) return; reloaded = true; if (!engine.isPlaying) location.reload(); });
   });
 
-  window.softwaveApp = { renderPresetsRemount, loadPreset, setMaster, togglePlay, toast, store, PRESETS, paintRange, showView, scheduleAutoAdvance, renderPresets: renderPresetsRemount };
+  window.softwaveApp = { renderPresetsRemount, loadPreset, saveCurrentMix, restoreMix, openSaveSheet, setMaster, togglePlay, toast, store, PRESETS, paintRange, showView, scheduleAutoAdvance, renderPresets: renderPresetsRemount };
 
   // ---------- init ----------
   renderSounds(); renderPresets(); renderMixer([]); updatePlayer(); renderProfileHooks(); if (window.SoftwaveField) syncField();

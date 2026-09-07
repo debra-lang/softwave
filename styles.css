@@ -1345,8 +1345,8 @@ html[data-theme="dark"] .lab-view { --lab-bg-a: #0f1320; --lab-bg-b: #090b12; }
 .lab-eyebrow, .lab-view .lab-hero .lab-eyebrow, .lab-group-title { color: var(--lab); }
 /* symmetric chip grids on phones: Moments 2x2, presets 2-column, all uniform */
 @media (max-width: 640px) {
-  #moments, #presets, #sleep-presets { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  #moments .chip, #presets .chip, #sleep-presets .chip { width: auto; margin: 0; }
+  #moments, #presets, #sleep-presets, #my-mixes, #my-sounds { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  #moments .chip, #presets .chip, #sleep-presets .chip, #my-mixes .chip, #my-sounds .chip { width: auto; margin: 0; }
   #mix-add-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   #mix-add-list .pane-sound { width: 100%; justify-content: flex-start; }
   .addsound-card .pane-sounds { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
