@@ -579,8 +579,8 @@
       buildUI(ctx, host) {
         const Q = this.settings; let step = 0; const answered = {};
         const render = () => { const q = Q[step]; if (!q) { host.innerHTML = `<div class="sess-wrap"><div class="sess-summary">${Q.map(s => `<button class="chip" data-edit="${s.key}"><strong>${(s.options.find(o => String(o[0]) === String(ctx.s[s.key])) || [])[1] || ''}</strong><span>${s.label.replace('?', '')}</span></button>`).join('')}</div><p class="muted small" style="text-align:center">Press <strong>Start Experiment</strong> to build it. Everything can be changed afterwards.</p><div class="btn-row" style="justify-content:center"><button class="btn btn-secondary btn-sm" data-save-session>Save this session</button></div></div>`; $$('[data-edit]', host).forEach(b => b.addEventListener('click', () => { step = Q.findIndex(s => s.key === b.dataset.edit); render(); })); $('[data-save-session]', host).addEventListener('click', saveSession); return; }
-          host.innerHTML = `<div class="sess-wrap"><div class="sess-progress">${Q.map((_, i) => `<span class="${i < step ? 'is-done' : i === step ? 'is-now' : ''}"></span>`).join('')}</div><h3 class="sess-q">${q.label}</h3><div class="sess-options" role="radiogroup" aria-label="${q.label}">${q.options.map(o => `<button role="radio" aria-checked="${String(ctx.s[q.key]) === String(o[0])}" class="sess-opt" data-v="${o[0]}">${o[1]}</button>`).join('')}</div>${step > 0 ? '<button class="btn btn-ghost btn-sm" data-back>← Back</button>' : ''}</div>`;
-          $$('.sess-opt', host).forEach(b => b.addEventListener('click', () => { ctx.s[q.key] = (b.dataset.v !== '' && !isNaN(+b.dataset.v)) ? +b.dataset.v : b.dataset.v; step++; render(); })); const bk = $('[data-back]', host); if (bk) bk.addEventListener('click', () => { step--; render(); }); };
+          host.innerHTML = `<div class="sess-wrap"><div class="sess-progress">${Q.map((_, i) => `<span class="${i < step ? 'is-done' : i === step ? 'is-now' : ''}"></span>`).join('')}</div><h3 class="sess-q">${q.label}</h3><div class="sess-options" role="radiogroup" aria-label="${q.label}">${q.options.map(o => `<button role="radio" aria-checked="${!!answered[q.key] && String(ctx.s[q.key]) === String(o[0])}" class="sess-opt" data-v="${o[0]}">${o[1]}</button>`).join('')}</div>${step > 0 ? '<button class="btn btn-ghost btn-sm" data-back>← Back</button>' : ''}</div>`;
+          $$('.sess-opt', host).forEach(b => b.addEventListener('click', () => { ctx.s[q.key] = (b.dataset.v !== '' && !isNaN(+b.dataset.v)) ? +b.dataset.v : b.dataset.v; answered[q.key] = true; step++; render(); })); const bk = $('[data-back]', host); if (bk) bk.addEventListener('click', () => { step--; render(); }); };
         const saveSession = () => { if (!engine.activeList().length) return app.toast('Start the session first, then save it.'); if (!canSaveCombo()) return; const combos = store.get('combos', []); combos.push({ name: `My ${ctx.s.doing} session`, mix: engine.snapshot(), master: engine.masterVolume, visual: store.get('visual', 'ocean'), motion: store.get('motion', 'low'), timer: ctx.s.doing === 'sleep' ? 60 : 0 }); store.set('combos', combos); app.toast('Session saved (Visual Focus → My Saved Environments).'); };
         render();
       },
@@ -1115,6 +1115,8 @@
 
   function openExperiment(id) {
     const exp = byId[id]; if (!exp) return; const ctx = ctxFor(exp); const panel = $('#lab-detail'); panel.hidden = false;
+    // "Start again" belongs to the current visit only — a return to the page starts fresh
+    if (!(running && running.exp === exp)) ctx.hasRun = false;
     setFocusedExp(true);        // the open experiment is the only thing on the page
     setExploreHeading(false);   // only the completed Find My Sound state shows it (restored below if so)
     const f = fb()[exp.id] || {}; const isFav = favs().includes(exp.id);
