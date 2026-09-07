@@ -132,6 +132,7 @@
       const AC = global.AudioContext || global.webkitAudioContext;
       this.ctx = new AC({ latencyHint: 'playback' });
       const ctx = this.ctx;
+      this._installGestureArm();
 
       this.master = ctx.createGain();
       this.master.gain.value = 0;          // ramps up on first play — never loud on start
@@ -203,8 +204,29 @@
       if (!this.ctx) return;
       if (this.ctx.state !== 'running') {
         try { await Promise.race([this.ctx.resume(), new Promise(r => setTimeout(r, 1500))]); } catch (e) { /* needs gesture */ }
+        if (this.ctx.state !== 'running') this._needsGesture = true;   // the next tap resumes it inside the gesture
       }
-      if (this.mediaOut && this.isPlaying) this.mediaOut.play().catch(() => { });   // native iOS: routed output back on after interruptions
+      // native iOS: routed output back on after interruptions — whenever sounds are queued, not only once running
+      if (this.mediaOut && (this.isPlaying || this.active.size)) this.mediaOut.play().then(() => { this._needsGesture = false; }).catch(() => { this._needsGesture = true; });
+    }
+    // iOS lets a media element start only inside a user gesture, and a sound tile's start
+    // chain (wake the engine, build the graph, resume) can outlast that window — the sound
+    // is then generated into a paused output and nothing is heard until Play is pressed.
+    // So every tap arms the output synchronously: resume the context and start the routed
+    // element. A tap that leads to no sound releases it again shortly after, keeping the
+    // idle-release behaviour that fixed the clicking.
+    _installGestureArm() {
+      if (this._gestureArmed) return; this._gestureArmed = true;
+      const arm = () => {
+        if (this.ctx && this.ctx.state !== 'running') { try { const p = this.ctx.resume(); if (p && p.catch) p.catch(() => { }); } catch (_) { } }
+        if (this.mediaOut && (this.mediaOut.paused || this._needsGesture)) {
+          try { const p = this.mediaOut.play(); if (p && p.then) p.then(() => { this._needsGesture = false; }).catch(() => { }); } catch (_) { }
+          clearTimeout(this._disarmT);
+          this._disarmT = setTimeout(() => { if (!this.isPlaying && !this.active.size && !(this._pendingStarts > 0)) this._keepAlive(false); }, 3000);
+        }
+      };
+      document.addEventListener('pointerdown', arm, { capture: true, passive: true });
+      document.addEventListener('touchend', arm, { capture: true, passive: true });
     }
 
     _setupBackground() {
@@ -245,7 +267,7 @@
       // iOS audio session active for the app's whole lifetime, and the OS layer emits
       // periodic clicks through it (measured: the app's own output was pure silence
       // while clicks were audible — they are born below us, in the held-open session).
-      if (this.mediaOut) { if (on) this.mediaOut.play().catch(() => { }); else this.mediaOut.pause(); }
+      if (this.mediaOut) { if (on) { const p = this.mediaOut.play(); if (p && p.then) p.then(() => { this._needsGesture = false; }).catch(() => { this._needsGesture = true; }); } else this.mediaOut.pause(); }
       if (this.silentEl) { if (on) this.silentEl.play().catch(() => { }); else this.silentEl.pause(); }
       if ('mediaSession' in navigator) navigator.mediaSession.playbackState = on ? 'playing' : 'paused';
     }
@@ -278,6 +300,10 @@
     }
 
     async startSound(id, volume = 0.6, balance = 0) {
+      this._pendingStarts = (this._pendingStarts || 0) + 1;
+      try { return await this._startSound(id, volume, balance); } finally { this._pendingStarts--; }
+    }
+    async _startSound(id, volume = 0.6, balance = 0) {
       await this.init();
       // Starting a sound must always wake the engine: iOS suspends (or "interrupts")
       // the context whenever it idles, and a sound added to a sleeping context is
