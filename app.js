@@ -62,13 +62,23 @@
   // Layered surfaces (sheets, Immerse, sleep screen) each own one same-URL history
   // entry, so every kind of Back — the ← button, browser Back, and the iPhone edge
   // swipe — peels the topmost layer instead of navigating the page underneath.
-  const layers = { stack: [], stale: 0 };
+  const layers = { stack: [], stale: 0, reconcile: 0, reconcileAt: 0 };
+  window.softwaveLayers = layers;   // diagnostics
   // navDepth counts undoable in-app steps (pushes). Tab switches keep it at 0, so
   // Back stops — and hides — at every section's main page: Back undoes the user's
   // own steps inside a journey but never dumps them into another section.
   let navDepth = 0;
   function layerPush(closeFn) { layers.stack.push(closeFn); try { history.pushState({ swLayer: layers.stack.length, d: navDepth }, '', location.href); } catch (_) { } updateBackBtn(); }
-  function layersClose() { if (layers.stack.length) history.back(); }
+  // Closing a layer is immediate and visible; the history entry it owns is reconciled
+  // afterwards (Back stays consistent). If the browser never reports that step — seen
+  // on iOS right after a form submit — the next Back swallows the stale entry instead.
+  function layersClose() {
+    if (!layers.stack.length) return;
+    const fn = layers.stack.pop(); try { fn(); } catch (_) { }
+    layers.reconcile = (layers.reconcile || 0) + 1; layers.reconcileAt = Date.now();
+    try { history.back(); } catch (_) { }
+    updateBackBtn();
+  }
   // Tabs are for switching sections and never create a Back step; only push:false
   // (history/boot navigations) shares the replace path.
   function tabReplace(opts) { return opts.push === false || !!opts.tab; }
@@ -106,6 +116,9 @@
     const st = e.state; navDepth = st && typeof st.d === 'number' ? st.d : 0;
     // Back peels the topmost open layer (sheet/overlay) before any view navigation.
     if (layers.stack.length) { const fn = layers.stack.pop(); try { fn(); } catch (_) { } updateBackBtn(); return; }
+    // our own reconcile step arriving (fresh): swallow silently; a late one means the
+    // user pressed Back onto a stale entry — skip past it
+    if (layers.reconcile > 0) { layers.reconcile--; if (Date.now() - (layers.reconcileAt || 0) > 1500) history.back(); return; }
     // A layer entry whose surface was already closed elsewhere: swallow it and keep going.
     if (layers.stale > 0) { layers.stale--; history.back(); return; }
     showView((location.hash || '#sounds').slice(1), { push: false });
@@ -185,6 +198,7 @@
         const fsOpen = !$('#now').hidden || !$('#focus-screen').hidden || !$('#sleep-screen').hidden;
         if (kind === 'immerse' && !$('#view-sounds').hidden && !fsOpen) openNow();
         if (kind === 'sleep' && !$('#view-sleep').hidden && $('#sleep-screen').hidden && $('#now').hidden && $('#focus-screen').hidden) $('#sleep-enter').click();
+        if (kind === 'focus' && !$('#view-sounds').hidden && !fsOpen && window.softwaveFocus) softwaveFocus.enterFocus();
       }, retries === 3 ? Math.max(300, wait - quietFor()) : 1500);
     };
     attempt(3);
@@ -213,19 +227,20 @@
     if (mhost) {
       mhost.innerHTML = '';
       if (!mixes.length) { if (mrow) mrow.remove(); }
-      else mixes.forEach((m, i) => {
-        const b = document.createElement('button'); b.className = 'chip chip-mine'; b.setAttribute('role', 'listitem'); b.dataset.chipName = m.name;
+      else mixes.forEach(m => {
+        const b = document.createElement('button'); b.className = 'chip chip-mine'; b.setAttribute('role', 'listitem'); b.dataset.chipName = m.name; b.dataset.mixId = m.id;
         b.innerHTML = `<strong>★ ${m.name}</strong><span>${describeMix(m)}</span>`;
         b.addEventListener('click', () => { restoreMix(m); scheduleAutoAdvance('immerse'); });
-        const del = document.createElement('button'); del.className = 'chip-del'; del.setAttribute('aria-label', 'Delete ' + m.name); del.textContent = '×';
-        del.addEventListener('click', e => { e.stopPropagation(); const all = store.get('mixes', []); const idx = all.indexOf(m); if (idx >= 0) all.splice(idx, 1); else all.splice(i, 1); store.set('mixes', all); renderPresetsRemount(); toast('Mix deleted'); });
-        b.appendChild(del); mhost.appendChild(b);
+        const more = document.createElement('button'); more.className = 'chip-del chip-more'; more.setAttribute('aria-label', 'Manage ' + m.name); more.textContent = '⋯';
+        more.addEventListener('click', e => { e.stopPropagation(); openMixMenu(m); });
+        b.appendChild(more); mhost.appendChild(b);
       });
     }
     if (!$('#presets').children.length) { const pr2 = $('.presets-row'); const msRow = $('#my-sounds-row'); if (pr2 && msRow && !ms.length) { pr2.remove(); updateMixSaved(); return; } }
-    const row = $('#my-sounds-row'); const host = $('#my-sounds'); host.innerHTML = '';
+    const row = $('#my-sounds-row'); const host = $('#my-sounds');
     if (!ms.length) { if (row) row.remove(); updateMixSaved(); return; }
-    if (!row) { renderPresetsRemount(); return; }
+    if (!row || !host) { renderPresetsRemount(); return; }   // the row was removed earlier; rebuild the template
+    host.innerHTML = '';
     ms.forEach((snd, i) => { const b = document.createElement('button'); b.className = 'chip chip-mine'; b.setAttribute('role', 'listitem'); b.dataset.chipName = snd.name; b.innerHTML = `<strong>★ ${snd.name}</strong><span>${snd.type === 'paint' ? 'Painted sound' : 'Custom sound'}${snd.nature && snd.nature !== 'none' && engine.def(snd.nature) ? ' + ' + engine.def(snd.nature).name.toLowerCase() : ''}</span>`;
       b.addEventListener('click', async () => { const mix = [{ id: snd.type === 'paint' ? 'paint' : 'sculpt', volume: 0.55, balance: 0 }]; if (snd.type === 'paint') mix[0].curve = snd.curve; else mix[0].params = snd.params; if (snd.nature && snd.nature !== 'none') mix.push({ id: snd.nature, volume: snd.natureVol || 0.35, balance: 0 }); await loadPreset({ name: snd.name, mix, master: Math.min(engine.masterVolume, 0.45) }); });
       const del = document.createElement('button'); del.className = 'chip-del'; del.setAttribute('aria-label', 'Delete ' + snd.name); del.textContent = '×'; del.addEventListener('click', e => { e.stopPropagation(); ms.splice(i, 1); store.set('lab:sounds', ms); renderPresetsRemount(); toast('Sound deleted'); }); b.appendChild(del); host.appendChild(b); });
@@ -235,14 +250,14 @@
   function renderPresetsRemount() { const r = $('.presets-row'); if (r) r.remove(); renderPresets(); }
   function updateMixSaved() {
     const saved = $('#saved-mixes'); if (!saved) return; saved.innerHTML = '';
-    const custom = store.get('mixes', []);
+    const custom = validMixes();
     if (!custom.length) saved.innerHTML = '<p class="muted">Nothing saved yet. Build a mix and tap "Save".</p>';
     custom.forEach((m, i) => {
       const b = document.createElement('button'); b.className = 'chip'; b.dataset.chipName = m.name;
       b.innerHTML = `<strong>${m.name}</strong><span>${describeMix(m, true)}</span>`;
       b.addEventListener('click', () => restoreMix(m));
-      const del = document.createElement('button'); del.className = 'btn btn-ghost btn-sm'; del.textContent = 'Delete'; del.setAttribute('aria-label', 'Delete ' + m.name);
-      del.addEventListener('click', e => { e.stopPropagation(); custom.splice(i, 1); store.set('mixes', custom); renderPresets(); toast('Mix deleted'); });
+      const del = document.createElement('button'); del.className = 'btn btn-ghost btn-sm'; del.textContent = '⋯'; del.setAttribute('aria-label', 'Manage ' + m.name);
+      del.addEventListener('click', e => { e.stopPropagation(); openMixMenu(m); });
       const wrap = document.createElement('div'); wrap.style.display = 'flex'; wrap.style.gap = '6px'; wrap.style.alignItems = 'center'; wrap.append(b, del); saved.appendChild(wrap);
     });
   }
@@ -362,7 +377,12 @@
   // balance, the FULL recipe of personalized sounds (sculpt/paint parameters — never
   // just the label), the master volume, and the timer. One store ('mixes'), shown in
   // "My Saved Mixes" on the Sounds page and in the Mixer's list.
-  const validMixes = () => store.get('mixes', []).filter(m => m && Array.isArray(m.mix) && m.mix.every(x => engine.def(x.id)));
+  const validMixes = () => {
+    const all = store.get('mixes', []); let changed = false;
+    all.forEach((m, i) => { if (m && !m.id) { m.id = 'mx' + (m.saved || Date.now()) + '_' + i; changed = true; } });
+    if (changed) store.set('mixes', all);
+    return all.filter(m => m && Array.isArray(m.mix) && m.mix.every(x => engine.def(x.id)));
+  };
   function describeMix(m, levels) {
     const parts = m.mix.filter(x => engine.def(x.id)).map(x => engine.def(x.id).name + (levels ? ' ' + Math.round(x.volume * 100) + '%' : ''));
     if (m.timer && m.timer.min) parts.push(`Timer ${m.timer.min} min`);
@@ -373,31 +393,82 @@
     const mixes = store.get('mixes', []);
     const MZ = window.softwaveMonetization; if (MZ && !MZ.canCreateSavedItem(mixes.length)) { if (window.softwavePremium) softwavePremium.saveLimit('mixes'); return false; }
     const t = engine.timer;
-    mixes.push({ name, mix: engine.snapshot(), master: engine.masterVolume, timer: { min: t.durationMin || 0, fade: t.fade !== false }, saved: Date.now() });
-    store.set('mixes', mixes); renderPresets(); return true;
+    const now = Date.now(); mixes.push({ id: 'mx' + now + '_' + mixes.length, name, mix: engine.snapshot(), master: engine.masterVolume, timer: { min: t.durationMin || 0, fade: t.fade !== false }, saved: now });
+    store.set('mixes', mixes);
+    // the save is done once it is stored — a rendering hiccup must never hide that
+    try { renderPresetsRemount(); } catch (e) { console.error(e); }
+    return true;
   }
   async function restoreMix(m) {
     await loadPreset({ name: m.name, mix: m.mix, master: m.master });
     // the timer is part of the setup — restored exactly (off if it was saved without one)
     if (engine.activeList().length && m.timer) engine.setTimer(m.timer.min || 0, m.timer.fade !== false);
   }
+  // A useful default name from what is playing: "My Sound + Rain", "Pink Noise + Forest + 1 more"
+  function suggestMixName() {
+    const names = engine.activeList().map(x => engine.def(x.id).name);
+    if (!names.length) return 'My Custom Mix';
+    return names.length <= 2 ? names.join(' + ') : `${names[0]} + ${names[1]} + ${names.length - 2} more`;
+  }
+  // Every saved mix carries a stable id so rename/update/delete address the right entry
+  // no matter how either list is rendered (both read the same store).
+  function mixId(m) { return m.id; }
+  function withMixes(fn) { const all = store.get('mixes', []); const r = fn(all); store.set('mixes', all); renderPresetsRemount(); return r; }
+  let mixMenu = null;
+  function openMixMenu(m) {
+    if (!mixMenu) {
+      mixMenu = document.createElement('div'); mixMenu.className = 'addsound-sheet'; mixMenu.hidden = true;
+      mixMenu.innerHTML = '<div class="addsound-card card mix-menu" role="dialog" aria-label="Manage saved mix"><div class="addsound-head"><strong data-mm-title></strong><button type="button" class="btn btn-ghost btn-sm" data-mm-close>Close</button></div><p class="muted small" data-mm-desc></p><div class="btn-row mix-menu-actions"><button type="button" class="btn btn-ghost btn-sm" data-mm="rename">Rename</button><button type="button" class="btn btn-ghost btn-sm" data-mm="update">Update to current setup</button><button type="button" class="btn btn-ghost btn-sm" data-mm="delete">Delete</button></div><form data-mm-rename hidden style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px"><label class="sr-only" for="mix-rename">New name</label><input id="mix-rename" class="select" maxlength="40" style="flex:1;min-width:180px"><button type="submit" class="btn btn-primary btn-sm">Save name</button></form><p class="muted small" data-mm-note hidden></p></div>';
+      document.body.appendChild(mixMenu);
+      $('[data-mm-close]', mixMenu).addEventListener('click', () => layersClose());
+      mixMenu.addEventListener('click', e => { if (e.target === mixMenu) layersClose(); });
+      const note = (t) => { const n = $('[data-mm-note]', mixMenu); n.textContent = t; n.hidden = !t; };
+      $('[data-mm="rename"]', mixMenu).addEventListener('click', () => { const f = $('[data-mm-rename]', mixMenu); f.hidden = !f.hidden; if (!f.hidden) { const i = $('#mix-rename', mixMenu); i.value = mixMenu._mix.name; setTimeout(() => { i.focus(); i.select(); }, 50); } });
+      $('[data-mm-rename]', mixMenu).addEventListener('submit', e => {
+        e.preventDefault(); const name = $('#mix-rename', mixMenu).value.trim(); if (!name) return;
+        const id = mixMenu._mix.id; withMixes(all => { const x = all.find(y => y.id === id); if (x) x.name = name; });
+        layersClose(); toast(`Renamed to “${name}”`, 3000);
+      });
+      $('[data-mm="update"]', mixMenu).addEventListener('click', () => {
+        if (!engine.activeList().length) { note('Nothing is playing — start the sounds you want this mix to hold, then update.'); return; }
+        const id = mixMenu._mix.id; const t = engine.timer;
+        withMixes(all => { const x = all.find(y => y.id === id); if (x) Object.assign(x, { mix: engine.snapshot(), master: engine.masterVolume, timer: { min: t.durationMin || 0, fade: t.fade !== false }, saved: Date.now() }); });
+        layersClose(); toast(`“${mixMenu._mix.name}” now holds what is playing`, 3200);
+      });
+      $('[data-mm="delete"]', mixMenu).addEventListener('click', e => {
+        const b = e.currentTarget;
+        if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'Tap again to delete'; b.classList.add('btn-danger'); note('This removes the mix from My Saved Mixes and the Mixer.'); return; }
+        const id = mixMenu._mix.id; withMixes(all => { const i = all.findIndex(y => y.id === id); if (i >= 0) all.splice(i, 1); });
+        layersClose(); toast('Mix deleted', 2600);
+      });
+    }
+    mixMenu._mix = m;
+    $('[data-mm-title]', mixMenu).textContent = m.name; $('[data-mm-desc]', mixMenu).textContent = describeMix(m, true) + (m.master != null ? ` · master ${Math.round(m.master * 100)}%` : '');
+    const del = $('[data-mm="delete"]', mixMenu); delete del.dataset.armed; del.textContent = 'Delete'; del.classList.remove('btn-danger');
+    $('[data-mm-rename]', mixMenu).hidden = true; const n = $('[data-mm-note]', mixMenu); n.hidden = true; n.textContent = '';
+    if (mixMenu.hidden) { mixMenu.hidden = false; layerPush(() => { mixMenu.hidden = true; }); }
+  }
   let saveSheet = null;
   function openSaveSheet() {
     if (!engine.activeList().length) { toast('Add some sounds first'); return; }
     if (!saveSheet) {
       saveSheet = document.createElement('div'); saveSheet.className = 'addsound-sheet'; saveSheet.hidden = true;
-      saveSheet.innerHTML = '<div class="addsound-card card" role="dialog" aria-label="Save this mix"><div class="addsound-head"><strong>Save this mix</strong><button type="button" class="btn btn-ghost btn-sm" data-sv-close>Cancel</button></div><form data-sv-form style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><label class="sr-only" for="save-mix-name">Mix name</label><input id="save-mix-name" class="select" maxlength="40" value="My Custom Mix" style="flex:1;min-width:180px"><button type="submit" class="btn btn-primary btn-sm">Save</button></form><p class="muted small" data-sv-desc></p></div>';
+      saveSheet.innerHTML = '<div class="addsound-card card" role="dialog" aria-label="Save this mix"><div class="addsound-head"><strong>Save this mix</strong><button type="button" class="btn btn-ghost btn-sm" data-sv-close>Cancel</button></div><form data-sv-form style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><label class="sr-only" for="save-mix-name">Mix name</label><input id="save-mix-name" class="select" maxlength="40" value="My Custom Mix" style="flex:1;min-width:180px"><button type="submit" id="save-mix-submit" class="btn btn-primary btn-sm">Save</button></form><p class="muted small" data-sv-warn hidden></p><p class="muted small" data-sv-desc></p></div>';
       document.body.appendChild(saveSheet);
       $('[data-sv-close]', saveSheet).addEventListener('click', () => layersClose());
       saveSheet.addEventListener('click', e => { if (e.target === saveSheet) layersClose(); });
-      $('[data-sv-form]', saveSheet).addEventListener('submit', e => {
+      const form = $('[data-sv-form]', saveSheet);
+      $('#save-mix-name', saveSheet).addEventListener('input', () => { delete form.dataset.confirmed; $('[data-sv-warn]', saveSheet).hidden = true; $('#save-mix-submit', saveSheet).textContent = 'Save'; });
+      form.addEventListener('submit', e => {
         e.preventDefault(); const name = $('#save-mix-name', saveSheet).value.trim() || 'My Custom Mix';
-        if (saveCurrentMix(name)) { toast(`Saved “${name}” — find it under My Saved Mixes`, 3600); layersClose(); }
+        const dup = validMixes().some(m => m.name.toLowerCase() === name.toLowerCase());
+        if (dup && !form.dataset.confirmed) { form.dataset.confirmed = '1'; const w = $('[data-sv-warn]', saveSheet); w.textContent = `You already have a mix called “${name}”. Tap Save again to keep both.`; w.hidden = false; $('#save-mix-submit', saveSheet).textContent = 'Save anyway'; return; }
+        if (saveCurrentMix(name)) { layersClose(); toast(`Saved — find “${name}” under My Saved Mixes`, 3600); }
       });
     }
     const t = engine.timer;
     $('[data-sv-desc]', saveSheet).textContent = 'Saves ' + describeMix({ mix: engine.snapshot(), timer: { min: t.durationMin || 0 } }, true) + ` · master ${Math.round(engine.masterVolume * 100)}%` + ' — exactly as it plays now, on this device.';
-    const inp = $('#save-mix-name', saveSheet); inp.value = 'My Custom Mix';
+    const inp = $('#save-mix-name', saveSheet); inp.value = suggestMixName(); delete $('[data-sv-form]', saveSheet).dataset.confirmed; $('[data-sv-warn]', saveSheet).hidden = true; $('#save-mix-submit', saveSheet).textContent = 'Save';
     if (saveSheet.hidden) { saveSheet.hidden = false; layerPush(() => { saveSheet.hidden = true; }); }
     setTimeout(() => { inp.focus(); inp.select(); }, 60);
   }
@@ -788,13 +859,13 @@
   // navigating away from the Immerse overlay: consume its history entry first,
   // then move once the popstate has settled — keeps the stack clean for Back
   $$('[data-now]').forEach(b => b.addEventListener('click', () => { const k = b.dataset.now; if (k === 'timer') { openTimerSheet(); return; } closeNow(); setTimeout(() => { if (k === 'change') { showView('sounds'); setTimeout(() => $('#sound-groups').scrollIntoView({ behavior: 'smooth', block: 'start' }), 150); } if (k === 'visual') { if (window.softwaveFocus) softwaveFocus.openChooser(); else showView('focus'); } }, 80); }));
-  document.addEventListener('click', e => { if (e.target.closest('#fav-save, #mix-save, [data-save], [data-save-session], [data-r="save"]')) { const b = e.target.closest('button'); b.classList.add('saved-pop'); setTimeout(() => b.classList.remove('saved-pop'), 520); } }, true);
+  document.addEventListener('click', e => { if (e.target.closest('#fav-save, #mix-save, #save-mix-submit, [data-mm], [data-save], [data-save-session], [data-r="save"]')) { const b = e.target.closest('button'); b.classList.add('saved-pop'); setTimeout(() => b.classList.remove('saved-pop'), 520); } }, true);
 
   // ---------- Back: closes any open overlay first, then steps back through views ----------
   function goBack() {
     if (transit.active) { clearTransit(); }
     // 1. Topmost layered surface (sheet, Immerse, sleep screen) — one press, one layer.
-    if (layers.stack.length) { history.back(); return; }
+    if (layers.stack.length) { layersClose(); return; }
     // 2. Full-screen surfaces that manage themselves.
     const overlays = [['#now', () => closeNowUI()], ['#sleep-screen', () => exitSleepUI()], ['#focus-screen', () => window.softwaveFocus && softwaveFocus.exitFocus()], ['#eyes-screen', () => window.softwaveLab && softwaveLab.stop()]];
     for (const [sel, close] of overlays) { const el = $(sel); if (el && !el.hidden) { close(); return; } }

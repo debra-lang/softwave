@@ -295,6 +295,7 @@ input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.12); }
 /* ---------- toast ---------- */
 .toast { position: fixed; left: 50%; bottom: calc(var(--player-h) + 30px + env(safe-area-inset-bottom, 0px)); transform: translate(-50%, 20px); background: var(--card-solid); color: var(--text); border: 1px solid var(--border); box-shadow: var(--shadow); padding: 12px 18px; border-radius: 14px; z-index: 80; opacity: 0; pointer-events: none; transition: opacity .3s, transform .3s; max-width: min(480px, calc(100% - 30px)); font-weight: 600; }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
+.toast { z-index: 450; }   /* confirmations show above every layer: sheets, Immerse, Visual Focus, sleep */
 
 /* ---------- responsive ---------- */
 @media (max-width: 900px) {
@@ -953,6 +954,10 @@ body { overflow-x: hidden; }
 .sleep-screen .field-actions .fa:hover { color: #c5cfe8; }
 #sleep-controls { gap: 14px; margin-top: 6px; }
 #mix-controls { margin: 0 auto 18px; }
+/* saved-mix management: one quiet ⋯ per card, a compact sheet for the actions */
+.chip-more { font-size: 1.05rem; letter-spacing: .05em; }
+.mix-menu-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+.btn-danger { color: #ff8a80; border-color: rgba(255,138,128,.45); }
 /* controller status line (✦ Tuned to you · on); collapses when nothing is personalized */
 .field-status { display: flex; justify-content: center; margin-top: -10px; }   /* status line sits closer under the actions; the rows above do not move */
 .field-status:empty { display: none; }
