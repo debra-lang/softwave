@@ -187,7 +187,8 @@
   addEventListener('wheel', noteActivity, { passive: true });
   function scheduleAutoAdvance(kind, ms) {
     clearTimeout(autoAdvT);
-    const wait = ms || 4000, armed = Date.now();   // one carry-forward rhythm everywhere: ~4 s of quiet const armedView = (document.querySelector('.view:not([hidden])') || {}).id;
+    // one carry-forward rhythm everywhere: ~4 s of quiet
+    const wait = ms || 4000, armed = Date.now(); const armedView = (document.querySelector('.view:not([hidden])') || {}).id;
     // the full wait since the sound started, extended by any later interaction
     const quietFor = () => Date.now() - Math.max(lastActivity, armed);
     const attempt = (retries) => {
