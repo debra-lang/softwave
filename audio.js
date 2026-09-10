@@ -218,7 +218,12 @@
     _installGestureArm() {
       if (this._gestureArmed) return; this._gestureArmed = true;
       const arm = () => {
-        if (this.ctx && this.ctx.state !== 'running') { try { const p = this.ctx.resume(); if (p && p.catch) p.catch(() => { }); } catch (_) { } }
+        if (this.ctx && this.ctx.state !== 'running') {
+          try { const p = this.ctx.resume(); if (p && p.catch) p.catch(() => { }); } catch (_) { }
+          // This can be the only thing that wakes the context after a pause — so it must
+          // also re-assert master gain, or playback can come back running yet silent.
+          if (this.master) this.setMasterVolume(this.masterVolume);
+        }
         if (this.mediaOut && (this.mediaOut.paused || this._needsGesture)) {
           try { const p = this.mediaOut.play(); if (p && p.then) p.then(() => { this._needsGesture = false; }).catch(() => { }); } catch (_) { }
           clearTimeout(this._disarmT);
@@ -309,6 +314,10 @@
       // the context whenever it idles, and a sound added to a sleeping context is
       // silent — the one-tap-to-play contract broke exactly there.
       if (this.ctx.state !== 'running') await this.resume();
+      // A pause/resume cycle can leave the master bus behind even once the context
+      // itself is running again (only playAll() used to re-assert it) — so any path
+      // through here re-confirms master gain too, not just the one sound's own gain.
+      this.setMasterVolume(this.masterVolume);
       if (this.active.has(id)) { this.setVolume(id, volume); return true; }
       const MZ = global.softwaveMonetization;
       const lim = MZ && MZ.activeLayerLimit ? Math.min(MAX_ACTIVE, MZ.activeLayerLimit()) : MAX_ACTIVE;  // Free: 3 layers once monetization is on
