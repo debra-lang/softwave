@@ -941,6 +941,9 @@ body { overflow-x: hidden; }
 .field-vol output { font-size: .78rem; color: var(--sf-ink-3); width: 3ch; }
 .field-actions { column-gap: clamp(22px, 4vw, 44px); row-gap: 6px; }   /* wrapped actions stay one grouped control */
 .field-actions .fa, .field-status .fa, .fa-immerse { all: unset; cursor: pointer; font-size: .84rem; letter-spacing: .06em; color: var(--sf-ink-2); padding: 8px 2px; position: relative; font-weight: 500; transition: color .3s; }
+/* Nothing playing yet (or just stopped): Add sound stands out as the next action. */
+.field-actions .fa[data-act="add"].fa-cta { color: var(--accent); }
+.field-actions .fa[data-act="add"].fa-cta::after { background: var(--accent); }
 /* narrow phones: keep the five actions on one line, as in the reference */
 @media (max-width: 400px) { .field-actions { gap: 12px; flex-wrap: nowrap; } .field-actions .fa { font-size: .78rem; letter-spacing: .04em; white-space: nowrap; } }
 /* very narrow phones (320px class): the five actions wrap into two grouped lines instead of overflowing */
@@ -954,7 +957,12 @@ body { overflow-x: hidden; }
 #focus-controls { gap: 8px; margin-top: 4px; width: 100%; }
 #focus-controls .field-vol { width: min(440px, 92%); }
 #focus-controls .field-actions { flex-wrap: wrap; row-gap: 6px; }   /* six section actions: two grouped lines on phones */
-#focus-stopall { font-size: 1.1rem; }   /* Stop everything: two steps larger, by request */
+#focus-stopall { font-size: .97rem; }   /* Stop everything: one step larger than the row above */
+/* Below this width Stop everything reliably wraps onto its own line (phones/tablets) — only
+   there does pulling it toward the row above make sense; wider layouts share that line with
+   Stop visual, where a negative margin would misalign the two. */
+@media (max-width: 1024px) { #focus-stopall { margin-top: -4px; } }
+@media (max-width: 400px) { #focus-stopall { font-size: .91rem; } }   /* one step above the narrow-phone row size (.78rem) */
 .sleep-screen .field-actions .fa { color: #8fa0cf; }
 .sleep-screen .field-actions .fa:hover { color: #c5cfe8; }
 #sleep-controls { gap: 14px; margin-top: 6px; }

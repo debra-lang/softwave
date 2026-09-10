@@ -586,6 +586,8 @@
     const fs = $('#focus-setup-sound'); if (fs) fs.textContent = names.length ? names.join(' + ') : 'No sound yet';
     if (!$('#view-lab').hidden) bg.setMode('lab'); else bg.setMode(engine.isActive('rain') ? 'rain' : 'calm');
     document.title = names.length ? `${names[0]}${names.length > 1 ? ' +' + (names.length - 1) : ''} — Find My Quiet Sound` : 'Find My Quiet Sound — Free Tinnitus Sound Generator & Masking Sounds';
+    // Nothing active (fresh open, or just after Stop): Add sound stands out as the next step.
+    $$('[data-act="add"]').forEach(b => b.classList.toggle('fa-cta', !list.length));
   }
   let lastIds = new Set();
   engine.on((type, data) => {
@@ -733,8 +735,9 @@
     // the controller renders the button in its standard slot; create one only for older markup
     let ab = $('#field-add');
     if (!ab) { ab = document.createElement('button'); ab.type = 'button'; ab.className = 'fa'; ab.id = 'field-add'; ab.textContent = '＋ Add sound'; faRow.insertBefore(ab, faRow.firstChild); }
-    // the Immerse controller's ＋ Add sound opens the same sheet
+    // the Immerse and Sleep controllers' ＋ Add sound open the same sheet
     const nab = $('#now-add'); if (nab) nab.addEventListener('click', () => ab.click());
+    const slab = $('#sleep-add'); if (slab) slab.addEventListener('click', () => ab.click());
     const sheet = document.createElement('div'); sheet.id = 'addsound-sheet'; sheet.className = 'addsound-sheet'; sheet.hidden = true;
     sheet.innerHTML = `<div class="addsound-card card" role="dialog" aria-label="Add a sound"><div class="addsound-head"><strong>Add a sound</strong><button class="btn btn-ghost btn-sm" data-as-close>Done</button></div><div class="pane-sounds" data-as-grid></div><p class="muted small">Tap to add or remove — up to ${MAX_ACTIVE} at once. Fine volumes and balance live in the Mixer.</p></div>`;
     document.body.appendChild(sheet);

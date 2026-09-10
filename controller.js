@@ -85,10 +85,10 @@
     actions: ['add', 'timer', 'visual', 'mixer', 'save'],
     status: true, immerse: false
   });
-  // Sleep screen: the session's own functions — Timer and Save; Exit stays its own button.
+  // Sleep screen: the session's own functions — Add sound, Timer and Save; Exit stays its own button.
   render(document.getElementById('sleep-controls'), {
     prefix: 'sleep', pause: true, stop: true, volume: 35,
-    actions: ['timer', 'save'], status: true
+    actions: ['add', 'timer', 'save'], status: true
   });
   // Visual Focus: its specific controls are kept, in the standard language.
   // Stop sound is the row's stop circle; the rest are actions.
