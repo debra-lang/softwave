@@ -350,7 +350,7 @@
         });
         const slider = $('input', card);
         slider.addEventListener('input', () => { engine.setVolume(d.id, +slider.value / 100); rememberVol(d.id, +slider.value / 100); $('output', card).textContent = slider.value + '%'; });
-        $('.vol-pause', card).addEventListener('click', async () => { if (engine.ctx && engine.ctx.state === 'running') await engine.pauseAll(); else await engine.playAll(); });
+        $('.vol-pause', card).addEventListener('click', async () => { if (engine.ctx && !engine.userPaused) await engine.pauseAll(); else await engine.playAll(); });
         $('.vol-stop', card).addEventListener('click', () => engine.stopSound(d.id));
         grid.appendChild(card);
       });
@@ -563,8 +563,8 @@
     if (!engine.ctx) { if (!engine.activeList().length) return toast('Choose a sound to begin'); }
     // iOS also has a non-standard "interrupted" state — anything that isn't running
     // with sounds queued means "resume", or the first press does nothing.
-    if (engine.ctx && engine.ctx.state === 'running' && engine.isPlaying) await engine.pauseAll();
-    else if (engine.isPlaying || (engine.ctx && engine.ctx.state !== 'running' && engine.active.size)) await engine.playAll();
+    if (!engine.userPaused && engine.isPlaying) await engine.pauseAll();
+    else if (engine.userPaused && engine.active.size) await engine.playAll();
     else toast('Choose a sound to begin');
   }
   $('#player-toggle').addEventListener('click', togglePlay);
@@ -713,7 +713,7 @@
   $('#sleep-vol').addEventListener('input', e => setMaster(+e.target.value / 100, true));
   function clockTick() { const d = new Date(); $('#sleep-clock').textContent = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); }
   setInterval(clockTick, 1000); clockTick();
-  engine.on(type => { if (type === 'state') { const paused = !(engine.ctx && engine.ctx.state === 'running'); $$('.vol-pause').forEach(b => { b.classList.toggle('paused', paused); b.setAttribute('aria-label', paused ? 'Resume playback' : 'Pause playback'); }); } });
+  engine.on(type => { if (type === 'state') { const paused = engine.userPaused; $$('.vol-pause').forEach(b => { b.classList.toggle('paused', paused); b.setAttribute('aria-label', paused ? 'Resume playback' : 'Pause playback'); }); } });
   function renderTimer(t) {
     // the Sleep page's timer choices mirror the real timer (Your Sleep = 60, Woke Up at Night = 30, none = Continuous)
     { const cur = t.endsAt ? (t.durationMin || 0) : 0; $$('.timer-seg [data-min]').forEach(x => x.setAttribute('aria-checked', String(+x.dataset.min === cur))); }
@@ -852,7 +852,7 @@
   window.softwaveTransition = { to: transitionTo, back: transitionBack, clear: clearTransit, get active() { return transit.active; } };
   $('#field-core').addEventListener('click', async e => { const b = e.currentTarget; b.classList.add('pressed'); setTimeout(() => b.classList.remove('pressed'), 450); if (!engine.activeList().length) { $('#sound-groups').scrollIntoView({ behavior: 'smooth', block: 'start' }); return; } await togglePlay(); syncField(); });
   $('#field-vol').addEventListener('input', e => setMaster(+e.target.value / 100, true));
-  $('#field-pause').addEventListener('click', async () => { if (engine.ctx && engine.ctx.state === 'running') await engine.pauseAll(); else await engine.playAll(); });
+  $('#field-pause').addEventListener('click', async () => { if (engine.ctx && !engine.userPaused) await engine.pauseAll(); else await engine.playAll(); });
   $('#field-stop').addEventListener('click', () => { engine.stopAll(); toast('All sounds stopped'); });
   // Timer: a small picker instead of cycling values on each press.
   let timerSheet = null;
@@ -905,7 +905,7 @@
   $('#now-close').addEventListener('click', closeNow);
   $('#now').addEventListener('keydown', e => { if (e.key === 'Escape') closeNow(); });
   // Immerse controller: same functions as the Sounds player, wired for a full-screen layer
-  $('#now-pause').addEventListener('click', async () => { if (engine.ctx && engine.ctx.state === 'running') await engine.pauseAll(); else await engine.playAll(); });
+  $('#now-pause').addEventListener('click', async () => { if (engine.ctx && !engine.userPaused) await engine.pauseAll(); else await engine.playAll(); });
   $('#now-stop').addEventListener('click', () => { engine.stopAll(); toast('All sounds stopped'); });
   $('#now-timer').addEventListener('click', () => openTimerSheet());
   const leaveNow = (then) => { closeNow(); setTimeout(then, 80); };

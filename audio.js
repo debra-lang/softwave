@@ -113,6 +113,10 @@
       this.timer = { endsAt: null, fade: true, durationMin: null };
       this.lab = { paint: null, sculpt: {}, params: { sculpt: Engine.defaultSculpt(), discoA: Engine.defaultSculpt(), discoB: Engine.defaultSculpt() } };
       this.variation = { amount: 0, rate: 1, timer: null };
+      // Deliberate pause state, set only by pauseAll/playAll/stopAll themselves — the
+      // Play/Pause toggle reads this instead of ctx.state, which the global tap-to-wake
+      // listener (_installGestureArm) can change on its own before a click handler runs.
+      this.userPaused = false;
     }
 
     on(fn) { this.listeners.add(fn); return () => this.listeners.delete(fn); }
@@ -405,6 +409,7 @@
     }
 
     stopAll() {
+      this.userPaused = false;
       if (this.variation.timer) this.setVariation(0);
       if (this.ctx) this.resetMasterShape();
       [...this.active.keys()].forEach(id => this.stopSound(id));
@@ -414,6 +419,7 @@
     }
     async pauseAll() {
       if (!this.ctx) return;
+      this.userPaused = true;
       // Fade master to zero then suspend for a clean pause.
       const g = this.master.gain; const t = this.ctx.currentTime;
       g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.linearRampToValueAtTime(0, t + 0.4);
@@ -424,6 +430,7 @@
     }
     async playAll() {
       if (!this.ctx) return;
+      this.userPaused = false;
       await this.resume();
       this.setMasterVolume(this.masterVolume);
       if (this.isPlaying) this._keepAlive(true);
