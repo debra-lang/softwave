@@ -2,8 +2,10 @@
    Active only behind ?diag=1 in the URL; otherwise this file does nothing.
    Read-only observation of engine state (plus one explicit "Force Resume" button that
    calls ctx.resume() synchronously) and a timestamped history log — including markers
-   for every volume-slider touch — so a single on-device run captures the full
-   before/after transition without needing hand-timed screenshots.
+   for every volume-slider touch and every Play/Pause/Stop/tile press, plus both the
+   logical masterVolume and the actual master.gain AudioParam side by side — so a
+   single on-device run shows exactly what was pressed, when, and whether the two
+   volume numbers ever disagree, without needing hand-timed screenshots.
    Remove this file and its <script> tag once the investigation is done. */
 (function () {
   if (!/[?&]diag=1(&|$)/.test(location.search)) return;
@@ -30,15 +32,17 @@
       return id + ' gain=' + fmt(a.gain.gain.value) + '/tgt=' + fmt(target);
     });
     const mg = fmt(e.master ? e.master.gain.value : NaN);
+    const mv = fmt(e.masterVolume);   // the logical volume the engine thinks it's at — compare against master.gain
     const pk = fmt(analyserPeak(e));
     const text = [
       'ctx.state: ' + e.ctx.state,
       'active sounds: ' + (active.length ? active.map(([id]) => id).join(', ') : '(none)'),
       soundBits.map(s => '  ' + s).join('\n'),
-      'master.gain: ' + mg,
+      'masterVolume (logical): ' + mv,
+      'master.gain (actual param): ' + mg,
       'analyser peak: ' + pk,
     ].filter(Boolean).join('\n');
-    const line = 'ctx=' + e.ctx.state + (soundBits.length ? ' | ' + soundBits.join(', ') : ' | (none)') + ' | master=' + mg + ' | peak=' + pk;
+    const line = 'ctx=' + e.ctx.state + (soundBits.length ? ' | ' + soundBits.join(', ') : ' | (none)') + ' | mVol=' + mv + ' | master=' + mg + ' | peak=' + pk;
     return { text, line };
   }
 
@@ -102,6 +106,26 @@
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(full).then(() => done(true), () => done(false));
       } else done(false);
+    }
+  }, true);
+
+  // Mark every Play/Pause/Stop/tile press directly in the log, without touching the app's own
+  // handlers — capture phase, so this fires before the app's own click handler runs, showing
+  // exactly what was pressed and in what order relative to the state samples above.
+  const CONTROL_IDS = ['field-pause', 'field-stop', 'now-pause', 'now-stop', 'sleep-pause', 'sleep-stop',
+    'mix-pause', 'mix-stop', 'focus-pause', 'focus-stop', 'focus-stopall', 'player-toggle', 'player-stop'];
+  document.addEventListener('click', function (ev) {
+    const el = ev.target;
+    if (!el) return;
+    if (el.id && CONTROL_IDS.includes(el.id)) {
+      pushLog('>>> CLICK "' + el.id + '" (ctx.state at click time: ' + ((engine() && engine().ctx) ? engine().ctx.state : 'n/a') + ')', true);
+      return;
+    }
+    const tile = el.closest && el.closest('.card-btn');
+    if (tile) {
+      const card = tile.closest('.sound-card');
+      const id = card ? card.dataset.id : '?';
+      pushLog('>>> CLICK tile "' + id + '" (ctx.state at click time: ' + ((engine() && engine().ctx) ? engine().ctx.state : 'n/a') + ')', true);
     }
   }, true);
 
