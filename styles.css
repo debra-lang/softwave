@@ -945,9 +945,11 @@ body { overflow-x: hidden; }
 .field-vol output { font-size: .78rem; color: var(--sf-ink-3); width: 3ch; }
 .field-actions { column-gap: clamp(22px, 4vw, 44px); row-gap: 6px; }   /* wrapped actions stay one grouped control */
 .field-actions .fa, .field-status .fa, .fa-immerse { all: unset; cursor: pointer; font-size: .84rem; letter-spacing: .06em; color: var(--sf-ink-2); padding: 8px 2px; position: relative; font-weight: 500; transition: color .3s; }
-/* Nothing playing yet (or just stopped): Add sound stands out as the next action. */
-.field-actions .fa[data-act="add"].fa-cta { color: var(--accent); }
-.field-actions .fa[data-act="add"].fa-cta::after { background: var(--accent); }
+/* Nothing playing yet (or just stopped): Add sound stands out as the next action.
+   A fixed, strong blue rather than --accent — the dark theme's --accent (#8aa6ff) is a
+   pale pastel that reads too close to the surrounding muted text to stand out here. */
+.field-actions .fa[data-act="add"].fa-cta { color: #3272f0; }
+.field-actions .fa[data-act="add"].fa-cta::after { background: #3272f0; }
 /* narrow phones: keep the five actions on one line, as in the reference */
 @media (max-width: 400px) { .field-actions { gap: 12px; flex-wrap: nowrap; } .field-actions .fa { font-size: .78rem; letter-spacing: .04em; white-space: nowrap; } }
 /* very narrow phones (320px class): the five actions wrap into two grouped lines instead of overflowing */
