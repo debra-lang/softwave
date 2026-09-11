@@ -39,7 +39,13 @@
       syncChip();
     }
     const gateQuiet = (key) => !M() || M().canUse(key);   // tuning silently pauses if the profile ever becomes premium-gated
-    engine.on(type => { if ((type === 'sounds' && engine.activeList().length) || type === 'tone') applyTuning(); });
+    // Applying warmth/variation only makes sense while something plays, but the status chip
+    // itself should re-check and re-render on every relevant transition (Stop included) —
+    // otherwise, if its one boot-time render is ever missed, nothing ever retries it.
+    engine.on(type => {
+      if ((type === 'sounds' && engine.activeList().length) || type === 'tone') applyTuning();
+      else if (type === 'sounds' || type === 'state') syncChip();
+    });
 
     // The quiet indicator: a small chip beside the field actions, only when tuning is possible.
     function syncChip() {
