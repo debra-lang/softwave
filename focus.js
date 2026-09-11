@@ -615,7 +615,7 @@
     const pb = $('#focus-pause'); if (pb) pb.setAttribute('aria-pressed', playing);
     // with no sound there is nothing to "change" — the same control invites adding one
     const sb = document.querySelector('#focus-controls [data-open-pane="sound"]');
-    if (sb) sb.textContent = list.length ? 'Change sound' : '＋ Add sound';
+    if (sb) { sb.textContent = list.length ? 'Change sound' : '＋ Add sound'; sb.classList.toggle('fa-cta', !list.length); }
   }
   engine.on(type => {
     if (type === 'sounds' || type === 'state') syncFocusPlayer();

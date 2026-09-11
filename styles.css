@@ -950,6 +950,10 @@ body { overflow-x: hidden; }
    pale pastel that reads too close to the surrounding muted text to stand out here. */
 .field-actions .fa[data-act="add"].fa-cta { color: #3272f0; }
 .field-actions .fa[data-act="add"].fa-cta::after { background: #3272f0; }
+/* Visual Focus: its own Change sound / + Add sound control, a separate path from the
+   above — same highlight color, scoped only to this button. */
+#focus-controls .fa[data-open-pane="sound"].fa-cta { color: #3272f0; }
+#focus-controls .fa[data-open-pane="sound"].fa-cta::after { background: #3272f0; }
 /* narrow phones: keep the five actions on one line, as in the reference */
 @media (max-width: 400px) { .field-actions { gap: 12px; flex-wrap: nowrap; } .field-actions .fa { font-size: .78rem; letter-spacing: .04em; white-space: nowrap; } }
 /* very narrow phones (320px class): the five actions wrap into two grouped lines instead of overflowing */
