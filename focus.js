@@ -515,7 +515,7 @@
   function cancelAutoEnter() { if (autoEnter) { clearTimeout(autoEnter); autoEnter = null; } }
   function scheduleAutoEnter(id) {
     cancelAutoEnter(); if (S.visual !== id) return;
-    autoEnter = setTimeout(() => { autoEnter = null; if (screen.hidden && !$('#view-focus').hidden && !document.hidden) enterFocus(); }, AUTO_ENTER_MS);
+    autoEnter = setTimeout(() => { autoEnter = null; if (screen.hidden && !$('#view-focus').hidden) enterFocus(); }, AUTO_ENTER_MS);
   }
   function setVisual(id) { if (!byId[id]) return; const MZ = window.softwaveMonetization; if (MZ && !MZ.canUse('visual:' + id)) { if (window.softwavePremium && !softwavePremium.gate('visual:' + id)) return; } S.visual = id; app.store.set('visual', id); $$('.vis-card').forEach(c => c.classList.toggle('active', c.dataset.id === id)); const cv = $('#current-visual-name'); if (cv) cv.textContent = byId[id].name; if (focus.inst && focus.visualId !== id) focus.load(id); renderStage(); markMoreActive(); }
 
