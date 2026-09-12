@@ -1172,7 +1172,10 @@
       if (groups.length) {
         const title = document.createElement('h2'); title.className = 'row-title'; title.textContent = 'Your experiments'; hh.appendChild(title);
         const wrap = document.createElement('div'); wrap.className = 'lab-hist';
-        groups.forEach(([name, ids]) => { const g = document.createElement('div'); g.innerHTML = `<h3>${name}</h3><div class="chips"></div>`; ids.forEach(id => { const e = byId[id]; const b = document.createElement('button'); b.className = 'chip'; b.innerHTML = `<strong>${e.name}</strong><span>${e.cat}</span>`; b.addEventListener('click', () => openExperiment(id)); $('.chips', g).appendChild(b); }); wrap.appendChild(g); });
+        groups.forEach(([name, ids]) => { const g = document.createElement('div'); g.innerHTML = `<h3>${name}</h3><div class="chips"></div>`; ids.forEach(id => { const e = byId[id]; const b = document.createElement('button'); b.className = 'chip'; b.innerHTML = `<strong>${e.name}</strong><span>${e.cat}</span>`; b.addEventListener('click', () => openExperiment(id));
+          // Favourites can be removed right here (same × as My Saved Sounds); the chip itself still opens the experiment
+          if (name === 'Favourites') { const del = document.createElement('button'); del.type = 'button'; del.className = 'chip-del'; del.setAttribute('aria-label', 'Remove ' + e.name + ' from Favourites'); del.textContent = '×'; del.addEventListener('click', ev => { ev.stopPropagation(); const l = favs(); const i = l.indexOf(id); if (i >= 0) l.splice(i, 1); store.set('lab:favs', l); renderLists(); app.toast('Removed from Favourites'); }); b.appendChild(del); }
+          $('.chips', g).appendChild(b); }); wrap.appendChild(g); });
         hh.appendChild(wrap);
       }
     }
