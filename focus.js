@@ -396,7 +396,7 @@
   // ---------- shared state ----------
   const MOTION = { still: 0, low: 0.4, medium: 0.8, high: 5.4 };
   const S = {
-    visual: app.store.get('visual', 'ocean'),
+    visual: app.store.get('visual', 'underwater'),
     motion: app.store.get('motion', 'medium'),
     reduced: app.store.get('reduceMotion', matchMedia('(prefers-reduced-motion: reduce)').matches),
     breathText: app.store.get('breathText', true),
@@ -439,7 +439,7 @@
     const host = $('#env-mosaic'); if (!host) return; host.innerHTML = '';
     FEATURED.forEach((id, i) => { const v = byId[id]; if (!v) return; const t = document.createElement('button'); t.className = 'env-tile' + (i < 2 ? ' big' : '') + (v.id === S.visual ? ' active' : ''); t.dataset.id = id; t.setAttribute('aria-label', `${v.name}: ${v.desc}`);
       t.innerHTML = `<canvas width="360" height="240" aria-hidden="true"></canvas><span class="env-tile-name">${v.name}</span>`; const c = $('canvas', t); previews.set(c, { inst: v.make(), visible: false }); io.observe(c);
-      t.addEventListener('click', () => { pickVisual(id); renderStage(); $('#env-stage').scrollIntoView({ behavior: 'smooth', block: 'center' }); }); t.addEventListener('dblclick', () => { setVisual(id); enterFocus(); }); host.appendChild(t); });
+      t.addEventListener('click', () => { pickVisual(id); renderStage(); $('#env-stage').scrollIntoView({ behavior: 'smooth', block: 'center' }); scheduleAutoEnter(id); }); host.appendChild(t); });
     // ninth tile: opens the window with every other (non-Lab) environment. Never carries the active ring.
     const more = document.createElement('button'); more.className = 'env-tile env-tile-more'; more.type = 'button'; more.setAttribute('aria-label', 'More visuals: open the full list of environments');
     more.innerHTML = '<span class="env-tile-more-label">More Visuals +</span>'; more.addEventListener('click', openMoreVisuals); host.appendChild(more);
@@ -464,7 +464,7 @@
           const t = document.createElement('button'); t.className = 'env-tile'; t.type = 'button'; t.dataset.id = v.id; t.setAttribute('role', 'listitem'); t.setAttribute('aria-label', `${v.name}: ${v.desc}`);
           t.innerHTML = `<canvas width="360" height="240" aria-hidden="true"></canvas><span class="env-tile-name">${v.name}</span>`;
           const c = $('canvas', t); previews.set(c, { inst: v.make(), visible: false }); io.observe(c);
-          t.addEventListener('click', () => { closeLayer(); pickVisual(v.id); renderStage(); markMoreActive(); $('#env-stage').scrollIntoView({ behavior: 'smooth', block: 'center' }); });
+          t.addEventListener('click', () => { closeLayer(); pickVisual(v.id); renderStage(); markMoreActive(); $('#env-stage').scrollIntoView({ behavior: 'smooth', block: 'center' }); scheduleAutoEnter(v.id); });
           grid.appendChild(t);
         });
         groups.appendChild(sec);
@@ -474,7 +474,7 @@
       moreSheet.addEventListener('click', e => { if (e.target === moreSheet) closeLayer(); });   // backdrop
       document.addEventListener('keydown', e => { if (e.key === 'Escape' && moreSheet && !moreSheet.hidden) closeLayer(); });
     }
-    markMoreActive(); moreSheet.hidden = false;
+    cancelAutoEnter(); markMoreActive(); moreSheet.hidden = false;
     if (app.layerPush) app.layerPush(closeMoreVisuals);   // Back button / swipe-back closes it like the other sheets
   }
   function closeLayer() { if (app.layersClose && app.layerPush) app.layersClose(); else closeMoreVisuals(); }
@@ -508,6 +508,15 @@
   }
   // a pick made by the user (tiles, library, Change visual pane) is remembered for Your Focus
   function pickVisual(id) { setVisual(id); if (byId[id]) app.store.set('focus:userVisual', id); }
+  // Tile press -> selected state shows at once -> ~1.5 s pause on this page -> the full view opens by itself.
+  // Only runs when the pick actually took (Premium gate may have declined it); a later press restarts the pause,
+  // Enter Focus / opening More Visuals / leaving the page cancel it.
+  const AUTO_ENTER_MS = 1500; let autoEnter = null;
+  function cancelAutoEnter() { if (autoEnter) { clearTimeout(autoEnter); autoEnter = null; } }
+  function scheduleAutoEnter(id) {
+    cancelAutoEnter(); if (S.visual !== id) return;
+    autoEnter = setTimeout(() => { autoEnter = null; if (screen.hidden && !$('#view-focus').hidden && !document.hidden) enterFocus(); }, AUTO_ENTER_MS);
+  }
   function setVisual(id) { if (!byId[id]) return; const MZ = window.softwaveMonetization; if (MZ && !MZ.canUse('visual:' + id)) { if (window.softwavePremium && !softwavePremium.gate('visual:' + id)) return; } S.visual = id; app.store.set('visual', id); $$('.vis-card').forEach(c => c.classList.toggle('active', c.dataset.id === id)); const cv = $('#current-visual-name'); if (cv) cv.textContent = byId[id].name; if (focus.inst && focus.visualId !== id) focus.load(id); renderStage(); markMoreActive(); }
 
   // ---------- pairings ----------
@@ -599,7 +608,7 @@
   let enteredVia = null;
   function enterViaTransition(id) { if (window.softwaveTransition && !$('#view-sounds').hidden) { enteredVia = id; window.softwaveTransition.to(id, () => enterFocus(false, true)); } else enterFocus(true); }
   async function enterFocus(transition, fromTransition) {
-    if (!fromTransition) enteredVia = null;
+    cancelAutoEnter(); if (!fromTransition) enteredVia = null;
     if (!screen.hidden) return;
     if (transition) { document.body.classList.add('entering'); await new Promise(r => setTimeout(r, 520)); document.body.classList.remove('entering'); }
     focus.load(S.visual); screen.hidden = false; document.body.style.overflow = 'hidden'; resize(); focus.last = performance.now(); loop(focus.last);
@@ -725,7 +734,7 @@
   window.softwaveFocus = { enterFocus, exitFocus, enterViaTransition, setVisual, crossfadeTo, openChooser, refreshFavs: renderFavs, startSaved, visuals: V.filter(v => !v.hidden), allVisuals: V, setParam: (k, v) => { P[k] = v; }, getParam: () => P };
 
   // ---------- init ----------
-  if (!byId[S.visual]) S.visual = 'ocean';   // a stored visual id that no longer exists must not break init
+  if (!byId[S.visual]) S.visual = 'underwater';   // a stored visual id that no longer exists must not break init
   renderLibrary(); renderPairings(); renderFavs(); syncSettings(); if (window.softwaveProfile) softwaveProfile.refresh();
   const qf = new URLSearchParams(location.search).get('focus'); if (qf && byId[qf]) { setVisual(qf); setTimeout(enterFocus, 50); }
 })();
