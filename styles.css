@@ -1463,7 +1463,7 @@ html[data-theme="dark"] .lab-view { --lab-bg-a: #0f1320; --lab-bg-b: #090b12; }
    drops the section divider there; its tiles take the personalization green (same as Tuned to you). */
 .presets-row .two-tools.section-block { margin: 22px 0 4px; padding-top: 0; border-top: 0; max-width: none; }
 .presets-row .two-tools .row-title { margin-top: 0; }
-.two-tools .two-tool { border-color: rgba(62, 154, 114, 0.45); }
+.two-tools .two-tool { border-color: rgba(62, 154, 114, 0.45); border-width: 2px; }   /* a little more frame presence; box-sizing keeps the tile size */
 .two-tools .two-tool:hover, .two-tools .two-tool:focus-visible { border-color: #3e9a72; }
 :root[data-theme="dark"] .two-tools .two-tool { border-color: rgba(159, 224, 187, 0.45); }
 :root[data-theme="dark"] .two-tools .two-tool:hover, :root[data-theme="dark"] .two-tools .two-tool:focus-visible { border-color: #9fe0bb; }
