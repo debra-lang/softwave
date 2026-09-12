@@ -1498,3 +1498,11 @@ html[data-theme="dark"] .lab-view { --lab-bg-a: #0f1320; --lab-bg-b: #090b12; }
    Ocean and Rain Window no longer span extra cells and use the standard tile label size. */
 .env-tile.big { grid-column: auto; grid-row: auto; }
 .env-tile.big .env-tile-name { font-size: 1rem; left: 14px; bottom: 12px; }
+
+/* Visual Focus tiles: a clear frame on hover (pointer devices only), returning smoothly on leave.
+   Hover = bright neutral ring; selected keeps its accent ring and stays distinct when hovered. */
+@media (hover: hover) {
+  .env-tile:hover { box-shadow: 0 0 0 2px rgba(255, 255, 255, .7), 0 16px 40px rgba(0, 0, 0, .3); }
+  :root:not([data-theme="dark"]) .env-tile:hover { box-shadow: 0 0 0 2px rgba(31, 29, 26, .55), 0 16px 40px rgba(0, 0, 0, .18); }
+  .env-tile.active:hover, :root:not([data-theme="dark"]) .env-tile.active:hover { box-shadow: 0 0 0 2px var(--sf-accent), 0 16px 40px rgba(0, 0, 0, .3); }
+}
