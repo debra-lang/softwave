@@ -432,7 +432,7 @@
   }
   requestAnimationFrame(previewLoop);
 
-  const FEATURED = ['ocean', 'rainwindow', 'nightsky', 'float', 'ripple', 'flow', 'breathing', 'soundfield'];
+  const FEATURED = ['ocean', 'rainwindow', 'underwater', 'followparticles', 'pattern', 'flow', 'breathing', 'soundfield'];
   let stageInst = null, stageId = null; const stage = $('#env-stage-canvas');
   function renderStage() { if (!stage) return; const v = byId[S.visual]; if (!v) return; if (stageId !== v.id) { stageInst = v.make(); stageId = v.id; } $('#env-stage-name').textContent = v.name; $('#env-stage-desc').textContent = v.desc; const names = engine.activeList().map(s => engine.def(s.id).name); $('#env-stage-sound').textContent = (names.length ? 'with ' + names.join(' + ') : 'choose a sound, or enter and pick one inside') + ' · movement ' + S.motion; $$('.env-tile').forEach(t => t.classList.toggle('active', t.dataset.id === v.id)); }
   function renderMosaic() {
