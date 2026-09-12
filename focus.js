@@ -450,7 +450,7 @@
   const EXTRA = () => V.filter(v => !v.hidden && !FEATURED.includes(v.id));
   let moreSheet = null;
   function markMoreActive() { if (!moreSheet) return; $$('.env-tile', moreSheet).forEach(t => t.classList.toggle('active', t.dataset.id === S.visual)); }
-  function closeMoreVisuals() { if (!moreSheet || moreSheet.hidden) return; moreSheet.hidden = true; }
+  function closeMoreVisuals() { if (!moreSheet || moreSheet.hidden) return; moreSheet.hidden = true; cancelAutoEnter(); }
   function openMoreVisuals() {
     if (!moreSheet) {
       moreSheet = document.createElement('div'); moreSheet.id = 'more-visuals-sheet'; moreSheet.className = 'addsound-sheet'; moreSheet.hidden = true;
@@ -464,7 +464,7 @@
           const t = document.createElement('button'); t.className = 'env-tile'; t.type = 'button'; t.dataset.id = v.id; t.setAttribute('role', 'listitem'); t.setAttribute('aria-label', `${v.name}: ${v.desc}`);
           t.innerHTML = `<canvas width="360" height="240" aria-hidden="true"></canvas><span class="env-tile-name">${v.name}</span>`;
           const c = $('canvas', t); previews.set(c, { inst: v.make(), visible: false }); io.observe(c);
-          t.addEventListener('click', () => { closeLayer(); pickVisual(v.id); renderStage(); markMoreActive(); scheduleAutoEnter(v.id); });
+          t.addEventListener('click', () => { pickVisual(v.id); renderStage(); markMoreActive(); scheduleAutoEnter(v.id); });   /* window stays open during the pause; it closes in the same frame the full view opens */
           grid.appendChild(t);
         });
         groups.appendChild(sec);
@@ -515,7 +515,7 @@
   function cancelAutoEnter() { if (autoEnter) { clearTimeout(autoEnter); autoEnter = null; } }
   function scheduleAutoEnter(id) {
     cancelAutoEnter(); if (S.visual !== id) return;
-    autoEnter = setTimeout(() => { autoEnter = null; if (screen.hidden && !$('#view-focus').hidden) enterFocus(); }, AUTO_ENTER_MS);
+    autoEnter = setTimeout(() => { autoEnter = null; if (!(screen.hidden && !$('#view-focus').hidden)) return; if (moreSheet && !moreSheet.hidden) closeLayer(); enterFocus(); }, AUTO_ENTER_MS);
   }
   function setVisual(id) { if (!byId[id]) return; const MZ = window.softwaveMonetization; if (MZ && !MZ.canUse('visual:' + id)) { if (window.softwavePremium && !softwavePremium.gate('visual:' + id)) return; } S.visual = id; app.store.set('visual', id); $$('.vis-card').forEach(c => c.classList.toggle('active', c.dataset.id === id)); const cv = $('#current-visual-name'); if (cv) cv.textContent = byId[id].name; if (focus.inst && focus.visualId !== id) focus.load(id); renderStage(); markMoreActive(); }
 

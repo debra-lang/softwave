@@ -1518,7 +1518,7 @@ html[data-theme="dark"] .lab-view { --lab-bg-a: #0f1320; --lab-bg-b: #090b12; }
 .env-tile.env-tile-more { display: flex; align-items: center; justify-content: center; background: var(--sf-glass); border: 1px dashed var(--sf-line); box-shadow: none; }
 .env-tile.env-tile-more::after { content: none; }
 .env-tile-more-label { font-weight: 600; letter-spacing: .04em; font-size: 1.05rem; color: var(--sf-ink); }
-.more-visuals-card { width: min(1100px, 100%); max-height: 86vh; }
+.more-visuals-card { width: min(1100px, 100%); max-height: 86vh; overscroll-behavior: contain; }   /* scrolling inside the window never moves the page behind it */
 .more-visuals-card .addsound-head strong { font-family: var(--sf-display); font-weight: 400; font-size: 1.3rem; letter-spacing: .02em; }
 .more-visuals-cat { font-size: .74rem; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); font-weight: 600; margin: 16px 0 8px; }
 .more-visuals-card .env-mosaic.more-mosaic { margin: 0 0 6px; width: 100%; }
