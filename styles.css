@@ -1471,3 +1471,13 @@ html[data-theme="dark"] .lab-view { --lab-bg-a: #0f1320; --lab-bg-b: #090b12; }
 /* Sounds page eyebrow "Personal sound discovery for tinnitus": the personalization green (same as Tuned to you) */
 :root:not([data-theme="dark"]) .sf-hero .brand-eyebrow { color: #3e9a72; }
 :root[data-theme="dark"] .sf-hero .brand-eyebrow { color: #9fe0bb; }
+
+/* Visual Focus landing: calmer featured card. Same information and artwork; only the secondary
+   caption, the Save button, the suggestion line and the spacing before the grid are softened. */
+.env-stage-sound { font-size: .68rem; letter-spacing: .1em; opacity: .6; font-weight: 400; margin-top: 10px; line-height: 1.5; }
+.env-stage-actions { margin-top: 18px; align-items: center; }
+.env-stage-actions .btn-ghost { background: transparent; backdrop-filter: none; border-color: rgba(255, 255, 255, .22); font-weight: 500; padding: 9px 16px; color: rgba(255, 255, 255, .9); }
+.env-stage-actions .btn-ghost:hover { border-color: rgba(255, 255, 255, .45); background: rgba(255, 255, 255, .06); }
+#visual-profile-suggest { font-size: .8rem; opacity: .75; margin: 12px 0 0; }
+.env-mosaic { margin-top: 28px; }
+@media (max-width: 760px) { .env-mosaic { margin-top: 34px; } #visual-profile-suggest { margin-top: 14px; } .env-stage-sound { font-size: .64rem; } }
