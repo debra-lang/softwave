@@ -440,7 +440,44 @@
     FEATURED.forEach((id, i) => { const v = byId[id]; if (!v) return; const t = document.createElement('button'); t.className = 'env-tile' + (i < 2 ? ' big' : '') + (v.id === S.visual ? ' active' : ''); t.dataset.id = id; t.setAttribute('aria-label', `${v.name}: ${v.desc}`);
       t.innerHTML = `<canvas width="360" height="240" aria-hidden="true"></canvas><span class="env-tile-name">${v.name}</span>`; const c = $('canvas', t); previews.set(c, { inst: v.make(), visible: false }); io.observe(c);
       t.addEventListener('click', () => { pickVisual(id); renderStage(); $('#env-stage').scrollIntoView({ behavior: 'smooth', block: 'center' }); }); t.addEventListener('dblclick', () => { setVisual(id); enterFocus(); }); host.appendChild(t); });
+    // ninth tile: opens the window with every other (non-Lab) environment. Never carries the active ring.
+    const more = document.createElement('button'); more.className = 'env-tile env-tile-more'; more.type = 'button'; more.setAttribute('aria-label', 'More visuals: open the full list of environments');
+    more.innerHTML = '<span class="env-tile-more-label">More Visuals +</span>'; more.addEventListener('click', openMoreVisuals); host.appendChild(more);
   }
+  // ---------- "More Visuals +" window: the environments that are not main tiles, grouped by category ----------
+  // Same tiles, same previews (lazy, visibility-aware, Low Power / Reduce Motion via the shared loop) and the
+  // SAME selection path as the main tiles (pickVisual -> setVisual, which owns the Premium gate).
+  const EXTRA = () => V.filter(v => !v.hidden && !FEATURED.includes(v.id));
+  let moreSheet = null;
+  function markMoreActive() { if (!moreSheet) return; $$('.env-tile', moreSheet).forEach(t => t.classList.toggle('active', t.dataset.id === S.visual)); }
+  function closeMoreVisuals() { if (!moreSheet || moreSheet.hidden) return; moreSheet.hidden = true; }
+  function openMoreVisuals() {
+    if (!moreSheet) {
+      moreSheet = document.createElement('div'); moreSheet.id = 'more-visuals-sheet'; moreSheet.className = 'addsound-sheet'; moreSheet.hidden = true;
+      moreSheet.innerHTML = `<div class="addsound-card card more-visuals-card" role="dialog" aria-label="More visuals"><div class="addsound-head"><strong>More visuals</strong><button class="btn btn-ghost btn-sm" type="button" data-mv-close>Done</button></div><div data-mv-groups></div></div>`;
+      const groups = $('[data-mv-groups]', moreSheet);
+      CATS.forEach(cat => {
+        const list = EXTRA().filter(v => v.cat === cat); if (!list.length) return;
+        const sec = document.createElement('section'); sec.innerHTML = `<h3 class="more-visuals-cat">${cat}</h3><div class="env-mosaic more-mosaic" role="list"></div>`;
+        const grid = $('.more-mosaic', sec);
+        list.forEach(v => {
+          const t = document.createElement('button'); t.className = 'env-tile'; t.type = 'button'; t.dataset.id = v.id; t.setAttribute('role', 'listitem'); t.setAttribute('aria-label', `${v.name}: ${v.desc}`);
+          t.innerHTML = `<canvas width="360" height="240" aria-hidden="true"></canvas><span class="env-tile-name">${v.name}</span>`;
+          const c = $('canvas', t); previews.set(c, { inst: v.make(), visible: false }); io.observe(c);
+          t.addEventListener('click', () => { closeLayer(); pickVisual(v.id); renderStage(); markMoreActive(); $('#env-stage').scrollIntoView({ behavior: 'smooth', block: 'center' }); });
+          grid.appendChild(t);
+        });
+        groups.appendChild(sec);
+      });
+      document.body.appendChild(moreSheet);
+      $('[data-mv-close]', moreSheet).addEventListener('click', closeLayer);
+      moreSheet.addEventListener('click', e => { if (e.target === moreSheet) closeLayer(); });   // backdrop
+      document.addEventListener('keydown', e => { if (e.key === 'Escape' && moreSheet && !moreSheet.hidden) closeLayer(); });
+    }
+    markMoreActive(); moreSheet.hidden = false;
+    if (app.layerPush) app.layerPush(closeMoreVisuals);   // Back button / swipe-back closes it like the other sheets
+  }
+  function closeLayer() { if (app.layersClose && app.layerPush) app.layersClose(); else closeMoreVisuals(); }
   // One selection system: "Add Visual" opens the Visual Focus chooser (the page itself). Sound keeps playing.
   function openChooser() { app.showView('focus'); setTimeout(() => { const st = $('#env-stage'); st && st.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 250); }
   function openChooserOld() {
@@ -471,7 +508,7 @@
   }
   // a pick made by the user (tiles, library, Change visual pane) is remembered for Your Focus
   function pickVisual(id) { setVisual(id); if (byId[id]) app.store.set('focus:userVisual', id); }
-  function setVisual(id) { if (!byId[id]) return; const MZ = window.softwaveMonetization; if (MZ && !MZ.canUse('visual:' + id)) { if (window.softwavePremium && !softwavePremium.gate('visual:' + id)) return; } S.visual = id; app.store.set('visual', id); $$('.vis-card').forEach(c => c.classList.toggle('active', c.dataset.id === id)); const cv = $('#current-visual-name'); if (cv) cv.textContent = byId[id].name; if (focus.inst && focus.visualId !== id) focus.load(id); renderStage(); }
+  function setVisual(id) { if (!byId[id]) return; const MZ = window.softwaveMonetization; if (MZ && !MZ.canUse('visual:' + id)) { if (window.softwavePremium && !softwavePremium.gate('visual:' + id)) return; } S.visual = id; app.store.set('visual', id); $$('.vis-card').forEach(c => c.classList.toggle('active', c.dataset.id === id)); const cv = $('#current-visual-name'); if (cv) cv.textContent = byId[id].name; if (focus.inst && focus.visualId !== id) focus.load(id); renderStage(); markMoreActive(); }
 
   // ---------- pairings ----------
   const PAIRINGS = [

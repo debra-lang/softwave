@@ -984,7 +984,7 @@
     let reloaded = false; navigator.serviceWorker.addEventListener('controllerchange', () => { if (reloaded || !navigator.serviceWorker.controller) return; reloaded = true; if (!engine.isPlaying) location.reload(); });
   });
 
-  window.softwaveApp = { renderPresetsRemount, loadPreset, saveCurrentMix, restoreMix, openSaveSheet, openManageMenu, openMixMenu, savedSessions, soundVol, SAVED_ICO, setMaster, togglePlay, toast, store, PRESETS, paintRange, showView, scheduleAutoAdvance, renderPresets: renderPresetsRemount };
+  window.softwaveApp = { layerPush, layersClose, renderPresetsRemount, loadPreset, saveCurrentMix, restoreMix, openSaveSheet, openManageMenu, openMixMenu, savedSessions, soundVol, SAVED_ICO, setMaster, togglePlay, toast, store, PRESETS, paintRange, showView, scheduleAutoAdvance, renderPresets: renderPresetsRemount };
 
   // ---------- init ----------
   renderSounds(); renderPresets(); renderMixer([]); updatePlayer(); renderProfileHooks(); if (window.SoftwaveField) syncField();
