@@ -1467,3 +1467,7 @@ html[data-theme="dark"] .lab-view { --lab-bg-a: #0f1320; --lab-bg-b: #090b12; }
 .two-tools .two-tool:hover, .two-tools .two-tool:focus-visible { border-color: #3e9a72; }
 :root[data-theme="dark"] .two-tools .two-tool { border-color: rgba(159, 224, 187, 0.45); }
 :root[data-theme="dark"] .two-tools .two-tool:hover, :root[data-theme="dark"] .two-tools .two-tool:focus-visible { border-color: #9fe0bb; }
+
+/* Sounds page eyebrow "Personal sound discovery for tinnitus": the personalization green (same as Tuned to you) */
+:root:not([data-theme="dark"]) .sf-hero .brand-eyebrow { color: #3e9a72; }
+:root[data-theme="dark"] .sf-hero .brand-eyebrow { color: #9fe0bb; }
