@@ -168,8 +168,12 @@
     // real conditional rendering: the section exists in the DOM only when it has content
     let row = $('.presets-row');
     if (!row) { const tpl = $('#presets-template'); if (!tpl) return null; presetsSlot().appendChild(tpl.content.cloneNode(true)); row = $('.presets-row'); }
+    // "Two ways to explore" lives right after the one-tap presets (before the saved rows). It is a
+    // static block, so it is moved into position here and parked again before the row is rebuilt.
+    const tt = $('.two-tools'); if (tt && tt.parentElement !== row) row.insertBefore(tt, $('#presets').nextSibling);
     return row;
   }
+  function dropPresetsRow(row) { const tt = $('.two-tools'); if (tt && row.contains(tt)) presetsSlot().after(tt); row.remove(); }
   // One-tap presets carry the user onward: a few seconds after a preset starts,
   // open the matching full-screen player (Immerse from Sounds, the Sleep Screen
   // from Sleep) — but only if the sound is still playing, they are still on that
@@ -220,7 +224,7 @@
     const anyPresets = PRESETS.length > 0 || store.get('mixes', []).length > 0;
     const ms = store.get('lab:sounds', []).filter(x => x && x.name);
     const prow = mountPresets();
-    if (prow && !anyPresets && !ms.length) { prow.remove(); try { make($('#sleep-presets'), false); } catch (e) { console.error(e); } updateMixSaved(); return; }
+    if (prow && !anyPresets && !ms.length) { dropPresetsRow(prow); try { make($('#sleep-presets'), false); } catch (e) { console.error(e); } updateMixSaved(); return; }
     try { make($('#presets'), false); } catch (e) { console.error(e); } try { make($('#sleep-presets'), false); } catch (e) { console.error(e); }
     // My Saved Mixes: the user's own combinations — kept apart from the built-in presets
     const mixes = savedMixesOnly();
@@ -255,7 +259,7 @@
       });
     }
     if (window.softwaveFocus && softwaveFocus.refreshFavs) softwaveFocus.refreshFavs();   // Visual Focus lists the same sessions
-    if (!$('#presets').children.length) { const pr2 = $('.presets-row'); const msRow = $('#my-sounds-row'); if (pr2 && msRow && !ms.length) { pr2.remove(); updateMixSaved(); return; } }
+    if (!$('#presets').children.length) { const pr2 = $('.presets-row'); const msRow = $('#my-sounds-row'); if (pr2 && msRow && !ms.length) { dropPresetsRow(pr2); updateMixSaved(); return; } }
     const row = $('#my-sounds-row'); const host = $('#my-sounds');
     if (!ms.length) { if (row) row.remove(); updateMixSaved(); return; }
     if (!row || !host) { renderPresetsRemount(); return; }   // the row was removed earlier; rebuild the template
@@ -266,7 +270,7 @@
     if (!host.children.length) row.remove();   // the section exists only with content
     updateMixSaved();
   }
-  function renderPresetsRemount() { const r = $('.presets-row'); if (r) r.remove(); renderPresets(); }
+  function renderPresetsRemount() { const r = $('.presets-row'); if (r) dropPresetsRow(r); renderPresets(); }
   function updateMixSaved() {
     const saved = $('#saved-mixes'); if (!saved) return; saved.innerHTML = '';
     const custom = savedMixesOnly();

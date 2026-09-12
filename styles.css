@@ -1458,3 +1458,12 @@ html[data-theme="dark"] .lab-view { --lab-bg-a: #0f1320; --lab-bg-b: #090b12; }
 .acct-row input { flex: 1; min-width: 150px; padding: 10px 14px; border-radius: 999px; border: 1px solid var(--sf-line); background: transparent; color: var(--sf-ink); font: inherit; }
 .acct-card .danger { color: #d66; }
 #acct-sync { color: var(--sf-ink-2); }
+
+/* Sounds page: "Two ways to explore" sits inside the presets row (after the one-tap presets), so it
+   drops the section divider there; its tiles take the personalization green (same as Tuned to you). */
+.presets-row .two-tools.section-block { margin: 22px 0 4px; padding-top: 0; border-top: 0; max-width: none; }
+.presets-row .two-tools .row-title { margin-top: 0; }
+.two-tools .two-tool { border-color: rgba(62, 154, 114, 0.45); }
+.two-tools .two-tool:hover, .two-tools .two-tool:focus-visible { border-color: #3e9a72; }
+:root[data-theme="dark"] .two-tools .two-tool { border-color: rgba(159, 224, 187, 0.45); }
+:root[data-theme="dark"] .two-tools .two-tool:hover, :root[data-theme="dark"] .two-tools .two-tool:focus-visible { border-color: #9fe0bb; }
