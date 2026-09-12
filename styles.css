@@ -1493,3 +1493,8 @@ html[data-theme="dark"] .lab-view { --lab-bg-a: #0f1320; --lab-bg-b: #090b12; }
   .env-stage-actions .btn-primary { font-size: .97rem; min-height: 49px; }
   .env-stage-actions .btn-ghost { font-size: .94rem; min-height: 44px; }
 }
+
+/* Visual Focus gallery: every environment tile takes one cell (2 columns on phone, 4 on desktop);
+   Ocean and Rain Window no longer span extra cells and use the standard tile label size. */
+.env-tile.big { grid-column: auto; grid-row: auto; }
+.env-tile.big .env-tile-name { font-size: 1rem; left: 14px; bottom: 12px; }
