@@ -1506,3 +1506,9 @@ html[data-theme="dark"] .lab-view { --lab-bg-a: #0f1320; --lab-bg-b: #090b12; }
   :root:not([data-theme="dark"]) .env-tile:hover { box-shadow: 0 0 0 2px rgba(31, 29, 26, .55), 0 16px 40px rgba(0, 0, 0, .18); }
   .env-tile.active:hover, :root:not([data-theme="dark"]) .env-tile.active:hover { box-shadow: 0 0 0 2px var(--sf-accent), 0 16px 40px rgba(0, 0, 0, .3); }
 }
+
+/* Visual Focus: the Movement controls sit in a quiet frame under the environment grid —
+   hairline border, faint glass tint, no shadow, aligned to the grid width. Controls unchanged. */
+.focus-view .focus-settings-open { width: min(100%, 1100px); box-sizing: border-box; margin: 18px auto 10px; padding: 16px 20px;
+  border: 1px solid var(--sf-line); border-radius: 22px; background: var(--sf-glass); box-shadow: none; }
+@media (max-width: 760px) { .focus-view .focus-settings-open { padding: 14px 16px; } }
