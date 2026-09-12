@@ -439,7 +439,7 @@
     const host = $('#env-mosaic'); if (!host) return; host.innerHTML = '';
     FEATURED.forEach((id, i) => { const v = byId[id]; if (!v) return; const t = document.createElement('button'); t.className = 'env-tile' + (i < 2 ? ' big' : '') + (v.id === S.visual ? ' active' : ''); t.dataset.id = id; t.setAttribute('aria-label', `${v.name}: ${v.desc}`);
       t.innerHTML = `<canvas width="360" height="240" aria-hidden="true"></canvas><span class="env-tile-name">${v.name}</span>`; const c = $('canvas', t); previews.set(c, { inst: v.make(), visible: false }); io.observe(c);
-      t.addEventListener('click', () => { pickVisual(id); renderStage(); $('#env-stage').scrollIntoView({ behavior: 'smooth', block: 'center' }); scheduleAutoEnter(id); }); host.appendChild(t); });
+      t.addEventListener('click', () => { pickVisual(id); renderStage(); scheduleAutoEnter(id); });   /* no scroll: the user stays on the tile they tapped during the pause */ host.appendChild(t); });
     // ninth tile: opens the window with every other (non-Lab) environment. Never carries the active ring.
     const more = document.createElement('button'); more.className = 'env-tile env-tile-more'; more.type = 'button'; more.setAttribute('aria-label', 'More visuals: open the full list of environments');
     more.innerHTML = '<span class="env-tile-more-label">More Visuals +</span>'; more.addEventListener('click', openMoreVisuals); host.appendChild(more);
@@ -464,7 +464,7 @@
           const t = document.createElement('button'); t.className = 'env-tile'; t.type = 'button'; t.dataset.id = v.id; t.setAttribute('role', 'listitem'); t.setAttribute('aria-label', `${v.name}: ${v.desc}`);
           t.innerHTML = `<canvas width="360" height="240" aria-hidden="true"></canvas><span class="env-tile-name">${v.name}</span>`;
           const c = $('canvas', t); previews.set(c, { inst: v.make(), visible: false }); io.observe(c);
-          t.addEventListener('click', () => { closeLayer(); pickVisual(v.id); renderStage(); markMoreActive(); $('#env-stage').scrollIntoView({ behavior: 'smooth', block: 'center' }); scheduleAutoEnter(v.id); });
+          t.addEventListener('click', () => { closeLayer(); pickVisual(v.id); renderStage(); markMoreActive(); scheduleAutoEnter(v.id); });
           grid.appendChild(t);
         });
         groups.appendChild(sec);
