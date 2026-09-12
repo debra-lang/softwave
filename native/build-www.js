@@ -12,7 +12,7 @@ const FILES = [
   'index.html', 'styles.css', 'site.css',
   'app.js', 'audio.js', 'field.js', 'visuals.js', 'focus.js', 'lab.js',
   'monetization.js', 'premium.js', 'personal.js', 'controller.js', 'assistant.js', 'intro.js',
-  'cloud.js', 'cloud-config.js', 'diag.js',
+  'cloud.js', 'cloud-config.js',
   'manifest.webmanifest', '404.html', 'og-image.png',
 ];
 const DIRS = [
