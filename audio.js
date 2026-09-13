@@ -294,7 +294,7 @@
       }
       this._releaseT = setTimeout(() => {
         this._releaseT = null;
-        if (this.isPlaying || this._pendingStarts > 0 || (this.tone && this.tone.playing)) return;   // something is (about to be) audible again
+        if (this.isPlaying || this._pendingStarts > 0 || (this.tone && this.tone.playing) || (this.active.size > 0 && !this.userPaused)) return;   // something is (about to be) audible again — the last term: a Play/resume is in flight (sounds queued, user not paused), so this release must not interrupt it
         if (this.mediaOut) this.mediaOut.pause();
         if (this.silentEl) this.silentEl.pause();
         if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
