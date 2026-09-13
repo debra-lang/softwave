@@ -126,7 +126,17 @@
       // audible again in that window (playAll, a new sound, a tone) clears the token so the
       // pending suspend is abandoned instead of landing on a resumed context.
       this._pauseTok = null;
+      // TEMPORARY (build 54 validation): engine event log, capped, persisted so it survives a locked-phone
+      // session; viewed via the five-tap build-tag panel. Remove once the locked-phone timer fade is verified.
+      this._diagLog = []; try { const raw = localStorage.getItem('softwave:diag:audio'); if (raw) this._diagLog = JSON.parse(raw).slice(-80); } catch (_) { }
     }
+    _diag(ev, extra) {
+      const e = Object.assign({ t: Date.now(), ac: this.ctx ? +this.ctx.currentTime.toFixed(3) : null, st: this.ctx ? this.ctx.state : '-', vis: typeof document !== 'undefined' ? document.visibilityState : '-', ev }, extra || {});
+      this._diagLog.push(e); if (this._diagLog.length > 80) this._diagLog.splice(0, this._diagLog.length - 80);
+      try { localStorage.setItem('softwave:diag:audio', JSON.stringify(this._diagLog)); } catch (_) { }
+    }
+    diagLog() { return this._diagLog.slice(); }
+    diagClear() { this._diagLog = []; try { localStorage.removeItem('softwave:diag:audio'); } catch (_) { } }
 
     on(fn) { this.listeners.add(fn); return () => this.listeners.delete(fn); }
     emit(type, data) { this.listeners.forEach(fn => fn(type, data)); }
@@ -193,6 +203,7 @@
           out.setAttribute('playsinline', ''); out.autoplay = true; out.style.display = 'none';
           document.body.appendChild(out);
           this.mediaOut = out;
+          ['play', 'playing', 'pause', 'stalled', 'waiting', 'suspend', 'ended', 'error'].forEach(ev => out.addEventListener(ev, () => this._diag('media:' + ev)));
           out.play().catch(() => { });
           routed = true;
         } catch (e) { console.warn('media-element routing unavailable, using direct output', e); }
@@ -205,8 +216,10 @@
       this._ready = Promise.race([ready, fallback]).then(() => { if (!this.buffers.white) { const b = generateInline(ctx); if (b) Object.assign(this.buffers, b); } });
 
       ctx.onstatechange = () => {
+        this._diag('ctx:' + ctx.state);
         this.emit('state', ctx.state);
       };
+      if (!this._diagHooked) { this._diagHooked = true; try { document.addEventListener('visibilitychange', () => this._diag('vis:' + document.visibilityState)); ['pagehide', 'pageshow', 'freeze', 'resume'].forEach(ev => addEventListener(ev, () => this._diag('page:' + ev))); } catch (_) { } }
       this._setupBackground();
       await this.resume();
       this.setMasterVolume(this.masterVolume, true);
@@ -218,6 +231,7 @@
       if (this.ctx.state !== 'running') {
         try { await Promise.race([this.ctx.resume(), new Promise(r => setTimeout(r, 1500))]); } catch (e) { /* needs gesture */ }
         if (this.ctx.state !== 'running') this._needsGesture = true;   // the next tap resumes it inside the gesture
+        this._diag('ctx:resume', { ok: this.ctx.state === 'running' });
       }
       // native iOS: routed output back on after interruptions — whenever sounds are queued, not only once running
       if (this.mediaOut && (this.isPlaying || this.active.size)) this.mediaOut.play().then(() => { this._needsGesture = false; }).catch(() => { this._needsGesture = true; });
@@ -285,6 +299,7 @@
       // cut the sound dead (build 52, iPhone test 1). Anything that plays again inside that
       // window (a new sound, Play, a tone) calls _keepAlive(true) and cancels the release.
       clearTimeout(this._releaseT); this._releaseT = null;
+      this._diag(on ? 'ka:on' : 'ka:armed');
       if (on) {
         if (this.mediaOut) { const p = this.mediaOut.play(); if (p && p.then) p.then(() => { this._needsGesture = false; }).catch(() => { this._needsGesture = true; }); }
         if (this.silentEl) this.silentEl.play().catch(() => { });
@@ -293,7 +308,9 @@
       }
       this._releaseT = setTimeout(() => {
         this._releaseT = null;
-        if (this.isPlaying || this._pendingStarts > 0 || (this.tone && this.tone.playing)) return;   // something is (about to be) audible again
+        const why = this.isPlaying ? 'playing' : this._pendingStarts > 0 ? 'start pending' : (this.tone && this.tone.playing) ? 'tone' : null;
+        if (why) { this._diag('ka:skipped', { why }); return; }   // something is (about to be) audible again
+        this._diag('ka:released');
         if (this.mediaOut) this.mediaOut.pause();
         if (this.silentEl) this.silentEl.pause();
         if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
@@ -1046,22 +1063,50 @@
       // event would make UI listeners flip the selected chip back to Continuous.
       this.clearTimer(!!minutes);
       if (!minutes) { this.emit('timer', this.timer); return; }
-      this.timer = { endsAt: Date.now() + minutes * 60000, fade, durationMin: minutes, fading: false };
+      // Same window as always: the last 25% of the duration, at most 5 minutes.
+      const fadeMs = Math.min(5 * 60000, minutes * 60000 * 0.25);
+      this.timer = { endsAt: Date.now() + minutes * 60000, fade, durationMin: minutes, fading: false, fadeMs };
+      this._diag('timer:set', { min: minutes, fade, fadeMs });
+      // The fade is programmed on the AUDIO clock now (hold, then ramp to zero at the deadline), so the
+      // graph performs it even if JavaScript is throttled for the whole window (locked iPhone). Each tick
+      // re-asserts it, which repairs clock drift after a pause and any master-volume change in between.
+      this._scheduleTimerFade('set');
+      let lastTick = Date.now();
       const tick = () => {
-        const left = this.timer.endsAt - Date.now();
+        const now = Date.now(); const gap = now - lastTick; lastTick = now; if (gap > 1500) this._diag('timer:tickgap', { gapMs: gap });
+        const left = this.timer.endsAt - now;
         if (left <= 0) { this._timerFinish(); return; }
-        const fadeMs = Math.min(5 * 60000, this.timer.durationMin * 60000 * 0.25);
-        if (this.timer.fade && left <= fadeMs && !this.timer.fading && this.ctx) {
-          this.timer.fading = true;
-          const g = this.master.gain; const t = this.ctx.currentTime;
-          g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.linearRampToValueAtTime(0, t + left / 1000);
-        }
+        if (this.timer.fade && left <= fadeMs && !this.timer.fading) { this.timer.fading = true; this._diag('timer:window', { leftMs: left, master: this.ctx ? +this.master.gain.value.toFixed(3) : null }); }
+        if (this.timer.fade) this._scheduleTimerFade('tick');
         this.emit('timer', this.timer);
         this._timerId = setTimeout(tick, 1000);
       };
       tick();
     }
+    _scheduleTimerFade(why) {
+      if (!this.ctx || !this.timer.endsAt || !this.timer.fade) return;
+      const leftS = (this.timer.endsAt - Date.now()) / 1000; if (leftS <= 0) return;
+      const g = this.master.gain; const now = this.ctx.currentTime; const tEnd = now + leftS; const tStart = tEnd - this.timer.fadeMs / 1000;
+      g.cancelScheduledValues(now); g.setValueAtTime(g.value, now);
+      if (tStart > now) g.setValueAtTime(g.value, tStart);   // hold the current level until the window opens…
+      g.linearRampToValueAtTime(0, tEnd);                    // …then reach silence exactly at the deadline
+      if (why === 'set') this._diag('timer:fade-scheduled', { startIn: +Math.max(0, tStart - now).toFixed(1), endIn: +leftS.toFixed(1), level: +g.value.toFixed(3) });
+    }
     _timerFinish() {
+      // Safety net only: if the scheduled fade did not complete (JavaScript woke late, or the schedule
+      // was cancelled and never re-asserted), fade the master over the normal stop length first.
+      const g = this.ctx ? this.master.gain : null; const level = g ? g.value : 0;
+      const audible = !!g && level > Math.max(0.005, this._curve(this.masterVolume) * 1.5 * 0.05) && (this.active.size > 0 || (this.tone && this.tone.playing));
+      this._diag('timer:finish', { master: +level.toFixed(3), safety: audible });
+      if (audible) {
+        const t = this.ctx.currentTime; g.cancelScheduledValues(t); g.setValueAtTime(level, t); g.linearRampToValueAtTime(0, t + FADE_OUT);
+        this.timer.fading = true;   // a clearTimer() inside this window restores the master like any cancelled fade
+        this._timerId = setTimeout(() => { this._timerId = null; this._timerFinalize(); }, FADE_OUT * 1000 + 50);
+        return;
+      }
+      this._timerFinalize();
+    }
+    _timerFinalize() {
       // The fade lowered only the master. Pin every layer (and the tone) to silence first, so
       // restoring the master for the next session cannot let the 0.8 s layer fade-outs through.
       if (this.ctx) {
@@ -1078,8 +1123,10 @@
     }
     clearTimer(silent) {
       if (this._timerId) clearTimeout(this._timerId); this._timerId = null;
-      const wasFading = this.timer.fading;
+      const wasFading = this.timer.fading; const hadSchedule = !!(this.timer.endsAt && this.timer.fade && this.ctx);
       this.timer = { endsAt: null, fade: this.timer.fade, durationMin: null };
+      // Drop the programmed hold/ramp (it may not have started yet), holding the current level.
+      if (hadSchedule) { const g = this.master.gain; const t = this.ctx.currentTime; g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); }
       // Restore the master only while something will still be heard (timer cancelled mid-fade).
       // After a Stop the layers are fading out on their own; lifting the master under them
       // would replay the mix at full level for 0.8 s. The next start re-asserts the master.

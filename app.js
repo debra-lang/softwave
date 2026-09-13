@@ -1017,6 +1017,26 @@
     let reloaded = false; navigator.serviceWorker.addEventListener('controllerchange', () => { if (reloaded || !navigator.serviceWorker.controller) return; reloaded = true; if (!engine.isPlaying) location.reload(); });
   });
 
+  // TEMPORARY (build 54 validation): tap the build tag five times to see the engine event log. Remove after verification.
+  (() => {
+    const tag = $('#build-tag'); if (!tag) return; let taps = 0, tapT = 0; let sheet = null;
+    const fmt = e => { const d = new Date(e.t); const hh = d.toTimeString().slice(0, 8) + '.' + String(d.getMilliseconds()).padStart(3, '0'); const extra = Object.keys(e).filter(k => !['t', 'ac', 'st', 'vis', 'ev'].includes(k)).map(k => k + '=' + JSON.stringify(e[k])).join(' '); return `${hh} ac=${e.ac === null ? '-' : e.ac} ${e.st} ${e.vis} ${e.ev}${extra ? ' ' + extra : ''}`; };
+    const open = () => {
+      if (!sheet) {
+        sheet = document.createElement('div'); sheet.className = 'addsound-sheet'; sheet.hidden = true;
+        sheet.innerHTML = '<div class="addsound-card card" role="dialog" aria-label="Diagnostics"><div class="addsound-head"><strong>Diagnostics (temporary)</strong><span style="display:flex;gap:6px"><button class="btn btn-ghost btn-sm" type="button" data-dg-copy>Copy</button><button class="btn btn-ghost btn-sm" type="button" data-dg-clear>Clear</button><button class="btn btn-ghost btn-sm" type="button" data-dg-close>Done</button></span></div><pre data-dg-log style="font-size:.7rem;line-height:1.35;white-space:pre-wrap;word-break:break-word;margin:8px 0 0;max-height:60vh;overflow:auto;user-select:text;-webkit-user-select:text"></pre></div>';
+        document.body.appendChild(sheet);
+        $('[data-dg-close]', sheet).addEventListener('click', layersClose);
+        sheet.addEventListener('click', e => { if (e.target === sheet) layersClose(); });
+        $('[data-dg-clear]', sheet).addEventListener('click', () => { engine.diagClear(); render(); });
+        $('[data-dg-copy]', sheet).addEventListener('click', async () => { const text = $('[data-dg-log]', sheet).textContent; try { await navigator.clipboard.writeText(text); toast('Diagnostics copied'); } catch (_) { const r = document.createRange(); r.selectNodeContents($('[data-dg-log]', sheet)); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); toast('Select all and copy'); } });
+      }
+      render(); sheet.hidden = false; layerPush(() => { sheet.hidden = true; });
+    };
+    const render = () => { const log = engine.diagLog ? engine.diagLog() : []; $('[data-dg-log]', sheet).textContent = `build ${tag.textContent.trim()} · ${log.length} events (oldest first)\n` + log.map(fmt).join('\n'); };
+    tag.style.cursor = 'default';
+    tag.addEventListener('click', () => { const now = Date.now(); taps = now - tapT < 2000 ? taps + 1 : 1; tapT = now; if (taps >= 5) { taps = 0; open(); } });
+  })();
   window.softwaveApp = { layerPush, layersClose, layerReplace, topLayerIs, afterLayerClose, updateBackBtn, armIntent, cancelIntent, cancelIntents, pendingIntents, renderPresetsRemount, loadPreset, saveCurrentMix, restoreMix, openSaveSheet, openManageMenu, openMixMenu, savedSessions, soundVol, SAVED_ICO, setMaster, togglePlay, toast, store, PRESETS, paintRange, showView, scheduleAutoAdvance, renderPresets: renderPresetsRemount };
 
   // ---------- init ----------
