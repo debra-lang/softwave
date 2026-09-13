@@ -994,6 +994,35 @@
     if (navDepth > 0 && location.hash) history.back();
   }
   $('#nav-back').addEventListener('click', goBack);
+  // ---------- shell-only edge swipe for same-document layers ----------
+  // WKWebView's native back-swipe does not traverse pushState entries (device-verified, build 54), so
+  // inside the iOS shell a left-edge swipe calls the app's own Back. It arms only when a touch starts
+  // within EDGE px of the left edge AND an app layer/overlay is open, commits once per touch after a
+  // clear rightward move with little vertical drift, and yields to a native popstate that already
+  // landed for the same interaction. It never navigates: goBack stops at every section root.
+  const isShell = !!(window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform() === 'ios');
+  function installEdgeSwipe() {
+    if (installEdgeSwipe.done) return; installEdgeSwipe.done = true;
+    const EDGE = 20, COMMIT = 60, MAX_DRIFT = 40;
+    let sw = null; let popAt = 0;
+    addEventListener('popstate', () => { popAt = Date.now(); });
+    const hasLayer = () => layers.stack.length > 0 || ['#now', '#sleep-screen', '#focus-screen'].some(s => { const el = $(s); return el && !el.hidden; });
+    document.addEventListener('touchstart', e => { if (e.touches.length !== 1) { sw = null; return; } const t = e.touches[0]; sw = (t.clientX <= EDGE && hasLayer()) ? { x: t.clientX, y: t.clientY, id: t.identifier, done: false } : null; }, { passive: true, capture: true });
+    document.addEventListener('touchmove', e => {
+      if (!sw || sw.done) return; const t = [...e.touches].find(x => x.identifier === sw.id); if (!t) return;
+      const dx = t.clientX - sw.x, dy = Math.abs(t.clientY - sw.y);
+      if (dy > MAX_DRIFT && dy > dx) { sw = null; return; }              // a vertical gesture: leave it alone
+      if (dx >= COMMIT && dy <= MAX_DRIFT) {
+        sw.done = true;                                                    // one Back per touch
+        if (Date.now() - popAt < 400) return;                              // a native traversal already handled this gesture
+        if (hasLayer()) goBack();
+      }
+    }, { passive: true, capture: true });
+    const clear = () => { sw = null; };
+    document.addEventListener('touchend', clear, { passive: true, capture: true });
+    document.addEventListener('touchcancel', clear, { passive: true, capture: true });
+  }
+  if (isShell) installEdgeSwipe();
   document.addEventListener('keydown', e => { const tgt = e.target && e.target.matches ? e.target : document.body; if (e.key === 'Backspace' && !tgt.matches('input, textarea, select, [contenteditable]')) { e.preventDefault(); goBack(); } if (e.key === 'Escape' && transit.active) clearTransit(); });
 
   // ---------- keyboard shortcuts ----------
@@ -1037,7 +1066,7 @@
     tag.style.cursor = 'default';
     tag.addEventListener('click', () => { const now = Date.now(); taps = now - tapT < 2000 ? taps + 1 : 1; tapT = now; if (taps >= 5) { taps = 0; open(); } });
   })();
-  window.softwaveApp = { layerPush, layersClose, layerReplace, topLayerIs, afterLayerClose, updateBackBtn, armIntent, cancelIntent, cancelIntents, pendingIntents, renderPresetsRemount, loadPreset, saveCurrentMix, restoreMix, openSaveSheet, openManageMenu, openMixMenu, savedSessions, soundVol, SAVED_ICO, setMaster, togglePlay, toast, store, PRESETS, paintRange, showView, scheduleAutoAdvance, renderPresets: renderPresetsRemount };
+  window.softwaveApp = { installEdgeSwipe, layerPush, layersClose, layerReplace, topLayerIs, afterLayerClose, updateBackBtn, armIntent, cancelIntent, cancelIntents, pendingIntents, renderPresetsRemount, loadPreset, saveCurrentMix, restoreMix, openSaveSheet, openManageMenu, openMixMenu, savedSessions, soundVol, SAVED_ICO, setMaster, togglePlay, toast, store, PRESETS, paintRange, showView, scheduleAutoAdvance, renderPresets: renderPresetsRemount };
 
   // ---------- init ----------
   renderSounds(); renderPresets(); renderMixer([]); updatePlayer(); renderProfileHooks(); if (window.SoftwaveField) syncField();
