@@ -747,7 +747,7 @@
   window.softwaveFocus = { enterFocus, exitFocus, enterViaTransition, setVisual, crossfadeTo, openChooser, refreshFavs: renderFavs, startSaved, visuals: V.filter(v => !v.hidden), allVisuals: V, setParam: (k, v) => { P[k] = v; }, getParam: () => P };
 
   // ---------- init ----------
-  if (!byId[S.visual] || byId[S.visual].hidden) S.visual = 'underwater';   // a stored id that no longer exists, or a Lab-only one, must not become the page's visual
+  if (!byId[S.visual] || byId[S.visual].hidden) { S.visual = 'underwater'; app.store.set('visual', S.visual); }   // a stored id that no longer exists, or a Lab-only one (persisted by versions before v203), must not become the page's visual — normalise the key so every other reader sees the same choice
   renderLibrary(); renderPairings(); renderFavs(); syncSettings(); if (window.softwaveProfile) softwaveProfile.refresh();
   const qf = new URLSearchParams(location.search).get('focus'); if (qf && byId[qf]) { setVisual(qf); setTimeout(enterFocus, 50); }
 })();
