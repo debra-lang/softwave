@@ -563,9 +563,14 @@
           { min: u, label: 'warmer', mix: [B(0.5), { id: 'ocean', volume: 0.3 * k }], tone: 6000 },
           { min: u, label: 'simpler', mix: [B(ctx.s.sleep ? 0.3 : 0.45), { id: 'ocean', volume: 0.12 * k }], tone: 5000 },
         ];
-        runJourney(segs, { crossfade: Math.min(120, u * 30), loop: !ctx.s.len, onEnd: () => { if (ctx.s.sleep) { engine.setTimer(0.1, true); app.toast('Fading toward sleep.'); } stopRunning(null, true); } });
+        runJourney(segs, { crossfade: Math.min(120, u * 30), loop: !ctx.s.len, onEnd: () => {
+          // The journey keeps its sound past stopRunning (keepsSound) so the sleep ending can
+          // hand over to the engine's timer fade instead of being cut by stopAll.
+          if (ctx.s.sleep) { engine.setTimer(0.1, true); app.toast('Fading toward sleep.'); } else engine.stopAll();
+          stopRunning(null, true);
+        } });
       },
-      stop() { engine.resetMasterShape(); },
+      stop() { engine.resetMasterShape(); }, keepsSound: true,
     },
     {
       id: 'session', name: 'Build My Session', cat: 'Sessions', evidence: 'exploratory', from: 'Product design',

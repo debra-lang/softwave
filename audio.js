@@ -117,6 +117,15 @@
       // Play/Pause toggle reads this instead of ctx.state, which the global tap-to-wake
       // listener (_installGestureArm) can change on its own before a click handler runs.
       this.userPaused = false;
+      // Generation counter: bumped by stopAll() and by loadMix() (the mix is being cleared or
+      // replaced). An async start captures it before its awaits and gives up if it changed, so a
+      // Stop or a new preset can never be overtaken by a start that was still initialising.
+      // Play/Pause do NOT bump it: a legitimate start must still complete across them.
+      this._gen = 0;
+      // Pause token: pauseAll() fades for 0.42 s and then suspends; anything that makes the engine
+      // audible again in that window (playAll, a new sound, a tone) clears the token so the
+      // pending suspend is abandoned instead of landing on a resumed context.
+      this._pauseTok = null;
     }
 
     on(fn) { this.listeners.add(fn); return () => this.listeners.delete(fn); }
@@ -308,12 +317,14 @@
       try { return await this._startSound(id, volume, balance); } finally { this._pendingStarts--; }
     }
     async _startSound(id, volume = 0.45, balance = 0) {
-      const hadCtx = !!this.ctx;
+      const hadCtx = !!this.ctx; const gen = this._gen;
       await this.init();
       // Starting a sound must always wake the engine: iOS suspends (or "interrupts")
       // the context whenever it idles, and a sound added to a sleeping context is
       // silent — the one-tap-to-play contract broke exactly there.
       if (this.ctx.state !== 'running') await this.resume();
+      if (this._gen !== gen) return false;   // superseded by Stop / a new preset while initialising
+      this._pauseTok = null; this.userPaused = false;   // a chosen sound is a deliberate resume
       // A pause/resume cycle can leave the master bus behind even once the context
       // itself is running again (only playAll() used to re-assert it), so a start on
       // an existing context re-confirms master gain too. Skip this on a brand-new
@@ -409,6 +420,7 @@
     }
 
     stopAll() {
+      this._gen++; this._pauseTok = null;
       this.userPaused = false;
       if (this.variation.timer) this.setVariation(0);
       if (this.ctx) this.resetMasterShape();
@@ -423,14 +435,16 @@
       // Fade master to zero then suspend for a clean pause.
       const g = this.master.gain; const t = this.ctx.currentTime;
       g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.linearRampToValueAtTime(0, t + 0.4);
+      const tok = this._pauseTok = {};
       await new Promise(r => setTimeout(r, 420));
+      if (this._pauseTok !== tok || !this.userPaused) return;   // resumed (Play / new sound) during the fade
       await this.ctx.suspend();
       this._keepAlive(false);
       this.emit('state', 'suspended');
     }
     async playAll() {
       if (!this.ctx) return;
-      this.userPaused = false;
+      this._pauseTok = null; this.userPaused = false;
       await this.resume();
       this.setMasterVolume(this.masterVolume);
       if (this.isPlaying) this._keepAlive(true);
@@ -439,7 +453,9 @@
 
     // Replace whole mix (presets)
     async loadMix(mix) {
+      const gen = ++this._gen;
       await this.init();
+      if (this._gen !== gen) return;   // a newer preset / Stop arrived while the engine was waking
       const keep = new Set(mix.map(m => m.id));
       [...this.active.keys()].forEach(id => { if (!keep.has(id)) this.stopSound(id); });
       for (const m of mix) {
@@ -447,6 +463,7 @@
         if (m.curve) this.setPaint(m.curve);
         if (this.active.has(m.id)) { this.setVolume(m.id, m.volume); this.setBalance(m.id, m.balance || 0); }
         else await this.startSound(m.id, m.volume, m.balance || 0);
+        if (this._gen !== gen) return;
       }
       await this.playAll();
     }
@@ -933,8 +950,17 @@
 
     // ---------- frequency generator ----------
     async toneStart(opts) {
-      await this.init();
+      if (this._toneStarting) { await this._toneStarting; }   // a second tap during start-up must not build a second tone graph
       if (this.tone && this.tone.playing) { this.toneUpdate(opts); return; }
+      this._toneStarting = this._toneStart(opts);
+      try { await this._toneStarting; } finally { this._toneStarting = null; }
+    }
+    async _toneStart(opts) {
+      const gen = this._gen;
+      await this.init();
+      if (this._gen !== gen) return;   // stopped while initialising
+      if (this.tone && this.tone.playing) { this.toneUpdate(opts); return; }
+      this._pauseTok = null; this.userPaused = false;
       const ctx = this.ctx;
       const t = { playing: true, freq: opts.freq, type: opts.type || 'sine', volume: opts.volume ?? 0.3, balance: opts.balance ?? 0, am: opts.am || 0 };
       t.gain = ctx.createGain(); t.gain.gain.value = 0;
@@ -1021,6 +1047,15 @@
       tick();
     }
     _timerFinish() {
+      // The fade lowered only the master. Pin every layer (and the tone) to silence first, so
+      // restoring the master for the next session cannot let the 0.8 s layer fade-outs through.
+      if (this.ctx) {
+        const t = this.ctx.currentTime;
+        // Set the intrinsic value (not a scheduled event): stopSound's own cancelScheduledValues(t)
+        // would discard an event placed at the same instant and then read the pre-pin value.
+        this.active.forEach(e => { try { e.gain.gain.cancelScheduledValues(t); e.gain.gain.value = 0; } catch (_) { } });
+        if (this.tone && this.tone.gain) { try { this.tone.gain.gain.cancelScheduledValues(t); this.tone.gain.gain.value = 0; } catch (_) { } }
+      }
       this.stopAll();
       this.timer = { endsAt: null, fade: this.timer.fade, durationMin: null };
       if (this.ctx) { const g = this.master.gain; g.cancelScheduledValues(this.ctx.currentTime); this.setMasterVolume(this.masterVolume, true); }
@@ -1030,7 +1065,11 @@
       if (this._timerId) clearTimeout(this._timerId); this._timerId = null;
       const wasFading = this.timer.fading;
       this.timer = { endsAt: null, fade: this.timer.fade, durationMin: null };
-      if (wasFading && this.ctx) this.setMasterVolume(this.masterVolume);
+      // Restore the master only while something will still be heard (timer cancelled mid-fade).
+      // After a Stop the layers are fading out on their own; lifting the master under them
+      // would replay the mix at full level for 0.8 s. The next start re-asserts the master.
+      const audible = this.active.size > 0 || (this.tone && this.tone.playing);
+      if (wasFading && this.ctx && audible) this.setMasterVolume(this.masterVolume);
       if (!silent) this.emit('timer', this.timer);
     }
 
