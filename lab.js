@@ -723,10 +723,13 @@
         qq('[data-nxab]').forEach(x => x.setAttribute('aria-checked', (x.dataset.nxab === 'on') === on));
       }));
       qq('[data-nxt]').forEach(b => b.addEventListener('click', () => {
-        let m = b.dataset.nxt === 'custom' ? parseInt(prompt('Timer length in minutes (5–180):', '45'), 10) : +b.dataset.nxt;
-        if (!m || m < 5 || m > 180) return;
-        engine.setTimer(m, true); qq('[data-nxt]').forEach(x => x.classList.toggle('active', x === b));
-        app.toast(`Timer set: ${m} minutes with gentle fade. No particular duration is a medical recommendation.`, 4200);
+        const apply = (m) => {
+          if (!m || m < 5 || m > 180) return;
+          engine.setTimer(m, true); qq('[data-nxt]').forEach(x => x.classList.toggle('active', x === b)); if (b.dataset.nxt === 'custom') b.textContent = `Custom · ${m} min`;
+          app.toast(`Timer set: ${m} minutes with gentle fade. No particular duration is a medical recommendation.`, 4200);
+        };
+        if (b.dataset.nxt === 'custom') { app.customTimerForm(b.closest('.chips'), apply); return; }   // inline field instead of window.prompt (blocks JS, pre-fills 45 on iOS)
+        apply(+b.dataset.nxt);
       }));
       q('[data-nx="saveprof"]').addEventListener('click', () => {
         const w = widthOct(N), d = depthDb(N);

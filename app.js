@@ -158,7 +158,7 @@
   function ensureLab() {
     if (window.softwaveLab) return Promise.resolve();
     if (labPromise) return labPromise;
-    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=77'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
+    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=78'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
     return labPromise;
   }
   window.softwaveEnsureLab = ensureLab;
@@ -900,6 +900,30 @@
   $('#field-pause').addEventListener('click', async () => { if (engine.ctx && !engine.userPaused) await engine.pauseAll(); else await engine.playAll(); });
   $('#field-stop').addEventListener('click', () => { stopEverything(); toast('All sounds stopped'); });
   // Timer: a small picker instead of cycling values on each press.
+  // Inline "custom minutes" form used by every timer picker instead of window.prompt(). Starts empty,
+  // numeric keyboard, 5–180, never fails silently, and Set hands the minutes to the caller's own
+  // engine.setTimer path. Calling it again for the same host toggles the form away.
+  const TIMER_MIN = 5, TIMER_MAX = 180;
+  function customTimerForm(after, onSet) {
+    const host = after.parentNode; const old = host.querySelector('[data-custom-timer]');
+    if (old) { old.remove(); return null; }
+    const form = document.createElement('form'); form.className = 'inline-form'; form.setAttribute('data-custom-timer', ''); form.noValidate = true;
+    form.innerHTML = `<label class="sr-only" for="custom-timer-min">Minutes</label><input id="custom-timer-min" class="select num" type="number" inputmode="numeric" pattern="[0-9]*" min="${TIMER_MIN}" max="${TIMER_MAX}" step="1" placeholder="${TIMER_MIN}–${TIMER_MAX} min" style="width:130px" autocomplete="off"><button type="submit" class="btn btn-primary btn-sm">Set</button><button type="button" class="btn btn-ghost btn-sm" data-cancel>Cancel</button><span class="muted small" data-msg aria-live="polite" style="flex-basis:100%"></span>`;
+    after.after(form);
+    const inp = $('input', form), msg = $('[data-msg]', form);
+    $('[data-cancel]', form).addEventListener('click', () => form.remove());
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const raw = inp.value.trim();
+      if (!raw) { msg.textContent = 'Enter a number of minutes.'; inp.focus(); return; }
+      if (!/^\d+$/.test(raw)) { msg.textContent = 'Whole minutes only, for example 45.'; inp.focus(); return; }
+      const m = parseInt(raw, 10);
+      if (m < TIMER_MIN || m > TIMER_MAX) { msg.textContent = `Choose between ${TIMER_MIN} and ${TIMER_MAX} minutes.`; inp.focus(); return; }
+      form.remove(); onSet(m);
+    });
+    inp.focus();
+    return form;
+  }
   let timerSheet = null;
   function openTimerSheet() {
     if (!timerSheet) {
@@ -909,16 +933,13 @@
       $('[data-t-close]', timerSheet).addEventListener('click', () => layersClose());
       timerSheet.addEventListener('click', e => { if (e.target === timerSheet) layersClose(); });
     }
-    const host = $('[data-t-opts]', timerSheet); host.innerHTML = '';
-    const cur = engine.timer.durationMin || 0;
-    [[15, '15 min'], [30, '30 min'], [60, '60 min'], [90, '90 min'], ['custom', 'Custom…'], [0, 'Off']].forEach(([v, l]) => {
-      const b = document.createElement('button'); b.className = 'chip' + (v === cur ? ' active' : ''); b.textContent = l;
-      b.addEventListener('click', () => {
-        let m = v === 'custom' ? parseInt(prompt('Timer length in minutes (5–180):', '45'), 10) : v;
-        if (v === 'custom' && (!m || m < 5 || m > 180)) return;
-        engine.setTimer(m, true); toast(m ? `Timer: ${m} minutes with gentle fade` : 'Timer off');
-        layersClose();
-      });
+    const host = $('[data-t-opts]', timerSheet); host.innerHTML = ''; const stale = timerSheet.querySelector('[data-custom-timer]'); if (stale) stale.remove();
+    const cur = engine.timer.durationMin || 0; const PRESETS_MIN = [15, 30, 60, 90];
+    const isCustom = cur > 0 && !PRESETS_MIN.includes(cur);   // a running non-preset duration shows as Custom · N min
+    const setTimer = (m) => { engine.setTimer(m, true); toast(m ? `Timer: ${m} minutes with gentle fade` : 'Timer off'); layersClose(); };
+    [[15, '15 min'], [30, '30 min'], [60, '60 min'], [90, '90 min'], ['custom', isCustom ? `Custom · ${cur} min` : 'Custom…'], [0, 'Off']].forEach(([v, l]) => {
+      const b = document.createElement('button'); b.className = 'chip' + (v === cur || (v === 'custom' && isCustom) ? ' active' : ''); b.textContent = l;
+      b.addEventListener('click', () => { if (v === 'custom') { customTimerForm(host, setTimer); return; } setTimer(v); });
       host.appendChild(b);
     });
     if (timerSheet.hidden) { timerSheet.hidden = false; layerPush(() => { timerSheet.hidden = true; }); }
@@ -1066,7 +1087,7 @@
     tag.style.cursor = 'default';
     tag.addEventListener('click', () => { const now = Date.now(); taps = now - tapT < 2000 ? taps + 1 : 1; tapT = now; if (taps >= 5) { taps = 0; open(); } });
   })();
-  window.softwaveApp = { installEdgeSwipe, layerPush, layersClose, layerReplace, topLayerIs, afterLayerClose, updateBackBtn, armIntent, cancelIntent, cancelIntents, pendingIntents, renderPresetsRemount, loadPreset, saveCurrentMix, restoreMix, openSaveSheet, openManageMenu, openMixMenu, savedSessions, soundVol, SAVED_ICO, setMaster, togglePlay, toast, store, PRESETS, paintRange, showView, scheduleAutoAdvance, renderPresets: renderPresetsRemount };
+  window.softwaveApp = { customTimerForm, installEdgeSwipe, layerPush, layersClose, layerReplace, topLayerIs, afterLayerClose, updateBackBtn, armIntent, cancelIntent, cancelIntents, pendingIntents, renderPresetsRemount, loadPreset, saveCurrentMix, restoreMix, openSaveSheet, openManageMenu, openMixMenu, savedSessions, soundVol, SAVED_ICO, setMaster, togglePlay, toast, store, PRESETS, paintRange, showView, scheduleAutoAdvance, renderPresets: renderPresetsRemount };
 
   // ---------- init ----------
   renderSounds(); renderPresets(); renderMixer([]); updatePlayer(); renderProfileHooks(); if (window.SoftwaveField) syncField();
