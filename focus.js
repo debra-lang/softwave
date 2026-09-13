@@ -511,11 +511,12 @@
   // Tile press -> selected state shows at once -> ~1.5 s pause on this page -> the full view opens by itself.
   // Only runs when the pick actually took (Premium gate may have declined it); a later press restarts the pause,
   // Enter Focus / opening More Visuals / leaving the page cancel it.
-  const AUTO_ENTER_MS = 1500; let autoEnter = null;
-  function cancelAutoEnter() { if (autoEnter) { clearTimeout(autoEnter); autoEnter = null; } }
+  const AUTO_ENTER_MS = 1500;
+  function cancelAutoEnter() { app.cancelIntent('focus:autoEnter'); }
   function scheduleAutoEnter(id) {
-    cancelAutoEnter(); if (S.visual !== id) return;
-    autoEnter = setTimeout(() => { autoEnter = null; if (!(screen.hidden && !$('#view-focus').hidden)) return; if (moreSheet && !moreSheet.hidden) closeLayer(); enterFocus(); }, AUTO_ENTER_MS);
+    if (S.visual !== id) { cancelAutoEnter(); return; }
+    // owned by the Focus screen: leaving the view, exiting Focus, Stop everything, or a newer pick cancels it
+    app.armIntent('focus:autoEnter', () => { if (!(screen.hidden && !$('#view-focus').hidden)) return; if (moreSheet && !moreSheet.hidden) closeLayer(); enterFocus(); }, AUTO_ENTER_MS, { screen: 'focus', view: true, stop: true });
   }
   function setVisual(id) { if (!byId[id]) return; const MZ = window.softwaveMonetization; if (MZ && !MZ.canUse('visual:' + id)) { if (window.softwavePremium && !softwavePremium.gate('visual:' + id)) return; } S.visual = id; app.store.set('visual', id); $$('.vis-card').forEach(c => c.classList.toggle('active', c.dataset.id === id)); const cv = $('#current-visual-name'); if (cv) cv.textContent = byId[id].name; if (focus.inst && focus.visualId !== id) focus.load(id); renderStage(); markMoreActive(); }
 
@@ -566,6 +567,7 @@
   $('#fav-save').addEventListener('click', () => {
     // an environment is sound + visual: nothing playing means nothing to keep
     if (!engine.activeList().length) { app.toast('Start a sound first — an environment is your sound plus the visual.', 3600); return; }
+    cancelAutoEnter();   // the user is naming an environment; do not open the full view over the form
     if (window.softwaveMonetization) softwaveMonetization.track('environment_saved');
     let form = $('#fav-form'); if (form) { form.remove(); return; }
     form = document.createElement('form'); form.id = 'fav-form'; form.className = 'inline-form';
@@ -607,27 +609,33 @@
   function showControls() { screen.classList.remove('idle'); clearTimeout(focus.hideT); focus.hideT = setTimeout(() => { if (!$('#focus-panel').classList.contains('open')) screen.classList.add('idle'); }, 7500); }
   let enteredVia = null;
   function enterViaTransition(id) { if (window.softwaveTransition && !$('#view-sounds').hidden) { enteredVia = id; window.softwaveTransition.to(id, () => enterFocus(false, true)); } else enterFocus(true); }
+  let entering = false;
   async function enterFocus(transition, fromTransition) {
     cancelAutoEnter(); if (!fromTransition) enteredVia = null;
-    if (!screen.hidden) return;
-    if (transition) { document.body.classList.add('entering'); await new Promise(r => setTimeout(r, 520)); document.body.classList.remove('entering'); }
-    focus.load(S.visual); screen.hidden = false; document.body.style.overflow = 'hidden'; resize(); focus.last = performance.now(); loop(focus.last);
+    if (entering || !screen.hidden) return;   // a second call during the transition wait must not start a second loop
+    entering = true;
+    try {
+      if (transition) { document.body.classList.add('entering'); await new Promise(r => setTimeout(r, 520)); document.body.classList.remove('entering'); }
+      if (!screen.hidden) return;
+      focus.load(S.visual); screen.hidden = false;
+    } finally { entering = false; } document.body.style.overflow = 'hidden'; resize(); focus.last = performance.now(); loop(focus.last);
     if (window.softwaveBg) window.softwaveBg.running = false;
     updateFocusBar(); showControls(); syncSettings(); syncFocusPlayer(); const fp = $('#focus-pause'); if (fp) fp.focus();
+    if (focus.wake) { focus.wake.release().catch(() => { }); focus.wake = null; }
     try { if (navigator.wakeLock) focus.wake = await navigator.wakeLock.request('screen'); } catch (_) { }
-    if (engine.activeList().length && !engine.isPlaying) engine.playAll();
+    if (engine.activeList().length && !engine.isPlaying && !engine.userPaused) engine.playAll();
   }
   // Cross-fade to another visual (journeys): fade to black, switch, fade back
   function crossfadeTo(id) {
     if (!byId[id] || screen.hidden) { setVisual(id); return; }
     let veil = $('#focus-veil'); if (!veil) { veil = document.createElement('div'); veil.id = 'focus-veil'; veil.className = 'focus-veil'; screen.appendChild(veil); }
-    veil.classList.add('on'); setTimeout(() => { setVisual(id); setTimeout(() => veil.classList.remove('on'), 120); }, 1600);
+    veil.classList.add('on'); app.armIntent('focus:crossfade', () => { setVisual(id); app.armIntent('focus:crossfadeVeil', () => veil.classList.remove('on'), 120, { screen: 'focus' }); }, 1600, { screen: 'focus', stop: true });
   }
   function exitFocus() {
     if (screen.hidden) return;   // double-exit (Escape + button) must be a no-op
     if (engine.ctx) engine.resetMasterShape(); P.dim = 0; P.slow = 0; P.time = 0.5;
     if (enteredVia && window.softwaveTransition) { const id = enteredVia; enteredVia = null; window.softwaveTransition.back(id); }
-    screen.hidden = true; document.body.style.overflow = ''; cancelAnimationFrame(focus.raf); closePanel();
+    screen.hidden = true; document.body.style.overflow = ''; cancelAnimationFrame(focus.raf); closePanel(); clearTimeout(focus.hideT); app.cancelIntents({ screen: 'focus' });   /* closePanel re-arms the idle timer, so clear it afterwards */
     if (document.fullscreenElement) document.exitFullscreen().catch(() => { });
     if (focus.wake) { focus.wake.release().catch(() => { }); focus.wake = null; }
     if (window.softwaveBg) { window.softwaveBg.running = true; window.softwaveBg.loop(); }

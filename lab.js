@@ -128,7 +128,7 @@
   const hzLabel = (hz) => hz >= 1000 ? (hz / 1000).toFixed(hz % 1000 === 0 ? 0 : 1) + ' kHz' : Math.round(hz) + ' Hz';
 
   // ---------- runtime ----------
-  let running = null; const timers = new Set();
+  let running = null; const timers = new Set(); let journeyTok = null;   // journeyTok: the run a pending journey step belongs to
   const later = (fn, ms) => { const t = setTimeout(() => { timers.delete(t); fn(); }, ms); timers.add(t); return t; };
   const every = (fn, ms) => { const t = setInterval(fn, ms); timers.add(t); return t; };
   const clearTimers = () => { timers.forEach(t => { clearTimeout(t); clearInterval(t); }); timers.clear(); };
@@ -136,10 +136,11 @@
 
   // Journey runner: segments [{ min, label, mix, visual?, tone? }]; long linear cross-fades, optional visual changes
   function runJourney(segments, o = {}) {
+    const me = journeyTok = {};
     const xf = o.crossfade || 90; const union = [...new Set(segments.flatMap(s => s.mix.map(m => m.id)))].slice(0, 5);
     engine.activeList().forEach(s => { if (!union.includes(s.id)) engine.stopSound(s.id); });
     const apply = async (seg, fade) => { for (const id of union) { const m = seg.mix.find(x => x.id === id); if (m) { if (m.params) engine.setSculpt(m.params, id); if (!engine.isActive(id)) await engine.startSound(id, 0.001); engine.rampVolume(id, m.volume, fade); } else if (engine.isActive(id)) engine.rampVolume(id, 0.0001, fade); } if (seg.visual && o.visuals && seg.visual !== store.get('visual')) focus.crossfadeTo(seg.visual); if (seg.tone !== undefined) engine.setMasterTone(seg.tone, fade); if (o.visuals) { for (const key of ['dim', 'slow', 'time']) if (seg[key] !== undefined) rampParam(key, seg[key], fade); } };
-    let k = 0; const step = async () => { const seg = segments[k % segments.length]; timelineStep(k % segments.length); await apply(seg, k === 0 ? 3 : xf); if (seg.label) app.toast(`Journey: ${seg.label}`, 2500); k++; if (k >= segments.length && !o.loop) { later(() => o.onEnd && o.onEnd(), seg.min * 60000); return; } later(step, seg.min * 60000); };
+    let k = 0; const step = async () => { const seg = segments[k % segments.length]; timelineStep(k % segments.length); await apply(seg, k === 0 ? 3 : xf); if (journeyTok !== me || !running) return;   /* stopped while a sound was starting: do not re-arm */ if (seg.label) app.toast(`Journey: ${seg.label}`, 2500); k++; if (k >= segments.length && !o.loop) { later(() => o.onEnd && o.onEnd(), seg.min * 60000); return; } later(step, seg.min * 60000); };
     engine.playAll(); step();
   }
 
@@ -288,7 +289,7 @@
         compactForRun(host.closest('.lab-detail'));
         await next();
       },
-      stop(ctx) { (ctx && ctx.finished ? ['discoB'] : ['discoA', 'discoB']).forEach(id => engine.isActive(id) && engine.stopSound(id)); }, keepsSound: true,
+      stop(ctx) { const keep = ctx && ctx.finished ? ['discoB', ctx.result && ctx.result.nature] : []; ['discoA', 'discoB', ...NATURES.filter(n => n !== 'none')].forEach(id => { if (!keep.includes(id) && engine.isActive(id)) engine.stopSound(id); }); }, keepsSound: true,
     },
     {
       id: 'paint', name: 'Frequency Painting', cat: 'Discover', premium: true, evidence: 'exploratory', from: 'Spectral shaping / equalisation',
@@ -921,7 +922,7 @@
 
   // ---------- runtime ----------
   function stopRunning(msg, finishedNaturally) {
-    if (!running) return; const { exp, ctx } = running; clearTimers(); try { exp.stop && exp.stop(ctx); } catch (_) { } if (!exp.keepsSound) engine.stopAll(); engine.setVariation(0); engine.resetMasterShape();
+    if (!running) return; const { exp, ctx } = running; clearTimers(); journeyTok = null; try { exp.stop && exp.stop(ctx); } catch (_) { } if (!exp.keepsSound) engine.stopAll(); engine.setVariation(0); engine.resetMasterShape();
     $$('.lab-detail.exp-compact').forEach(d => d.classList.remove('exp-compact', 'exp-peek'));   // restore the folded explanation
     const prev = running; running = null; updateRunningUI(); if (msg) app.toast(msg); showAfterFeedback(prev.exp, prev.ctx);
   }

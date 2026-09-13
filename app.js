@@ -96,6 +96,7 @@
       // for history/Back arrivals only — the completed Find My Sound result).
       if (window.softwaveLab && softwaveLab.showList) softwaveLab.showList(opts.push !== false);
     }
+    const prevView = document.querySelector('.view:not([hidden])'); if (!prevView || prevView.id !== 'view-' + name) cancelIntents({ view: true });
     views.forEach(v => { const el = $('#view-' + v); el.hidden = v !== name; el.classList.toggle('active', v === name); });
     $$('.nav a').forEach(a => a.classList.toggle('active', a.dataset.view === name));
     if (!opts.keepHash && location.hash !== '#' + name) writeState(tabReplace(opts) ? 'replace' : 'push', '#' + name);
@@ -180,19 +181,33 @@
   // page, and no full-screen view opened meanwhile. A new tap restarts the wait.
   // The wait counts QUIET time: any tap or scroll restarts it, so browsing and
   // layering sounds is never interrupted — the transition comes once hands are still.
-  let autoAdvT = null, lastActivity = 0;
+  // ---------- delayed intents: named, owned, cancellable ----------
+  // A delayed action registers under a name with an explicit cancellation policy, so exits cancel
+  // exactly what they own instead of a blanket cancel-all:
+  //   screen: 'now' | 'sleep' | 'focus'  cancelled when the user closes that screen (the screen the
+  //                                       intent lives on, or would open)
+  //   view: true                          cancelled when the visible view changes
+  //   stop: true                          cancelled by Stop everything
+  // Arming the same name again supersedes the earlier timer. An intent with no matching policy
+  // deliberately survives that event (e.g. the 4 s carry-forward survives a tab switch by design).
+  const intents = new Map();
+  function armIntent(name, fn, ms, policy = {}) { cancelIntent(name); const t = setTimeout(() => { intents.delete(name); fn(); }, ms); intents.set(name, { t, policy }); return t; }
+  function cancelIntent(name) { const it = intents.get(name); if (!it) return false; clearTimeout(it.t); intents.delete(name); return true; }
+  function cancelIntents(reason) { for (const [name, it] of [...intents]) { const p = it.policy; if ((reason.screen && p.screen === reason.screen) || (reason.view && p.view) || (reason.stop && p.stop)) cancelIntent(name); } }
+  const pendingIntents = () => [...intents.keys()];
+  let lastActivity = 0;
   const noteActivity = () => { lastActivity = Date.now(); };
   document.addEventListener('pointerdown', noteActivity, { passive: true, capture: true });
   addEventListener('scroll', noteActivity, { passive: true });
   addEventListener('wheel', noteActivity, { passive: true });
   function scheduleAutoAdvance(kind, ms) {
-    clearTimeout(autoAdvT);
+    cancelIntent('autoAdvance');
     // one carry-forward rhythm everywhere: ~4 s of quiet
     const wait = ms || 4000, armed = Date.now(); const armedView = (document.querySelector('.view:not([hidden])') || {}).id;
     // the full wait since the sound started, extended by any later interaction
     const quietFor = () => Date.now() - Math.max(lastActivity, armed);
     const attempt = (retries) => {
-      autoAdvT = setTimeout(() => {
+      armIntent('autoAdvance', () => {
         if (quietFor() < wait - 150) { attempt(retries); return; }   // still interacting — wait out the remainder
         if (!engine.isPlaying) {
           // iOS can report a non-running audio context for a moment even while
@@ -206,7 +221,7 @@
         if (kind === 'immerse' && (document.querySelector('.view:not([hidden])') || {}).id === armedView && !fsOpen) openNow();
         if (kind === 'sleep' && !$('#view-sleep').hidden && $('#sleep-screen').hidden && $('#now').hidden && $('#focus-screen').hidden) $('#sleep-enter').click();
         if (kind === 'focus' && !$('#view-sounds').hidden && !fsOpen && window.softwaveFocus) softwaveFocus.enterFocus();
-      }, retries === 3 ? Math.max(300, wait - quietFor()) : 1500);
+      }, retries === 3 ? Math.max(300, wait - quietFor()) : 1500, { screen: kind === 'immerse' ? 'now' : kind, stop: true });   // closing the screen it would open cancels it; a tab switch does not (checked at fire time instead)
     };
     attempt(3);
   }
@@ -290,7 +305,7 @@
   function markChips() { $$('[data-chip-name]').forEach(c => c.classList.toggle('chip-playing', !!c.dataset.chipName && c.dataset.chipName === activeChipName && engine.isPlaying)); }
   window.softwaveChips = {
     set(name) { activeChipName = name; markChips(); },
-    toggleStop(name) { if (name && activeChipName === name && engine.isPlaying && engine.activeList().length) { engine.stopAll(); activeChipName = null; markChips(); return true; } return false; }
+    toggleStop(name) { if (name && activeChipName === name && engine.isPlaying && engine.activeList().length) { stopEverything(); activeChipName = null; markChips(); return true; } return false; }
   };
   engine.on(type => { if (type === 'sounds' && !engine.activeList().length) activeChipName = null; if (type === 'sounds' || type === 'state') markChips(); });
   async function loadPreset(p) {
@@ -573,7 +588,7 @@
     else toast('Choose a sound to begin');
   }
   $('#player-toggle').addEventListener('click', togglePlay);
-  function stopEverything() { if (window.softwaveLab && softwaveLab.isRunning()) softwaveLab.stop(); engine.stopAll(); }
+  function stopEverything() { if (window.softwaveLab && softwaveLab.isRunning()) softwaveLab.stop(); engine.stopAll(); cancelIntents({ stop: true }); }
   window.softwaveStopAll = stopEverything;
   $('#player-stop').addEventListener('click', stopEverything);
   function updatePlayer() {
@@ -708,14 +723,14 @@
     try { if (navigator.wakeLock) wake = await navigator.wakeLock.request('screen'); } catch (_) { }
   });
   let wake = null;
-  function exitSleepUI() { screen.hidden = true; document.body.style.overflow = ''; if (wake) { wake.release().catch(() => { }); wake = null; } }
+  function exitSleepUI() { screen.hidden = true; document.body.style.overflow = ''; if (wake) { wake.release().catch(() => { }); wake = null; } cancelIntents({ screen: 'sleep' }); }
   // exiting goes through history so the layer's Back entry is consumed with it
   function exitSleep() { if (!screen.hidden) layersClose(); }
   $('#sleep-exit').addEventListener('click', exitSleep);
   screen.addEventListener('keydown', e => { if (e.key === 'Escape') exitSleep(); });
   $('#sleep-pause').addEventListener('click', togglePlay);
   $('#sleep-save').addEventListener('click', () => openSaveSheet());
-  $('#sleep-stop').addEventListener('click', () => { engine.stopAll(); toast('All sounds stopped'); });
+  $('#sleep-stop').addEventListener('click', () => { stopEverything(); toast('All sounds stopped'); });
   $('#sleep-timer').addEventListener('click', () => openTimerSheet());
   $('#sleep-vol').addEventListener('input', e => setMaster(+e.target.value / 100, true));
   function clockTick() { const d = new Date(); $('#sleep-clock').textContent = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); }
@@ -865,7 +880,7 @@
   $('#field-core').addEventListener('click', async e => { const b = e.currentTarget; b.classList.add('pressed'); setTimeout(() => b.classList.remove('pressed'), 450); if (!engine.activeList().length) { $('#sound-groups').scrollIntoView({ behavior: 'smooth', block: 'start' }); return; } await togglePlay(); syncField(); });
   $('#field-vol').addEventListener('input', e => setMaster(+e.target.value / 100, true));
   $('#field-pause').addEventListener('click', async () => { if (engine.ctx && !engine.userPaused) await engine.pauseAll(); else await engine.playAll(); });
-  $('#field-stop').addEventListener('click', () => { engine.stopAll(); toast('All sounds stopped'); });
+  $('#field-stop').addEventListener('click', () => { stopEverything(); toast('All sounds stopped'); });
   // Timer: a small picker instead of cycling values on each press.
   let timerSheet = null;
   function openTimerSheet() {
@@ -909,7 +924,7 @@
   engine.on(type => { if (['sounds', 'state', 'tone', 'master'].includes(type)) syncEnvironment(); if (type === 'master') { for (const [vid, oid] of [['#now-vol', '#now-vol-out'], ['#sleep-vol', '#sleep-vol-out'], ['#mix-vol', '#mix-vol-out']]) { const v = $(vid); if (!v) continue; v.value = Math.round(engine.masterVolume * 100); paintRange(v); $(oid).textContent = v.value + '%'; } } });
   let nowHideT; function nowShowUI() { $('#now').classList.remove('idle'); clearTimeout(nowHideT); nowHideT = setTimeout(() => $('#now').classList.add('idle'), 5000); }
   function openNow() { if (!$('#now').hidden) return; $('#now').hidden = false; document.body.style.overflow = 'hidden'; syncEnvironment(); if (fieldBig) fieldBig.set(fieldIds()); nowShowUI(); const f = $('#now-pause'); if (f) f.focus(); layerPush(closeNowUI); }
-  function closeNowUI() { $('#now').hidden = true; document.body.style.overflow = ''; }
+  function closeNowUI() { $('#now').hidden = true; document.body.style.overflow = ''; clearTimeout(nowHideT); cancelIntents({ screen: 'now' }); }
   function closeNow() { if (!$('#now').hidden) layersClose(); }
   $('#now').addEventListener('pointermove', nowShowUI); $('#now').addEventListener('pointerdown', nowShowUI);
   $('#player-title').addEventListener('click', () => { if (engine.activeList().length) openNow(); });
@@ -918,7 +933,7 @@
   $('#now').addEventListener('keydown', e => { if (e.key === 'Escape') closeNow(); });
   // Immerse controller: same functions as the Sounds player, wired for a full-screen layer
   $('#now-pause').addEventListener('click', async () => { if (engine.ctx && !engine.userPaused) await engine.pauseAll(); else await engine.playAll(); });
-  $('#now-stop').addEventListener('click', () => { engine.stopAll(); toast('All sounds stopped'); });
+  $('#now-stop').addEventListener('click', () => { stopEverything(); toast('All sounds stopped'); });
   $('#now-timer').addEventListener('click', () => openTimerSheet());
   const leaveNow = (then) => { closeNow(); setTimeout(then, 80); };
   $('#now-visual').addEventListener('click', () => leaveNow(() => { if (window.softwaveFocus) softwaveFocus.openChooser(); else showView('focus'); }));
@@ -984,7 +999,7 @@
     let reloaded = false; navigator.serviceWorker.addEventListener('controllerchange', () => { if (reloaded || !navigator.serviceWorker.controller) return; reloaded = true; if (!engine.isPlaying) location.reload(); });
   });
 
-  window.softwaveApp = { layerPush, layersClose, renderPresetsRemount, loadPreset, saveCurrentMix, restoreMix, openSaveSheet, openManageMenu, openMixMenu, savedSessions, soundVol, SAVED_ICO, setMaster, togglePlay, toast, store, PRESETS, paintRange, showView, scheduleAutoAdvance, renderPresets: renderPresetsRemount };
+  window.softwaveApp = { layerPush, layersClose, armIntent, cancelIntent, cancelIntents, pendingIntents, renderPresetsRemount, loadPreset, saveCurrentMix, restoreMix, openSaveSheet, openManageMenu, openMixMenu, savedSessions, soundVol, SAVED_ICO, setMaster, togglePlay, toast, store, PRESETS, paintRange, showView, scheduleAutoAdvance, renderPresets: renderPresetsRemount };
 
   // ---------- init ----------
   renderSounds(); renderPresets(); renderMixer([]); updatePlayer(); renderProfileHooks(); if (window.SoftwaveField) syncField();

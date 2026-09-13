@@ -270,7 +270,7 @@
           navigator.mediaSession.metadata = new MediaMetadata({ title: 'Find My Quiet Sound', artist: 'Sound for tinnitus comfort', album: 'Find My Quiet Sound' });
           navigator.mediaSession.setActionHandler('play', () => this.playAll());
           navigator.mediaSession.setActionHandler('pause', () => this.pauseAll());
-          navigator.mediaSession.setActionHandler('stop', () => this.stopAll());
+          navigator.mediaSession.setActionHandler('stop', () => (global.softwaveStopAll ? global.softwaveStopAll() : this.stopAll()));
         } catch (e) { }
       }
     }

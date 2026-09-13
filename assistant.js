@@ -68,7 +68,7 @@
       async add_layer(p) { if (!engine.def(p.id)) return; const v = Math.max(0.1, Math.min(0.7, p.level || 0.35)); const r = await engine.startSound(p.id, v); ok.push(r === false ? 'Could not add ' + engine.def(p.id).name + ' (layer limit)' : 'Added ' + engine.def(p.id).name + (v <= 0.28 ? ' (light)' : '')); },
       async remove_layer(p) { if (engine.isActive(p.id)) { engine.stopSound(p.id); ok.push('Removed ' + engine.def(p.id).name); } else ok.push(engine.def(p.id).name + ' is not playing'); },
       async layer_volume(p) { if (!engine.isActive(p.id)) return ok.push(engine.def(p.id).name + ' is not playing'); const s = engine.activeList().find(x => x.id === p.id); const v = Math.max(0.05, Math.min(1, s.volume + p.delta)); engine.setVolume(p.id, v); ok.push((p.delta < 0 ? 'Lowered ' : 'Raised ') + engine.def(p.id).name + ' to ' + Math.round(v * 100) + '%'); },
-      async stop_all() { engine.stopAll(); ok.push('Stopped everything'); },
+      async stop_all() { (window.softwaveStopAll || engine.stopAll.bind(engine))(); ok.push('Stopped everything'); },
       async now_playing() { const l = engine.activeList().map(s => engine.def(s.id).name); ok.push(l.length ? 'Playing: ' + l.join(' + ') + ' · volume ' + Math.round(engine.masterVolume * 100) + '%' : 'Nothing is playing right now'); },
       async pause_all() { await engine.pauseAll(); ok.push('Paused — say “resume” to continue'); },
       async resume_all() { await engine.playAll(); ok.push('Resumed'); },
