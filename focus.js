@@ -519,7 +519,7 @@
     // owned by the Focus screen: leaving the view, exiting Focus, Stop everything, or a newer pick cancels it
     app.armIntent('focus:autoEnter', () => { if (!(screen.hidden && !$('#view-focus').hidden)) return; if (moreSheet && !moreSheet.hidden && app.layerReplace) { app.layerReplace(exitFocusUI); focusLayerReady = true; } enterFocus(); }, AUTO_ENTER_MS, { screen: 'focus', view: true, stop: true });
   }
-  function setVisual(id) { if (!byId[id]) return; const MZ = window.softwaveMonetization; if (MZ && !MZ.canUse('visual:' + id)) { if (window.softwavePremium && !softwavePremium.gate('visual:' + id)) return; } S.visual = id; app.store.set('visual', id); $$('.vis-card').forEach(c => c.classList.toggle('active', c.dataset.id === id)); const cv = $('#current-visual-name'); if (cv) cv.textContent = byId[id].name; if (focus.inst && focus.visualId !== id) focus.load(id); renderStage(); markMoreActive(); }
+  function setVisual(id) { if (!byId[id]) return; const MZ = window.softwaveMonetization; if (MZ && !MZ.canUse('visual:' + id)) { if (window.softwavePremium && !softwavePremium.gate('visual:' + id)) return; } S.visual = id; if (!byId[id].hidden) app.store.set('visual', id);   /* Lab-only visuals are never the remembered choice */ $$('.vis-card').forEach(c => c.classList.toggle('active', c.dataset.id === id)); const cv = $('#current-visual-name'); if (cv) cv.textContent = byId[id].name; if (focus.inst && focus.visualId !== id) focus.load(id); renderStage(); markMoreActive(); }
 
   // ---------- pairings ----------
   const PAIRINGS = [
@@ -747,7 +747,7 @@
   window.softwaveFocus = { enterFocus, exitFocus, enterViaTransition, setVisual, crossfadeTo, openChooser, refreshFavs: renderFavs, startSaved, visuals: V.filter(v => !v.hidden), allVisuals: V, setParam: (k, v) => { P[k] = v; }, getParam: () => P };
 
   // ---------- init ----------
-  if (!byId[S.visual]) S.visual = 'underwater';   // a stored visual id that no longer exists must not break init
+  if (!byId[S.visual] || byId[S.visual].hidden) S.visual = 'underwater';   // a stored id that no longer exists, or a Lab-only one, must not become the page's visual
   renderLibrary(); renderPairings(); renderFavs(); syncSettings(); if (window.softwaveProfile) softwaveProfile.refresh();
   const qf = new URLSearchParams(location.search).get('focus'); if (qf && byId[qf]) { setVisual(qf); setTimeout(enterFocus, 50); }
 })();

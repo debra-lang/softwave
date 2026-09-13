@@ -516,7 +516,7 @@
       settings: [{ key: 'act', label: 'Activity', type: 'buttons', options: [['followlight', 'Follow the Light'], ['bubble', 'Floating Bubble'], ['touchwater', 'Ripple'], ['noticechange', 'Notice the Change']] }, { key: 'sync', label: 'Let the sound follow the light (Follow the Light only)', type: 'toggle' }],
       defaults: { act: 'followlight', sync: true },
       async start(ctx) { safeMaster(); if (!engine.activeList().length) await engine.startSound('pink', app.soundVol ? app.soundVol('pink') : 0.45); if (ctx.s.act === 'followlight' && ctx.s.sync) { focus.setParam('target', 'light'); focus.setParam('sync', true); focus.setVisual('target'); } else focus.setVisual(ctx.s.act); focus.setParam('soundTouch', ctx.s.act === 'touchwater'); focus.enterFocus(); },
-      stop() { engine.resetMasterShape(); focus.setParam('soundTouch', false); }, keepsSound: true,
+      stop() { engine.resetMasterShape(); focus.setParam('soundTouch', false); const back = store.get('visual', 'underwater'); if (focus.setVisual) focus.setVisual(back); }, keepsSound: true,   /* the hidden Lab visual hands back to the user's own visual */
     },
     {
       id: 'svjourney', name: 'Sound + Visual Journey', cat: 'Focus', premium: true, evidence: 'promising', from: 'VR relaxation research (audio-visual coherence)',
@@ -1131,6 +1131,9 @@
 
   function openExperiment(id) {
     const exp = byId[id]; if (!exp) return; const ctx = ctxFor(exp); const panel = $('#lab-detail'); panel.hidden = false;
+    // Re-opening the experiment that is running (its tab tapped again, Back then Forward) must not
+    // rebuild the panel under it: the fresh controls would come up disabled with no round to enable them.
+    if (running && running.exp === exp && panel.querySelector('.lab-detail-inner')) { setFocusedExp(true); return; }
     // "Start again" belongs to the current visit only — a return to the page starts fresh
     if (!(running && running.exp === exp)) ctx.hasRun = false;
     setFocusedExp(true);        // the open experiment is the only thing on the page
