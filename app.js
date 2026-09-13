@@ -72,6 +72,13 @@
   // Closing a layer is immediate and visible; the history entry it owns is reconciled
   // afterwards (Back stays consistent). If the browser never reports that step — seen
   // on iOS right after a form submit — the next Back swallows the stale entry instead.
+  // Swap the surface that owns the current history entry (e.g. a sheet hands over to the
+  // full-screen view it opens) without traversing history: no phantom entry, one Back closes it.
+  function layerReplace(closeFn) { const fn = layers.stack.pop(); if (fn) { try { fn(); } catch (_) { } } layers.stack.push(closeFn); updateBackBtn(); }
+  function topLayerIs(fn) { return layers.stack[layers.stack.length - 1] === fn; }
+  // Follow-up navigation after layersClose(): wait for the reconcile popstate to land (or
+  // 250 ms on browsers that never report it) so the next push does not sit on the dead entry.
+  function afterLayerClose(fn) { let done = false; const go = () => { if (done) return; done = true; removeEventListener('popstate', go); fn(); }; addEventListener('popstate', go); setTimeout(go, 250); }
   function layersClose() {
     if (!layers.stack.length) return;
     const fn = layers.stack.pop(); try { fn(); } catch (_) { }
@@ -86,9 +93,10 @@
   function showView(name, opts = {}) {
     // Any real navigation collapses open layers first (their history entries become
     // stale; the popstate handler swallows those silently on a later Back).
-    if (layers.stack.length) { while (layers.stack.length) { try { layers.stack.pop()(); } catch (_) { } layers.stale++; } }
+    const collapsed = layers.stack.length;
+    if (collapsed) { while (layers.stack.length) { try { layers.stack.pop()(); } catch (_) { } } }
     // #find = the Find My Sound feature (lives in the Lab): show the Lab and open it directly
-    if (name === 'find') { const wanted = tabReplace(opts) ? 'replace' : 'push'; showView('lab', { push: false, keepHash: true }); if (location.hash !== '#find') writeState(wanted, '#find'); $$('.nav a').forEach(a => a.classList.toggle('active', a.dataset.view === 'find')); ensureLab().then(() => { if (window.softwaveLab) softwaveLab.open('discovery'); }).catch(() => { }); updateBackBtn(); return; }
+    if (name === 'find') { const wanted = tabReplace(opts) ? 'replace' : 'push'; showView('lab', { push: false, keepHash: true }); layers.stale += collapsed; if (location.hash !== '#find') { if (wanted === 'replace' && collapsed) layers.stale--; writeState(wanted, '#find'); } $$('.nav a').forEach(a => a.classList.toggle('active', a.dataset.view === 'find')); ensureLab().then(() => { if (window.softwaveLab) softwaveLab.open('discovery'); }).catch(() => { }); updateBackBtn(); return; }
     if (!views.includes(name)) name = 'sounds';
     if (name === 'lab') {
       ensureLab();
@@ -99,6 +107,10 @@
     const prevView = document.querySelector('.view:not([hidden])'); if (!prevView || prevView.id !== 'view-' + name) cancelIntents({ view: true });
     views.forEach(v => { const el = $('#view-' + v); el.hidden = v !== name; el.classList.toggle('active', v === name); });
     $$('.nav a').forEach(a => a.classList.toggle('active', a.dataset.view === name));
+    // Collapsed layers left history entries behind: count them as stale so Back swallows them —
+    // except the top one when this navigation replaces the current entry (that entry is overwritten).
+    const willReplace = !opts.keepHash && location.hash !== '#' + name && tabReplace(opts);
+    layers.stale += Math.max(0, collapsed - (willReplace ? 1 : 0));
     if (!opts.keepHash && location.hash !== '#' + name) writeState(tabReplace(opts) ? 'replace' : 'push', '#' + name);
     updateBackBtn();
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -715,14 +727,20 @@
   $$('.timer-seg [data-min]').forEach(b => b.addEventListener('click', () => { $$('.timer-seg [data-min]').forEach(x => x.setAttribute('aria-checked', x === b)); sleep.minutes = +b.dataset.min; engine.setTimer(sleep.minutes, sleep.fade); if (sleep.minutes) toast(`Timer set: ${sleep.minutes} minutes${sleep.fade ? ' with gentle fade-out' : ''}`); }));
   $('#sleep-fade').addEventListener('change', e => { sleep.fade = e.target.checked; if (engine.timer.endsAt) engine.timer.fade = sleep.fade; });
   const screen = $('#sleep-screen');
+  let wake = null, sleepEntering = false;
   $('#sleep-enter').addEventListener('click', async () => {
-    if (!engine.activeList().length) await loadPreset(PRESETS[1]);
-    else await engine.playAll();
-    screen.hidden = false; document.body.style.overflow = 'hidden'; $('#sleep-pause').focus();
-    layerPush(exitSleepUI);
+    if (!screen.hidden || sleepEntering) return;   // a double-tap must not push two Back layers or stack wake locks
+    sleepEntering = true;
+    try {
+      if (!engine.activeList().length) await loadPreset(PRESETS[1]);
+      else await engine.playAll();
+      if (!screen.hidden) return;
+      screen.hidden = false; document.body.style.overflow = 'hidden'; $('#sleep-pause').focus();
+      layerPush(exitSleepUI);
+    } finally { sleepEntering = false; }
+    if (wake) { wake.release().catch(() => { }); wake = null; }
     try { if (navigator.wakeLock) wake = await navigator.wakeLock.request('screen'); } catch (_) { }
   });
-  let wake = null;
   function exitSleepUI() { screen.hidden = true; document.body.style.overflow = ''; if (wake) { wake.release().catch(() => { }); wake = null; } cancelIntents({ screen: 'sleep' }); }
   // exiting goes through history so the layer's Back entry is consumed with it
   function exitSleep() { if (!screen.hidden) layersClose(); }
@@ -935,7 +953,7 @@
   $('#now-pause').addEventListener('click', async () => { if (engine.ctx && !engine.userPaused) await engine.pauseAll(); else await engine.playAll(); });
   $('#now-stop').addEventListener('click', () => { stopEverything(); toast('All sounds stopped'); });
   $('#now-timer').addEventListener('click', () => openTimerSheet());
-  const leaveNow = (then) => { closeNow(); setTimeout(then, 80); };
+  const leaveNow = (then) => { closeNow(); afterLayerClose(then); };
   $('#now-visual').addEventListener('click', () => leaveNow(() => { if (window.softwaveFocus) softwaveFocus.openChooser(); else showView('focus'); }));
   $('#now-mixer').addEventListener('click', () => leaveNow(() => showView('mixer')));
   $('#now-save').addEventListener('click', () => openSaveSheet());
@@ -999,7 +1017,7 @@
     let reloaded = false; navigator.serviceWorker.addEventListener('controllerchange', () => { if (reloaded || !navigator.serviceWorker.controller) return; reloaded = true; if (!engine.isPlaying) location.reload(); });
   });
 
-  window.softwaveApp = { layerPush, layersClose, armIntent, cancelIntent, cancelIntents, pendingIntents, renderPresetsRemount, loadPreset, saveCurrentMix, restoreMix, openSaveSheet, openManageMenu, openMixMenu, savedSessions, soundVol, SAVED_ICO, setMaster, togglePlay, toast, store, PRESETS, paintRange, showView, scheduleAutoAdvance, renderPresets: renderPresetsRemount };
+  window.softwaveApp = { layerPush, layersClose, layerReplace, topLayerIs, afterLayerClose, updateBackBtn, armIntent, cancelIntent, cancelIntents, pendingIntents, renderPresetsRemount, loadPreset, saveCurrentMix, restoreMix, openSaveSheet, openManageMenu, openMixMenu, savedSessions, soundVol, SAVED_ICO, setMaster, togglePlay, toast, store, PRESETS, paintRange, showView, scheduleAutoAdvance, renderPresets: renderPresetsRemount };
 
   // ---------- init ----------
   renderSounds(); renderPresets(); renderMixer([]); updatePlayer(); renderProfileHooks(); if (window.SoftwaveField) syncField();

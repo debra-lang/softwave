@@ -452,6 +452,7 @@
   function markMoreActive() { if (!moreSheet) return; $$('.env-tile', moreSheet).forEach(t => t.classList.toggle('active', t.dataset.id === S.visual)); }
   function closeMoreVisuals() { if (!moreSheet || moreSheet.hidden) return; moreSheet.hidden = true; cancelAutoEnter(); }
   function openMoreVisuals() {
+    if (moreSheet && !moreSheet.hidden) return;   // already open: never push a second Back layer
     if (!moreSheet) {
       moreSheet = document.createElement('div'); moreSheet.id = 'more-visuals-sheet'; moreSheet.className = 'addsound-sheet'; moreSheet.hidden = true;
       moreSheet.innerHTML = `<div class="addsound-card card more-visuals-card" role="dialog" aria-label="More visuals"><div class="addsound-head"><strong>More visuals</strong><button class="btn btn-ghost btn-sm" type="button" data-mv-close>Done</button></div><div data-mv-groups></div></div>`;
@@ -516,7 +517,7 @@
   function scheduleAutoEnter(id) {
     if (S.visual !== id) { cancelAutoEnter(); return; }
     // owned by the Focus screen: leaving the view, exiting Focus, Stop everything, or a newer pick cancels it
-    app.armIntent('focus:autoEnter', () => { if (!(screen.hidden && !$('#view-focus').hidden)) return; if (moreSheet && !moreSheet.hidden) closeLayer(); enterFocus(); }, AUTO_ENTER_MS, { screen: 'focus', view: true, stop: true });
+    app.armIntent('focus:autoEnter', () => { if (!(screen.hidden && !$('#view-focus').hidden)) return; if (moreSheet && !moreSheet.hidden && app.layerReplace) { app.layerReplace(exitFocusUI); focusLayerReady = true; } enterFocus(); }, AUTO_ENTER_MS, { screen: 'focus', view: true, stop: true });
   }
   function setVisual(id) { if (!byId[id]) return; const MZ = window.softwaveMonetization; if (MZ && !MZ.canUse('visual:' + id)) { if (window.softwavePremium && !softwavePremium.gate('visual:' + id)) return; } S.visual = id; app.store.set('visual', id); $$('.vis-card').forEach(c => c.classList.toggle('active', c.dataset.id === id)); const cv = $('#current-visual-name'); if (cv) cv.textContent = byId[id].name; if (focus.inst && focus.visualId !== id) focus.load(id); renderStage(); markMoreActive(); }
 
@@ -609,7 +610,7 @@
   function showControls() { screen.classList.remove('idle'); clearTimeout(focus.hideT); focus.hideT = setTimeout(() => { if (!$('#focus-panel').classList.contains('open')) screen.classList.add('idle'); }, 7500); }
   let enteredVia = null;
   function enterViaTransition(id) { if (window.softwaveTransition && !$('#view-sounds').hidden) { enteredVia = id; window.softwaveTransition.to(id, () => enterFocus(false, true)); } else enterFocus(true); }
-  let entering = false;
+  let entering = false, focusLayerReady = false;   // focusLayerReady: the entry was handed over by layerReplace
   async function enterFocus(transition, fromTransition) {
     cancelAutoEnter(); if (!fromTransition) enteredVia = null;
     if (entering || !screen.hidden) return;   // a second call during the transition wait must not start a second loop
@@ -618,6 +619,7 @@
       if (transition) { document.body.classList.add('entering'); await new Promise(r => setTimeout(r, 520)); document.body.classList.remove('entering'); }
       if (!screen.hidden) return;
       focus.load(S.visual); screen.hidden = false;
+      if (focusLayerReady) focusLayerReady = false; else if (app.layerPush) app.layerPush(exitFocusUI);   // browser Back / edge swipe closes the screen like Sleep and Immerse
     } finally { entering = false; } document.body.style.overflow = 'hidden'; resize(); focus.last = performance.now(); loop(focus.last);
     if (window.softwaveBg) window.softwaveBg.running = false;
     updateFocusBar(); showControls(); syncSettings(); syncFocusPlayer(); const fp = $('#focus-pause'); if (fp) fp.focus();
@@ -631,7 +633,10 @@
     let veil = $('#focus-veil'); if (!veil) { veil = document.createElement('div'); veil.id = 'focus-veil'; veil.className = 'focus-veil'; screen.appendChild(veil); }
     veil.classList.add('on'); app.armIntent('focus:crossfade', () => { setVisual(id); app.armIntent('focus:crossfadeVeil', () => veil.classList.remove('on'), 120, { screen: 'focus' }); }, 1600, { screen: 'focus', stop: true });
   }
-  function exitFocus() {
+  // Public exit: consume the Back entry the screen owns (the popstate then runs exitFocusUI).
+  // With a sheet above the screen, or no entry of its own, close the surface directly.
+  function exitFocus() { if (screen.hidden) return; if (app.layersClose && app.topLayerIs && app.topLayerIs(exitFocusUI)) app.layersClose(); else exitFocusUI(); }
+  function exitFocusUI() {
     if (screen.hidden) return;   // double-exit (Escape + button) must be a no-op
     if (engine.ctx) engine.resetMasterShape(); P.dim = 0; P.slow = 0; P.time = 0.5;
     if (enteredVia && window.softwaveTransition) { const id = enteredVia; enteredVia = null; window.softwaveTransition.back(id); }
@@ -639,23 +644,23 @@
     if (document.fullscreenElement) document.exitFullscreen().catch(() => { });
     if (focus.wake) { focus.wake.release().catch(() => { }); focus.wake = null; }
     if (window.softwaveBg) { window.softwaveBg.running = true; window.softwaveBg.loop(); }
+    if (app.updateBackBtn) app.updateBackBtn();   // Escape exits happen without a click, which is what normally refreshes the pill
   }
   const fx = $('#focus-exit'); if (fx) fx.addEventListener('click', exitFocus);
   // Two of the three stops leave for the Visual Focus landing page; sound-only stays put.
-  const goLanding = () => { exitFocus(); setTimeout(() => { if (window.softwaveApp) app.showView('focus'); }, 60); };
+  const goLanding = () => { exitFocus(); app.afterLayerClose(() => app.showView('focus')); };
   // Stop visual: the sound is untouched. If it is still playing, land the user on the
   // Sounds page at the live player, so what they are hearing is immediately visible;
   // with nothing playing, return to the Visual Focus landing page as before.
   $('#focus-stopvisual').addEventListener('click', () => {
     const soundOn = engine.activeList().length > 0 && engine.isPlaying;
     exitFocus();
-    setTimeout(() => {
-      if (!window.softwaveApp) return;
+    app.afterLayerClose(() => {
       if (soundOn) {
         app.showView('sounds');
         setTimeout(() => { const f = document.getElementById('field-wrap'); if (f) f.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 300);
       } else app.showView('focus');
-    }, 60);
+    });
   });
   // Save on the full-screen controller: listen first, then keep it as a session
   $('#focus-save').addEventListener('click', () => { if (app.openSaveSheet) app.openSaveSheet({ visual: S.visual, motion: S.motion, source: 'focus' }); });
