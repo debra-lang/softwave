@@ -280,9 +280,24 @@
       // iOS audio session active for the app's whole lifetime, and the OS layer emits
       // periodic clicks through it (measured: the app's own output was pure silence
       // while clicks were audible — they are born below us, in the held-open session).
-      if (this.mediaOut) { if (on) { const p = this.mediaOut.play(); if (p && p.then) p.then(() => { this._needsGesture = false; }).catch(() => { this._needsGesture = true; }); } else this.mediaOut.pause(); }
-      if (this.silentEl) { if (on) this.silentEl.play().catch(() => { }); else this.silentEl.pause(); }
-      if ('mediaSession' in navigator) navigator.mediaSession.playbackState = on ? 'playing' : 'paused';
+      // Release is DEFERRED by the fade-out length: on the native shell the listener hears
+      // the routed element, so pausing it the moment the last layer starts its 0.8 s fade
+      // cut the sound dead (build 52, iPhone test 1). Anything that plays again inside that
+      // window (a new sound, Play, a tone) calls _keepAlive(true) and cancels the release.
+      clearTimeout(this._releaseT); this._releaseT = null;
+      if (on) {
+        if (this.mediaOut) { const p = this.mediaOut.play(); if (p && p.then) p.then(() => { this._needsGesture = false; }).catch(() => { this._needsGesture = true; }); }
+        if (this.silentEl) this.silentEl.play().catch(() => { });
+        if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
+        return;
+      }
+      this._releaseT = setTimeout(() => {
+        this._releaseT = null;
+        if (this.isPlaying || this._pendingStarts > 0 || (this.tone && this.tone.playing)) return;   // something is (about to be) audible again
+        if (this.mediaOut) this.mediaOut.pause();
+        if (this.silentEl) this.silentEl.pause();
+        if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
+      }, FADE_OUT * 1000 + 300);
     }
 
     // ---------- master ----------
