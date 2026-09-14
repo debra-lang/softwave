@@ -3,6 +3,26 @@
 <script>try{var t=new URLSearchParams(location.search).get("theme")||JSON.parse(localStorage.getItem("softwave:theme")||"null")||"dark";document.documentElement.dataset.theme=t;}catch(e){}</script>
 <head>
   <meta charset="utf-8">
+  <!-- Google tag (gtag.js) — GA4 G-492Q4R9W97. Production-hostname guard:
+       localhost, previews and the native app shell (same file, bundled by
+       build-www.js) never load analytics. Info pages get the same snippet
+       via the build-site.js head template. -->
+  <script>
+  (function () {
+    var h = location.hostname;
+    if (h !== 'findmyquietsound.com' && h !== 'www.findmyquietsound.com') return;
+    var s = document.createElement('script');
+    s.async = true;
+    s.src = 'https://www.googletagmanager.com/gtag/js?id=G-492Q4R9W97';
+    document.head.appendChild(s);
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){ dataLayer.push(arguments); }
+    window.gtag = gtag;
+    gtag('js', new Date());
+
+    gtag('config', 'G-492Q4R9W97');
+  })();
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Find My Quiet Sound — Free Tinnitus Sound Generator & Masking Sounds</title>
   <meta name="description" content="Free tinnitus sound generator: white, pink and brown noise, rain, ocean and more. Ask by voice or text, mix up to five sounds, personalized sleep and focus Moments. Works offline.">
@@ -151,7 +171,7 @@
           <div><h3>Who it is for</h3><p>People with tinnitus who want an easy, free way to add a comfortable background sound — at a desk, in a quiet room or at bedtime. It works with speakers, headphones or a pillow speaker, on phones, tablets and computers.</p></div>
           <div><h3>How to start</h3><p>Tap a sound, keep the level low — just enough to blend with the tinnitus — and try others until one feels comfortable. There is no single sound that works for everyone.</p></div>
         </div>
-        <p class="muted small">Sound masking and relaxation — not a medical treatment. Read <a href="learn/tinnitus-sound-masking/">what tinnitus masking is</a>, compare <a href="learn/white-vs-pink-vs-brown-noise/">white, pink and brown noise</a>, or browse all <a href="learn/">guides</a>. <a href="tinnitus-sound-generator/">More about the sound generator</a> · <a href="about/">About Find My Quiet Sound</a> · <a href="premium/">Free &amp; Premium</a>. <span class="muted small" id="build-tag">· v213</span></p>
+        <p class="muted small">Sound masking and relaxation — not a medical treatment. Read <a href="learn/tinnitus-sound-masking/">what tinnitus masking is</a>, compare <a href="learn/white-vs-pink-vs-brown-noise/">white, pink and brown noise</a>, or browse all <a href="learn/">guides</a>. <a href="tinnitus-sound-generator/">More about the sound generator</a> · <a href="about/">About Find My Quiet Sound</a> · <a href="premium/">Free &amp; Premium</a>. <span class="muted small" id="build-tag">· v214</span></p>
         </details>
       </section>
     </section>

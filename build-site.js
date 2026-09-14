@@ -11,7 +11,25 @@ const SITE = LIVE_DOMAIN ? 'https://findmyquietsound.com' : 'https://debra-lang.
 const BASE = LIVE_DOMAIN ? '/' : '/softwave/';
 const ORIGIN = SITE + BASE.replace(/\/$/, '');  // https://debra-lang.github.io/softwave
 const VERIFY = { google: '', bing: '' };        // paste verification tokens here when you have them
-const ANALYTICS = '';                           // optional cookie-free analytics snippet (off)
+// Google tag (gtag.js) — GA4 G-492Q4R9W97; same guarded install as the app's
+// index.html so localhost and previews never pollute the data.
+const ANALYTICS = `<!-- Google tag (gtag.js) -->
+<script>
+(function () {
+  var h = location.hostname;
+  if (h !== 'findmyquietsound.com' && h !== 'www.findmyquietsound.com') return;
+  var s = document.createElement('script');
+  s.async = true;
+  s.src = 'https://www.googletagmanager.com/gtag/js?id=G-492Q4R9W97';
+  document.head.appendChild(s);
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){ dataLayer.push(arguments); }
+  window.gtag = gtag;
+  gtag('js', new Date());
+
+  gtag('config', 'G-492Q4R9W97');
+})();
+</script>`;
 const INDEXNOW_KEY = 'a7c3e9f1b2d4486a9e0c5f7d3b1a6e2c';
 const LASTMOD = REVIEWED;
 const ASSET_V = '16';  // bump with sw.js CACHE when styles/scripts change
