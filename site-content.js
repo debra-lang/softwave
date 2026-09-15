@@ -36,17 +36,17 @@ const PAGES = [];
 
 // ===== TOOL LANDING PAGES =====
 PAGES.push({
-  path: 'tinnitus-sound-generator/', type: 'tool',
-  title: 'Free Tinnitus Sound Generator (Noise, Rain, Ocean) | Find My Quiet Sound',
-  description: 'Free online tinnitus sound generator: white, pink and brown noise, rain, ocean, fan and more. Layer up to five sounds and find a comfortable level. No account.',
-  h1: 'Tinnitus sound generator',
-  intro: 'Find My Quiet Sound is a free tinnitus sound generator that runs in your browser. It plays steady, seamless sounds — broadband noise and natural ambience — that can make ringing, buzzing or hissing in the ears less noticeable while you work, rest or sleep.',
-  try: [{ href: '/', label: 'Open the sound generator' }, { href: '/?sound=brown', label: 'Try brown noise' }, { href: '/?sound=rain', label: 'Try rain' }],
+  path: 'tinnitus-sound-generator/', type: 'tool', updated: '2026-09-14',
+  title: 'Tinnitus Sound Generator: Play Free Noise & Nature Sounds',
+  description: 'Free tinnitus sound and noise generator in your browser: white, pink and brown noise, rain, ocean and more. Layer up to five sounds at a low level. No account.',
+  h1: 'Free online tinnitus sound generator',
+  intro: 'Find My Quiet Sound is a free tinnitus sound generator you can use right now in your browser — no download, no account. It plays steady, seamless sounds — broadband noise and natural ambience — that can make ringing, buzzing or hissing in the ears less noticeable while you work, rest or sleep.',
+  try: [{ href: '/', label: 'Open the tinnitus sound generator' }, { href: '/?sound=brown', label: 'Try brown noise' }, { href: '/?sound=rain', label: 'Try rain' }],
   body: `
 <h2>What the generator includes</h2>
 <ul>
 <li><strong>Broadband noise:</strong> <a href="/white-noise-for-tinnitus/">white</a>, <a href="/pink-noise-for-tinnitus/">pink</a> and <a href="/brown-noise-for-tinnitus/">brown</a> noise, gentle static and a soft hiss — all synthesised live, so they loop without clicks or gaps.</li>
-<li><strong>Nature and indoor sounds:</strong> rain, ocean waves, flowing water, waterfall, forest, wind, fan, fireplace and night sounds.</li>
+<li><strong>Nature and indoor sounds:</strong> rain, rain on window, ocean waves, lapping water, flowing water, waterfall, forest, rustling leaves, wind, crickets, cicadas, night sounds, summer night, fan and fireplace. See how they compare with noise in <a href="/learn/nature-sounds-vs-noise-for-tinnitus/">nature sounds for tinnitus</a>.</li>
 <li><strong>A <a href="/tinnitus-sound-mixer/">mixer</a></strong> to layer up to five sounds with individual levels and left/right balance, plus one-tap presets (Gentle Relief, Sleep, Focus, Ocean, Rainy Night).</li>
 <li><strong>A <a href="/tinnitus-frequency-generator/">frequency generator</a></strong> and a guided <a href="/tinnitus-sound-matching/">sound-matching</a> tool for people who want to explore the pitch of their tinnitus.</li>
 <li><strong><a href="/tinnitus-sleep-sounds/">Sleep Mode</a></strong> with 15/30/60/90-minute timers and a gradual fade-out.</li>
@@ -54,14 +54,14 @@ PAGES.push({
 </ul>
 <h2>How to use a tinnitus sound generator</h2>
 <ol>
-<li><strong>Choose a sound.</strong> Try several. There is no single sound that works best for everyone; the most comfortable one is the right one for you.</li>
+<li><strong>Choose a sound.</strong> Try several. There is no single sound that works best for everyone; the most comfortable one is the right one for you. <a href="/learn/white-vs-pink-vs-brown-noise/">White vs pink vs brown noise for tinnitus</a> explains how the noise colours differ, and <a href="/tinnitus-masking-sounds/">tinnitus masking sounds</a> covers which sounds tend to blend with which kind of tinnitus.</li>
 <li><strong>Keep it low.</strong> Start at a low level and adjust only until the sound feels comfortable and useful. You do not need to completely cover the tinnitus — louder is not better masking, and a low level is kinder to your hearing.</li>
 <li><strong>Personalise it.</strong> Layer two or three sounds, nudge the balance, or save a mix you like. Use a timer at night.</li>
 </ol>
 <h2>Who it is for</h2>
 <p>People with tinnitus who want an easy, free way to add a comfortable background sound — at a desk, at night, or in a quiet room where the ringing feels loudest. It works with speakers, headphones or a pillow speaker, on phones, tablets and computers. It is not for diagnosing tinnitus, and it does not make tinnitus go away.</p>
 <h2>Why the sounds are generated, not recorded</h2>
-<p>Recorded loops have a seam the brain learns to expect. Find My Quiet Sound synthesises every sound in real time with the Web Audio API, so noise never repeats and nature scenes drift slowly — which some people find easier to leave in the background over long sessions. Everything runs on your device; nothing is uploaded.</p>
+<p>Recorded loops have a seam the brain learns to expect. Find My Quiet Sound synthesises every sound in real time with the Web Audio API, so noise never repeats and nature scenes drift slowly — which some people find easier to leave in the background over long sessions. Everything runs on your device; nothing is uploaded. For the wider picture — wearable devices, bedside machines and apps — read <a href="/learn/how-tinnitus-sound-generators-work/">how tinnitus sound generators work</a>.</p>
 <h2>Frequently asked questions</h2>
 <div class="faq">
 <h3>Is this a treatment for tinnitus?</h3><p>No. Sound generators are a management tool. Clinical guidelines say sound therapy may be offered for bothersome tinnitus as a way to make it less noticeable and to support relaxation and sleep, alongside education and, where needed, counselling or hearing aids.</p>
@@ -74,17 +74,17 @@ PAGES.push({
 });
 
 PAGES.push({
-  path: 'tinnitus-masking-sounds/', type: 'tool',
-  title: 'Tinnitus Masking Sounds for Ringing in the Ears | Find My Quiet Sound',
-  description: 'Masking sounds that blend with ringing, buzzing or hissing in the ears: which sounds, how loud to set them, and free players to try.',
+  path: 'tinnitus-masking-sounds/', type: 'tool', updated: '2026-09-14',
+  title: 'Tinnitus Masking Sounds for Ringing in the Ears',
+  description: 'Masking sounds that blend with ringing, buzzing or hissing in the ears: which sounds to try, how low to set them, and free players that run in your browser.',
   h1: 'Tinnitus masking sounds',
   intro: 'Masking means adding an external sound so that the ringing or hissing in your ears is partly covered and easier to ignore. These are the sounds people most often use for it — and how to set them so they help without being loud.',
   try: [{ href: '/?sound=pink', label: 'Try pink noise' }, { href: '/?sound=rain', label: 'Try rain' }, { href: '/?preset=gentle', label: 'Gentle Relief preset' }],
   body: `
 <h2>Which sounds mask ringing in the ears?</h2>
-<p>Ringing is usually high-pitched, so sounds with energy across the higher frequencies tend to blend with it best: <a href="/white-noise-for-tinnitus/">white noise</a>, a soft hiss, <a href="/pink-noise-for-tinnitus/">pink noise</a>, steady rain and waterfall. Lower, deeper tinnitus (humming, buzzing) often pairs better with <a href="/brown-noise-for-tinnitus/">brown noise</a>, ocean waves, wind or a fan. The <a href="/tinnitus-sound-matching/">sound matching</a> tool can suggest a starting point from the rough pitch of your tinnitus.</p>
+<p>Ringing is usually high-pitched, so sounds with energy across the higher frequencies tend to blend with it best: <a href="/white-noise-for-tinnitus/">white noise</a>, a soft hiss, <a href="/pink-noise-for-tinnitus/">pink noise</a>, steady rain and waterfall. Lower, deeper tinnitus (humming, buzzing) often pairs better with <a href="/brown-noise-for-tinnitus/">brown noise</a>, ocean waves, wind or a fan. The guided <a href="/tinnitus-sound-matching/">tinnitus frequency finder</a> can suggest a starting point from the rough pitch of your tinnitus. To compare the noise colours directly, see <a href="/learn/white-vs-pink-vs-brown-noise/">white vs pink vs brown noise for tinnitus</a>; for rain, ocean and forest, see <a href="/learn/nature-sounds-vs-noise-for-tinnitus/">nature sounds for tinnitus</a>. All of them play in the free <a href="/tinnitus-sound-generator/">tinnitus sound generator</a>.</p>
 <h2>Partial masking is usually the goal</h2>
-<p>Tinnitus retraining therapy uses the idea of a <em>mixing point</em>: the level at which the sound just starts to blend with the tinnitus without hiding it completely. In one study, setting sound at the mixing point worked as well as full masking — and it avoids loud listening. Find My Quiet Sound starts every sound quietly and fades it in for that reason.</p>
+<p>Tinnitus retraining therapy uses the idea of a <em>mixing point</em>: the level at which the sound just starts to blend with the tinnitus without hiding it completely. In one study, setting sound at the mixing point worked as well as full masking — and it avoids loud listening. Find My Quiet Sound starts every sound quietly and fades it in for that reason. For the fuller explanation, see <a href="/learn/tinnitus-sound-masking/">what tinnitus masking is</a>.</p>
 <h2>A simple routine</h2>
 <ol><li>Pick one sound and play it at a low level.</li><li>Raise it slowly until the tinnitus feels blended, not gone.</li><li>Leave it there. If it still bothers you after a few minutes, try another sound instead of turning up.</li></ol>
 <h2>Masking is not the only option</h2>
@@ -93,17 +93,17 @@ PAGES.push({
 });
 
 const COLOUR_PAGES = [
-  { id: 'white', name: 'White noise', slug: 'white-noise-for-tinnitus', desc: 'equal energy at every frequency, so it sounds bright and hissy, like a detuned radio', best: 'high-pitched ringing or hissing, and for people who find it clean rather than harsh', caution: 'Some people find the high frequencies sharp or tiring; pink noise is the usual next step.', hz: 'all frequencies equally' },
-  { id: 'pink', name: 'Pink noise', slug: 'pink-noise-for-tinnitus', desc: 'energy that falls by 3 dB per octave, so it sounds balanced and natural — like steady rainfall', best: 'mid-range ringing, and as a first sound to try because it is the least divisive', caution: 'If your tinnitus is very high-pitched, white noise or a soft hiss may blend better.', hz: 'more low than high energy (−3 dB per octave)' },
-  { id: 'brown', name: 'Brown noise', slug: 'brown-noise-for-tinnitus', desc: 'energy that falls by 6 dB per octave, so it is deep and soft, like distant surf or a low rumble', best: 'people who find white and pink noise harsh, for sleep, and for low-pitched humming or buzzing', caution: 'It has little high-frequency energy, so it may not blend with a very high-pitched ring — try layering a little pink noise on top.', hz: 'mostly low energy (−6 dB per octave)' },
+  { id: 'white', name: 'White noise', tname: 'White Noise', meta: 'Free white noise player for tinnitus, in your browser. When white noise tends to blend with high-pitched ringing, how low to set it, and when to try pink.', slug: 'white-noise-for-tinnitus', desc: 'equal energy at every frequency, so it sounds bright and hissy, like a detuned radio', best: 'high-pitched ringing or hissing, and for people who find it clean rather than harsh', caution: 'Some people find the high frequencies sharp or tiring; pink noise is the usual next step.', hz: 'all frequencies equally' },
+  { id: 'pink', name: 'Pink noise', tname: 'Pink Noise', meta: 'Free pink noise player for tinnitus, in your browser. Why pink noise is a good first sound to try, what it tends to blend with, and how low to set it.', slug: 'pink-noise-for-tinnitus', desc: 'energy that falls by 3 dB per octave, so it sounds balanced and natural — like steady rainfall', best: 'mid-range ringing, and as a first sound to try because it is the least divisive', caution: 'If your tinnitus is very high-pitched, white noise or a soft hiss may blend better.', hz: 'more low than high energy (−3 dB per octave)' },
+  { id: 'brown', name: 'Brown noise', tname: 'Brown Noise', meta: 'Free brown noise player for tinnitus, in your browser. Why deep brown noise suits sleep and low humming, how low to set it, and when to add pink noise.', slug: 'brown-noise-for-tinnitus', desc: 'energy that falls by 6 dB per octave, so it is deep and soft, like distant surf or a low rumble', best: 'people who find white and pink noise harsh, for sleep, and for low-pitched humming or buzzing', caution: 'It has little high-frequency energy, so it may not blend with a very high-pitched ring — try layering a little pink noise on top.', hz: 'mostly low energy (−6 dB per octave)' },
 ];
 for (const c of COLOUR_PAGES) {
   PAGES.push({
-    path: c.slug + '/', type: 'tool',
-    title: `${c.name} for Tinnitus: When It Helps & Free Player | Find My Quiet Sound`,
-    description: `${c.name} for tinnitus: what it sounds like, who it tends to suit, how loud to set it, and a free seamless player.`,
+    path: c.slug + '/', type: 'tool', updated: '2026-09-14',
+    title: `${c.tname} for Tinnitus: Free Player & How to Use It`,
+    description: c.meta,
     h1: `${c.name} for tinnitus`,
-    intro: `${c.name} has ${c.desc}. It is one of the most-used sounds for making tinnitus less noticeable, and it is often chosen for ${c.best}.`,
+    intro: `${c.name} is one of the most-used sounds for making tinnitus less noticeable: at a low level it blends with the tinnitus so it is easier to ignore, though it does not stop tinnitus. It has ${c.desc}. It is often chosen for ${c.best}. You can play it free right below — it starts quietly.`,
     try: [{ href: `/?sound=${c.id}`, label: `Play ${c.name.toLowerCase()}` }, { href: '/tinnitus-sound-mixer/', label: 'Layer it with other sounds' }],
     body: `
 <h2>What ${c.name.toLowerCase()} sounds like</h2>
@@ -111,27 +111,27 @@ for (const c of COLOUR_PAGES) {
 <h2>When ${c.name.toLowerCase()} helps with tinnitus</h2>
 <p>It tends to suit ${c.best}. ${c.caution}</p>
 <h2>Is it better than the other noise colours?</h2>
-<p>Probably not in general. Controlled comparisons of noise and nature sounds for tinnitus have not found a reliably superior sound; comfort over a long session is what matters. The honest advice is to try all three — <a href="/white-noise-for-tinnitus/">white</a>, <a href="/pink-noise-for-tinnitus/">pink</a> and <a href="/brown-noise-for-tinnitus/">brown</a> — at the same low level and keep the one you notice least. Our comparison article, <a href="/learn/white-vs-pink-vs-brown-noise/">white vs pink vs brown noise for tinnitus</a>, goes deeper.</p>
+<p>Probably not in general. Controlled comparisons of noise and nature sounds for tinnitus have not found a reliably superior sound; comfort over a long session is what matters. The honest advice is to try all three — <a href="/white-noise-for-tinnitus/">white</a>, <a href="/pink-noise-for-tinnitus/">pink</a> and <a href="/brown-noise-for-tinnitus/">brown</a> — at the same low level and keep the one you notice least. Our comparison article, <a href="/learn/white-vs-pink-vs-brown-noise/">white vs pink vs brown noise for tinnitus</a>, goes deeper. For more options, see <a href="/tinnitus-masking-sounds/">other tinnitus masking sounds</a> and <a href="/learn/nature-sounds-vs-noise-for-tinnitus/">nature sounds for tinnitus</a>.</p>
 <h2>How loud?</h2>
 <p>Low. Raise it slowly until it just blends with your tinnitus, then stop. If you need it loud to get any effect, it is probably not the right sound for you. See <a href="/learn/how-loud-should-tinnitus-masking-be/">how loud should tinnitus masking be?</a></p>
 <h2>At night</h2>
 <p>${c.name} is a common bedtime choice because it is steady and has no events to wake you. Use the <a href="/tinnitus-sleep-sounds/">sleep timer</a> with a gradual fade, or leave it on all night at a very low level.</p>
 <h2>About the player</h2>
-<p>Find My Quiet Sound generates ${c.name.toLowerCase()} live with the Web Audio API, so there is no loop seam and no file to download. The level starts low, fades in over about a second, and never jumps.</p>`,
+<p>Find My Quiet Sound generates ${c.name.toLowerCase()} live with the Web Audio API, so there is no loop seam and no file to download. The level starts low, fades in over about a second, and never jumps. It is one of 20 sounds in the free <a href="/tinnitus-sound-generator/">tinnitus sound generator</a>, so you can try it alongside rain, ocean waves and other sounds.</p>`,
     sources: ['bbn', 'cochrane', 'nidcd', 'who'],
   });
 }
 
 PAGES.push({
-  path: 'tinnitus-frequency-generator/', type: 'tool',
-  title: 'Tinnitus Frequency Generator (20 Hz – 16 kHz) | Find My Quiet Sound',
-  description: 'Free tinnitus frequency generator: a continuous tone adjustable by 1 Hz, pure tone or narrow noise, balance and a low default level. For careful exploration.',
+  path: 'tinnitus-frequency-generator/', type: 'tool', updated: '2026-09-14',
+  title: 'Tinnitus Frequency Generator: Free Online Tone, 20 Hz–16 kHz',
+  description: 'Manual tinnitus frequency generator: a continuous tone adjustable by 1 Hz, pure tone or narrow noise, and a low default level. Free, for careful exploration.',
   h1: 'Tinnitus frequency generator',
-  intro: 'A tone generator built for tinnitus: a continuous tone from 20 Hz to 16,000 Hz with coarse, fine and 1 Hz steps, a choice of pure tone, soft tone or narrow noise band, left/right balance, and a volume that starts low.',
+  intro: 'A manual tone generator built for tinnitus: a continuous tone from 20 Hz to 16,000 Hz with coarse, fine and 1 Hz steps, a choice of pure tone, soft tone or narrow noise band, left/right balance, and a volume that starts low. If you would rather be guided step by step, with an octave check, use the <a href="/tinnitus-sound-matching/">guided tinnitus frequency finder</a>.',
   try: [{ href: '/#frequency', label: 'Open the frequency generator' }, { href: '/#match', label: 'Guided: Find My Tinnitus Sound' }],
   body: `
 <h2>What a frequency generator is for</h2>
-<p>Many people with tonal tinnitus want to know roughly what pitch they hear. A frequency generator lets you sweep a tone up and down until it sounds similar. That rough pitch is useful in two ways: it helps choose masking sounds with energy in the same region, and it lets you try the <a href="/learn/tinnitus-frequency-matching/">frequency-centred experiments</a> in Find My Quiet Sound. It is not a hearing test and it does not change the tinnitus itself.</p>
+<p>Many people with tonal tinnitus want to know roughly what pitch they hear. A frequency generator lets you sweep a tone up and down until it sounds similar. That rough pitch is useful in two ways: it helps choose masking sounds with energy in the same region, and it lets you try the frequency-centred experiments in Find My Quiet Sound (see <a href="/learn/tinnitus-frequency-matching/">how tinnitus pitch matching works</a>). It is not a hearing test and it does not change the tinnitus itself.</p>
 <h2>How to use it safely</h2>
 <ol>
 <li>Tones feel louder than noise at the same setting, so Find My Quiet Sound caps the tone level lower than other sounds and fades it in. Keep it at the lowest comfortable level.</li>
@@ -140,26 +140,26 @@ PAGES.push({
 <li>Stop if anything feels uncomfortable. A few minutes is plenty.</li>
 </ol>
 <h2>Typical ranges</h2>
-<p>Most people place their tinnitus between about 3,000 and 8,000 Hz, but lower and higher pitches are common. If yours sounds more like a hiss than a ring, the narrow-band and hiss-band tone types will feel closer than a pure tone.</p>
+<p>Most people place their tinnitus between about 3,000 and 8,000 Hz, but lower and higher pitches are common. If yours sounds more like a hiss than a ring, the narrow-band and hiss-band tone types will feel closer than a pure tone. More in <a href="/learn/tinnitus-frequency/">what tinnitus frequency means and typical ranges</a>.</p>
 <h2>Frequency Bloom visualiser</h2>
 <p>The generator links to a live visualiser whose pattern changes with the frequency and level you set — a calm way to see what you are hearing. It is decorative, not diagnostic.</p>`,
   sources: ['pitch', 'ipod', 'nidcd', 'who'],
 });
 
 PAGES.push({
-  path: 'tinnitus-sound-matching/', type: 'tool',
-  title: 'Tinnitus Sound Matching: Find a Tone Like Yours | Find My Quiet Sound',
-  description: 'A guided tool to find a tone that resembles your tinnitus — pitch, type, ear and level — then get masking sounds to try. Experimental, not a diagnosis.',
-  h1: 'Tinnitus sound matching',
-  intro: 'Find My Tinnitus Sound walks you through choosing an ear, a sound type (ringing, whistling, hissing, humming) and a pitch at a low level, then suggests masking sounds to try around that region. It is an experimental personalisation feature, not a hearing test.',
+  path: 'tinnitus-sound-matching/', type: 'tool', updated: '2026-09-14',
+  title: 'Tinnitus Frequency Finder: Find a Tone Like Your Tinnitus',
+  description: 'Find your approximate tinnitus frequency with a free guided tool: compare tones quietly, check the octave, then get masking sounds to try. Not a hearing test.',
+  h1: 'Tinnitus frequency finder',
+  intro: 'Find your approximate tinnitus frequency with this free guided tool. Find My Tinnitus Sound walks you through choosing an ear, a sound type (ringing, whistling, hissing, humming) and a pitch at a low level, then suggests masking sounds to try around that region. It is an experimental personalisation feature, not a hearing test.',
   try: [{ href: '/#match', label: 'Start Find My Tinnitus Sound' }, { href: '/#frequency', label: 'Frequency generator' }],
   body: `
 <h2>What you get at the end</h2>
 <p>A rough frequency and a short list of sounds worth trying first — for example, a high ring often pairs with white noise, soft hiss or rain; a mid ring with pink noise, a stream or a fan; a low hum with brown noise, ocean or wind. You can save the result on your device or forget it.</p>
 <h2>Why "approximate" is the honest word</h2>
-<p>Self-administered pitch matching agrees with clinic matching within half an octave about 70% of the time, and octave confusion is the usual reason for larger differences. Find My Tinnitus Sound includes an octave-check step for that reason. Neither tool determines the cause of tinnitus — only a professional can.</p>
+<p>Self-administered pitch matching agrees with clinic matching within half an octave about 70% of the time, and octave confusion is the usual reason for larger differences. Find My Tinnitus Sound includes an octave-check step for that reason. Neither tool determines the cause of tinnitus — only a professional can. More on <a href="/learn/tinnitus-frequency-matching/">how accurate tinnitus pitch matching is</a>.</p>
 <h2>What to do with your region</h2>
-<ul><li>Pick masking sounds with energy near it (the tool suggests some).</li><li>Try <a href="/?exp=paint">Frequency Painting</a> in Experiments and draw a dip or a bump around your region.</li><li>Keep the level low throughout.</li></ul>`,
+<ul><li>Pick masking sounds with energy near it (the tool suggests some).</li><li>Try <a href="/?exp=paint">Frequency Painting</a> in Experiments and draw a dip or a bump around your region.</li><li>Sweep a tone by hand with the <a href="/tinnitus-frequency-generator/">tinnitus frequency generator</a>, or read <a href="/learn/tinnitus-frequency/">what tinnitus frequency means</a>.</li><li>Keep the level low throughout.</li></ul>`,
   sources: ['pitch', 'ipod', 'ri', 'aao'],
 });
 
@@ -231,11 +231,11 @@ learn({
 });
 
 learn({
-  slug: 'how-tinnitus-sound-generators-work',
-  title: 'How Tinnitus Sound Generators Work (Devices, Apps and Web Tools)',
+  slug: 'how-tinnitus-sound-generators-work', updated: '2026-09-14',
+  title: 'How Tinnitus Sound Generators Work: Devices, Apps, Web Tools',
   description: 'How tinnitus sound generators work: wearable maskers, bedside machines, apps and browser tools; how noise is made; why looping and low levels matter.',
   h1: 'How tinnitus sound generators work',
-  intro: 'A tinnitus sound generator is any device or app that produces a steady, pleasant sound to make tinnitus less noticeable. They range from tiny in-ear maskers fitted by an audiologist to bedside machines, phone apps and web tools like Find My Quiet Sound.',
+  intro: 'A tinnitus sound generator is any device or app that produces a steady, pleasant sound to make tinnitus less noticeable. They range from tiny in-ear maskers fitted by an audiologist to bedside machines, phone apps and web tools like Find My Quiet Sound. If you want to use one now, the free <a href="/tinnitus-sound-generator/">online tinnitus sound generator</a> runs in your browser.',
   body: `
 <h2>Types of sound generator</h2>
 <ul><li><strong>Wearable ear-level generators</strong> — small devices (often combined with hearing aids) that play soft noise all day; fitted and set by a hearing professional.</li><li><strong>Tabletop / bedside machines</strong> — loop recordings or synthesise noise; used for sleep.</li><li><strong>Phone apps</strong> — libraries of recordings, often with mixing and timers.</li><li><strong>Browser tools</strong> — run in a web page with no install; Find My Quiet Sound is one of these.</li></ul>
@@ -247,7 +247,7 @@ learn({
 <p>The most useful features are the ones that keep you at a low, comfortable level: a quiet default, smooth fade-ins, fine volume steps, a timer with a gradual fade, and a limiter so layering sounds never produces a spike. Headphone use should follow safe-listening guidance (the WHO suggests keeping personal audio around 80 dB or less for no more than 40 hours a week).</p>
 <h2>What to look for</h2>
 <ul><li>Sounds you actually like — you will use them longer.</li><li>Mixing and balance.</li><li>Sleep timer with fade.</li><li>Works offline, no account, no tracking of your hearing.</li><li>Honest wording: no promises of cures.</li></ul>
-<p>Try the <a href="/tinnitus-sound-generator/">Find My Quiet Sound sound generator</a>.</p>`,
+<p>Try the <a href="/tinnitus-sound-generator/">free tinnitus sound generator</a>.</p>`,
   sources: ['nidcd', 'ata', 'who', 'harvard'],
 });
 
@@ -285,11 +285,11 @@ learn({
 });
 
 learn({
-  slug: 'white-vs-pink-vs-brown-noise',
+  slug: 'white-vs-pink-vs-brown-noise', updated: '2026-09-14',
   title: 'White vs Pink vs Brown Noise for Tinnitus: Which Is Best?',
   description: 'White, pink and brown noise compared for tinnitus: how each sounds, which pitch each blends with, what studies found, and how to choose — with free players.',
   h1: 'White vs pink vs brown noise for tinnitus',
-  intro: 'Short answer: no colour of noise has been shown to be best for tinnitus in general. White is brightest, pink is balanced, brown is deepest. The right one is the one that blends with your tinnitus at the lowest level and that you can forget about. Here is how to choose.',
+  intro: 'Short answer: no colour of noise has been shown to be best for tinnitus in general. White is brightest, pink is balanced, brown is deepest. The right one is the one that blends with your tinnitus at the lowest level and that you can forget about. Here is how to choose — and you can play <a href="/?sound=white">white</a>, <a href="/?sound=pink">pink</a> and <a href="/?sound=brown">brown</a> noise free in your browser to compare them.',
   body: `
 <h2>What the colours mean</h2>
 <table><thead><tr><th>Noise</th><th>Spectrum</th><th>Sounds like</th><th>Often suits</th></tr></thead><tbody>
@@ -301,6 +301,7 @@ learn({
 <p>Comparisons of masking sounds have not produced a consistent winner; reviews note that the evidence for sound therapy overall is limited and that patient preference is central. One eight-week trial found broadband noise more effective than nature sounds on symptom scores — but it did not separate white from pink from brown. Claims that a particular colour "treats" tinnitus are not supported.</p>
 <h2>A practical way to choose</h2>
 <ol><li>Play each colour at the same low level for a minute.</li><li>Notice which one lets you stop listening to it soonest.</li><li>If white feels sharp, go pink; if pink still feels bright, go brown; if brown does not reach a high ring, layer a little pink over brown in the <a href="/tinnitus-sound-mixer/">mixer</a>.</li></ol>
+<p>For more ways to choose, see <a href="/tinnitus-masking-sounds/">tinnitus masking sounds</a>, or open the free <a href="/tinnitus-sound-generator/">tinnitus sound generator</a>.</p>
 <h2>Don’t forget nature sounds</h2>
 <p>Rain is pink-ish noise with texture; ocean is brown-ish noise with slow swells. Many people find those easier to live with than pure noise. See <a href="/learn/nature-sounds-vs-noise-for-tinnitus/">nature sounds vs noise</a>.</p>`,
   sources: ['bbn', 'cochrane', 'ata'],
@@ -352,11 +353,11 @@ learn({
 });
 
 learn({
-  slug: 'tinnitus-frequency',
-  title: 'Understanding Tinnitus Frequency (Pitch) and Typical Ranges',
-  description: 'What tinnitus frequency means, why it is often 3–8 kHz, how pitch relates to hearing loss, octave confusion, and what knowing your pitch can and cannot do.',
-  h1: 'Understanding tinnitus frequency',
-  intro: 'Tinnitus frequency (or pitch) is the frequency of an external tone that sounds most like your tinnitus. Most people match it somewhere between about 3,000 and 8,000 Hz, often near the edge of a hearing loss. Knowing it roughly is useful; treating it as a precise number is not.',
+  slug: 'tinnitus-frequency', updated: '2026-09-14',
+  title: 'What Is Tinnitus Frequency? Meaning and Typical Ranges',
+  description: 'What tinnitus frequency means, why it is often 3–8 kHz, how it relates to hearing loss, and what knowing it can and cannot do.',
+  h1: 'What is tinnitus frequency?',
+  intro: 'Tinnitus frequency (or pitch) is the frequency of an external tone that sounds most like your tinnitus. Most people match it somewhere between about 3,000 and 8,000 Hz, often near the edge of a hearing loss. Knowing it roughly is useful; treating it as a precise number is not. To find yours, use the <a href="/tinnitus-sound-matching/">guided tinnitus frequency finder</a>.',
   body: `
 <h2>What the number means</h2>
 <p>Hearing is measured in hertz (Hz). Speech sits mostly below 4,000 Hz; "ringing" tinnitus is commonly higher. When you match a tone to your tinnitus you are finding the external frequency that feels most similar — not measuring something inside the ear.</p>
@@ -367,39 +368,39 @@ learn({
 <h2>Noise-like tinnitus</h2>
 <p>If your tinnitus is a hiss rather than a ring, a pure tone will never feel right. Narrow bands of noise are used instead, and the matched region is wider.</p>
 <h2>What you can do with it</h2>
-<ul><li>Choose masking sounds with energy in the same region (see <a href="/tinnitus-masking-sounds/">masking sounds</a>).</li><li>Read <a href="/learn/tinnitus-frequency-matching/">what is tinnitus frequency matching?</a> for what the number can and cannot do.</li><li>Bring the rough number to an audiologist as a conversation starter — not as a diagnosis.</li></ul>
+<ul><li>Choose masking sounds with energy in the same region (see <a href="/tinnitus-masking-sounds/">masking sounds</a>).</li><li>Read <a href="/learn/tinnitus-frequency-matching/">how tinnitus pitch matching works, and its limits</a> for what the number can and cannot do.</li><li>Bring the rough number to an audiologist as a conversation starter — not as a diagnosis.</li></ul>
 <p>Explore with the <a href="/tinnitus-frequency-generator/">frequency generator</a>.</p>`,
   sources: ['nidcd', 'pitch', 'ipod', 'aao'],
 });
 
 learn({
-  slug: 'tinnitus-frequency-matching',
-  title: 'What Is Tinnitus Frequency Matching? Uses, Accuracy and Limits',
+  slug: 'tinnitus-frequency-matching', updated: '2026-09-14',
+  title: 'Tinnitus Pitch Matching: How It Works, Accuracy & Limits',
   description: 'How tinnitus pitch matching is done, how accurate self-matching is, what notched sound and residual inhibition are, and what the evidence supports.',
-  h1: 'What is tinnitus frequency matching?',
-  intro: 'Frequency matching means finding the external tone that sounds most like your tinnitus. Clinics do it with a two-alternative procedure; apps do it with sliders. The matched pitch is then used to choose sounds or to centre experimental approaches such as notched noise. Here is what that can and cannot do.',
+  h1: 'What is tinnitus pitch matching?',
+  intro: 'Tinnitus pitch matching, also called frequency matching, means finding the external tone that sounds most like your tinnitus. Clinics do it with a two-alternative procedure; apps do it with sliders. The matched pitch is then used to choose sounds or to centre experimental approaches such as notched noise. Here is what that can and cannot do. To try it yourself at a low level, use the <a href="/tinnitus-sound-matching/">guided tinnitus frequency finder</a>.',
   body: `
 <h2>How matching is done</h2>
 <p>You compare tones and say which is closer, narrowing down step by step, then check an octave above and below. Self-administered matching with a slider agrees with the clinic within half an octave about 70% of the time; an automated two-interval method on a music player was as reliable as the conventional procedure and easier for participants.</p>
 <h2>What people do with the matched frequency</h2>
 <ul>
 <li><strong>Choose masking sounds</strong> with energy near the region — the simplest, safest use.</li>
-<li><strong>Notched sound</strong> — broadband noise or music with a gap around the pitch. Trials of "tailor-made notched music" are mixed: one large randomised trial found no advantage over placebo on its main outcome, a later one found it comparable to an established therapy. Notch width did not matter. Find My Quiet Sound does not offer a notched mode for this reason, though you can paint a dip yourself in Frequency Painting.</li>
+<li><strong>Notched sound</strong> — broadband noise or music with a gap around the pitch. Trials of "tailor-made notched music" are mixed: one large randomised trial found no advantage over placebo on its main outcome, a later one found it comparable to an established therapy. Notch width did not matter. Find My Quiet Sound includes an experimental <a href="/learn/notched-sound-for-tinnitus/">Personalized Notched Sound</a> mode, labelled with this mixed evidence, and you can also paint a dip yourself in Frequency Painting.</li>
 <li><strong>Residual inhibition</strong> — a temporary quieting of tinnitus after a sound stops. Well documented, short-lived, and more likely with sounds near the tinnitus pitch; small studies found amplitude-modulated tones produced more of it than plain noise. Find My Quiet Sound does not sell this as a feature.</li>
 <li><strong>"Neuromodulation" tone patterns</strong> sold by some apps — a controlled trial was inconclusive.</li>
 </ul>
 <h2>What matching cannot do</h2>
-<p>It does not identify the cause of tinnitus, does not replace a hearing test, and does not by itself change the tinnitus. Find My Quiet Sound keeps tone levels low and labels the tool as exploratory.</p>
+<p>It does not identify the cause of tinnitus, does not replace a hearing test, and does not by itself change the tinnitus. Find My Quiet Sound keeps tone levels low and labels the tool as exploratory. For what the number means and typical ranges, see <a href="/learn/tinnitus-frequency/">what tinnitus frequency means</a>; to sweep a tone by hand, use the <a href="/tinnitus-frequency-generator/">tinnitus frequency generator</a>.</p>
 <p>Try <a href="/tinnitus-sound-matching/">Find My Tinnitus Sound</a>.</p>`,
   sources: ['pitch', 'ipod', 'tmnmt', 'ri', 'aao'],
 });
 
 learn({
-  slug: 'nature-sounds-vs-noise-for-tinnitus',
-  title: 'Nature Sounds vs Noise for Tinnitus: Which Should You Use?',
-  description: 'Rain, ocean and forest versus white, pink and brown noise for tinnitus: what each does well, what one trial found, and how combining them usually works best.',
-  h1: 'Nature sounds vs noise for tinnitus',
-  intro: 'Noise is consistent and covers the most frequencies; nature sounds are more pleasant and easier to live with. One trial found broadband noise reduced symptom scores more over eight weeks, yet most people choose nature sounds. The usual answer is both: a noise bed with a natural texture on top.',
+  slug: 'nature-sounds-vs-noise-for-tinnitus', updated: '2026-09-14',
+  title: 'Nature Sounds for Tinnitus: Rain, Ocean & Forest vs Noise',
+  description: 'Nature sounds for tinnitus (rain, ocean, forest, wind) compared with white, pink and brown noise: what one trial found, and free players to try.',
+  h1: 'Nature sounds for tinnitus: rain, ocean and forest vs noise',
+  intro: 'Nature sounds such as rain, ocean waves and forest ambience are a common choice for making tinnitus less noticeable, and many people find them easier to leave on than plain noise. Noise is consistent and covers the most frequencies; nature sounds are more pleasant and easier to live with. One trial found broadband noise reduced symptom scores more over eight weeks, yet most people choose nature sounds. The usual answer is both: a noise bed with a natural texture on top. Play <a href="/?sound=rain">rain</a>, <a href="/?sound=ocean">ocean waves</a>, <a href="/?sound=forest">forest</a> or <a href="/?sound=wind">wind</a> free in your browser; each starts quietly.',
   body: `
 <h2>What noise does well</h2>
 <p>Broadband noise has no gaps and no events, so it blends with tinnitus continuously. It is also adjustable in character (white, pink, brown). Its weakness is that it can feel clinical or tiring.</p>
@@ -409,7 +410,7 @@ learn({
 <p>In a mixed-methods trial, broadband noise produced a larger reduction in tinnitus scores than nature sounds after eight weeks, but individual responses varied widely and many participants preferred nature sounds. Preference matters because it predicts continued use.</p>
 <h2>Practical combinations</h2>
 <ul><li>Pink noise + forest for daytime focus.</li><li>Brown noise + rain for sleep.</li><li>Ocean + a little brown noise for relaxation.</li></ul>
-<p>Build one in the <a href="/tinnitus-sound-mixer/">mixer</a>.</p>`,
+<p>Build one in the <a href="/tinnitus-sound-mixer/">mixer</a>, or open the free <a href="/tinnitus-sound-generator/">tinnitus sound generator</a> to try each sound on its own. For which sounds suit which kind of tinnitus, see <a href="/tinnitus-masking-sounds/">tinnitus masking sounds</a>.</p>`,
   sources: ['bbn', 'vr', 'ata'],
 });
 

@@ -46,7 +46,7 @@ const TOOLS = [['Tinnitus sound generator', '/tinnitus-sound-generator/'], ['Mas
 
 const ORG = { '@type': 'Organization', '@id': ORIGIN + '/#org', name: 'Find My Quiet Sound', url: ORIGIN + '/', logo: ORIGIN + '/icons/icon-512.png', sameAs: ['https://github.com/debra-lang/softwave'] };
 const WEBSITE = { '@type': 'WebSite', '@id': ORIGIN + '/#website', url: ORIGIN + '/', name: 'Find My Quiet Sound', description: 'Free tinnitus sound generator: masking sounds, mixer, frequency tools, sleep mode and calm visuals.', publisher: { '@id': ORIGIN + '/#org' }, inLanguage: 'en' };
-const APP = { '@type': 'WebApplication', '@id': ORIGIN + '/#app', name: 'Find My Quiet Sound — Tinnitus Sound Studio', url: ORIGIN + '/', applicationCategory: 'HealthApplication', operatingSystem: 'Any (web browser)', browserRequirements: 'Requires JavaScript and Web Audio', offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' }, isAccessibleForFree: true, description: 'A free tinnitus sound generator with white, pink and brown noise, nature sounds, a five-channel mixer, a frequency generator, guided sound matching, sleep timer with fade-out, and calm visuals. Sound masking and relaxation — not a medical treatment.', featureList: ['14 synthesised, seamless sounds', 'Mixer with up to 5 layers and L/R balance', 'Frequency generator 20 Hz – 16 kHz', 'Guided tinnitus sound matching', 'Sleep timer with gradual fade', 'Visual Focus mode', 'Works offline, installable, no account'], screenshot: ORIGIN + '/og-image.png', publisher: { '@id': ORIGIN + '/#org' } };
+const APP = { '@type': 'WebApplication', '@id': ORIGIN + '/#app', name: 'Find My Quiet Sound — Tinnitus Sound Studio', url: ORIGIN + '/', applicationCategory: 'HealthApplication', operatingSystem: 'Any (web browser)', browserRequirements: 'Requires JavaScript and Web Audio', offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' }, isAccessibleForFree: true, description: 'A free tinnitus sound generator with white, pink and brown noise, nature sounds, a five-channel mixer, a frequency generator, guided sound matching, sleep timer with fade-out, and calm visuals. Sound masking and relaxation — not a medical treatment.', featureList: ['20 synthesised, seamless sounds', 'Mixer with up to 5 layers and L/R balance', 'Frequency generator 20 Hz – 16 kHz', 'Guided tinnitus sound matching', 'Sleep timer with gradual fade', 'Visual Focus mode', 'Works offline, installable, no account'], screenshot: ORIGIN + '/og-image.png', publisher: { '@id': ORIGIN + '/#org' } };
 
 function layout(p, { bodyHtml, jsonld, crumbs }) {
   const url = ORIGIN + '/' + (p.path || '');
@@ -74,7 +74,7 @@ ${VERIFY.google ? `<meta name="google-site-verification" content="${VERIFY.googl
 <meta name="twitter:title" content="${esc(p.ogTitle || title)}">
 <meta name="twitter:description" content="${esc(p.description)}">
 <meta name="twitter:image" content="${ORIGIN}/og-image.png">
-${p.type === 'article' ? `<meta property="article:published_time" content="${REVIEWED}"><meta property="article:modified_time" content="${LASTMOD}">` : ''}
+${p.type === 'article' ? `<meta property="article:published_time" content="${REVIEWED}"><meta property="article:modified_time" content="${p.updated || LASTMOD}">` : ''}
 <meta name="theme-color" content="#0b1020" media="(prefers-color-scheme: dark)">
 <meta name="theme-color" content="#f4f6fb" media="(prefers-color-scheme: light)">
 <link rel="icon" href="${BASE}icons/icon.svg" type="image/svg+xml">
@@ -143,7 +143,7 @@ ${disclaimer}</article>`;
     jsonld.push({ '@type': 'WebPage', '@id': url, url, name: p.title, description: p.description, isPartOf: { '@id': ORIGIN + '/#website' }, dateModified: LASTMOD });
   } else {
     const isTool = p.type === 'tool';
-    body = `<article class="prose"><header class="page-head"><p class="eyebrow">${isTool ? 'Free tool' : 'Learn'}</p><h1>${p.h1}</h1><p class="lead">${p.intro}</p><p class="muted small">Last reviewed ${humanDate(REVIEWED)} · Sources listed below · Not medical advice</p></header>
+    body = `<article class="prose"><header class="page-head"><p class="eyebrow">${isTool ? 'Free tool' : 'Learn'}</p><h1>${p.h1}</h1><p class="lead">${p.intro}</p><p class="muted small">Last reviewed ${humanDate(REVIEWED)}${p.updated ? ` · Updated ${humanDate(p.updated)}` : ''} · Sources listed below · Not medical advice</p></header>
 ${isTool && p.try ? tryBox(p.try) : ''}
 ${p.body}
 ${!isTool ? tryBox(toolLinksFor(p)) : ''}
@@ -151,7 +151,7 @@ ${sourcesBlock(p.sources)}
 ${disclaimer}
 <p class="muted small">Written from the sources above by the Find My Quiet Sound project; no clinician has reviewed this page. See <a href="/research-and-sources/">Research &amp; Sources</a> and the <a href="/medical-disclaimer/">medical disclaimer</a>.</p>
 </article>`;
-    const wp = { '@type': isTool ? 'WebPage' : 'Article', '@id': url, url, name: p.title, headline: p.h1, description: p.description, isPartOf: { '@id': ORIGIN + '/#website' }, datePublished: REVIEWED, dateModified: LASTMOD, author: { '@id': ORIGIN + '/#org' }, publisher: { '@id': ORIGIN + '/#org' }, inLanguage: 'en', image: ORIGIN + '/og-image.png' };
+    const wp = { '@type': isTool ? 'WebPage' : 'Article', '@id': url, url, name: p.title, headline: p.h1, description: p.description, isPartOf: { '@id': ORIGIN + '/#website' }, datePublished: REVIEWED, dateModified: p.updated || LASTMOD, author: { '@id': ORIGIN + '/#org' }, publisher: { '@id': ORIGIN + '/#org' }, inLanguage: 'en', image: ORIGIN + '/og-image.png' };
     if (isTool) { wp.mainEntity = { '@id': ORIGIN + '/#app' }; jsonld.push(APP); }
     if (!isTool) wp.mainEntityOfPage = url;
     jsonld.push(wp);
@@ -160,7 +160,7 @@ ${disclaimer}
   return layout(p, { bodyHtml: body, jsonld, crumbs });
 }
 function toolLinksFor(p) {
-  const map = { 'tinnitus-sound-masking': [['/tinnitus-masking-sounds/', 'Try masking sounds']], 'how-tinnitus-sound-generators-work': [['/tinnitus-sound-generator/', 'Open the sound generator']], 'white-vs-pink-vs-brown-noise': [['/?sound=white', 'Play white noise'], ['/?sound=pink', 'Play pink noise'], ['/?sound=brown', 'Play brown noise']], 'find-a-comfortable-tinnitus-masking-sound': [['/?exp=discovery', 'Help Me Find My Sound'], ['/#match', 'Find My Tinnitus Sound']], 'tinnitus-and-sleep': [['/#sleep', 'Try Sleep Mode']], 'tinnitus-frequency': [['/#frequency', 'Try the frequency generator']], 'tinnitus-frequency-matching': [['/#match', 'Find My Tinnitus Sound']], 'nature-sounds-vs-noise-for-tinnitus': [['/?sound=rain', 'Play rain'], ['/#mixer', 'Open the mixer']], 'how-loud-should-tinnitus-masking-be': [['/', 'Open the sound generator']], 'speakers-vs-headphones-for-tinnitus-sounds': [['/', 'Open Find My Quiet Sound']] };
+  const map = { 'tinnitus-sound-masking': [['/tinnitus-masking-sounds/', 'Try masking sounds']], 'how-tinnitus-sound-generators-work': [['/tinnitus-sound-generator/', 'Open the tinnitus sound generator']], 'white-vs-pink-vs-brown-noise': [['/?sound=white', 'Play white noise'], ['/?sound=pink', 'Play pink noise'], ['/?sound=brown', 'Play brown noise']], 'find-a-comfortable-tinnitus-masking-sound': [['/?exp=discovery', 'Help Me Find My Sound'], ['/#match', 'Find My Tinnitus Sound']], 'tinnitus-and-sleep': [['/#sleep', 'Try Sleep Mode']], 'tinnitus-frequency': [['/#frequency', 'Try the frequency generator']], 'tinnitus-frequency-matching': [['/#match', 'Find My Tinnitus Sound']], 'nature-sounds-vs-noise-for-tinnitus': [['/?sound=rain', 'Play rain'], ['/?sound=ocean', 'Play ocean waves'], ['/#mixer', 'Open the mixer']], 'how-loud-should-tinnitus-masking-be': [['/', 'Open the tinnitus sound generator']], 'speakers-vs-headphones-for-tinnitus-sounds': [['/', 'Open Find My Quiet Sound']] };
   return (map[p.slug] || [['/', 'Open Find My Quiet Sound']]).map(([href, label]) => ({ href, label }));
 }
 
@@ -170,11 +170,11 @@ const write = (rel, content) => { const f = path.join(root, rel); fs.mkdirSync(p
 for (const p of PAGES) write(p.path + 'index.html', renderPage(p));
 
 // sitemap
-const urls = [{ loc: ORIGIN + '/', pri: '1.0' }].concat(PAGES.map(p => ({ loc: ORIGIN + '/' + p.path, pri: p.type === 'tool' ? '0.9' : p.type === 'article' ? '0.7' : '0.4' })));
-write('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map(u => `  <url><loc>${u.loc}</loc><lastmod>${LASTMOD}</lastmod><priority>${u.pri}</priority></url>`).join('\n')}\n</urlset>\n`);
+const urls = [{ loc: ORIGIN + '/', pri: '1.0' }].concat(PAGES.map(p => ({ loc: ORIGIN + '/' + p.path, pri: p.type === 'tool' ? '0.9' : p.type === 'article' ? '0.7' : '0.4', mod: p.updated })));
+write('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map(u => `  <url><loc>${u.loc}</loc><lastmod>${u.mod || LASTMOD}</lastmod><priority>${u.pri}</priority></url>`).join('\n')}\n</urlset>\n`);
 write('robots.txt', `User-agent: *\nAllow: /\n\nSitemap: ${ORIGIN}/sitemap.xml\n`);
 write(INDEXNOW_KEY + '.txt', INDEXNOW_KEY);
-write('404.html', layout({ path: '404.html', title: 'Page not found — Find My Quiet Sound', description: 'That page does not exist. Open the Find My Quiet Sound tinnitus sound generator or browse the Learn library.', type: 'trust' }, { bodyHtml: `<article class="prose"><header class="page-head"><h1>Page not found</h1><p class="lead">That link does not go anywhere. Here are the places people usually want:</p></header><ul class="link-list"><li><a href="/">Open the sound generator</a></li><li><a href="/tinnitus-sound-generator/">About the tinnitus sound generator</a></li><li><a href="/learn/">Learn library</a></li></ul></article>`, jsonld: [ORG, WEBSITE], crumbs: null }).replace('<meta name="robots" content="index, follow, max-image-preview:large">', '<meta name="robots" content="noindex">'));
+write('404.html', layout({ path: '404.html', title: 'Page not found — Find My Quiet Sound', description: 'That page does not exist. Open the Find My Quiet Sound tinnitus sound generator or browse the Learn library.', type: 'trust' }, { bodyHtml: `<article class="prose"><header class="page-head"><h1>Page not found</h1><p class="lead">That link does not go anywhere. Here are the places people usually want:</p></header><ul class="link-list"><li><a href="/">Open the tinnitus sound generator</a></li><li><a href="/tinnitus-sound-generator/">About the tinnitus sound generator</a></li><li><a href="/learn/">Learn library</a></li></ul></article>`, jsonld: [ORG, WEBSITE], crumbs: null }).replace('<meta name="robots" content="index, follow, max-image-preview:large">', '<meta name="robots" content="noindex">'));
 
 // OG image (1200x630): gradient ground with the three-bar mark, no text (title comes from OG tags)
 function png(W, H, pix) {
