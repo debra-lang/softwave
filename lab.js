@@ -934,8 +934,8 @@
   function showAfterFeedback(exp, ctx) {
     const host = ctx.host && $('[data-after]', ctx.host); if (!host) return;
     host.innerHTML = `<div class="card lab-result"><h3>How did this feel?</h3><div class="btn-row"><button class="btn btn-ghost btn-sm" data-c="more">More comfortable</button><button class="btn btn-ghost btn-sm" data-c="same">About the same</button><button class="btn btn-ghost btn-sm" data-c="less">Less comfortable</button></div><p>Would you use this again?</p><div class="btn-row"><button class="btn btn-ghost btn-sm" data-a="yes">Yes</button><button class="btn btn-ghost btn-sm" data-a="maybe">Maybe</button><button class="btn btn-ghost btn-sm" data-a="no">No</button></div><p class="muted small">Used only to personalise your suggestions; stored on this device.</p></div>`;
-    $$('[data-c]', host).forEach(b => b.addEventListener('click', () => { setFb(exp.id, { comfort: b.dataset.c, rating: b.dataset.c === 'more' ? 'helpful' : b.dataset.c === 'less' ? 'not' : 'neutral' }); $$('[data-c]', host).forEach(x => x.classList.toggle('btn-secondary', x === b)); renderLists(); renderProfile(); }));
-    $$('[data-a]', host).forEach(b => b.addEventListener('click', () => { setFb(exp.id, { again: b.dataset.a }); $$('[data-a]', host).forEach(x => x.classList.toggle('btn-secondary', x === b)); renderLists(); }));
+    $$('[data-c]', host).forEach(b => b.addEventListener('click', () => { setFb(exp.id, { comfort: b.dataset.c, rating: b.dataset.c === 'more' ? 'helpful' : b.dataset.c === 'less' ? 'not' : 'neutral' }); $$('[data-c]', host).forEach(x => { const on = x === b; x.classList.toggle('btn-secondary', on); x.classList.toggle('btn-ghost', !on); }); renderLists(); renderProfile(); }));
+    $$('[data-a]', host).forEach(b => b.addEventListener('click', () => { setFb(exp.id, { again: b.dataset.a }); $$('[data-a]', host).forEach(x => { const on = x === b; x.classList.toggle('btn-secondary', on); x.classList.toggle('btn-ghost', !on); }); renderLists(); }));
   }
 
   // ---------- cards & detail ----------
