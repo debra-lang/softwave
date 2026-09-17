@@ -376,7 +376,7 @@
         const saved = store.get('match');                          // from the Sound Matching tool
         const measures = store.get('notch:measures', []);
         const lastM = measures[measures.length - 1];
-        ctx.n = ctx.n || { hz: lastM ? lastM.hz : (saved && saved.freq ? Math.round(saved.freq) : 0), where: lastM ? lastM.where : 'both', conf: lastM ? lastM.conf : '', accepted: !!lastM, source: 'pink', width: 'standard', depth: 'standard', buf: null };
+        ctx.n = ctx.n || { hz: lastM ? lastM.hz : (saved && saved.freq ? Math.round(saved.freq) : 0), where: lastM ? lastM.where : '', conf: lastM ? lastM.conf : '', accepted: !!lastM, source: 'pink', width: 'standard', depth: 'standard', buf: null };
         const N = ctx.n;
         const srcDefs = C.sources.filter(id => engine.def(id));
         host.innerHTML = `
