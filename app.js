@@ -550,7 +550,7 @@
         e.preventDefault(); const name = $('#save-mix-name', saveSheet).value.trim() || 'My Custom Mix';
         const dup = validMixes().some(m => m.name.toLowerCase() === name.toLowerCase());
         if (dup && !form.dataset.confirmed) { form.dataset.confirmed = '1'; const w = $('[data-sv-warn]', saveSheet); w.textContent = `You already have a mix called “${name}”. Tap Save again to keep both.`; w.hidden = false; $('#save-mix-submit', saveSheet).textContent = 'Save anyway'; return; }
-        const ex = saveSheet._extra; if (saveCurrentMix(name, ex)) { layersClose(); toast(`Saved — find “${name}” under ${ex && ex.visual ? 'My Saved Sessions' : 'My Saved Mixes'}`, 3600); }
+        const ex = saveSheet._extra; if (saveCurrentMix(name, ex)) { layersClose(); toast(`Saved to ${ex && ex.visual ? 'My Saved Sessions' : 'My Saved Mixes'}`, 3600); }
       });
     }
     const t = engine.timer;
