@@ -422,7 +422,7 @@
             <details class="nx-adv"><summary class="muted small">Advanced details</summary><div class="muted small" data-nx="adv"></div></details>
             <p class="muted small">Keep the volume at a low, comfortable level. Stop if the sound causes discomfort or seems to make your tinnitus worse.</p>
           </div>
-          <div class="nx card lab-result" data-nx="live" hidden>
+          <div class="nx card lab-result" data-nx="live" data-run-landing hidden>
             <h3 class="nx-t">3 · Listen &amp; compare</h3>
             <div class="seg nx-ab" role="radiogroup" aria-label="Normal or notched">
               <button role="radio" aria-checked="false" data-nxab="off">NORMAL</button>
@@ -1122,9 +1122,14 @@
   // Bring the topmost visible control block to just below the real (measured) header,
   // so a new user sees the experiment's adjustments without hunting for them.
   function scrollToRunControls(panel) {
-    const el = ['[data-custom]', '[data-settings]', '.lab-run'].map(s => $(s, panel))
-      .filter(x => x && !x.hidden && x.offsetHeight > 0)
-      .sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top)[0];
+    // An experiment may name where a run should land ([data-run-landing]); without one, the
+    // topmost of custom/settings/run buttons is used as before. Notched Sound needs this: its
+    // custom area starts at step 1 (pitch), so the default target threw the user back to the top.
+    const landing = $('[data-run-landing]', panel);
+    const el = (landing && !landing.hidden && landing.offsetHeight > 0) ? landing
+      : ['[data-custom]', '[data-settings]', '.lab-run'].map(s => $(s, panel))
+        .filter(x => x && !x.hidden && x.offsetHeight > 0)
+        .sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top)[0];
     if (!el) return;
     const tb = document.querySelector('.topbar');
     const off = (tb ? tb.getBoundingClientRect().height : 54) + 10;
