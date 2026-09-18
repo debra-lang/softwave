@@ -118,6 +118,7 @@ main { position: relative; z-index: 1; max-width: 1180px; margin: 0 auto; paddin
 .btn-secondary { background: var(--accent-soft); color: var(--accent); }
 .btn-ghost { background: transparent; border-color: var(--border); color: var(--text); }
 .btn-ghost:hover { background: var(--accent-soft); }
+#lab-detail .btn-ghost[data-act="undo"]:disabled, #lab-detail .btn-ghost[data-act="undo"]:disabled:hover { opacity: .45; cursor: default; background: transparent; transform: none; }   /* Frequency Painting: nothing to undo */
 .btn-sm { padding: 8px 14px; min-height: 38px; font-size: .9rem; }
 #install-btn[hidden] { display: none; }
 .btn-lg { padding: 14px 28px; font-size: 1.05rem; }

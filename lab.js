@@ -151,6 +151,18 @@
   function rampParam(key, to, seconds) { const from = focus.getParam()[key] || 0; const t0 = performance.now(); const id = setInterval(() => { const k = Math.min(1, (performance.now() - t0) / (seconds * 1000)); const e = k * k * (3 - 2 * k); focus.setParam(key, from + (to - from) * e); if (k >= 1) { clearInterval(id); timers.delete(id); } }, 200); timers.add(id); }
 
   // ---------- settings renderer ----------
+  // Refresh the controls renderSettings drew so they show ctx.s again — values only: no rebuild,
+  // no new listeners, no scroll. One row per setting, in the same order renderSettings made them.
+  function syncSettingsUI(exp, ctx, host) {
+    if (!host) return;
+    (exp.settings || []).forEach((st, i) => {
+      const row = host.children[i]; if (!row) return; const v = ctx.s[st.key];
+      if (st.type === 'buttons') $$('button', row).forEach(b => b.setAttribute('aria-checked', String(v) === String(b.dataset.v)));
+      else if (st.type === 'select') { const sel = $('select', row); if (sel) sel.value = v; }
+      else if (st.type === 'toggle') { const cb = $('input', row); if (cb) cb.checked = !!v; }
+      else if (st.type === 'range') { const r = $('input', row); if (r) { r.value = v; app.paintRange(r); } const o = $('output', row); if (o) o.textContent = st.fmt ? st.fmt(v) : v; }
+    });
+  }
   function renderSettings(exp, ctx, host) {
     host.innerHTML = '';
     (exp.settings || []).forEach(st => {
@@ -309,22 +321,24 @@
           const g = cx.createLinearGradient(0, 0, w, 0); g.addColorStop(0, dark ? 'rgba(205,165,120,0.42)' : 'rgba(150,105,65,0.4)'); g.addColorStop(0.5, dark ? 'rgba(195,170,190,0.38)' : 'rgba(140,100,130,0.36)'); g.addColorStop(1, dark ? 'rgba(150,185,215,0.42)' : 'rgba(70,115,150,0.4)'); cx.fillStyle = g; cx.fill(); cx.lineJoin = 'round'; cx.strokeStyle = dark ? 'rgba(255,245,230,.25)' : 'rgba(60,40,20,.18)'; cx.lineWidth = 9; cx.stroke(); cx.strokeStyle = dark ? 'rgba(255,248,238,.9)' : 'rgba(40,30,20,.75)'; cx.lineWidth = 1.6; cx.stroke();
           cx.fillStyle = dark ? 'rgba(238,240,244,.45)' : 'rgba(31,29,26,.5)'; cx.font = '500 11px Inter, sans-serif'; cx.fillText('LOW', 12, h - 14); cx.textAlign = 'right'; cx.fillText('HIGH', w - 12, h - 14); cx.textAlign = 'left';
           $$('[data-band]', host).forEach(r => { r.value = Math.round(ctx.curve[+r.dataset.band] * 100); app.paintRange(r); }); };
-        const push = () => { ctx.hist.push(ctx.curve.slice()); if (ctx.hist.length > 30) ctx.hist.shift(); };
+        const syncUndo = () => { const u = $('[data-act="undo"]', host); if (u) u.disabled = !ctx.hist.length; };   // nothing to undo → dimmed
+        const push = () => { ctx.hist.push(ctx.curve.slice()); if (ctx.hist.length > 30) ctx.hist.shift(); syncUndo(); };
+        const flat = () => ctx.curve.every(v => Math.abs(v - ctx.curve[0]) < 0.002);
         const paint = ev => { const r = c.getBoundingClientRect(); const x = (ev.clientX - r.left) / r.width, y = 1 - (ev.clientY - r.top) / r.height; const i = clamp(Math.floor(x * 24), 0, 23); const v = mode === 'reduce' ? Math.max(0, ctx.curve[i] - 0.06) : clamp(y, 0, 1); ctx.curve[i] = v; if (i > 0) ctx.curve[i - 1] = (ctx.curve[i - 1] * 2 + v) / 3; if (i < 23) ctx.curve[i + 1] = (ctx.curve[i + 1] * 2 + v) / 3; draw(); engine.setPaint(ctx.curve); };
         c.addEventListener('pointerdown', e => { down = true; push(); c.setPointerCapture(e.pointerId); paint(e); }); c.addEventListener('pointermove', e => { if (down) paint(e); }); addEventListener('pointerup', () => { if (down) store.set('lab:paintcurve', ctx.curve); down = false; });
         $$('[data-band]', host).forEach(r => r.addEventListener('input', () => { ctx.curve[+r.dataset.band] = +r.value / 100; draw(); engine.setPaint(ctx.curve); store.set('lab:paintcurve', ctx.curve); }));
         $$('[data-act]', host).forEach(b => b.addEventListener('click', async () => { const a = b.dataset.act;
           if (a === 'paint' || a === 'reduce') { mode = a; $$('[data-act="paint"],[data-act="reduce"]', host).forEach(x => { const on = x.dataset.act === a; x.setAttribute('aria-pressed', on); x.classList.toggle('btn-secondary', on); x.classList.toggle('btn-ghost', !on); }); return; }
-          if (a === 'smooth') { push(); ctx.curve = ctx.curve.map((v, i) => (ctx.curve[Math.max(0, i - 1)] + v * 2 + ctx.curve[Math.min(23, i + 1)]) / 4); }
-          if (a === 'undo') { if (ctx.hist.length) ctx.curve = ctx.hist.pop(); }
-          if (a === 'reset') { push(); ctx.curve = new Array(24).fill(0.5); }
+          if (a === 'smooth') { const next = ctx.curve.map((v, i) => (ctx.curve[Math.max(0, i - 1)] + v * 2 + ctx.curve[Math.min(23, i + 1)]) / 4); if (next.every((v, i) => Math.abs(v - ctx.curve[i]) < 0.002)) return app.toast(flat() ? 'Nothing to smooth yet — draw a shape first.' : 'Already smooth — nothing left to soften.'); push(); ctx.curve = next; }
+          if (a === 'undo') { if (ctx.hist.length) ctx.curve = ctx.hist.pop(); syncUndo(); }
+          if (a === 'reset') { if (ctx.curve.every(v => Math.abs(v - 0.5) < 0.002)) return app.toast('Already reset — the curve is flat.'); push(); ctx.curve = new Array(24).fill(0.5); }
           if (a === 'random') { push(); const k = 0.4 + Math.random() * 0.5, ph = Math.random() * 6; ctx.curve = ctx.curve.map((_, i) => clamp(0.5 + 0.4 * Math.sin(i * k + ph) + (Math.random() - 0.5) * 0.15, 0.05, 1)); }
           if (a === 'preview') { if (running && running.exp.id === 'paint') return;  /* while running, the drawing is already live */ if (!engine.isActive('paint')) { safeMaster(); engine.setPaint(ctx.curve); await engine.startSound('paint', 0.6); await engine.playAll(); b.textContent = 'Stop preview'; } else { engine.stopSound('paint'); b.textContent = 'Preview'; } return; }
           if (a === 'save') { saveSoundForm($('[data-saveform]', host), { type: 'paint', curve: ctx.curve.slice(), name: 'My painted sound' }, renderSaved); return; }
           if (a === 'compare') { const pp = profileParams(); if (!pp) return app.toast('Use Help Me Find My Sound first to have a preferred sound to compare with.'); const on = b.getAttribute('aria-pressed') !== 'true'; b.setAttribute('aria-pressed', on); b.textContent = on ? 'Back to my painting' : 'Compare with my preferred sound'; if (on) { if (!engine.isActive('sculpt')) { engine.setSculpt(pp, 'sculpt'); await engine.startSound('sculpt', 0.6); engine.muteQuick('sculpt'); } if (!engine.isActive('paint')) { engine.setPaint(ctx.curve); await engine.startSound('paint', 0.6); engine.muteQuick('paint'); } engine.crossfade('paint', 'sculpt', 0.25); } else engine.crossfade('sculpt', 'paint', 0.25); await engine.playAll(); return; }
           draw(); engine.setPaint(ctx.curve); store.set('lab:paintcurve', ctx.curve); }));
         const renderSaved = () => { const h = $('[data-saved]', host); h.innerHTML = ''; mySounds().filter(s => s.type === 'paint').forEach(p => { const bt = document.createElement('button'); bt.className = 'chip'; bt.innerHTML = `<strong>${p.name}</strong>`; bt.addEventListener('click', () => { push(); ctx.curve = p.curve.slice(); draw(); engine.setPaint(ctx.curve); }); h.appendChild(bt); }); };
-        renderSaved(); draw();
+        renderSaved(); draw(); syncUndo();
       },
       async start(ctx) { safeMaster(); engine.setPaint(ctx.curve); engine.stopAll(); await engine.startSound('paint', 0.6); await engine.playAll(); const pv = ctx.host && $('[data-act="preview"]', ctx.host); if (pv) pv.hidden = true; if (M()) M().track('frequency_painting_used'); },
       stop(ctx) { if (engine.isActive('sculpt')) engine.stopSound('sculpt'); const pv = ctx && ctx.host && $('[data-act="preview"]', ctx.host); if (pv) { pv.hidden = false; pv.textContent = 'Preview'; } },
@@ -348,18 +362,21 @@
       defaults: () => sculptSettingsFrom(profileParams() || DEF(), 'none'), custom: true, customFirst: true,
       buildUI(ctx, host) {
         host.innerHTML = `<div class="sculpt-shape"><canvas aria-hidden="true"></canvas></div><p class="muted" data-desc style="text-align:center"></p><div class="btn-row" style="justify-content:center"><button class="btn btn-ghost btn-sm" data-from-profile>Start from My Sound Profile</button><button class="btn btn-ghost btn-sm" data-random>Randomize</button><button class="btn btn-ghost btn-sm" data-zero>Reset to neutral</button><button class="btn btn-secondary btn-sm" data-save>Save this sound</button><button class="btn btn-ghost btn-sm" data-journey>Use in Adaptive Journey</button></div><div data-saveform></div>`;
-        const reopen = (settings) => { store.set('lab:settings:sculptor', settings); delete ctxs.sculptor; const wasRunning = running && running.exp.id === 'sculptor'; openExperiment('sculptor'); if (wasRunning) { running = { exp: byId.sculptor, ctx: ctxFor(byId.sculptor) }; running.ctx.host = $('#lab-detail'); byId.sculptor.start(running.ctx); updateRunningUI(); } };
+        // Randomize / Reset to neutral / Start from My Sound Profile change the settings in place: the
+        // one ctx that the sliders, the "Now:" line, the playing sound and the saved settings all read.
+        // (Rebuilding the panel jumped the page to its top, and while running left the sliders stale.)
+        const apply = (settings) => { const natureChanged = settings.nature !== undefined && settings.nature !== ctx.s.nature; Object.assign(ctx.s, settings); store.set('lab:settings:sculptor', ctx.s); syncSettingsUI(this, ctx, $('[data-settings]', ctx.host || document)); this.onSetting(ctx, natureChanged ? 'nature' : undefined); };
         liveShape($('.sculpt-shape canvas', host), () => ({ p: Object.assign({}, this.params(ctx), { nature: ctx.s.nature }), live: true, scale: 0.42 }));
-        $('[data-from-profile]', host).addEventListener('click', () => { const pp = profileParams(); if (!pp) return app.toast('Use Help Me Find My Sound first — then your profile can be a starting point.'); reopen(sculptSettingsFrom(pp, profile().nature)); });
-        $('[data-random]', host).addEventListener('click', () => { const r = () => Math.round((Math.random() * 2 - 1) * 70); reopen({ colour: [0.1, 0.45, 0.85][Math.floor(Math.random() * 3)], warm: r(), deep: r(), smooth: r(), soft: r(), width: Math.round(Math.random() * 100), moving: Math.round(Math.random() * 60), rich: Math.round(Math.random() * 80), nature: NATURES[Math.floor(Math.random() * NATURES.length)] }); });
-        $('[data-zero]', host).addEventListener('click', () => reopen(sculptSettingsFrom(DEF(), 'none')));
+        $('[data-from-profile]', host).addEventListener('click', () => { const pp = profileParams(); if (!pp) return app.toast('Use Help Me Find My Sound first — then your profile can be a starting point.'); apply(sculptSettingsFrom(pp, profile().nature)); });
+        $('[data-random]', host).addEventListener('click', () => { const r = () => Math.round((Math.random() * 2 - 1) * 70); apply({ colour: [0.1, 0.45, 0.85][Math.floor(Math.random() * 3)], warm: r(), deep: r(), smooth: r(), soft: r(), width: Math.round(Math.random() * 100), moving: Math.round(Math.random() * 60), rich: Math.round(Math.random() * 80), nature: NATURES[Math.floor(Math.random() * NATURES.length)] }); });
+        $('[data-zero]', host).addEventListener('click', () => apply(sculptSettingsFrom(DEF(), 'none')));
         $('[data-save]', host).addEventListener('click', () => saveSoundForm($('[data-saveform]', host), { type: 'sculpt', params: this.params(ctx), nature: ctx.s.nature, natureVol: 0.35, name: 'My sculpted sound' }));
         $('[data-journey]', host).addEventListener('click', () => { const js = Object.assign({ len: 20, var: 'gentle', sleep: false }, store.get('lab:settings:journey') || {}, { bed: 'custom' }); store.set('lab:journey-bed', { params: this.params(ctx), nature: ctx.s.nature }); store.set('lab:settings:journey', js); delete ctxs.journey; if (running) stopRunning(); openExperiment('journey'); app.toast('Adaptive Journey will use your sculpted sound as its bed.'); });
         this.onSetting(ctx);
       },
       params(ctx) { const s = ctx.s; return { colour: +s.colour, warm: s.warm / 100, deep: s.deep / 100, smooth: s.smooth / 100, soft: s.soft / 100, width: s.width / 100, moving: s.moving / 100, rich: s.rich / 100, mod: 0 }; },
       async start(ctx) { safeMaster(); engine.setSculpt(this.params(ctx), 'sculpt'); await engine.loadMix(soundMix({ params: this.params(ctx), nature: ctx.s.nature, natureVol: 0.35 }, 0.6)); },
-      async onSetting(ctx, key) { const p = this.params(ctx); engine.setSculpt(p, 'sculpt'); const d = $('[data-desc]', ctx.host || document); if (d) d.textContent = 'Now: ' + describe(p, ctx.s.nature); if (key === 'nature' && running && running.exp.id === 'sculptor') { for (const n of NATURES) if (n !== 'none' && engine.isActive(n) && n !== ctx.s.nature) engine.stopSound(n); if (ctx.s.nature !== 'none' && !engine.isActive(ctx.s.nature)) await engine.startSound(ctx.s.nature, 0.35); } },
+      async onSetting(ctx, key) { const p = this.params(ctx); engine.setSculpt(p, 'sculpt'); if (key) store.set('lab:settings:sculptor', ctx.s); const d = $('[data-desc]', ctx.host || document); if (d) d.textContent = 'Now: ' + describe(p, ctx.s.nature); if (key === 'nature' && running && running.exp.id === 'sculptor') { for (const n of NATURES) if (n !== 'none' && engine.isActive(n) && n !== ctx.s.nature) engine.stopSound(n); if (ctx.s.nature !== 'none' && !engine.isActive(ctx.s.nature)) await engine.startSound(ctx.s.nature, 0.35); } },
       keepsSound: true,
     },
     // ---------- EXPLORE ----------
