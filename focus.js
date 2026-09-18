@@ -519,7 +519,11 @@
     // owned by the Focus screen: leaving the view, exiting Focus, Stop everything, or a newer pick cancels it
     app.armIntent('focus:autoEnter', () => { if (!(screen.hidden && !$('#view-focus').hidden)) return; if (moreSheet && !moreSheet.hidden && app.layerReplace) { app.layerReplace(exitFocusUI); focusLayerReady = true; } enterFocus(); }, AUTO_ENTER_MS, { screen: 'focus', view: true, stop: true });
   }
-  function setVisual(id) { if (!byId[id]) return; const MZ = window.softwaveMonetization; if (MZ && !MZ.canUse('visual:' + id)) { if (window.softwavePremium && !softwavePremium.gate('visual:' + id)) return; } S.visual = id; if (!byId[id].hidden) app.store.set('visual', id);   /* Lab-only visuals are never the remembered choice */ $$('.vis-card').forEach(c => c.classList.toggle('active', c.dataset.id === id)); const cv = $('#current-visual-name'); if (cv) cv.textContent = byId[id].name; if (focus.inst && focus.visualId !== id) focus.load(id); renderStage(); markMoreActive(); }
+  // setVisual(id) shows a visual AND remembers it as the user's Visual Focus choice (unchanged default).
+  // setVisual(id, { remember: false }) only shows it: for visuals a session borrows (experiments,
+  // journey stages, the frequency visualizer) — restoreVisual() later hands back the remembered one.
+  let borrowed = false;
+  function setVisual(id, opts) { if (!byId[id]) return; const MZ = window.softwaveMonetization; if (MZ && !MZ.canUse('visual:' + id)) { if (window.softwavePremium && !softwavePremium.gate('visual:' + id)) return; } S.visual = id; const remember = !(opts && opts.remember === false); borrowed = !remember; if (remember && !byId[id].hidden) app.store.set('visual', id);   /* Lab-only visuals are never the remembered choice */ $$('.vis-card').forEach(c => c.classList.toggle('active', c.dataset.id === id)); const cv = $('#current-visual-name'); if (cv) cv.textContent = byId[id].name; if (focus.inst && focus.visualId !== id) focus.load(id); renderStage(); markMoreActive(); }
 
   // ---------- pairings ----------
   const PAIRINGS = [
@@ -632,11 +636,19 @@
     try { if (navigator.wakeLock) focus.wake = await navigator.wakeLock.request('screen'); } catch (_) { }
     if (engine.activeList().length && !engine.isPlaying && !engine.userPaused) engine.playAll();
   }
-  // Cross-fade to another visual (journeys): fade to black, switch, fade back
+  // Put the remembered visual back on display after a borrowed one. While the full screen is still
+  // showing the borrowed visual it is left alone (no jump in front of the user); exitFocusUI finishes it.
+  function restoreVisual() {
+    if (!borrowed || !screen.hidden) return;
+    const back = app.store.get('visual', 'underwater');
+    setVisual(byId[back] && !byId[back].hidden ? back : 'underwater', { remember: false }); borrowed = false;
+  }
+  // Cross-fade to another visual (journeys): fade to black, switch, fade back. Journey stages are
+  // borrowed visuals — shown, never remembered.
   function crossfadeTo(id) {
-    if (!byId[id] || screen.hidden) { setVisual(id); return; }
+    if (!byId[id] || screen.hidden) { setVisual(id, { remember: false }); return; }
     let veil = $('#focus-veil'); if (!veil) { veil = document.createElement('div'); veil.id = 'focus-veil'; veil.className = 'focus-veil'; screen.appendChild(veil); }
-    veil.classList.add('on'); app.armIntent('focus:crossfade', () => { setVisual(id); app.armIntent('focus:crossfadeVeil', () => veil.classList.remove('on'), 120, { screen: 'focus' }); }, 1600, { screen: 'focus', stop: true });
+    veil.classList.add('on'); app.armIntent('focus:crossfade', () => { setVisual(id, { remember: false }); app.armIntent('focus:crossfadeVeil', () => veil.classList.remove('on'), 120, { screen: 'focus' }); }, 1600, { screen: 'focus', stop: true });
   }
   // Public exit: consume the Back entry the screen owns (the popstate then runs exitFocusUI).
   // With a sheet above the screen, or no entry of its own, close the surface directly.
@@ -645,12 +657,14 @@
     if (screen.hidden) return;   // double-exit (Escape + button) must be a no-op
     if (engine.ctx) engine.resetMasterShape(); P.dim = 0; P.slow = 0; P.time = 0.5;
     if (enteredVia && window.softwaveTransition) { const id = enteredVia; enteredVia = null; window.softwaveTransition.back(id); }
+    const ownedByExperiment = !!returnTo && !!(window.softwaveLab && softwaveLab.isRunning());
     returnTo = null;   // the origin belongs to this session only
     screen.hidden = true; document.body.style.overflow = ''; cancelAnimationFrame(focus.raf); closePanel(); clearTimeout(focus.hideT); app.cancelIntents({ screen: 'focus' });   /* closePanel re-arms the idle timer, so clear it afterwards */
     if (document.fullscreenElement) document.exitFullscreen().catch(() => { });
     if (focus.wake) { focus.wake.release().catch(() => { }); focus.wake = null; }
     if (window.softwaveBg) { window.softwaveBg.running = true; window.softwaveBg.loop(); }
     if (app.updateBackBtn) app.updateBackBtn();   // Escape exits happen without a click, which is what normally refreshes the pill
+    if (!ownedByExperiment) restoreVisual();   // a still-running experiment keeps its visual; its stop() restores
   }
   const fx = $('#focus-exit'); if (fx) fx.addEventListener('click', exitFocus);
   // Two of the three stops leave for the Visual Focus landing page; sound-only stays put.
@@ -754,10 +768,10 @@
   $$('#focus-panel [data-min]').forEach(b => b.addEventListener('click', () => { engine.setTimer(+b.dataset.min, true); updateFocusBar(); if (+b.dataset.min) app.toast(`Timer: ${b.dataset.min} minutes, with gentle fade`); }));
 
   // Frequency page hook: open the Sound Visualizer with the generator
-  $('#freq-visualizer').addEventListener('click', async () => { if (!(engine.tone && engine.tone.playing)) $('#freq-play').click(); setVisual('frequency'); enterFocus(); });
+  $('#freq-visualizer').addEventListener('click', async () => { if (!(engine.tone && engine.tone.playing)) $('#freq-play').click(); setVisual('frequency', { remember: false }); enterFocus(); });
 
   // expose for app
-  window.softwaveFocus = { enterFocus, exitFocus, enterViaTransition, setReturn, setVisual, crossfadeTo, openChooser, refreshFavs: renderFavs, startSaved, visuals: V.filter(v => !v.hidden), allVisuals: V, setParam: (k, v) => { P[k] = v; }, getParam: () => P };
+  window.softwaveFocus = { enterFocus, exitFocus, enterViaTransition, setReturn, setVisual, restoreVisual, currentVisual: () => S.visual, crossfadeTo, openChooser, refreshFavs: renderFavs, startSaved, visuals: V.filter(v => !v.hidden), allVisuals: V, setParam: (k, v) => { P[k] = v; }, getParam: () => P };
 
   // ---------- init ----------
   if (!byId[S.visual] || byId[S.visual].hidden) { S.visual = 'underwater'; app.store.set('visual', S.visual); }   // a stored id that no longer exists, or a Lab-only one (persisted by versions before v203), must not become the page's visual — normalise the key so every other reader sees the same choice
