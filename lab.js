@@ -515,7 +515,7 @@
       whyTest: 'A randomised trial of an attention-training game reduced tinnitus distress more than a control game; small multisensory-training trials showed modest effects. We removed every stressful element. Promising for distress, no claim about loudness.',
       settings: [{ key: 'act', label: 'Activity', type: 'buttons', options: [['followlight', 'Follow the Light'], ['bubble', 'Floating Bubble'], ['touchwater', 'Ripple'], ['noticechange', 'Notice the Change']] }, { key: 'sync', label: 'Let the sound follow the light (Follow the Light only)', type: 'toggle' }],
       defaults: { act: 'followlight', sync: true },
-      async start(ctx) { safeMaster(); if (!engine.activeList().length) await engine.startSound('pink', app.soundVol ? app.soundVol('pink') : 0.45); if (ctx.s.act === 'followlight' && ctx.s.sync) { focus.setParam('target', 'light'); focus.setParam('sync', true); focus.setVisual('target'); } else focus.setVisual(ctx.s.act); focus.setParam('soundTouch', ctx.s.act === 'touchwater'); focus.enterFocus(); },
+      async start(ctx) { safeMaster(); if (!engine.activeList().length) await engine.startSound('pink', app.soundVol ? app.soundVol('pink') : 0.45); if (ctx.s.act === 'followlight' && ctx.s.sync) { focus.setParam('target', 'light'); focus.setParam('sync', true); focus.setVisual('target'); } else focus.setVisual(ctx.s.act); focus.setParam('soundTouch', ctx.s.act === 'touchwater'); focus.setReturn('lab'); focus.enterFocus(); },
       stop() { engine.resetMasterShape(); focus.setParam('soundTouch', false); const back = store.get('visual', 'underwater'); if (focus.setVisual) focus.setVisual(back); }, keepsSound: true,   /* the hidden Lab visual hands back to the user's own visual */
     },
     {
@@ -535,7 +535,7 @@
           rain: [{ min: u, label: 'rain on the window', visual: 'rainwindow', dim: 0, slow: 0, mix: [{ id: 'rain', volume: 0.55 }, { id: 'pink', volume: 0.2 }] }, { min: u, label: 'dimmer room', visual: 'rainwindow', dim: 0.3, mix: [{ id: 'rain', volume: 0.5 }, { id: 'brown', volume: 0.25 }], tone: 8000 }, { min: u, label: 'slower rain', visual: 'rainwindow', dim: 0.45, slow: 0.5, mix: [{ id: 'rain', volume: 0.3 }, { id: 'brown', volume: 0.35 }], tone: 6000 }, { min: u, label: 'softer sound', visual: 'rainwindow', dim: 0.6, slow: 0.7, mix: [{ id: 'brown', volume: 0.4 }, { id: 'rain', volume: 0.12 }], tone: 5000 }, { min: u, label: 'night', visual: 'nightsky', dim: 0.2, slow: 0.6, mix: [{ id: 'brown', volume: 0.3 }], tone: 4000 }],
           forest: [{ min: u, label: 'forest', visual: 'forest', dim: 0, slow: 0, mix: [{ id: 'forest', volume: 0.55 }, { id: 'pink', volume: 0.2 }] }, { min: u, label: 'sunset', visual: 'forest', dim: 0.2, mix: [{ id: 'forest', volume: 0.45 }, { id: 'wind', volume: 0.3 }], tone: 9000 }, { min: u, label: 'evening', visual: 'forest', dim: 0.45, slow: 0.4, mix: [{ id: 'wind', volume: 0.35 }, { id: 'brown', volume: 0.25 }], tone: 6000 }, { min: u, label: 'night ambience', visual: 'nightsky', dim: 0.1, slow: 0.5, mix: [{ id: 'night', volume: 0.35 }, { id: 'brown', volume: 0.3 }], tone: 5000 }, { min: u, label: 'softer', visual: 'nightsky', dim: 0.25, slow: 0.7, mix: [{ id: 'brown', volume: 0.3 }, { id: 'night', volume: 0.15 }], tone: 4000 }],
         }[ctx.s.j];
-        focus.setParam('dim', 0); focus.setParam('slow', 0); focus.setParam('time', ctx.s.j === 'ocean' ? 0.05 : 0.5); focus.setVisual(J[0].visual); focus.enterFocus();
+        focus.setParam('dim', 0); focus.setParam('slow', 0); focus.setParam('time', ctx.s.j === 'ocean' ? 0.05 : 0.5); focus.setVisual(J[0].visual); focus.setReturn('lab'); focus.enterFocus();
         runJourney(J, { crossfade: Math.min(120, u * 25), visuals: true, onEnd: () => { if (ctx.s.fade) { engine.setTimer(0.1, true); app.toast('Fading out. Rest well.'); } else app.toast('Journey finished — the last sound stays on.'); stopRunning(null, true); } });
       },
       stop() { engine.resetMasterShape(); focus.setParam('dim', 0); focus.setParam('slow', 0); focus.setParam('time', 0.5); }, keepsSound: true,
@@ -600,7 +600,7 @@
         await engine.loadMix(soundMix({ params, nature, natureVol: 0.3 }, s.doing === 'sleep' ? 0.45 : 0.55));
         if (s.var === 'explore') engine.setVariation(0.45, 7);
         if (s.doing === 'sleep') engine.setTimer(60, true);
-        if (s.vis !== 'no') { const v = s.vis === 'surprise' ? VISUALS[Math.floor(Math.random() * VISUALS.length)].id : s.doing === 'sleep' ? (store.get('focus:userVisual') || 'underwater') : nature === 'rain' ? 'rainwindow' : nature === 'ocean' ? 'ocean' : nature === 'forest' ? 'forest' : (store.get('focus:userVisual') || 'underwater'); focus.setVisual(v); focus.enterFocus(); } else if (s.doing === 'sleep') app.showView('sleep');
+        if (s.vis !== 'no') { const v = s.vis === 'surprise' ? VISUALS[Math.floor(Math.random() * VISUALS.length)].id : s.doing === 'sleep' ? (store.get('focus:userVisual') || 'underwater') : nature === 'rain' ? 'rainwindow' : nature === 'ocean' ? 'ocean' : nature === 'forest' ? 'forest' : (store.get('focus:userVisual') || 'underwater'); focus.setVisual(v); focus.setReturn('lab'); focus.enterFocus(); } else if (s.doing === 'sleep') app.showView('sleep');
         app.toast(s.doing === 'sleep' ? 'Sleep session: 60-minute timer with gentle fade.' : 'Session ready — adjust anything you like.');
       },
       stop() { engine.setVariation(0); engine.resetMasterShape(); }, keepsSound: true,
@@ -931,8 +931,14 @@
   }
   function updateRunningUI() { const lv = $('#view-lab'); if (lv) lv.classList.toggle('running', !!running); const det = $('#lab-detail'); if (det) det.classList.toggle('running', !!running); $$('.lab-tile').forEach(t => t.classList.toggle('running', !!running && t.dataset.id === running.exp.id)); const el = $('#player-exp'); if (el) { if (running) { el.hidden = false; el.textContent = `Experiment: ${running.exp.name}`; } else el.hidden = true; } $$('.lab-card').forEach(c => c.classList.toggle('running', !!running && c.dataset.id === running.exp.id)); $$('[data-exp-start]').forEach(b => { const on = running && b.dataset.expStart === running.exp.id; const c = ctxs[b.dataset.expStart]; b.textContent = on ? 'Running…' : (c && c.hasRun ? 'Start again' : 'Start Experiment'); b.disabled = !!on; }); const pv = document.querySelector('#lab-detail [data-act="preview"]'); if (pv) pv.hidden = !!(running && running.exp.id === 'paint'); }
   $('#player-stop').addEventListener('click', () => { if (running) stopRunning(); });
+  // Stopping from inside Visual Focus renders the card into a panel nobody can see. Flag that
+  // one card as owed, so the single arrival that finally shows the panel leaves it standing.
+  // A stop made on the Experiments page itself is already visible and sets nothing.
+  let feedbackOwed = false;
   function showAfterFeedback(exp, ctx) {
     const host = ctx.host && $('[data-after]', ctx.host); if (!host) return;
+    const lv = document.getElementById('view-lab'), fs = document.getElementById('focus-screen');
+    feedbackOwed = !!((fs && !fs.hidden) || (lv && lv.hidden));
     host.innerHTML = `<div class="card lab-result"><h3>How did this feel?</h3><div class="btn-row"><button class="btn btn-ghost btn-sm" data-c="more">More comfortable</button><button class="btn btn-ghost btn-sm" data-c="same">About the same</button><button class="btn btn-ghost btn-sm" data-c="less">Less comfortable</button></div><p>Would you use this again?</p><div class="btn-row"><button class="btn btn-ghost btn-sm" data-a="yes">Yes</button><button class="btn btn-ghost btn-sm" data-a="maybe">Maybe</button><button class="btn btn-ghost btn-sm" data-a="no">No</button></div><p class="muted small">Used only to personalise your suggestions; stored on this device.</p></div>`;
     $$('[data-c]', host).forEach(b => b.addEventListener('click', () => { setFb(exp.id, { comfort: b.dataset.c, rating: b.dataset.c === 'more' ? 'helpful' : b.dataset.c === 'less' ? 'not' : 'neutral' }); $$('[data-c]', host).forEach(x => { const on = x === b; x.classList.toggle('btn-secondary', on); x.classList.toggle('btn-ghost', !on); }); renderLists(); renderProfile(); }));
     $$('[data-a]', host).forEach(b => b.addEventListener('click', () => { setFb(exp.id, { again: b.dataset.a }); $$('[data-a]', host).forEach(x => { const on = x === b; x.classList.toggle('btn-secondary', on); x.classList.toggle('btn-ghost', !on); }); renderLists(); }));
@@ -1137,7 +1143,21 @@
     if (r.top < off - 6 || r.top > innerHeight * 0.45) window.scrollTo({ top: scrollY + r.top - off, behavior: 'smooth' });
   }
 
+  // Visual Focus has just handed the user back to this panel (arrivals always start at the top
+  // of the page): land on the feedback card if the experiment has ended, otherwise on the
+  // controls Start positioned them on. Skipped if they have already moved elsewhere.
+  function revealPanel() {
+    setTimeout(() => {
+      const lv = $('#view-lab'), panel = $('#lab-detail'); if (!lv || lv.hidden || !panel || panel.hidden) return;
+      const card = $('[data-after] .lab-result', panel);
+      if (!card || !card.offsetHeight) { scrollToRunControls(panel); return; }
+      const tb = document.querySelector('.topbar'); const off = (tb ? tb.getBoundingClientRect().height : 54) + 10;
+      window.scrollTo({ top: scrollY + card.getBoundingClientRect().top - off, behavior: 'smooth' });
+    }, 150);
+  }
+
   function openExperiment(id) {
+    feedbackOwed = false;
     const exp = byId[id]; if (!exp) return; const ctx = ctxFor(exp); const panel = $('#lab-detail'); panel.hidden = false;
     // Re-opening the experiment that is running (its tab tapped again, Back then Forward) must not
     // rebuild the panel under it: the fresh controls would come up disabled with no round to enable them.
@@ -1202,14 +1222,18 @@
   const lf = $('#lab-field'); if (lf) liveShape(lf, () => ({ field: true }));
   const flag = $('#lab-flagship canvas'); if (flag) liveShape(flag, () => { const pp = profileParams(); return { p: pp ? Object.assign({}, pp, { nature: profile().nature }) : Object.assign(DEF(), { colour: 0.4, width: 0.5, moving: 0.2 }), live: true, speed: 0.7, scale: 0.4 }; });
 
-  window.softwaveLab = { open: openExperiment, stop: stopRunning, experiments: EXPERIMENTS, isRunning: () => !!running,
-    // Arriving at the Experiments page shows the LIST, with exactly two protected
-    // states: a running experiment, and (for history/Back arrivals) the completed
-    // Find My Sound result. A merely-opened placard always folds back into the list —
-    // one Back press must land somewhere meaningful, never on leftover panel state.
+  window.softwaveLab = { open: openExperiment, stop: stopRunning, revealPanel, experiments: EXPERIMENTS, isRunning: () => !!running,
+    // Arriving at the Experiments page shows the LIST, with three protected states: a
+    // running experiment, a feedback card the user has not been shown yet, and (for
+    // history/Back arrivals) the completed Find My Sound result. A merely-opened placard
+    // always folds back into the list — one Back press must land somewhere meaningful,
+    // never on leftover panel state.
     showList: (force) => {
       if (running) return;
       const panel = document.getElementById('lab-detail');
+      // A card rendered while the panel was off-screen is shown once; after that it is an
+      // ordinary finished experiment and the next arrival folds it back into the list.
+      if (feedbackOwed && panel && !panel.hidden && panel.querySelector('[data-after] .lab-result')) { feedbackOwed = false; return; }
       if (!force) {
         const ctx = ctxs.discovery;
         if (ctx && ctx.finished && ctx.result && panel && !panel.hidden && panel.querySelector('.disc-reveal')) return;

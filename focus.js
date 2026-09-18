@@ -609,6 +609,11 @@
   }
   function showControls() { screen.classList.remove('idle'); clearTimeout(focus.hideT); focus.hideT = setTimeout(() => { if (!$('#focus-panel').classList.contains('open')) screen.classList.add('idle'); }, 7500); }
   let enteredVia = null;
+  // Where the visible leave-controls should go when this session was launched from somewhere
+  // that owns its own screen (today: an Experiment panel in the Lab). Set by the caller right
+  // before enterFocus(); cleared on every exit, so a normally-opened Focus never sees it.
+  let returnTo = null;
+  function setReturn(v) { returnTo = v || null; }
   function enterViaTransition(id) { if (window.softwaveTransition && !$('#view-sounds').hidden) { enteredVia = id; window.softwaveTransition.to(id, () => enterFocus(false, true)); } else enterFocus(true); }
   let entering = false, focusLayerReady = false;   // focusLayerReady: the entry was handed over by layerReplace
   async function enterFocus(transition, fromTransition) {
@@ -640,6 +645,7 @@
     if (screen.hidden) return;   // double-exit (Escape + button) must be a no-op
     if (engine.ctx) engine.resetMasterShape(); P.dim = 0; P.slow = 0; P.time = 0.5;
     if (enteredVia && window.softwaveTransition) { const id = enteredVia; enteredVia = null; window.softwaveTransition.back(id); }
+    returnTo = null;   // the origin belongs to this session only
     screen.hidden = true; document.body.style.overflow = ''; cancelAnimationFrame(focus.raf); closePanel(); clearTimeout(focus.hideT); app.cancelIntents({ screen: 'focus' });   /* closePanel re-arms the idle timer, so clear it afterwards */
     if (document.fullscreenElement) document.exitFullscreen().catch(() => { });
     if (focus.wake) { focus.wake.release().catch(() => { }); focus.wake = null; }
@@ -648,23 +654,30 @@
   }
   const fx = $('#focus-exit'); if (fx) fx.addEventListener('click', exitFocus);
   // Two of the three stops leave for the Visual Focus landing page; sound-only stays put.
-  const goLanding = () => { exitFocus(); app.afterLayerClose(() => app.showView('focus')); };
-  // Stop visual: the sound is untouched. If it is still playing, land the user on the
-  // Sounds page at the live player, so what they are hearing is immediately visible;
-  // with nothing playing, return to the Visual Focus landing page as before.
+  const goLanding = () => { const dest = returnTo || 'focus'; exitFocus(); app.afterLayerClose(() => app.showView(dest)); };
+  const landInLab = (dest) => { if (dest === 'lab' && window.softwaveLab && softwaveLab.revealPanel) softwaveLab.revealPanel(); };
+  // Stop visual: the sound is untouched. Launched from an Experiment, go back to that panel —
+  // the experiment is still running and its own Stop/Reset live there. Otherwise, if sound is
+  // still playing, land on the Sounds page at the live player so what they are hearing is
+  // immediately visible; with nothing playing, return to the Visual Focus landing page as before.
   $('#focus-stopvisual').addEventListener('click', () => {
     const soundOn = engine.activeList().length > 0 && engine.isPlaying;
+    const dest = returnTo || (soundOn ? 'sounds' : 'focus');
     exitFocus();
     app.afterLayerClose(() => {
-      if (soundOn) {
-        app.showView('sounds');
-        setTimeout(() => { const f = document.getElementById('field-wrap'); if (f) f.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 300);
-      } else app.showView('focus');
+      app.showView(dest); landInLab(dest);
+      if (dest === 'sounds') setTimeout(() => { const f = document.getElementById('field-wrap'); if (f) f.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 300);
     });
   });
   // Save on the full-screen controller: listen first, then keep it as a session
   $('#focus-save').addEventListener('click', () => { if (app.openSaveSheet) app.openSaveSheet({ visual: S.visual, motion: S.motion, source: 'focus' }); });
-  $('#focus-stopall').addEventListener('click', () => { (window.softwaveStopAll || engine.stopAll.bind(engine))(); goLanding(); });
+  $('#focus-stopall').addEventListener('click', () => {
+    const stop = window.softwaveStopAll || engine.stopAll.bind(engine);
+    // Returning to an Experiment: arrive while the experiment still counts as running (that is
+    // what keeps its panel open), then stop — so the "How did this feel?" card lands on screen.
+    if (returnTo) { const dest = returnTo; exitFocus(); app.afterLayerClose(() => { app.showView(dest); stop(); landInLab(dest); }); return; }
+    stop(); goLanding();
+  });
   // player-style bar: keep name, playing state and volume readout in sync with the engine
   function syncFocusPlayer() {
     const t = $('#focus-now-title'), s = $('#focus-now-sub'); if (!t) return;
@@ -744,7 +757,7 @@
   $('#freq-visualizer').addEventListener('click', async () => { if (!(engine.tone && engine.tone.playing)) $('#freq-play').click(); setVisual('frequency'); enterFocus(); });
 
   // expose for app
-  window.softwaveFocus = { enterFocus, exitFocus, enterViaTransition, setVisual, crossfadeTo, openChooser, refreshFavs: renderFavs, startSaved, visuals: V.filter(v => !v.hidden), allVisuals: V, setParam: (k, v) => { P[k] = v; }, getParam: () => P };
+  window.softwaveFocus = { enterFocus, exitFocus, enterViaTransition, setReturn, setVisual, crossfadeTo, openChooser, refreshFavs: renderFavs, startSaved, visuals: V.filter(v => !v.hidden), allVisuals: V, setParam: (k, v) => { P[k] = v; }, getParam: () => P };
 
   // ---------- init ----------
   if (!byId[S.visual] || byId[S.visual].hidden) { S.visual = 'underwater'; app.store.set('visual', S.visual); }   // a stored id that no longer exists, or a Lab-only one (persisted by versions before v203), must not become the page's visual — normalise the key so every other reader sees the same choice
