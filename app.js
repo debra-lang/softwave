@@ -158,7 +158,7 @@
   function ensureLab() {
     if (window.softwaveLab) return Promise.resolve();
     if (labPromise) return labPromise;
-    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=85'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
+    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=86'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
     return labPromise;
   }
   window.softwaveEnsureLab = ensureLab;
@@ -231,7 +231,7 @@
         if ([...document.querySelectorAll('.addsound-sheet')].some(s => !s.hidden)) { scheduleAutoAdvance(kind, ms); return; }
         const fsOpen = !$('#now').hidden || !$('#focus-screen').hidden || !$('#sleep-screen').hidden;
         if (kind === 'immerse' && (document.querySelector('.view:not([hidden])') || {}).id === armedView && !fsOpen) openNow();
-        if (kind === 'sleep' && !$('#view-sleep').hidden && $('#sleep-screen').hidden && $('#now').hidden && $('#focus-screen').hidden) $('#sleep-enter').click();
+        if (kind === 'sleep' && (document.querySelector('.view:not([hidden])') || {}).id === armedView && !fsOpen) $('#sleep-enter').click();   // still on the page where it was armed (Sleep page, or Sounds for the Sleep preset)
         if (kind === 'focus' && !$('#view-sounds').hidden && !fsOpen && window.softwaveFocus) softwaveFocus.enterFocus();
       }, retries === 3 ? Math.max(300, wait - quietFor()) : 1500, { screen: kind === 'immerse' ? 'now' : kind, stop: true });   // closing the screen it would open cancels it; a tab switch does not (checked at fire time instead)
     };
@@ -245,7 +245,8 @@
       list.forEach(p => {
         const b = document.createElement('button'); b.className = 'chip'; b.setAttribute('role', 'listitem'); b.dataset.preset = p.id; b.dataset.chipName = p.name;
         b.innerHTML = `<strong>${p.name}</strong><span>${p.desc}</span>`;
-        b.addEventListener('click', () => { loadPreset(p); scheduleAutoAdvance(container.id === 'sleep-presets' ? 'sleep' : 'immerse'); });
+        // the Sleep preset carries on to the Sleep screen from either row; the others open Immerse from Sounds
+        b.addEventListener('click', () => { loadPreset(p); scheduleAutoAdvance(container.id === 'sleep-presets' || p.id === 'sleep' ? 'sleep' : 'immerse'); });
         container.appendChild(b);
       });
     };
