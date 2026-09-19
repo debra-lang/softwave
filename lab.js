@@ -371,7 +371,14 @@
         $('[data-random]', host).addEventListener('click', () => { const r = () => Math.round((Math.random() * 2 - 1) * 70); apply({ colour: [0.1, 0.45, 0.85][Math.floor(Math.random() * 3)], warm: r(), deep: r(), smooth: r(), soft: r(), width: Math.round(Math.random() * 100), moving: Math.round(Math.random() * 60), rich: Math.round(Math.random() * 80), nature: NATURES[Math.floor(Math.random() * NATURES.length)] }); });
         $('[data-zero]', host).addEventListener('click', () => apply(sculptSettingsFrom(DEF(), 'none')));
         $('[data-save]', host).addEventListener('click', () => saveSoundForm($('[data-saveform]', host), { type: 'sculpt', params: this.params(ctx), nature: ctx.s.nature, natureVol: 0.35, name: 'My sculpted sound' }));
-        $('[data-journey]', host).addEventListener('click', () => { const js = Object.assign({ len: 20, var: 'gentle', sleep: false }, store.get('lab:settings:journey') || {}, { bed: 'custom' }); store.set('lab:journey-bed', { params: this.params(ctx), nature: ctx.s.nature }); store.set('lab:settings:journey', js); delete ctxs.journey; if (running) stopRunning(); openExperiment('journey'); app.toast('Adaptive Journey will use your sculpted sound as its bed.'); });
+        // Use in Adaptive Journey: the sound is taken and confirmed at once; the switch follows ~1.5 s later
+        // so the confirmation can be read. Leaving the page, closing or resetting the panel cancels it.
+        $('[data-journey]', host).addEventListener('click', () => {
+          const js = Object.assign({ len: 20, var: 'gentle', sleep: false }, store.get('lab:settings:journey') || {}, { bed: 'custom' }); store.set('lab:journey-bed', { params: this.params(ctx), nature: ctx.s.nature }); store.set('lab:settings:journey', js); delete ctxs.journey;
+          app.toast('Adaptive Journey will use your sculpted sound as its bed.');
+          const btn = $('[data-journey]', host);
+          app.armIntent('lab:toJourney', () => { if (!btn.isConnected) return; if (running) stopRunning(); openExperiment('journey'); }, 1500, { view: true });
+        });
         this.onSetting(ctx);
       },
       params(ctx) { const s = ctx.s; return { colour: +s.colour, warm: s.warm / 100, deep: s.deep / 100, smooth: s.smooth / 100, soft: s.soft / 100, width: s.width / 100, moving: s.moving / 100, rich: s.rich / 100, mod: 0 }; },
