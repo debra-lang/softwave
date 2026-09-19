@@ -1524,3 +1524,26 @@ html[data-theme="dark"] .lab-view { --lab-bg-a: #0f1320; --lab-bg-b: #090b12; }
 .more-visuals-cat { font-size: .74rem; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); font-weight: 600; margin: 16px 0 8px; }
 .more-visuals-card .env-mosaic.more-mosaic { margin: 0 0 6px; width: 100%; }
 @media (max-width: 760px) { .more-visuals-card { max-height: 88vh; } .more-visuals-card .env-mosaic.more-mosaic { grid-template-columns: repeat(2, 1fr); grid-auto-rows: 120px; } }
+
+/* ---------- Find My Tinnitus Sound: clear action → response (scoped to #view-match) ---------- */
+/* every tap lands visibly: ~150 ms accent response, set by app.js pressFeedback (works on touch) */
+#view-match .is-pressed { transition: none; transform: scale(.97); }
+#view-match .btn.is-pressed, #view-match .seg button.is-pressed { box-shadow: 0 0 0 3px var(--ring); }
+#view-match .btn-ghost.is-pressed, #view-match .seg button.is-pressed:not([aria-checked="true"]) { background: var(--accent-soft); }
+#view-match .btn-secondary.is-pressed { background: var(--ring); }
+#view-match .btn-primary.is-pressed { filter: brightness(1.12); }
+/* unavailable until the required choices are made (step 2 Next) */
+#view-match .btn:disabled, #view-match .btn:disabled:hover { opacity: .45; cursor: default; box-shadow: none; transform: none; filter: none; }
+/* a tone that is sounding: Stop tone and the playing octave button share one "on" look */
+#view-match #match-play[aria-pressed="true"], #match-octave button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); box-shadow: inset 0 0 0 2px var(--accent); }
+#view-match #match-play[aria-pressed="true"]::before, #match-octave button[aria-pressed="true"]::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex: none; }
+/* the current match among the three octave tones */
+#match-octave [data-current] { border-color: var(--accent); }
+.match-status { margin: 12px 0 20px; font-weight: 700; color: var(--accent); min-height: 1.4em; }
+/* suggested sounds: all readable; the one playing uses the Sounds page's playing treatment */
+#match-suggestions .sound-card, #match-suggestions .sound-card:hover { opacity: 1; }
+#match-suggestions .sound-card .icon { transition: transform .25s, box-shadow .25s; }
+#match-suggestions .sound-card.active .icon { transform: scale(1.1); box-shadow: 0 0 0 1px var(--sf-accent), 0 16px 40px rgba(0,0,0,.3); }
+/* the result on screen is saved: a done state, not a greyed-out button */
+#view-match #match-save.is-saved, #view-match #match-save.is-saved:hover { background: transparent; color: var(--accent); box-shadow: inset 0 0 0 1.5px var(--accent); cursor: default; }
+#match-clear { margin-top: 2px; }

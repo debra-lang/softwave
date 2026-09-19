@@ -679,7 +679,7 @@
       q('[data-nx="fdn"]').addEventListener('click', () => { if (N.hz) { setHz(N.hz * 0.98); playTone(N.hz); } });
       q('[data-nx="fup"]').addEventListener('click', () => { if (N.hz) { setHz(N.hz * 1.02); playTone(N.hz); } });
       const us = q('[data-nx="usesaved"]'); if (us) us.addEventListener('click', () => { const m = store.get('match'); if (m && m.freq) { setHz(m.freq); app.toast('Using your saved sound-match pitch. Fine-tune it if it has drifted.'); } });
-      const gm = q('[data-nx="gomatch"]'); if (gm) gm.addEventListener('click', () => app.showView('match'));
+      const gm = q('[data-nx="gomatch"]'); if (gm) gm.addEventListener('click', () => { app.showView('match'); if (app.markMatchReturn) app.markMatchReturn('notched'); });   // Done brings them back to this panel
       // progressive narrowing helper: two tones, pick the closer, range halves each round
       q('[data-nx="helper"]').addEventListener('click', () => {
         const st = { hz: N.hz || 4000, delta: 0.5, round: 1 };

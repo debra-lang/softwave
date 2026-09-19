@@ -105,6 +105,8 @@
       if (window.softwaveLab && softwaveLab.showList) softwaveLab.showList(opts.push !== false);
     }
     const prevView = document.querySelector('.view:not([hidden])'); if (!prevView || prevView.id !== 'view-' + name) cancelIntents({ view: true });
+    if (name === 'match' && (!prevView || prevView.id !== 'view-match')) noteMatchEntry(prevView);
+    if (prevView && prevView.id === 'view-match' && name !== 'match') matchStop();   // a matching tone is a test signal, not background audio
     views.forEach(v => { const el = $('#view-' + v); el.hidden = v !== name; el.classList.toggle('active', v === name); });
     $$('.nav a').forEach(a => a.classList.toggle('active', a.dataset.view === name));
     // Collapsed layers left history entries behind: count them as stale so Back swallows them —
@@ -115,7 +117,9 @@
     updateBackBtn();
     window.scrollTo({ top: 0, behavior: 'smooth' });
     bg.setMode(name === 'lab' ? 'lab' : engine.isActive('rain') ? 'rain' : 'calm');
+    routedOnce = true;
   }
+  let routedOnce = false;
   document.addEventListener('click', e => {
     const sc = e.target.closest('[data-scroll]'); if (sc) { e.preventDefault(); const tgt = $(sc.getAttribute('href')); tgt && tgt.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
     const a = e.target.closest('[data-view]'); if (!a) return;
@@ -158,7 +162,7 @@
   function ensureLab() {
     if (window.softwaveLab) return Promise.resolve();
     if (labPromise) return labPromise;
-    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=86'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
+    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=87'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
     return labPromise;
   }
   window.softwaveEnsureLab = ensureLab;
@@ -656,39 +660,60 @@
   engine.on(type => { if (type === 'tone') { const on = !!(engine.tone && engine.tone.playing && toneOwner === 'freq'); const b = $('#freq-play'); b.textContent = on ? 'Stop tone' : 'Play tone'; b.setAttribute('aria-pressed', on); } });
   let toneOwner = 'freq';
   const origToneStart = engine.toneStart.bind(engine);
-  engine.toneStart = (o) => { toneOwner = o === M ? 'match' : 'freq'; return origToneStart(o); };
+  engine.toneStart = (o) => { toneOwner = (o === M || (o && o.owner === 'match')) ? 'match' : 'freq'; return origToneStart(o); };   // octave-check tones are the matcher's too
   new ToneViz($('#freq-viz'), engine, () => F.freq);
   setFreq(4000);
 
   // ---------- find my sound ----------
   const M = { freq: 4000, type: 'sine', volume: 0.15, balance: 0 };
+  // Ear and sound type start unchosen for a new user (a saved result pre-fills them); Next waits for both.
+  const mChosen = { ear: false, type: false };
   const mSlider = $('#match-slider');
   let mStep = 1;
+  let mSuggested = null;     // the suggested masking sound started from step 4, if any
+  let octPlaying = null;     // 0.5 | 1 | 2 — which octave-check tone is sounding
+  let matchOrigin = null;    // where the user came from, for Done
+  let mResetPending = false; // after Done the next visit starts at step 1
   function mShow(n) {
     mStep = n; $$('.match-step').forEach(s => s.hidden = +s.dataset.step !== n);
-    if (n !== 3 && engine.tone && toneOwner === 'match') matchStop();
+    matchStop();   // the test tone belongs to the step it was started on (incl. Adjust again)
     if (n === 4) renderSuggestions();
-    $('#view-match .card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    syncChoice();
+    // land with the step's title and first instructions just below the sticky header
+    const h = $(`.match-step[data-step="${n}"] h2`); if (!h) return;
+    const tb = document.querySelector('.topbar'); const top = (tb ? tb.getBoundingClientRect().bottom : 60) + 14;
+    window.scrollTo({ top: Math.max(0, scrollY + h.getBoundingClientRect().top - top), behavior: 'smooth' });
   }
-  function matchStop() { if (engine.tone && toneOwner === 'match') engine.toneStop(); }
+  function matchStop() { if (engine.tone && toneOwner === 'match') engine.toneStop(); octPlaying = null; syncOctave(); }
+  // The matching tone and a suggested masking sound never play together here: starting one stops the other.
+  function stopSuggested() { if (mSuggested && engine.isActive(mSuggested)) engine.stopSound(mSuggested); mSuggested = null; }
+  function syncChoice() {
+    const ok = mChosen.ear && mChosen.type;
+    $$('#view-match [data-needs-choice]').forEach(b => { b.disabled = !ok; });
+    const hint = $('#view-match [data-choice-hint]'); if (hint) hint.hidden = ok;
+  }
   $$('#view-match [data-next]').forEach(b => b.addEventListener('click', () => mShow(mStep + 1)));
   $$('#view-match [data-prev]').forEach(b => b.addEventListener('click', () => mShow(mStep - 1)));
-  $$('#view-match [data-ear]').forEach(b => b.addEventListener('click', () => { $$('#view-match [data-ear]').forEach(x => x.setAttribute('aria-checked', x === b)); M.balance = +b.dataset.ear; if (engine.tone) engine.toneUpdate({ balance: M.balance }); }));
-  $$('#view-match [data-type]').forEach(b => b.addEventListener('click', () => { $$('#view-match [data-type]').forEach(x => x.setAttribute('aria-checked', x === b)); M.type = b.dataset.type; if (engine.tone) engine.toneUpdate({ type: M.type }); }));
+  $$('#view-match [data-ear]').forEach(b => b.addEventListener('click', () => { $$('#view-match [data-ear]').forEach(x => x.setAttribute('aria-checked', x === b)); M.balance = +b.dataset.ear; mChosen.ear = true; syncChoice(); syncSave(); if (engine.tone) engine.toneUpdate({ balance: M.balance }); }));
+  $$('#view-match [data-type]').forEach(b => b.addEventListener('click', () => { $$('#view-match [data-type]').forEach(x => x.setAttribute('aria-checked', x === b)); M.type = b.dataset.type; mChosen.type = true; syncChoice(); syncSave(); if (engine.tone) engine.toneUpdate({ type: M.type }); }));
   function setMFreq(hz, fromSlider) {
     M.freq = clamp(Math.round(hz), MINF, MAXF); $('#match-freq-value').textContent = fmt(M.freq);
     if (!fromSlider) { mSlider.value = hzToSlider(M.freq); paintRange(mSlider); }
     mSlider.setAttribute('aria-valuetext', M.freq + ' hertz');
     if (engine.tone && toneOwner === 'match') engine.toneUpdate({ freq: M.freq });
+    syncSave();
   }
   mSlider.addEventListener('input', () => setMFreq(sliderToHz(+mSlider.value), true));
   $$('[data-mstep]').forEach(b => b.addEventListener('click', () => setMFreq(M.freq * Math.pow(2, +b.dataset.mstep / 1200))));
   $('#match-vol').addEventListener('input', e => { M.volume = +e.target.value / 100; $('#match-vol-out').textContent = e.target.value + '%'; if (engine.tone) engine.toneUpdate({ volume: M.volume }); });
   $('#match-play').addEventListener('click', async () => {
-    if (engine.tone && toneOwner === 'match') engine.toneStop();
-    else { if (engine.tone) engine.toneStop(); await engine.toneStart(M); await engine.playAll(); }
+    if (engine.tone && engine.tone.playing && toneOwner === 'match') matchStop();
+    else { stopSuggested(); if (engine.tone) engine.toneStop(); await engine.toneStart(M); await engine.playAll(); }
   });
-  engine.on(type => { if (type === 'tone') { const on = !!(engine.tone && engine.tone.playing && toneOwner === 'match'); const b = $('#match-play'); b.textContent = on ? 'Stop tone' : 'Play tone'; b.setAttribute('aria-pressed', on); } });
+  engine.on(type => {
+    if (type === 'tone') { const on = !!(engine.tone && engine.tone.playing && toneOwner === 'match'); const b = $('#match-play'); b.textContent = on ? 'Stop tone' : 'Play tone'; b.setAttribute('aria-pressed', on); if (!on) octPlaying = null; syncOctave(); }
+    if (type === 'sounds') syncSuggested();
+  });
   new ToneViz($('#match-viz'), engine, () => M.freq);
   setMFreq(4000);
 
@@ -703,25 +728,95 @@
     if (type === 'hiss' && !s.includes('hiss')) s.splice(1, 0, 'hiss');
     return s.slice(0, 5);
   }
-  function renderSuggestions() {
+  function renderSuggestions(status) {
     const earTxt = M.balance < 0 ? 'left ear' : M.balance > 0 ? 'right ear' : 'both ears';
     const typeTxt = { sine: 'ringing', narrow: 'whistling', hiss: 'hissing', soft: 'humming' }[M.type];
     $('#match-summary').textContent = `You chose a ${typeTxt} sound around ${fmt(M.freq)} Hz in your ${earTxt}. Here are sounds worth trying first. Tap to play, then adjust the level until the tinnitus feels less noticeable.`;
     const host = $('#match-suggestions'); host.innerHTML = '';
     suggestionsFor(M.freq, M.type).forEach((id, i) => {
-      const d = engine.def(id); const card = document.createElement('button'); card.className = 'sound-card'; card.style.setProperty('--hue', d.hue);
+      const d = engine.def(id); const card = document.createElement('button'); card.className = 'sound-card'; card.dataset.sid = id; card.style.setProperty('--hue', d.hue);
       card.innerHTML = `<div class="art"></div><span class="icon" aria-hidden="true">${d.icon}</span><span class="name">${d.name}</span><span class="desc">${i === 0 ? 'Start here · ' : ''}${d.desc}</span>`;
-      card.addEventListener('click', async () => { matchStop(); await engine.loadMix([{ id, volume: 0.5 }]); toast(`Playing ${d.name}. Try others too — comfort is what matters.`); });
+      card.addEventListener('click', async () => { matchStop(); await engine.loadMix([{ id, volume: 0.5 }]); mSuggested = id; syncSuggested(); toast(`Playing ${d.name}. Try others too — comfort is what matters.`); });
       host.appendChild(card);
     });
-    const saved = store.get('match'); $('#match-clear').hidden = !saved;
-    const oct = $('#match-octave'); oct.innerHTML = ''; const centre = M.freq;
-    [[0.5, 'Hear an octave lower'], [1, 'Hear my tone'], [2, 'Hear an octave higher']].forEach(([k, label]) => { const b = document.createElement('button'); b.className = 'btn btn-ghost btn-sm'; b.textContent = `${label} (${fmt(centre * k)} Hz)`; b.addEventListener('click', async () => { if (!(engine.tone && toneOwner === 'match')) { await engine.toneStart(Object.assign({}, M, { freq: centre * k })); await engine.playAll(); } else engine.toneUpdate({ freq: centre * k }); }); oct.appendChild(b); });
-    [[0.5, 'Lower is closer'], [2, 'Higher is closer']].forEach(([k, label]) => { const b = document.createElement('button'); b.className = 'btn btn-secondary btn-sm'; b.textContent = label; b.addEventListener('click', () => { setMFreq(centre * k); matchStop(); renderSuggestions(); toast(`Updated to about ${fmt(M.freq)} Hz`); }); oct.appendChild(b); });
+    syncSuggested();
+    const oct = $('#match-octave'); const had = oct.contains(document.activeElement) ? [...oct.children].indexOf(document.activeElement) : -1; oct.innerHTML = ''; const centre = M.freq;
+    // Hear: plays that octave; the one sounding is marked, and tapping it again stops it
+    [[0.5, 'Hear an octave lower'], [1, 'Hear my tone'], [2, 'Hear an octave higher']].forEach(([k, label]) => {
+      const b = document.createElement('button'); b.className = 'btn btn-ghost btn-sm'; b.dataset.k = k; b.setAttribute('aria-pressed', 'false'); if (k === 1) b.dataset.current = '';
+      b.textContent = `${label} (${fmt(centre * k)} Hz)`;
+      b.addEventListener('click', async () => {
+        const on = !!(engine.tone && engine.tone.playing && toneOwner === 'match');
+        if (on && octPlaying === k) { matchStop(); return; }
+        if (on) { engine.toneUpdate({ freq: centre * k }); octPlaying = k; syncOctave(); return; }
+        stopSuggested(); if (engine.tone) engine.toneStop();
+        await engine.toneStart(Object.assign({}, M, { freq: centre * k, owner: 'match' })); await engine.playAll();
+        octPlaying = k; syncOctave();
+      });
+      oct.appendChild(b);
+    });
+    [[0.5, 'Lower is closer'], [2, 'Higher is closer']].forEach(([k, label]) => { const b = document.createElement('button'); b.className = 'btn btn-secondary btn-sm'; b.textContent = label; b.addEventListener('click', () => { setMFreq(centre * k); matchStop(); renderSuggestions(`Matched at ${fmt(M.freq)} Hz — suggestions below updated.`); toast(`Updated to about ${fmt(M.freq)} Hz`); }); oct.appendChild(b); });
+    if (had >= 0 && oct.children[had]) oct.children[had].focus({ preventScroll: true });   // keyboard users keep their place
+    const st = $('#match-octave-status'); if (st) st.textContent = status || `Your match: ${fmt(M.freq)} Hz.`;
+    syncOctave(); syncSave();
   }
-  $('#match-save').addEventListener('click', () => { store.set('match', { freq: M.freq, type: M.type, balance: M.balance, when: new Date().toISOString() }); $('#match-clear').hidden = false; toast('Saved on this device only. Nothing is sent anywhere.'); });
-  $('#match-clear').addEventListener('click', () => { store.del('match'); $('#match-clear').hidden = true; toast('Saved result removed'); });
-  (function restoreMatch() { const m = store.get('match'); if (!m) return; M.freq = m.freq; M.type = m.type; M.balance = m.balance; setMFreq(m.freq); $$('#view-match [data-type]').forEach(x => x.setAttribute('aria-checked', x.dataset.type === m.type)); $$('#view-match [data-ear]').forEach(x => x.setAttribute('aria-checked', +x.dataset.ear === m.balance)); })();
+  function syncOctave() {
+    const on = !!(engine.tone && engine.tone.playing && toneOwner === 'match');
+    $$('#match-octave [data-k]').forEach(b => b.setAttribute('aria-pressed', String(on && +b.dataset.k === octPlaying)));
+  }
+  function syncSuggested() { $$('#match-suggestions .sound-card').forEach(c => { const on = engine.isActive(c.dataset.sid); c.classList.toggle('active', on); c.setAttribute('aria-pressed', on); }); }
+  // "Saved ✓" means the result on screen is the one stored; any change to it offers Save again
+  function matchSaved() { const m = store.get('match'); return !!m && mChosen.ear && mChosen.type && m.freq === M.freq && m.type === M.type && m.balance === M.balance; }
+  function syncSave() {
+    const b = $('#match-save'); if (!b) return; const saved = matchSaved();
+    b.textContent = saved ? 'Saved ✓' : 'Save result on this device'; b.classList.toggle('is-saved', saved); b.setAttribute('aria-disabled', String(saved));
+    const c = $('#match-clear'); if (c) c.hidden = !store.get('match');
+  }
+  $('#match-save').addEventListener('click', () => { if (matchSaved()) return; matchStop(); store.set('match', { freq: M.freq, type: M.type, balance: M.balance, when: new Date().toISOString() }); syncSave(); toast('Saved on this device only. Nothing is sent anywhere.'); });
+  $('#match-clear').addEventListener('click', () => { store.del('match'); syncSave(); toast('Saved result removed'); });
+  // Controls as a fresh visit sees them: from the saved result if there is one, otherwise unchosen.
+  function resetMatch() {
+    const m = store.get('match');
+    mChosen.ear = mChosen.type = !!m; mSuggested = null;
+    if (m) { M.type = m.type; M.balance = m.balance; setMFreq(m.freq); } else { M.type = 'sine'; M.balance = 0; setMFreq(4000); }
+    $$('#view-match [data-type]').forEach(x => x.setAttribute('aria-checked', !!m && x.dataset.type === m.type));
+    $$('#view-match [data-ear]').forEach(x => x.setAttribute('aria-checked', !!m && +x.dataset.ear === m.balance));
+    mStep = 1; $$('.match-step').forEach(s => s.hidden = +s.dataset.step !== 1);
+    syncChoice(); syncSave();
+  }
+  resetMatch();
+  // Where Done returns: the in-app screen it was opened from (via the same history step Back uses),
+  // the site article that linked to it on a fresh load, or Sounds.
+  const articleRef = (() => { try { const r = new URL(document.referrer); const own = /^\/(index\.html)?$/.test(r.pathname) || r.pathname === location.pathname; return r.origin === location.origin && !own ? r.href : null; } catch (_) { return null; } })();
+  function noteMatchEntry(prevView) {
+    if (mResetPending) { mResetPending = false; resetMatch(); }
+    matchOrigin = { view: prevView ? prevView.id.replace(/^view-/, '') : null, depth: navDepth, exp: null, article: routedOnce ? null : articleRef };
+  }
+  let pageLeft = false; addEventListener('pagehide', () => { pageLeft = true; });
+  $('#match-done').addEventListener('click', () => {
+    matchStop();              // the test tone ends; a suggested sound the user chose keeps playing in the player
+    mResetPending = true;     // the next visit starts at step 1 (the saved result, if any, is kept)
+    const o = matchOrigin || {};
+    if (o.view && navDepth > o.depth) {
+      if (o.exp) { const go = () => { removeEventListener('popstate', go); setTimeout(() => { if (!window.softwaveLab || $('#view-lab').hidden) return; softwaveLab.open(o.exp);
+        // land on the line that uses the saved result, not wherever the panel happens to open
+        setTimeout(() => { const u = $('#lab-detail [data-nx="usesaved"]'); if (u && !$('#view-lab').hidden) u.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 450); }, 0); }; addEventListener('popstate', go); }
+      history.back(); return;
+    }
+    if (o.article) { history.back(); setTimeout(() => { if (!pageLeft && !$('#view-match').hidden) showView('sounds', { tab: true }); }, 900); return; }
+    showView('sounds', { tab: true });
+  });
+  // Find My Tinnitus Sound: every tap visibly lands — a brief accent response held for at least ~150 ms
+  // (a quick phone tap is shorter than :active can show, and iOS shows no :active at all without this).
+  (function pressFeedback() {
+    const root = $('#view-match'); if (!root) return;
+    root.addEventListener('pointerdown', e => {
+      const b = e.target.closest('button, .sound-card'); if (!b || b.disabled || !root.contains(b)) return;
+      const t0 = performance.now(); b.classList.add('is-pressed');
+      const up = () => { removeEventListener('pointerup', up); removeEventListener('pointercancel', up); setTimeout(() => b.classList.remove('is-pressed'), Math.max(0, 150 - (performance.now() - t0))); };
+      addEventListener('pointerup', up); addEventListener('pointercancel', up);
+    });
+  })();
 
   // ---------- sleep ----------
   const sleep = { minutes: 0, fade: true };
@@ -1068,7 +1163,7 @@
     let reloaded = false; navigator.serviceWorker.addEventListener('controllerchange', () => { if (reloaded || !navigator.serviceWorker.controller) return; reloaded = true; if (!engine.isPlaying) location.reload(); });
   });
 
-  window.softwaveApp = { customTimerForm, layerPush, layersClose, layerReplace, topLayerIs, afterLayerClose, updateBackBtn, armIntent, cancelIntent, cancelIntents, pendingIntents, renderPresetsRemount, loadPreset, saveCurrentMix, restoreMix, openSaveSheet, openManageMenu, openMixMenu, savedSessions, soundVol, SAVED_ICO, setMaster, togglePlay, toast, store, PRESETS, paintRange, showView, scheduleAutoAdvance, renderPresets: renderPresetsRemount };
+  window.softwaveApp = { markMatchReturn: (exp) => { if (matchOrigin) matchOrigin.exp = exp; }, customTimerForm, layerPush, layersClose, layerReplace, topLayerIs, afterLayerClose, updateBackBtn, armIntent, cancelIntent, cancelIntents, pendingIntents, renderPresetsRemount, loadPreset, saveCurrentMix, restoreMix, openSaveSheet, openManageMenu, openMixMenu, savedSessions, soundVol, SAVED_ICO, setMaster, togglePlay, toast, store, PRESETS, paintRange, showView, scheduleAutoAdvance, renderPresets: renderPresetsRemount };
 
   // ---------- init ----------
   renderSounds(); renderPresets(); renderMixer([]); updatePlayer(); renderProfileHooks(); if (window.SoftwaveField) syncField();
