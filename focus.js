@@ -708,7 +708,10 @@
     if (type === 'master') { const v = Math.round(engine.masterVolume * 100); const sl = $('#focus-vol'), o = $('#focus-vol-out'); if (sl) sl.value = v; if (o) o.textContent = v + '%'; }
   });
   const fe = $('#focus-enter'); if (fe) fe.addEventListener('click', () => enterFocus());
-  $('#focus-fullscreen').addEventListener('click', () => { if (document.fullscreenElement) document.exitFullscreen(); else screen.requestFullscreen && screen.requestFullscreen().catch(() => { }); });
+  // The iPhone web view can't take web content full screen, so the native iOS app doesn't offer the
+  // button (it would do nothing). The website keeps it.
+  if (window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform() === 'ios') { const fsb = $('#focus-fullscreen'); if (fsb) fsb.remove(); }
+  if ($('#focus-fullscreen')) $('#focus-fullscreen').addEventListener('click', () => { if (document.fullscreenElement) document.exitFullscreen(); else screen.requestFullscreen && screen.requestFullscreen().catch(() => { }); });
   $('#focus-pause-visual').addEventListener('click', e => { S.paused = !S.paused; e.currentTarget.setAttribute('aria-pressed', S.paused); e.currentTarget.textContent = S.paused ? 'Resume visual' : 'Pause visual'; syncSettings(); });
   screen.addEventListener('keydown', e => { if (e.key === 'Escape') { if ($('#focus-panel').classList.contains('open')) closePanel(); else exitFocus(); } });
   // pointer / touch interactions on the canvas

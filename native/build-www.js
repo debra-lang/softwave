@@ -91,6 +91,31 @@ function fixDirLinks(dir) {
 }
 fixDirLinks(OUT);
 
+// Google Analytics belongs to the public website only. The native app ships none of it: remove the
+// GA4 snippet (the app page's and the info pages' forms) from every bundled page, then refuse to
+// build if any trace survives — the App Store privacy answers depend on it.
+function stripAnalytics(dir) {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const p = path.join(dir, entry.name);
+    if (entry.isDirectory()) { stripAnalytics(p); continue; }
+    if (!entry.name.endsWith('.html')) continue;
+    const before = fs.readFileSync(p, 'utf8');
+    const after = before.replace(/[ \t]*<!-- Google tag \(gtag\.js\)[\s\S]*?-->\s*<script>[\s\S]*?<\/script>[ \t]*\r?\n?/g, '');
+    if (after !== before) fs.writeFileSync(p, after);
+  }
+}
+stripAnalytics(OUT);
+const gaLeft = [];
+(function scan(dir) {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const p = path.join(dir, entry.name);
+    if (entry.isDirectory()) { scan(p); continue; }
+    if (!/\.(html|js)$/.test(entry.name)) continue;
+    if (/googletagmanager|gtag\(|G-492Q4R9W97/.test(fs.readFileSync(p, 'utf8'))) gaLeft.push(path.relative(OUT, p));
+  }
+})(OUT);
+if (gaLeft.length) { console.error('FATAL: Google Analytics code left in the app bundle:', gaLeft.join(', ')); process.exit(1); }
+
 // Hard gate: every script index.html loads must exist in the bundle. A missing one ships a
 // silently degraded app (this is how the entire personalization layer once went missing).
 const idx = fs.readFileSync(path.join(OUT, 'index.html'), 'utf8');
@@ -99,4 +124,4 @@ refs.push('lab.js');   // lazy-loaded from app.js
 let missing = false;
 for (const r of refs) if (!fs.existsSync(path.join(OUT, r))) { console.error('FATAL: index.html needs missing file:', r); missing = true; }
 if (missing) process.exit(1);
-console.log('www built:', copied, 'entries copied to', OUT, '(queries stripped, CSS inlined, dir links resolved, all', refs.length, 'scripts verified present)');
+console.log('www built:', copied, 'entries copied to', OUT, '(queries stripped, CSS inlined, dir links resolved, analytics removed, all', refs.length, 'scripts verified present)');

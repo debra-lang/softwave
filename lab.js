@@ -763,10 +763,24 @@
         if (b.dataset.nxt === 'custom') { app.customTimerForm(b.closest('.chips'), apply); return; }   // inline field instead of window.prompt (blocks JS, pre-fills 45 on iOS)
         apply(+b.dataset.nxt);
       }));
-      q('[data-nx="saveprof"]').addEventListener('click', () => {
-        const w = widthOct(N), d = depthDb(N);
+      // Save this as a profile: an inline name field (the Lab's "Save this sound" pattern) instead of
+      // window.prompt, which is a blocking native pop-up in the iOS app. Same saved profile as before.
+      q('[data-nx="saveprof"]').addEventListener('click', (ev) => {
+        const btn = ev.currentTarget, row = btn.closest('.btn-row') || btn;
+        const open = row.parentNode.querySelector('[data-prof-form]'); if (open) { open.remove(); return; }
         const srcName = N.source === 'myaudio' ? 'My audio' : (engine.def(N.source) || {}).name || N.source;
-        const name = prompt('Name this profile:', `Notched ${srcName} · ${hzLabel(N.hz)}`); if (!name) return;
+        const f = document.createElement('form'); f.className = 'inline-form'; f.setAttribute('data-prof-form', ''); f.noValidate = true;
+        f.innerHTML = `<label class="sr-only" for="prof-name">Profile name</label><input id="prof-name" class="select" maxlength="60" style="flex:1;min-width:200px"><button type="submit" class="btn btn-primary btn-sm">Save</button><button type="button" class="btn btn-ghost btn-sm" data-cancel>Cancel</button><span class="muted small" data-msg aria-live="polite" style="flex-basis:100%"></span>`;
+        row.after(f); const inp = $('input', f); inp.value = `Notched ${srcName} · ${hzLabel(N.hz)}`; inp.focus(); inp.select();
+        $('[data-cancel]', f).addEventListener('click', () => { f.remove(); btn.focus(); });
+        f.addEventListener('submit', e => {
+          e.preventDefault(); const name = inp.value.trim();
+          if (!name) { $('[data-msg]', f).textContent = 'Enter a name for this profile.'; inp.focus(); return; }
+          f.remove(); saveProfile(name);
+        });
+      });
+      const saveProfile = (name) => {
+        const w = widthOct(N), d = depthDb(N);
         const ps = store.get('notch:profiles', []);
         ps.push({
           id: Date.now(), name, created: new Date().toISOString(),
@@ -775,7 +789,7 @@
           spec: { centerHz: N.hz, widthOct: w, lowHz: Math.round(N.hz * Math.pow(2, -w / 2)), highHz: Math.round(N.hz * Math.pow(2, w / 2)), attenuationDb: d, design: notchDesign(N.hz, w, d), master: engine.masterVolume, limiter: 'threshold -10 dB, knee 12, ratio 8', smoothing: 'setTargetAtTime tau 0.08 s', srAssumed: engine.ctx ? engine.ctx.sampleRate : 48000 },
         });
         store.set('notch:profiles', ps); renderProfiles(ctx); app.toast('Profile saved on this device.');
-      });
+      };
       q('[data-nx="recal"]').addEventListener('click', () => {
         const sec = host.querySelector('.nx'); const tb = document.querySelector('.topbar');
         const off = (tb ? tb.getBoundingClientRect().height : 54) + 10;
@@ -939,7 +953,15 @@
         }); });
         b.appendChild(more);
       });
-      const pc = $('[data-pclear]', host); if (pc) pc.addEventListener('click', () => { if (confirm('Delete all saved notched profiles? Your measurement history is kept.')) { store.set('notch:profiles', []); renderProfiles(ctx); } });
+      // Delete all profiles: an inline confirmation (clearly destructive, obvious Cancel) instead of confirm()
+      const pc = $('[data-pclear]', host); if (pc) pc.addEventListener('click', () => {
+        const line = pc.parentNode; if (line.querySelector('[data-pconfirm]')) return;
+        const box = document.createElement('span'); box.className = 'inline-form'; box.setAttribute('data-pconfirm', ''); box.setAttribute('role', 'group'); box.setAttribute('aria-label', 'Confirm deleting all profiles');
+        box.innerHTML = `<span style="flex-basis:100%">Delete all saved notched profiles? Your measurement history is kept.</span><button type="button" class="btn btn-ghost btn-sm btn-danger" data-yes>Delete all profiles</button><button type="button" class="btn btn-ghost btn-sm" data-no>Cancel</button>`;
+        pc.hidden = true; line.appendChild(box); $('[data-no]', box).focus();
+        $('[data-no]', box).addEventListener('click', () => { box.remove(); pc.hidden = false; pc.focus(); });
+        $('[data-yes]', box).addEventListener('click', () => { store.set('notch:profiles', []); renderProfiles(ctx); });
+      });
     }
     function renderHistory(ctx) {
       const box = ctx.nEl && ctx.nEl.feedback; if (!box) return;
