@@ -106,7 +106,7 @@
     }
     const prevView = document.querySelector('.view:not([hidden])'); if (!prevView || prevView.id !== 'view-' + name) cancelIntents({ view: true });
     if (name === 'match' && (!prevView || prevView.id !== 'view-match')) noteMatchEntry(prevView);
-    if (name === 'frequency' && (!prevView || prevView.id !== 'view-frequency')) freqEntry = { view: prevView ? prevView.id.replace(/^view-/, '') : null, depth: navDepth, article: routedOnce ? null : articleRef };
+    if (TOOLS.includes(name) && (!prevView || prevView.id !== 'view-' + name)) toolEntry[name] = { view: prevView ? prevView.id.replace(/^view-/, '') : null, depth: navDepth, article: routedOnce ? null : articleRef };
     if (name === 'lab' && (!prevView || prevView.id !== 'view-lab' || opts.keepHash)) labEntry = { view: prevView && prevView.id !== 'view-lab' ? prevView.id.replace(/^view-/, '') : null, depth: navDepth, find: !!opts.keepHash, article: routedOnce ? null : articleRef };
     if (prevView && prevView.id === 'view-match' && name !== 'match') matchStop();   // a matching tone is a test signal, not background audio
     views.forEach(v => { const el = $('#view-' + v); el.hidden = v !== name; el.classList.toggle('active', v === name); });
@@ -122,7 +122,16 @@
     routedOnce = true;
   }
   let routedOnce = false;
-  let labEntry = null, freqEntry = null;
+  let labEntry = null;
+  // Stand-alone tools with a Done: where each was opened from. Done goes back the way the user came
+  // (the same history step Back uses), to the Learn article on a fresh load, or to Sounds.
+  const TOOLS = ['frequency', 'mixer']; const toolEntry = {};
+  function leaveTool(name) {
+    const e = toolEntry[name] || {};
+    if (e.view && navDepth > e.depth) { history.back(); return; }
+    if (e.article) { history.back(); setTimeout(() => { if (!pageLeft && !$('#view-' + name).hidden) showView('sounds', { tab: true }); }, 900); return; }
+    showView('sounds', { tab: true });
+  }
   // Done from an experiment opened by arriving from elsewhere: back the way the user came
   // (the same history step Back uses), to the Learn article on a fresh load, or Sounds.
   function leaveLab() {
@@ -173,7 +182,7 @@
   function ensureLab() {
     if (window.softwaveLab) return Promise.resolve();
     if (labPromise) return labPromise;
-    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=92'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
+    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=93'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
     return labPromise;
   }
   window.softwaveEnsureLab = ensureLab;
@@ -666,13 +675,7 @@
   $('#freq-pan').addEventListener('input', e => { F.balance = +e.target.value / 100; $('#freq-pan-out').textContent = panLabel(F.balance); if (engine.tone) engine.toneUpdate({ balance: F.balance }); });
   // Done: finished with the generator — its own tone ends (other sounds are left alone) and the user
   // goes back the way they came: the same history step Back uses, the Learn article on a fresh load, or Sounds.
-  $('#freq-done').addEventListener('click', () => {
-    if (engine.tone && engine.tone.playing && toneOwner === 'freq') engine.toneStop();
-    const e = freqEntry || {};
-    if (e.view && navDepth > e.depth) { history.back(); return; }
-    if (e.article) { history.back(); setTimeout(() => { if (!pageLeft && !$('#view-frequency').hidden) showView('sounds', { tab: true }); }, 900); return; }
-    showView('sounds', { tab: true });
-  });
+  $('#freq-done').addEventListener('click', () => { if (engine.tone && engine.tone.playing && toneOwner === 'freq') engine.toneStop(); leaveTool('frequency'); });
   $('#freq-play').addEventListener('click', async () => {
     if (engine.tone && engine.tone.playing) engine.toneStop();
     else { matchStop(); await engine.toneStart(F); await engine.playAll(); }
@@ -1093,6 +1096,7 @@
   const leaveNow = (then) => { closeNow(); afterLayerClose(then); };
   $('#now-visual').addEventListener('click', () => leaveNow(() => { if (window.softwaveFocus) softwaveFocus.openChooser(); else showView('focus'); }));
   $('#now-mixer').addEventListener('click', () => leaveNow(() => showView('mixer')));
+  $('#mix-done').addEventListener('click', () => leaveTool('mixer'));   // finished mixing: the mix keeps playing; back the way they came
   $('#now-save').addEventListener('click', () => openSaveSheet());
   $('#player-toggle').addEventListener('click', e => { const b = e.currentTarget; b.classList.add('pressed'); setTimeout(() => b.classList.remove('pressed'), 400); });
   $('#now-vol').addEventListener('input', e => setMaster(+e.target.value / 100, true));
