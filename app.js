@@ -162,7 +162,7 @@
   function ensureLab() {
     if (window.softwaveLab) return Promise.resolve();
     if (labPromise) return labPromise;
-    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=89'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
+    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=90'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
     return labPromise;
   }
   window.softwaveEnsureLab = ensureLab;
@@ -185,7 +185,7 @@
     // real conditional rendering: the section exists in the DOM only when it has content
     let row = $('.presets-row');
     if (!row) { const tpl = $('#presets-template'); if (!tpl) return null; presetsSlot().appendChild(tpl.content.cloneNode(true)); row = $('.presets-row'); }
-    // "Two ways to explore" lives right after the one-tap presets (before the saved rows). It is a
+    // "Three ways to explore" lives right after the one-tap presets (before the saved rows). It is a
     // static block, so it is moved into position here and parked again before the row is rebuilt.
     const tt = $('.two-tools'); if (tt && tt.parentElement !== row) row.insertBefore(tt, $('#presets').nextSibling);
     return row;
