@@ -182,7 +182,7 @@
   function ensureLab() {
     if (window.softwaveLab) return Promise.resolve();
     if (labPromise) return labPromise;
-    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=93'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
+    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=94'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
     return labPromise;
   }
   window.softwaveEnsureLab = ensureLab;
@@ -227,6 +227,10 @@
   // Arming the same name again supersedes the earlier timer. An intent with no matching policy
   // deliberately survives that event (e.g. the 4 s carry-forward survives a tab switch by design).
   const intents = new Map();
+  // Every Done acts one second after it is pressed. Leaving the page meanwhile cancels it; further taps
+  // during the wait are ignored (the first press is the one that counts).
+  const DONE_DELAY = 1000;
+  function afterDone(key, fn) { const name = 'done:' + key; if (intents.has(name)) return; armIntent(name, fn, DONE_DELAY, { view: true }); }
   function armIntent(name, fn, ms, policy = {}) { cancelIntent(name); const t = setTimeout(() => { intents.delete(name); fn(); }, ms); intents.set(name, { t, policy }); return t; }
   function cancelIntent(name) { const it = intents.get(name); if (!it) return false; clearTimeout(it.t); intents.delete(name); return true; }
   function cancelIntents(reason) { for (const [name, it] of [...intents]) { const p = it.policy; if ((reason.screen && p.screen === reason.screen) || (reason.view && p.view) || (reason.stop && p.stop)) cancelIntent(name); } }
@@ -675,7 +679,7 @@
   $('#freq-pan').addEventListener('input', e => { F.balance = +e.target.value / 100; $('#freq-pan-out').textContent = panLabel(F.balance); if (engine.tone) engine.toneUpdate({ balance: F.balance }); });
   // Done: finished with the generator — its own tone ends (other sounds are left alone) and the user
   // goes back the way they came: the same history step Back uses, the Learn article on a fresh load, or Sounds.
-  $('#freq-done').addEventListener('click', () => { if (engine.tone && engine.tone.playing && toneOwner === 'freq') engine.toneStop(); leaveTool('frequency'); });
+  $('#freq-done').addEventListener('click', () => afterDone('frequency', () => { if (engine.tone && engine.tone.playing && toneOwner === 'freq') engine.toneStop(); leaveTool('frequency'); }));
   $('#freq-play').addEventListener('click', async () => {
     if (engine.tone && engine.tone.playing) engine.toneStop();
     else { matchStop(); await engine.toneStart(F); await engine.playAll(); }
@@ -816,7 +820,8 @@
     matchOrigin = { view: prevView ? prevView.id.replace(/^view-/, '') : null, depth: navDepth, exp: null, article: routedOnce ? null : articleRef };
   }
   let pageLeft = false; addEventListener('pagehide', () => { pageLeft = true; });
-  $('#match-done').addEventListener('click', () => {
+  $('#match-done').addEventListener('click', () => afterDone('match', matchDone));
+  function matchDone() {
     matchStop();              // the test tone ends; a suggested sound the user chose keeps playing in the player
     mResetPending = true;     // the next visit starts at step 1 (the saved result, if any, is kept)
     const o = matchOrigin || {};
@@ -828,7 +833,7 @@
     }
     if (o.article) { history.back(); setTimeout(() => { if (!pageLeft && !$('#view-match').hidden) showView('sounds', { tab: true }); }, 900); return; }
     showView('sounds', { tab: true });
-  });
+  }
   // Find My Tinnitus Sound: every tap visibly lands — a brief accent response held for at least ~150 ms
   // (a quick phone tap is shorter than :active can show, and iOS shows no :active at all without this).
   (function pressFeedback() {
@@ -1096,7 +1101,7 @@
   const leaveNow = (then) => { closeNow(); afterLayerClose(then); };
   $('#now-visual').addEventListener('click', () => leaveNow(() => { if (window.softwaveFocus) softwaveFocus.openChooser(); else showView('focus'); }));
   $('#now-mixer').addEventListener('click', () => leaveNow(() => showView('mixer')));
-  $('#mix-done').addEventListener('click', () => leaveTool('mixer'));   // finished mixing: the mix keeps playing; back the way they came
+  $('#mix-done').addEventListener('click', () => afterDone('mixer', () => leaveTool('mixer')));   // finished mixing: the mix keeps playing; back the way they came
   $('#now-save').addEventListener('click', () => openSaveSheet());
   $('#player-toggle').addEventListener('click', e => { const b = e.currentTarget; b.classList.add('pressed'); setTimeout(() => b.classList.remove('pressed'), 400); });
   $('#now-vol').addEventListener('input', e => setMaster(+e.target.value / 100, true));
@@ -1187,7 +1192,7 @@
     let reloaded = false; navigator.serviceWorker.addEventListener('controllerchange', () => { if (reloaded || !navigator.serviceWorker.controller) return; reloaded = true; if (!engine.isPlaying) location.reload(); });
   });
 
-  window.softwaveApp = { leaveLab, markMatchReturn: (exp) => { if (matchOrigin) matchOrigin.exp = exp; }, customTimerForm, layerPush, layersClose, layerReplace, topLayerIs, afterLayerClose, updateBackBtn, armIntent, cancelIntent, cancelIntents, pendingIntents, renderPresetsRemount, loadPreset, saveCurrentMix, restoreMix, openSaveSheet, openManageMenu, openMixMenu, savedSessions, soundVol, SAVED_ICO, setMaster, togglePlay, toast, store, PRESETS, paintRange, showView, scheduleAutoAdvance, renderPresets: renderPresetsRemount };
+  window.softwaveApp = { afterDone, leaveLab, markMatchReturn: (exp) => { if (matchOrigin) matchOrigin.exp = exp; }, customTimerForm, layerPush, layersClose, layerReplace, topLayerIs, afterLayerClose, updateBackBtn, armIntent, cancelIntent, cancelIntents, pendingIntents, renderPresetsRemount, loadPreset, saveCurrentMix, restoreMix, openSaveSheet, openManageMenu, openMixMenu, savedSessions, soundVol, SAVED_ICO, setMaster, togglePlay, toast, store, PRESETS, paintRange, showView, scheduleAutoAdvance, renderPresets: renderPresetsRemount };
 
   // ---------- init ----------
   renderSounds(); renderPresets(); renderMixer([]); updatePlayer(); renderProfileHooks(); if (window.SoftwaveField) syncField();

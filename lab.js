@@ -984,7 +984,7 @@
     const lv = document.getElementById('view-lab'), fs = document.getElementById('focus-screen');
     feedbackOwed = !!((fs && !fs.hidden) || (lv && lv.hidden));
     host.innerHTML = `<div class="card lab-result"><h3>How did this feel?</h3><div class="btn-row"><button class="btn btn-ghost btn-sm" data-c="more">More comfortable</button><button class="btn btn-ghost btn-sm" data-c="same">About the same</button><button class="btn btn-ghost btn-sm" data-c="less">Less comfortable</button></div><p>Would you use this again?</p><div class="btn-row"><button class="btn btn-ghost btn-sm" data-a="yes">Yes</button><button class="btn btn-ghost btn-sm" data-a="maybe">Maybe</button><button class="btn btn-ghost btn-sm" data-a="no">No</button></div><p class="muted small">Used only to personalise your suggestions; stored on this device.</p><div class="btn-row lab-done-row"><button class="btn btn-primary" data-done>Done</button></div></div>`;
-    const dn = $('[data-done]', host); if (dn) dn.addEventListener('click', () => labDone(exp));   // answering above is optional
+    const dn = $('[data-done]', host); if (dn) dn.addEventListener('click', () => app.afterDone('lab', () => { if (dn.isConnected) labDone(exp); }));   // answering above is optional
     $$('[data-c]', host).forEach(b => b.addEventListener('click', () => { setFb(exp.id, { comfort: b.dataset.c, rating: b.dataset.c === 'more' ? 'helpful' : b.dataset.c === 'less' ? 'not' : 'neutral' }); $$('[data-c]', host).forEach(x => { const on = x === b; x.classList.toggle('btn-secondary', on); x.classList.toggle('btn-ghost', !on); }); renderLists(); renderProfile(); }));
     $$('[data-a]', host).forEach(b => b.addEventListener('click', () => { setFb(exp.id, { again: b.dataset.a }); $$('[data-a]', host).forEach(x => { const on = x === b; x.classList.toggle('btn-secondary', on); x.classList.toggle('btn-ghost', !on); }); renderLists(); }));
   }
@@ -1062,7 +1062,7 @@
     const rate = $('.lab-rate', panel); if (rate) rate.hidden = true;
     const after = $('[data-after]', panel); if (after) {
       after.innerHTML = '<div class="btn-row" style="justify-content:center; margin-top:18px"><button class="btn btn-primary btn-lg" data-r-new>Start New Experiment</button><button class="btn btn-secondary btn-lg" data-r-done>Done</button></div><div class="lab-end-note"><span class="label-sm">End of Find My Sound</span></div>';
-      $('[data-r-done]', after).addEventListener('click', () => labDone(byId.discovery));
+      const rd = $('[data-r-done]', after); rd.addEventListener('click', () => app.afterDone('lab', () => { if (rd.isConnected) labDone(byId.discovery); }));
       $('[data-r-new]', after).addEventListener('click', () => { ctx.finished = false; ctx.result = null; setExploreHeading(false); stopRunning(); openExperiment('discovery', { keepOrigin: true }); });
     }
     setExploreHeading(true);
