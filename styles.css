@@ -1554,3 +1554,6 @@ html[data-theme="dark"] .lab-view { --lab-bg-a: #0f1320; --lab-bg-b: #090b12; }
 
 /* Experiments: Done closes the "How did this feel?" card (answering above it is optional) */
 .lab-result .lab-done-row { margin-top: 16px; }
+
+/* Frequency Generator: Done finishes with the tool */
+.freq-done-row { justify-content: center; margin-top: 14px; }

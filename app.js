@@ -106,6 +106,7 @@
     }
     const prevView = document.querySelector('.view:not([hidden])'); if (!prevView || prevView.id !== 'view-' + name) cancelIntents({ view: true });
     if (name === 'match' && (!prevView || prevView.id !== 'view-match')) noteMatchEntry(prevView);
+    if (name === 'frequency' && (!prevView || prevView.id !== 'view-frequency')) freqEntry = { view: prevView ? prevView.id.replace(/^view-/, '') : null, depth: navDepth, article: routedOnce ? null : articleRef };
     if (name === 'lab' && (!prevView || prevView.id !== 'view-lab' || opts.keepHash)) labEntry = { view: prevView && prevView.id !== 'view-lab' ? prevView.id.replace(/^view-/, '') : null, depth: navDepth, find: !!opts.keepHash, article: routedOnce ? null : articleRef };
     if (prevView && prevView.id === 'view-match' && name !== 'match') matchStop();   // a matching tone is a test signal, not background audio
     views.forEach(v => { const el = $('#view-' + v); el.hidden = v !== name; el.classList.toggle('active', v === name); });
@@ -121,7 +122,7 @@
     routedOnce = true;
   }
   let routedOnce = false;
-  let labEntry = null;
+  let labEntry = null, freqEntry = null;
   // Done from an experiment opened by arriving from elsewhere: back the way the user came
   // (the same history step Back uses), to the Learn article on a fresh load, or Sounds.
   function leaveLab() {
@@ -172,7 +173,7 @@
   function ensureLab() {
     if (window.softwaveLab) return Promise.resolve();
     if (labPromise) return labPromise;
-    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=91'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
+    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=92'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
     return labPromise;
   }
   window.softwaveEnsureLab = ensureLab;
@@ -663,6 +664,15 @@
   $('#freq-type').addEventListener('change', e => { F.type = e.target.value; if (engine.tone) engine.toneUpdate({ type: F.type }); });
   $('#freq-vol').addEventListener('input', e => { F.volume = +e.target.value / 100; $('#freq-vol-out').textContent = e.target.value + '%'; if (engine.tone) engine.toneUpdate({ volume: F.volume }); });
   $('#freq-pan').addEventListener('input', e => { F.balance = +e.target.value / 100; $('#freq-pan-out').textContent = panLabel(F.balance); if (engine.tone) engine.toneUpdate({ balance: F.balance }); });
+  // Done: finished with the generator — its own tone ends (other sounds are left alone) and the user
+  // goes back the way they came: the same history step Back uses, the Learn article on a fresh load, or Sounds.
+  $('#freq-done').addEventListener('click', () => {
+    if (engine.tone && engine.tone.playing && toneOwner === 'freq') engine.toneStop();
+    const e = freqEntry || {};
+    if (e.view && navDepth > e.depth) { history.back(); return; }
+    if (e.article) { history.back(); setTimeout(() => { if (!pageLeft && !$('#view-frequency').hidden) showView('sounds', { tab: true }); }, 900); return; }
+    showView('sounds', { tab: true });
+  });
   $('#freq-play').addEventListener('click', async () => {
     if (engine.tone && engine.tone.playing) engine.toneStop();
     else { matchStop(); await engine.toneStart(F); await engine.playAll(); }
