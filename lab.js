@@ -386,7 +386,7 @@
           const js = Object.assign({ len: 20, var: 'gentle', sleep: false }, store.get('lab:settings:journey') || {}, { bed: 'custom' }); store.set('lab:journey-bed', { params: this.params(ctx), nature: ctx.s.nature }); store.set('lab:settings:journey', js); delete ctxs.journey;
           app.toast('Adaptive Journey will use your sculpted sound as its bed.');
           const btn = $('[data-journey]', host);
-          app.armIntent('lab:toJourney', () => { if (!btn.isConnected) return; if (running) stopRunning(); openExperiment('journey'); }, 1500, { view: true });
+          app.armIntent('lab:toJourney', () => { if (!btn.isConnected) return; if (running) stopRunning(); openExperiment('journey', { from: { kind: 'exp', id: 'sculptor' } }); }, 1500, { view: true });
         });
         this.onSetting(ctx);
       },
@@ -559,6 +559,7 @@
       whyTest: 'Audio-visual coherence improves relaxation in lab studies; we are testing a slow, screen-based version. Relaxation only — no claim about tinnitus itself.',
       settings: [{ key: 'j', label: 'Journey', type: 'buttons', options: [['ocean', 'Ocean to Night'], ['rain', 'Rain to Sleep'], ['forest', 'Forest Evening']] }, { key: 'len', label: 'Length', type: 'buttons', options: [[20, '20 min'], [30, '30 min'], [40, '40 min']] }, { key: 'fade', label: 'Fade out at the end', type: 'toggle' }],
       defaults: { j: 'ocean', len: 30, fade: false }, custom: true, customFirst: true,
+      finish(ctx) { if (ctx.s.fade) { engine.setTimer(0.1, true); app.toast('Fading out. Rest well.'); } else app.toast('Journey finished — the last sound stays on.'); },   // natural end and Finish
       buildUI(ctx, host) { host.innerHTML = '<div data-timeline></div>'; const plans = { ocean: ['daylight ocean', 'sunset', 'darker ocean', 'night sky', 'stars'], rain: ['rain on the window', 'dimmer room', 'slower rain', 'softer sound', 'rest'], forest: ['forest', 'sunset', 'evening', 'night ambience', 'stillness'] }; timeline($('[data-timeline]', host), plans[ctx.s.j] || plans.ocean, ctx.s.len); },
       onSetting(ctx) { if (ctx.host) this.buildUI(ctx, $('[data-custom]', ctx.host)); },
       start(ctx) {
@@ -569,7 +570,7 @@
           forest: [{ min: u, label: 'forest', visual: 'forest', dim: 0, slow: 0, mix: [{ id: 'forest', volume: 0.55 }, { id: 'pink', volume: 0.2 }] }, { min: u, label: 'sunset', visual: 'forest', dim: 0.2, mix: [{ id: 'forest', volume: 0.45 }, { id: 'wind', volume: 0.3 }], tone: 9000 }, { min: u, label: 'evening', visual: 'forest', dim: 0.45, slow: 0.4, mix: [{ id: 'wind', volume: 0.35 }, { id: 'brown', volume: 0.25 }], tone: 6000 }, { min: u, label: 'night ambience', visual: 'nightsky', dim: 0.1, slow: 0.5, mix: [{ id: 'night', volume: 0.35 }, { id: 'brown', volume: 0.3 }], tone: 5000 }, { min: u, label: 'softer', visual: 'nightsky', dim: 0.25, slow: 0.7, mix: [{ id: 'brown', volume: 0.3 }, { id: 'night', volume: 0.15 }], tone: 4000 }],
         }[ctx.s.j];
         focus.setParam('dim', 0); focus.setParam('slow', 0); focus.setParam('time', ctx.s.j === 'ocean' ? 0.05 : 0.5); focus.setVisual(J[0].visual, { remember: false }); focus.setReturn('lab'); focus.enterFocus();
-        runJourney(J, { crossfade: Math.min(120, u * 25), visuals: true, onEnd: () => { if (ctx.s.fade) { engine.setTimer(0.1, true); app.toast('Fading out. Rest well.'); } else app.toast('Journey finished — the last sound stays on.'); stopRunning(null, true); } });
+        runJourney(J, { crossfade: Math.min(120, u * 25), visuals: true, onEnd: () => { this.finish(ctx); stopRunning(null, true); } });
       },
       stop() { engine.resetMasterShape(); focus.setParam('dim', 0); focus.setParam('slow', 0); focus.setParam('time', 0.5); focus.restoreVisual(); }, keepsSound: true,
     },
@@ -582,6 +583,9 @@
       whyTest: 'Sound-therapy research mostly uses steady sound; we are checking whether a slowly evolving environment feels more comfortable over a long session. No direct trials yet.',
       settings: [{ key: 'bed', label: 'Sound bed', type: 'buttons', options: [['brown', 'Brown noise'], ['profile', 'From My Sound Profile'], ['custom', 'My sculpted sound']] }, { key: 'len', label: 'Length', type: 'buttons', options: [[10, '10 min'], [20, '20 min'], [30, '30 min'], [60, '60 min'], [0, 'Continuous']] }, { key: 'var', label: 'Variation', type: 'buttons', options: [['stable', 'Very stable'], ['gentle', 'Gentle changes'], ['dynamic', 'More dynamic']] }, { key: 'sleep', label: 'Fade toward sleep at the end', type: 'toggle' }],
       defaults: { bed: 'brown', len: 20, var: 'gentle', sleep: false }, custom: true, customFirst: true,
+      // How the journey ends — at its natural end and on Finish. It keeps its sound past stopRunning
+      // (keepsSound) so the sleep ending can hand over to the engine's timer fade instead of being cut.
+      finish(ctx) { if (ctx.s.sleep) { engine.setTimer(0.1, true); app.toast('Fading toward sleep.'); } else engine.stopAll(); },
       buildUI(ctx, host) { host.innerHTML = '<div data-timeline></div>'; const bedName = ctx.s.bed === 'profile' ? 'your sound' : ctx.s.bed === 'custom' ? 'your sculpted sound' : 'brown noise'; timeline($('[data-timeline]', host), [`${bedName} + rain`, 'less rain', 'ocean appears', 'warmer', ctx.s.sleep ? 'simpler, fading' : 'simpler'], ctx.s.len || 60); },
       onSetting(ctx) { if (ctx.host) this.buildUI(ctx, $('[data-custom]', ctx.host)); },
       start(ctx) {
@@ -597,12 +601,7 @@
           { min: u, label: 'warmer', mix: [B(0.5), { id: 'ocean', volume: 0.3 * k }], tone: 6000 },
           { min: u, label: 'simpler', mix: [B(ctx.s.sleep ? 0.3 : 0.45), { id: 'ocean', volume: 0.12 * k }], tone: 5000 },
         ];
-        runJourney(segs, { crossfade: Math.min(120, u * 30), loop: !ctx.s.len, onEnd: () => {
-          // The journey keeps its sound past stopRunning (keepsSound) so the sleep ending can
-          // hand over to the engine's timer fade instead of being cut by stopAll.
-          if (ctx.s.sleep) { engine.setTimer(0.1, true); app.toast('Fading toward sleep.'); } else engine.stopAll();
-          stopRunning(null, true);
-        } });
+        runJourney(segs, { crossfade: Math.min(120, u * 30), loop: !ctx.s.len, onEnd: () => { this.finish(ctx); stopRunning(null, true); } });
       },
       stop() { engine.resetMasterShape(); }, keepsSound: true,
     },
@@ -962,23 +961,40 @@
     $$('.lab-detail.exp-compact').forEach(d => d.classList.remove('exp-compact', 'exp-peek'));   // restore the folded explanation
     const prev = running; running = null; updateRunningUI(); if (msg) app.toast(msg); showAfterFeedback(prev.exp, prev.ctx);
   }
-  function updateRunningUI() { const lv = $('#view-lab'); if (lv) lv.classList.toggle('running', !!running); const det = $('#lab-detail'); if (det) det.classList.toggle('running', !!running); $$('.lab-tile').forEach(t => t.classList.toggle('running', !!running && t.dataset.id === running.exp.id)); const el = $('#player-exp'); if (el) { if (running) { el.hidden = false; el.textContent = `Experiment: ${running.exp.name}`; } else el.hidden = true; } $$('.lab-card').forEach(c => c.classList.toggle('running', !!running && c.dataset.id === running.exp.id)); $$('[data-exp-start]').forEach(b => { const on = running && b.dataset.expStart === running.exp.id; const c = ctxs[b.dataset.expStart]; b.textContent = on ? 'Running…' : (c && c.hasRun ? 'Start again' : 'Start Experiment'); b.disabled = !!on; }); const pv = document.querySelector('#lab-detail [data-act="preview"]'); if (pv) pv.hidden = !!(running && running.exp.id === 'paint'); }
+  function updateRunningUI() { const lv = $('#view-lab'); if (lv) lv.classList.toggle('running', !!running); const det = $('#lab-detail'); if (det) det.classList.toggle('running', !!running); $$('.lab-tile').forEach(t => t.classList.toggle('running', !!running && t.dataset.id === running.exp.id)); const el = $('#player-exp'); if (el) { if (running) { el.hidden = false; el.textContent = `Experiment: ${running.exp.name}`; } else el.hidden = true; } $$('.lab-card').forEach(c => c.classList.toggle('running', !!running && c.dataset.id === running.exp.id)); $$('[data-exp-start]').forEach(b => { const on = running && b.dataset.expStart === running.exp.id; const c = ctxs[b.dataset.expStart]; b.textContent = on ? 'Running…' : (c && c.hasRun ? 'Start again' : 'Start Experiment'); b.disabled = !!on; }); const pv = document.querySelector('#lab-detail [data-act="preview"]'); if (pv) pv.hidden = !!(running && running.exp.id === 'paint'); $$('#lab-detail [data-finish]').forEach(b => { b.hidden = !(running && running.exp.id === b.dataset.finish); }); }
   $('#player-stop').addEventListener('click', () => { if (running) stopRunning(); });
   // Stopping from inside Visual Focus renders the card into a panel nobody can see. Flag that
   // one card as owed, so the single arrival that finally shows the panel leaves it standing.
   // A stop made on the Experiments page itself is already visible and sets nothing.
   let feedbackOwed = false;
+  // Done: the user has finished with this experiment — leave for wherever it was opened from.
+  function labDone(exp) {
+    if (running && running.exp === exp) stopRunning();   // only if a new session started since; its natural completion
+    feedbackOwed = false;
+    const o = origins[exp.id] || { kind: 'list' };
+    if (o.kind === 'result') { openExperiment('discovery', { keepOrigin: true }); return; }   // Fine-Tune → back to the result
+    if (o.kind === 'exp' && byId[o.id]) { openExperiment(o.id, { keepOrigin: true }); return; }   // Sculptor → Journey → back to Sculptor
+    const c = $('#lab-detail [data-close]'); if (c) c.click(); else { const p = $('#lab-detail'); p.hidden = true; p.innerHTML = ''; setFocusedExp(false); }
+    if (o.kind === 'entry') { if (app.leaveLab) app.leaveLab(); return; }
+    // the Experiments page: back near the experiment's tile
+    setTimeout(() => { const t = document.querySelector(`#lab-list .lab-tile[data-id="${exp.id}"], #lab-list .lab-card[data-id="${exp.id}"]`); if (t && !$('#view-lab').hidden) t.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 80);
+  }
   function showAfterFeedback(exp, ctx) {
     const host = ctx.host && $('[data-after]', ctx.host); if (!host) return;
     const lv = document.getElementById('view-lab'), fs = document.getElementById('focus-screen');
     feedbackOwed = !!((fs && !fs.hidden) || (lv && lv.hidden));
-    host.innerHTML = `<div class="card lab-result"><h3>How did this feel?</h3><div class="btn-row"><button class="btn btn-ghost btn-sm" data-c="more">More comfortable</button><button class="btn btn-ghost btn-sm" data-c="same">About the same</button><button class="btn btn-ghost btn-sm" data-c="less">Less comfortable</button></div><p>Would you use this again?</p><div class="btn-row"><button class="btn btn-ghost btn-sm" data-a="yes">Yes</button><button class="btn btn-ghost btn-sm" data-a="maybe">Maybe</button><button class="btn btn-ghost btn-sm" data-a="no">No</button></div><p class="muted small">Used only to personalise your suggestions; stored on this device.</p></div>`;
+    host.innerHTML = `<div class="card lab-result"><h3>How did this feel?</h3><div class="btn-row"><button class="btn btn-ghost btn-sm" data-c="more">More comfortable</button><button class="btn btn-ghost btn-sm" data-c="same">About the same</button><button class="btn btn-ghost btn-sm" data-c="less">Less comfortable</button></div><p>Would you use this again?</p><div class="btn-row"><button class="btn btn-ghost btn-sm" data-a="yes">Yes</button><button class="btn btn-ghost btn-sm" data-a="maybe">Maybe</button><button class="btn btn-ghost btn-sm" data-a="no">No</button></div><p class="muted small">Used only to personalise your suggestions; stored on this device.</p><div class="btn-row lab-done-row"><button class="btn btn-primary" data-done>Done</button></div></div>`;
+    const dn = $('[data-done]', host); if (dn) dn.addEventListener('click', () => labDone(exp));   // answering above is optional
     $$('[data-c]', host).forEach(b => b.addEventListener('click', () => { setFb(exp.id, { comfort: b.dataset.c, rating: b.dataset.c === 'more' ? 'helpful' : b.dataset.c === 'less' ? 'not' : 'neutral' }); $$('[data-c]', host).forEach(x => { const on = x === b; x.classList.toggle('btn-secondary', on); x.classList.toggle('btn-ghost', !on); }); renderLists(); renderProfile(); }));
     $$('[data-a]', host).forEach(b => b.addEventListener('click', () => { setFb(exp.id, { again: b.dataset.a }); $$('[data-a]', host).forEach(x => { const on = x === b; x.classList.toggle('btn-secondary', on); x.classList.toggle('btn-ghost', !on); }); renderLists(); }));
   }
 
   // ---------- cards & detail ----------
   const ctxs = {};
+  // Where each experiment was opened from, so Done can return there:
+  //   list  — the Experiments page (back near its tile)      entry — from another page (Sounds, a Learn article, the Find My Sound tab)
+  //   exp   — another experiment's panel (Sculptor → Journey)  result — the Find My Sound result (Fine-Tune → Sculptor)
+  const origins = {};
   function ctxFor(exp) { if (ctxs[exp.id]) return ctxs[exp.id]; const d = typeof exp.defaults === 'function' ? exp.defaults() : Object.assign({}, exp.defaults); const saved = store.get('lab:settings:' + exp.id); if (saved) Object.assign(d, saved); ctxs[exp.id] = { s: d, host: null }; return ctxs[exp.id]; }
   const TINT = { discovery: [200, 175, 140], paint: [185, 170, 205], sculptor: [200, 165, 125], generative: [225, 200, 150], morph: [180, 175, 200], space: [150, 185, 200], attention: [225, 210, 180], svjourney: [140, 175, 200], journey: [170, 185, 200], session: [190, 180, 170] };
   const LIGHT_TINT = { discovery: [125, 90, 60], paint: [110, 90, 140], sculptor: [125, 90, 60], generative: [150, 120, 60], morph: [100, 95, 130], space: [60, 110, 140], attention: [150, 125, 70], svjourney: [60, 105, 140], journey: [90, 110, 135], session: [110, 100, 90] };
@@ -997,9 +1013,9 @@
   // used by every "fine-tune" entry point, so the panel always says "Running…"
   // instead of offering Start while the sound is audibly playing. The engine keeps
   // an already-active 'sculpt' sound through the handoff, so nothing restarts.
-  async function openSculptorRunning(params, nature) {
+  async function openSculptorRunning(params, nature, from) {
     store.set('lab:settings:sculptor', sculptSettingsFrom(params, nature)); delete ctxs.sculptor;
-    openExperiment('sculptor');
+    openExperiment('sculptor', { from });
     try {
       const sc = byId.sculptor; const sctx = ctxFor(sc); sctx.host = $('#lab-detail');
       if (running) stopRunning();
@@ -1016,7 +1032,7 @@
       if (close && !$('[data-back-result]', p)) {
         const b = document.createElement('button'); b.className = 'btn btn-ghost btn-sm'; b.setAttribute('data-back-result', ''); b.textContent = '← Back to your result';
         close.after(b);
-        b.addEventListener('click', () => { if (running) stopRunning(); openExperiment('discovery'); });
+        b.addEventListener('click', () => { if (running) stopRunning(); openExperiment('discovery', { keepOrigin: true }); });
       }
     }, 100);
   }
@@ -1045,8 +1061,9 @@
     const run = $('.lab-run', panel); if (run) run.hidden = true;
     const rate = $('.lab-rate', panel); if (rate) rate.hidden = true;
     const after = $('[data-after]', panel); if (after) {
-      after.innerHTML = '<div class="btn-row" style="justify-content:center; margin-top:18px"><button class="btn btn-primary btn-lg" data-r-new>Start New Experiment</button></div><div class="lab-end-note"><span class="label-sm">End of Find My Sound</span></div>';
-      $('[data-r-new]', after).addEventListener('click', () => { ctx.finished = false; ctx.result = null; setExploreHeading(false); stopRunning(); openExperiment('discovery'); });
+      after.innerHTML = '<div class="btn-row" style="justify-content:center; margin-top:18px"><button class="btn btn-primary btn-lg" data-r-new>Start New Experiment</button><button class="btn btn-secondary btn-lg" data-r-done>Done</button></div><div class="lab-end-note"><span class="label-sm">End of Find My Sound</span></div>';
+      $('[data-r-done]', after).addEventListener('click', () => labDone(byId.discovery));
+      $('[data-r-new]', after).addEventListener('click', () => { ctx.finished = false; ctx.result = null; setExploreHeading(false); stopRunning(); openExperiment('discovery', { keepOrigin: true }); });
     }
     setExploreHeading(true);
     const R = $('[data-result]', host); liveShape($('.reveal-orb canvas', R), () => ({ p: Object.assign({}, best.params, { nature: best.nature }), live: true, scale: 0.42 }));
@@ -1071,7 +1088,7 @@
     });
     $('[data-r="tune"]', R).addEventListener('click', async () => {
       await engine.loadMix(soundMix(snd));
-      await openSculptorRunning(best.params, best.nature);
+      await openSculptorRunning(best.params, best.nature, { kind: 'result' });
     });
     const savedNote = (html) => {
       let n = $('.disc-saved-note', R);
@@ -1189,8 +1206,9 @@
     }, 150);
   }
 
-  function openExperiment(id) {
+  function openExperiment(id, opts = {}) {
     feedbackOwed = false;
+    if (!opts.keepOrigin) origins[id] = opts.from || { kind: 'list' };
     const exp = byId[id]; if (!exp) return; const ctx = ctxFor(exp); const panel = $('#lab-detail'); panel.hidden = false;
     // Re-opening the experiment that is running (its tab tapped again, Back then Forward) must not
     // rebuild the panel under it: the fresh controls would come up disabled with no round to enable them.
@@ -1205,14 +1223,16 @@
       <dl class="lab-dl"><dt>What it does</dt><dd>${exp.what}</dd><dt>Why try it</dt><dd>${exp.why}</dd><dt>How to use it</dt><dd>${exp.how}${exp.guide ? ` <a href="${exp.guide}">Full step-by-step guide →</a>` : ''}</dd></dl>
       <details class="lab-why"><summary>Why are we testing this?</summary><p>${exp.whyTest}</p><p class="muted small">Not a medical treatment. Stop at any time with the Stop button below or in the player bar.</p></details>
       ${exp.customFirst ? '<div data-custom></div><div class="lab-settings" data-settings></div>' : '<div class="lab-settings" data-settings></div><div data-custom></div>'}
-      <div class="lab-run"><button class="btn btn-primary btn-lg" data-exp-start="${exp.id}">Start Experiment</button><button class="btn btn-ghost" data-stop>Stop</button><button class="btn btn-ghost" data-reset>Reset</button></div>
+      <div class="lab-run"><button class="btn btn-primary btn-lg" data-exp-start="${exp.id}">Start Experiment</button>${exp.id !== 'discovery' ? `<button class="btn btn-secondary" data-finish="${exp.id}" hidden>Finish</button>` : ''}<button class="btn btn-ghost" data-stop>Stop</button><button class="btn btn-ghost" data-reset>Reset</button></div>
       <div class="lab-rate"><span class="label-sm">Rate this experiment</span><div class="seg" role="radiogroup" aria-label="Rating"><button role="radio" aria-checked="${f.rating === 'helpful'}" data-rate="helpful">Helpful</button><button role="radio" aria-checked="${f.rating === 'neutral'}" data-rate="neutral">Neutral</button><button role="radio" aria-checked="${f.rating === 'not'}" data-rate="not">Not for me</button></div></div>
       <div data-after></div></div>`;
     ctx.host = panel; if (exp.id === 'session') $('[data-settings]', panel).hidden = true; renderSettings(exp, ctx, $('[data-settings]', panel)); if (exp.custom && exp.buildUI) exp.buildUI(ctx, $('[data-custom]', panel));
     $('[data-close]', panel).addEventListener('click', () => { if (running) stopRunning('Experiment stopped'); panel.hidden = true; panel.innerHTML = ''; setExploreHeading(false); setFocusedExp(false); });
     $('[data-exp-start]', panel).addEventListener('click', async () => { if (!gate(exp)) return; if (running && running.exp !== exp) stopRunning(); else if (running) return; if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); if (exp.id === 'discovery') store.set('lab:discoveries', store.get('lab:discoveries', 0) + 1); await engine.init(); running = { exp, ctx }; ctx.hasRun = true; setFb(exp.id, { tries: ((fb()[exp.id] || {}).tries || 0) + 1, last: Date.now() }); store.set('lab:settings:' + exp.id, ctx.s); updateRunningUI(); try { await Promise.race([exp.start(ctx), new Promise((_, rej) => setTimeout(() => rej(new Error('timed out — check that sound is allowed in your browser')), 12000))]); } catch (e) { console.error(e); app.toast('Could not start: ' + e.message, 5000); if (running && running.exp === exp) { running = null; } updateRunningUI(); } if (running && running.exp === exp && exp.id !== 'discovery') { compactForRun(panel.closest('.lab-detail') || panel); setTimeout(() => scrollToRunControls(panel), 120); } renderLists(); });   // discovery positions itself (specialized A/B flow)
+    // Finish: end the session the way this experiment ends naturally (its own sound rule), then ask "How did this feel?"
+    const fin = $('[data-finish]', panel); if (fin) fin.addEventListener('click', () => { if (!(running && running.exp === exp)) return; if (exp.finish) { try { exp.finish(ctx); } catch (_) { } } stopRunning(); revealPanel(); });
     $('[data-stop]', panel).addEventListener('click', () => { if (running && running.exp === exp) stopRunning('Stopped'); else { try { exp.stop && exp.stop(ctx); } catch (_) { } } engine.stopAll(); });   // Stop means stop: the experiment and its sound, in one press
-    $('[data-reset]', panel).addEventListener('click', () => { if (running && running.exp === exp) stopRunning(); engine.stopAll(); store.del('lab:settings:' + exp.id); delete ctxs[exp.id]; openExperiment(exp.id); app.toast('Settings reset'); });   // stopRunning() leaves sound for keepsSound experiments — Reset silences it like [data-stop] does
+    $('[data-reset]', panel).addEventListener('click', () => { if (running && running.exp === exp) stopRunning(); engine.stopAll(); store.del('lab:settings:' + exp.id); delete ctxs[exp.id]; openExperiment(exp.id, { keepOrigin: true }); app.toast('Settings reset'); });   // stopRunning() leaves sound for keepsSound experiments — Reset silences it like [data-stop] does
     $('[data-fav]', panel).addEventListener('click', e => { const l = favs(); const i = l.indexOf(exp.id); if (i >= 0) l.splice(i, 1); else l.push(exp.id); store.set('lab:favs', l); const on = i < 0; e.currentTarget.setAttribute('aria-pressed', on); e.currentTarget.textContent = on ? '★ In Favourites' : '☆ Add to Favourites'; app.toast(on ? '★ Added to Favourites — find it in the Favourites group on the Experiments page.' : 'Removed from Favourites.', 3600); renderLists(); });
     $$('[data-rate]', panel).forEach(b => b.addEventListener('click', () => { setFb(exp.id, { rating: b.dataset.rate }); $$('[data-rate]', panel).forEach(x => x.setAttribute('aria-checked', x === b)); renderLists(); renderProfile(); }));
     updateRunningUI();
@@ -1255,7 +1275,7 @@
   const lf = $('#lab-field'); if (lf) liveShape(lf, () => ({ field: true }));
   const flag = $('#lab-flagship canvas'); if (flag) liveShape(flag, () => { const pp = profileParams(); return { p: pp ? Object.assign({}, pp, { nature: profile().nature }) : Object.assign(DEF(), { colour: 0.4, width: 0.5, moving: 0.2 }), live: true, speed: 0.7, scale: 0.4 }; });
 
-  window.softwaveLab = { open: openExperiment, stop: stopRunning, revealPanel, experiments: EXPERIMENTS, isRunning: () => !!running,
+  window.softwaveLab = { open: (id, opts) => openExperiment(id, opts), stop: stopRunning, revealPanel, experiments: EXPERIMENTS, isRunning: () => !!running,
     // Arriving at the Experiments page shows the LIST, with three protected states: a
     // running experiment, a feedback card the user has not been shown yet, and (for
     // history/Back arrivals) the completed Find My Sound result. A merely-opened placard
@@ -1276,6 +1296,6 @@
     }, mySounds, soundMix, onTap() { const p = focus.getParam && focus.getParam(); if (!p || !p.soundTouch) return; engine.setMasterTone(2200, 0.08); later(() => engine.setMasterTone(20000, 0.6), 350); } };
   addEventListener('unhandledrejection', e => { if (running) { console.error(e.reason); app.toast('Something went wrong in this experiment. Press Stop and try again.', 5000); } });
   renderLists(); renderProfile();
-  const qe = new URLSearchParams(location.search).get('exp'); if (qe && byId[qe]) setTimeout(() => openExperiment(qe), 120);
+  const qe = new URLSearchParams(location.search).get('exp'); if (qe && byId[qe]) setTimeout(() => openExperiment(qe, { from: { kind: 'entry' } }), 120);
   document.dispatchEvent(new CustomEvent('softwave:lab-ready'));
 })();
