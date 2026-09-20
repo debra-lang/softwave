@@ -585,7 +585,9 @@
       defaults: { bed: 'brown', len: 20, var: 'gentle', sleep: false }, custom: true, customFirst: true,
       // How the journey ends — at its natural end and on Finish. It keeps its sound past stopRunning
       // (keepsSound) so the sleep ending can hand over to the engine's timer fade instead of being cut.
-      finish(ctx) { if (ctx.s.sleep) { engine.setTimer(0.1, true); app.toast('Fading toward sleep.'); } else engine.stopAll(); },
+      finish(ctx) { if (ctx.s.sleep) { engine.setTimer(0.1, true); app.toast('Fading toward sleep.'); } },
+      // the journey's own ending: quiet, or the sleep fade — Finish keeps the sound instead
+      endNaturally(ctx) { this.finish(ctx); if (!ctx.s.sleep) engine.stopAll(); },
       buildUI(ctx, host) { host.innerHTML = '<div data-timeline></div>'; const bedName = ctx.s.bed === 'profile' ? 'your sound' : ctx.s.bed === 'custom' ? 'your sculpted sound' : 'brown noise'; timeline($('[data-timeline]', host), [`${bedName} + rain`, 'less rain', 'ocean appears', 'warmer', ctx.s.sleep ? 'simpler, fading' : 'simpler'], ctx.s.len || 60); },
       onSetting(ctx) { if (ctx.host) this.buildUI(ctx, $('[data-custom]', ctx.host)); },
       start(ctx) {
@@ -601,7 +603,7 @@
           { min: u, label: 'warmer', mix: [B(0.5), { id: 'ocean', volume: 0.3 * k }], tone: 6000 },
           { min: u, label: 'simpler', mix: [B(ctx.s.sleep ? 0.3 : 0.45), { id: 'ocean', volume: 0.12 * k }], tone: 5000 },
         ];
-        runJourney(segs, { crossfade: Math.min(120, u * 30), loop: !ctx.s.len, onEnd: () => { this.finish(ctx); stopRunning(null, true); } });
+        runJourney(segs, { crossfade: Math.min(120, u * 30), loop: !ctx.s.len, onEnd: () => { this.endNaturally(ctx); stopRunning(null, true); } });
       },
       stop() { engine.resetMasterShape(); }, keepsSound: true,
     },
@@ -1254,7 +1256,9 @@
     // Finish: end the session the way this experiment ends naturally (its own sound rule), then ask "How did this feel?"
     const fin = $('[data-finish]', panel); if (fin) fin.addEventListener('click', () => { if (!(running && running.exp === exp)) return; if (exp.finish) { try { exp.finish(ctx); } catch (_) { } } stopRunning(); revealPanel(); });
     $('[data-stop]', panel).addEventListener('click', () => { if (running && running.exp === exp) stopRunning('Stopped'); else { try { exp.stop && exp.stop(ctx); } catch (_) { } } engine.stopAll(); });   // Stop means stop: the experiment and its sound, in one press
-    $('[data-reset]', panel).addEventListener('click', () => { if (running && running.exp === exp) stopRunning(); engine.stopAll(); store.del('lab:settings:' + exp.id); delete ctxs[exp.id]; openExperiment(exp.id, { keepOrigin: true }); app.toast('Settings reset'); });   // stopRunning() leaves sound for keepsSound experiments — Reset silences it like [data-stop] does
+    $('[data-reset]', panel).addEventListener('click', () => { if (running && running.exp === exp) stopRunning(); engine.stopAll(); store.del('lab:settings:' + exp.id); delete ctxs[exp.id];
+      const all = fb(); if (all[exp.id]) { delete all[exp.id].comfort; delete all[exp.id].again; delete all[exp.id].rating; store.set('lab:feedback', all); }   // a new session starts without the last one's answers
+      openExperiment(exp.id, { keepOrigin: true }); app.toast('Settings reset'); });   // stopRunning() leaves sound for keepsSound experiments — Reset silences it like [data-stop] does
     $('[data-fav]', panel).addEventListener('click', e => { const l = favs(); const i = l.indexOf(exp.id); if (i >= 0) l.splice(i, 1); else l.push(exp.id); store.set('lab:favs', l); const on = i < 0; e.currentTarget.setAttribute('aria-pressed', on); e.currentTarget.textContent = on ? '★ In Favourites' : '☆ Add to Favourites'; app.toast(on ? '★ Added to Favourites — find it in the Favourites group on the Experiments page.' : 'Removed from Favourites.', 3600); renderLists(); });
     $$('[data-rate]', panel).forEach(b => b.addEventListener('click', () => { setFb(exp.id, { rating: b.dataset.rate }); $$('[data-rate]', panel).forEach(x => x.setAttribute('aria-checked', x === b)); renderLists(); renderProfile(); }));
     updateRunningUI();

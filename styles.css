@@ -1545,7 +1545,10 @@ html[data-theme="dark"] .lab-view { --lab-bg-a: #0f1320; --lab-bg-b: #090b12; }
 #match-octave [data-current] { border-color: var(--accent); }
 .match-status { margin: 12px 0 20px; font-weight: 700; color: var(--accent); min-height: 1.4em; }
 /* suggested sounds: all readable; the one playing uses the Sounds page's playing treatment */
-#match-suggestions .sound-card, #match-suggestions .sound-card:hover { opacity: 1; }
+#match-suggestions { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+@media (max-width: 340px) { #match-suggestions { grid-template-columns: 1fr; } }
+#match-suggestions .sound-card, #match-suggestions .sound-card:hover { opacity: 1; width: auto; min-height: 148px; padding: 14px 10px 16px; justify-content: flex-start; gap: 6px; }
+#match-suggestions .sound-card .desc { max-width: none; }
 #match-suggestions .sound-card .icon { transition: transform .25s, box-shadow .25s; }
 #match-suggestions .sound-card.active .icon { transform: scale(1.1); box-shadow: 0 0 0 1px var(--sf-accent), 0 16px 40px rgba(0,0,0,.3); }
 /* the result on screen is saved: a done state, not a greyed-out button */

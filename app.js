@@ -182,7 +182,7 @@
   function ensureLab() {
     if (window.softwaveLab) return Promise.resolve();
     if (labPromise) return labPromise;
-    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=95'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
+    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=96'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
     return labPromise;
   }
   window.softwaveEnsureLab = ensureLab;
@@ -763,7 +763,10 @@
     suggestionsFor(M.freq, M.type).forEach((id, i) => {
       const d = engine.def(id); const card = document.createElement('button'); card.className = 'sound-card'; card.dataset.sid = id; card.style.setProperty('--hue', d.hue);
       card.innerHTML = `<div class="art"></div><span class="icon" aria-hidden="true">${d.icon}</span><span class="name">${d.name}</span><span class="desc">${i === 0 ? 'Start here · ' : ''}${d.desc}</span>`;
-      card.addEventListener('click', async () => { matchStop(); await engine.loadMix([{ id, volume: 0.5 }]); mSuggested = id; syncSuggested(); toast(`Playing ${d.name}. Try others too — comfort is what matters.`); });
+      card.addEventListener('click', async () => {
+        if (engine.isActive(id)) { engine.stopSound(id); if (mSuggested === id) mSuggested = null; syncSuggested(); toast(`${d.name} stopped.`); return; }   // tap the playing one again to stop it
+        matchStop(); await engine.loadMix([{ id, volume: 0.5 }]); mSuggested = id; syncSuggested(); toast(`Playing ${d.name}. Try others too — comfort is what matters.`);
+      });
       host.appendChild(card);
     });
     syncSuggested();
@@ -1152,7 +1155,7 @@
     const EDGE = 20, COMMIT = 60, MAX_DRIFT = 40;
     let sw = null; let popAt = 0;
     addEventListener('popstate', () => { popAt = Date.now(); });
-    const hasLayer = () => layers.stack.length > 0 || ['#now', '#sleep-screen', '#focus-screen'].some(s => { const el = $(s); return el && !el.hidden; });
+    const hasLayer = () => { const b = $('#nav-back'); return b ? !b.hidden : (layers.stack.length > 0 || ['#now', '#sleep-screen', '#focus-screen'].some(s => { const el = $(s); return el && !el.hidden; })); };
     document.addEventListener('touchstart', e => { if (e.touches.length !== 1) { sw = null; return; } const t = e.touches[0]; sw = (t.clientX <= EDGE && hasLayer()) ? { x: t.clientX, y: t.clientY, id: t.identifier, done: false } : null; }, { passive: true, capture: true });
     document.addEventListener('touchmove', e => {
       if (!sw || sw.done) return; const t = [...e.touches].find(x => x.identifier === sw.id); if (!t) return;
@@ -1169,6 +1172,16 @@
     document.addEventListener('touchcancel', clear, { passive: true, capture: true });
   }
   if (isShell) installEdgeSwipe();
+  // Native: the app's local server has no file for a folder URL ("learn/x/"), and the fallback page it
+  // serves instead runs no scripts (relative <script> paths resolve under that folder). build-www.js
+  // rewrites the folder links it can see in files; links built at runtime — an experiment's "Full
+  // step-by-step guide" — are resolved here instead, to the same index.html file.
+  if (isShell) document.addEventListener('click', e => {
+    const a = e.target.closest('a[href]'); if (!a || a.target === '_blank' || a.hasAttribute('download')) return;
+    const href = a.getAttribute('href'); if (!href || /^(https?:|mailto:|tel:|data:|#)/i.test(href)) return;
+    const path = href.split(/[?#]/)[0]; if (!path.endsWith('/')) return;
+    e.preventDefault(); location.href = path + 'index.html' + href.slice(path.length);
+  }, true);
   document.addEventListener('keydown', e => { const tgt = e.target && e.target.matches ? e.target : document.body; if (e.key === 'Backspace' && !tgt.matches('input, textarea, select, [contenteditable]')) { e.preventDefault(); goBack(); } if (e.key === 'Escape' && transit.active) clearTransit(); });
 
   // ---------- keyboard shortcuts ----------
