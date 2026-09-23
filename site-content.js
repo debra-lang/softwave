@@ -374,7 +374,7 @@ learn({
 });
 
 learn({
-  slug: 'tinnitus-frequency-matching', updated: '2026-09-14',
+  slug: 'tinnitus-frequency-matching', updated: '2026-09-22',
   title: 'Tinnitus Pitch Matching: How It Works, Accuracy & Limits',
   description: 'How tinnitus pitch matching is done, how accurate self-matching is, what notched sound and residual inhibition are, and what the evidence supports.',
   h1: 'What is tinnitus pitch matching?',
@@ -382,6 +382,7 @@ learn({
   body: `
 <h2>How matching is done</h2>
 <p>You compare tones and say which is closer, narrowing down step by step, then check an octave above and below. Self-administered matching with a slider agrees with the clinic within half an octave about 70% of the time; an automated two-interval method on a music player was as reliable as the conventional procedure and easier for participants.</p>
+<p>Because tinnitus pitch can vary from one attempt to the next, repeating the match and keeping the middle value gives a more stable estimate than a single attempt. Find My Tinnitus Sound offers this as an optional step: one match is enough to continue; if you choose to match twice more, the pitch number is hidden during the repeats so each attempt starts fresh, and the three results are combined by keeping the middle one. The octave check stays part of every attempt.</p>
 <h2>What people do with the matched frequency</h2>
 <ul>
 <li><strong>Choose masking sounds</strong> with energy near the region — the simplest, safest use.</li>
