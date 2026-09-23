@@ -129,6 +129,16 @@
 
   // ---------- runtime ----------
   let running = null; const timers = new Set(); let journeyTok = null;   // journeyTok: the run a pending journey step belongs to
+  // Active listening time of the running session: time since Start minus every paused
+  // stretch. Listening = audio running and not deliberately paused — a pause from any
+  // player, the lock screen or the assistant, or the system suspending audio, stops the
+  // clock; Play resumes it. `active` holds settled time, `since` when the current
+  // listening stretch began (0 while paused). Settled on every engine state/sound change.
+  const listening = () => !!(engine.ctx && engine.ctx.state === 'running' && !engine.userPaused);
+  const newClock = () => { const now = Date.now(); return { at: now, active: 0, since: listening() ? now : 0 }; };
+  function settleClock(r) { if (!r || r.active == null) return; const now = Date.now(); if (r.since) { r.active += now - r.since; r.since = 0; } if (listening()) r.since = now; }
+  const activeMs = (r) => (r && r.active != null) ? r.active + (r.since ? Date.now() - r.since : 0) : 0;
+  engine.on(t => { if ((t === 'state' || t === 'sounds') && running) settleClock(running); });
   const later = (fn, ms) => { const t = setTimeout(() => { timers.delete(t); fn(); }, ms); timers.add(t); return t; };
   const every = (fn, ms) => { const t = setInterval(fn, ms); timers.add(t); return t; };
   const clearTimers = () => { timers.forEach(t => { clearTimeout(t); clearInterval(t); }); timers.clear(); };
@@ -983,7 +993,7 @@
   function stopRunning(msg, finishedNaturally) {
     if (!running) return; const { exp, ctx } = running; clearTimers(); journeyTok = null; try { exp.stop && exp.stop(ctx); } catch (_) { } if (!exp.keepsSound) engine.stopAll(); engine.setVariation(0); engine.resetMasterShape();
     $$('.lab-detail.exp-compact').forEach(d => d.classList.remove('exp-compact', 'exp-peek'));   // restore the folded explanation
-    const prev = running; running = null; updateRunningUI(); if (msg) app.toast(msg); showAfterFeedback(prev.exp, prev.ctx, prev.at ? Date.now() - prev.at : 0);
+    const prev = running; running = null; updateRunningUI(); if (msg) app.toast(msg); showAfterFeedback(prev.exp, prev.ctx, activeMs(prev));   // active listening, pauses excluded
   }
   function updateRunningUI() { const lv = $('#view-lab'); if (lv) lv.classList.toggle('running', !!running); const det = $('#lab-detail'); if (det) det.classList.toggle('running', !!running); $$('.lab-tile').forEach(t => t.classList.toggle('running', !!running && t.dataset.id === running.exp.id)); const el = $('#player-exp'); if (el) { if (running) { el.hidden = false; el.textContent = `Experiment: ${running.exp.name}`; } else el.hidden = true; } $$('.lab-card').forEach(c => c.classList.toggle('running', !!running && c.dataset.id === running.exp.id)); $$('[data-exp-start]').forEach(b => { const on = running && b.dataset.expStart === running.exp.id; const c = ctxs[b.dataset.expStart]; b.textContent = on ? 'Running…' : (c && c.hasRun ? 'Start again' : 'Start Experiment'); b.disabled = !!on; }); const pv = document.querySelector('#lab-detail [data-act="preview"]'); if (pv) pv.hidden = !!(running && running.exp.id === 'paint'); $$('#lab-detail [data-finish]').forEach(b => { b.hidden = !(running && running.exp.id === b.dataset.finish); }); }
   $('#player-stop').addEventListener('click', () => { if (running) stopRunning(); });
@@ -1004,7 +1014,8 @@
     setTimeout(() => { const t = document.querySelector(`#lab-list .lab-tile[data-id="${exp.id}"], #lab-list .lab-card[data-id="${exp.id}"]`); if (t && !$('#view-lab').hidden) t.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 80);
   }
   // "How did this feel?" is the primary feedback, after every experiment session.
-  // A session of 5 minutes or more may also be asked two optional questions, revealed
+  // A session with 5 minutes or more of active listening (pauses excluded) may also be
+  // asked two optional questions, revealed
   // only after the comfort answer: did the tinnitus seem quieter, and did it feel less
   // bothersome. Loudness and bothersomeness can change independently, so they are asked
   // separately — and neither ever feeds "Worked well for me / Not for me" (comfort,
@@ -1012,7 +1023,8 @@
   // of both after a session, so it is left out here.
   // Storage: the latest answers on lab:feedback[id] (comfort, again, quieter, bother);
   // every answered session is also appended to lab:sessions — one entry per session,
-  // filled in as its answers arrive, never rewritten by a later session.
+  // filled in as its answers arrive, never rewritten by a later session (`mins` = active
+  // listening minutes). lab:sessions stays on this device; it is not cloud-synced.
   const LONG_SESSION = 5 * 60000;
   const QUIETER = [['quieter', 'Quieter'], ['same', 'Same'], ['louder', 'Louder'], ['unsure', 'Not sure']];
   const BOTHER = [['less', 'Less'], ['same', 'Same'], ['more', 'More'], ['unsure', 'Not sure']];
@@ -1078,7 +1090,7 @@
     try {
       const sc = byId.sculptor; const sctx = ctxFor(sc); sctx.host = $('#lab-detail');
       if (running) stopRunning();
-      running = { exp: sc, ctx: sctx, at: Date.now() }; sctx.hasRun = true;
+      running = Object.assign({ exp: sc, ctx: sctx }, newClock()); sctx.hasRun = true;
       setFb(sc.id, { tries: ((fb()[sc.id] || {}).tries || 0) + 1, last: Date.now() });
       await sc.start(sctx);
       updateRunningUI();
@@ -1287,7 +1299,7 @@
       <div data-after></div></div>`;
     ctx.host = panel; if (exp.id === 'session') $('[data-settings]', panel).hidden = true; renderSettings(exp, ctx, $('[data-settings]', panel)); if (exp.custom && exp.buildUI) exp.buildUI(ctx, $('[data-custom]', panel));
     $('[data-close]', panel).addEventListener('click', () => { if (running) stopRunning('Experiment stopped'); panel.hidden = true; panel.innerHTML = ''; setExploreHeading(false); setFocusedExp(false); });
-    $('[data-exp-start]', panel).addEventListener('click', async () => { if (!gate(exp)) return; if (running && running.exp !== exp) stopRunning(); else if (running) return; if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); if (exp.id === 'discovery') store.set('lab:discoveries', store.get('lab:discoveries', 0) + 1); await engine.init(); running = { exp, ctx, at: Date.now() }; ctx.hasRun = true; setFb(exp.id, { tries: ((fb()[exp.id] || {}).tries || 0) + 1, last: Date.now() }); store.set('lab:settings:' + exp.id, ctx.s); updateRunningUI(); try { await Promise.race([exp.start(ctx), new Promise((_, rej) => setTimeout(() => rej(new Error('timed out — check that sound is allowed in your browser')), 12000))]); } catch (e) { console.error(e); app.toast('Could not start: ' + e.message, 5000); if (running && running.exp === exp) { running = null; } updateRunningUI(); } if (running && running.exp === exp && exp.id !== 'discovery') { compactForRun(panel.closest('.lab-detail') || panel); setTimeout(() => scrollToRunControls(panel), 120); } renderLists(); });   // discovery positions itself (specialized A/B flow)
+    $('[data-exp-start]', panel).addEventListener('click', async () => { if (!gate(exp)) return; if (running && running.exp !== exp) stopRunning(); else if (running) return; if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); if (exp.id === 'discovery') store.set('lab:discoveries', store.get('lab:discoveries', 0) + 1); await engine.init(); running = Object.assign({ exp, ctx }, newClock()); ctx.hasRun = true; setFb(exp.id, { tries: ((fb()[exp.id] || {}).tries || 0) + 1, last: Date.now() }); store.set('lab:settings:' + exp.id, ctx.s); updateRunningUI(); try { await Promise.race([exp.start(ctx), new Promise((_, rej) => setTimeout(() => rej(new Error('timed out — check that sound is allowed in your browser')), 12000))]); } catch (e) { console.error(e); app.toast('Could not start: ' + e.message, 5000); if (running && running.exp === exp) { running = null; } updateRunningUI(); } if (running && running.exp === exp && exp.id !== 'discovery') { compactForRun(panel.closest('.lab-detail') || panel); setTimeout(() => scrollToRunControls(panel), 120); } renderLists(); });   // discovery positions itself (specialized A/B flow)
     // Finish: end the session the way this experiment ends naturally (its own sound rule), then ask "How did this feel?"
     const fin = $('[data-finish]', panel); if (fin) fin.addEventListener('click', () => { if (!(running && running.exp === exp)) return; if (exp.finish) { try { exp.finish(ctx); } catch (_) { } } stopRunning(); revealPanel(); });
     $('[data-stop]', panel).addEventListener('click', () => { if (running && running.exp === exp) stopRunning('Stopped'); else { try { exp.stop && exp.stop(ctx); } catch (_) { } } engine.stopAll(); });   // Stop means stop: the experiment and its sound, in one press
