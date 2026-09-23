@@ -52,7 +52,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400&display=swap">
-  <link rel="stylesheet" href="styles.css?v=133">
+  <link rel="stylesheet" href="styles.css?v=134">
   <script type="application/ld+json">
   {"@context":"https://schema.org","@graph":[
     {"@type":"Organization","@id":"https://findmyquietsound.com/#org","name":"Find My Quiet Sound","url":"https://findmyquietsound.com/","logo":"https://findmyquietsound.com/icons/icon-512.png","sameAs":["https://github.com/debra-lang/softwave"]},
@@ -172,7 +172,7 @@
           <div><h3>Who it is for</h3><p>People with tinnitus who want an easy, free way to add a comfortable background sound — at a desk, in a quiet room or at bedtime. It works with speakers, headphones or a pillow speaker, on phones, tablets and computers.</p></div>
           <div><h3>How to start</h3><p>Tap a sound, keep the level low — just enough to blend with the tinnitus — and try others until one feels comfortable. There is no single sound that works for everyone.</p></div>
         </div>
-        <p class="muted small">Sound masking and relaxation — not a medical treatment. Read <a href="learn/tinnitus-sound-masking/">what tinnitus masking is</a>, compare <a href="learn/white-vs-pink-vs-brown-noise/">white, pink and brown noise</a>, or browse all <a href="learn/">guides</a>. <a href="tinnitus-sound-generator/">About this tinnitus sound generator</a> · <a href="about/">About Find My Quiet Sound</a> · <a href="premium/">Free &amp; Premium</a>. <span class="muted small" id="build-tag">· v235</span></p>
+        <p class="muted small">Sound masking and relaxation — not a medical treatment. Read <a href="learn/tinnitus-sound-masking/">what tinnitus masking is</a>, compare <a href="learn/white-vs-pink-vs-brown-noise/">white, pink and brown noise</a>, or browse all <a href="learn/">guides</a>. <a href="tinnitus-sound-generator/">About this tinnitus sound generator</a> · <a href="about/">About Find My Quiet Sound</a> · <a href="premium/">Free &amp; Premium</a>. <span class="muted small" id="build-tag">· v236</span></p>
         </details>
       </section>
     </section>
@@ -347,6 +347,7 @@
         <div class="match-step" data-step="3" hidden>
           <h2>Adjust the pitch</h2>
           <p>Move the slider slowly until the tone feels closest to your tinnitus. Use the fine buttons for small steps.</p>
+          <p class="match-attempt" data-attempt hidden><span data-attempt-text></span> <button type="button" class="linklike" id="match-refine-quit">Stop and keep my first match</button></p>
           <div class="freq-readout"><span id="match-freq-value">4,000</span><span class="unit">Hz</span></div>
           <canvas id="match-viz" class="viz small" aria-hidden="true"></canvas>
           <div class="control">
@@ -375,6 +376,16 @@
           <p class="muted small">Why this step: tones an octave apart (double or half the frequency) sound alike in character, so self-matching often lands exactly one octave off. Listen to all three at the same low level and keep the one that feels closest. This is an estimate for your own exploration, not a clinical measurement.</p>
           <div class="btn-row" id="match-octave"></div>
           <p id="match-octave-status" class="match-status" aria-live="polite"></p>
+          <div class="match-refine" id="match-refine">
+            <p class="muted small" data-refine-copy>One match is enough to continue. Tinnitus pitch can vary between attempts, so repeating the match twice can give you a more stable estimate.</p>
+            <div class="btn-row">
+              <button class="btn btn-ghost btn-sm" id="match-refine-adjust" data-prev hidden>Adjust this attempt</button>
+              <button class="btn btn-secondary btn-sm" id="match-again">Match again (2&nbsp;of&nbsp;3)</button>
+              <button class="btn btn-ghost btn-sm" id="match-stop-refine" hidden>Stop here — keep my first match</button>
+            </div>
+            <p class="match-status" id="match-refine-result" hidden aria-live="polite"></p>
+          </div>
+          <div id="match-result">
           <h2>Sounds to try</h2>
           <p id="match-summary"></p>
           <div id="match-suggestions" class="suggest-grid"></div>
@@ -385,6 +396,7 @@
             <button id="match-done" class="btn btn-primary">Done</button>
           </div>
           <button id="match-clear" class="btn btn-ghost btn-sm" hidden>Forget saved result</button>
+          </div>
         </div>
       </div>
     </section>
@@ -633,15 +645,15 @@
   <script src="monetization.js?v=7"></script>
   <script src="premium.js?v=5" defer></script>
   <script src="controller.js?v=6" defer></script>
-  <script src="personal.js?v=27" defer></script>
-  <script src="assistant.js?v=35" defer></script>
+  <script src="personal.js?v=28" defer></script>
+  <script src="assistant.js?v=36" defer></script>
   <script src="intro.js?v=14" defer></script>
   <script src="cloud-config.js?v=1"></script>
   <script src="cloud.js?v=1" defer></script>
-  <script src="audio.js?v=56" defer></script>
+  <script src="audio.js?v=57" defer></script>
   <script src="visuals.js?v=26" defer></script>
   <script src="field.js?v=13" defer></script>
-  <script src="app.js?v=145" defer></script>
-  <script src="focus.js?v=77" defer></script>
+  <script src="app.js?v=146" defer></script>
+  <script src="focus.js?v=78" defer></script>
 </body>
 </html>

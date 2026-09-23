@@ -1554,6 +1554,15 @@ html[data-theme="dark"] .lab-view { --lab-bg-a: #0f1320; --lab-bg-b: #090b12; }
 /* the result on screen is saved: a done state, not a greyed-out button */
 #view-match #match-save.is-saved, #view-match #match-save.is-saved:hover { background: transparent; color: var(--accent); box-shadow: inset 0 0 0 1.5px var(--accent); cursor: default; }
 #match-clear { margin-top: 2px; }
+/* repeated matching: the number is hidden during attempts 2 and 3 so each one starts fresh */
+.match-step.is-refining .freq-readout { display: none; }
+.match-attempt { text-align: center; font-weight: 700; color: var(--accent); margin: 8px 0 4px; }
+.match-attempt .linklike { font-weight: 600; }
+.match-refine { margin: 4px 0 20px; padding: 12px 14px; border: 1px dashed var(--border); border-radius: 12px; }
+.match-refine p { margin: 0 0 10px; }
+.match-refine .btn-row { margin: 0; }
+#match-refine-result { margin: 10px 0 0; }
+#match-refine [hidden], #match-result[hidden], .match-attempt[hidden] { display: none; }
 
 /* Experiments: Done closes the "How did this feel?" card (answering above it is optional) */
 .lab-result .lab-done-row { margin-top: 16px; }

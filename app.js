@@ -182,7 +182,7 @@
   function ensureLab() {
     if (window.softwaveLab) return Promise.resolve();
     if (labPromise) return labPromise;
-    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=96'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
+    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=97'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
     return labPromise;
   }
   window.softwaveEnsureLab = ensureLab;
@@ -701,11 +701,15 @@
   let octPlaying = null;     // 0.5 | 1 | 2 — which octave-check tone is sounding
   let matchOrigin = null;    // where the user came from, for Done
   let mResetPending = false; // after Done the next visit starts at step 1
+  // Optional repeated matching: one match is enough; up to two more attempts, the pitch number
+  // hidden during them, then the middle value of the three is the estimate. Stopping early keeps
+  // the first accepted match (an incomplete refinement is not a result).
+  const mRef = { attempts: [], active: false, done: false, estimate: null, spread: null };
   function mShow(n) {
     mStep = n; $$('.match-step').forEach(s => s.hidden = +s.dataset.step !== n);
     matchStop();   // the test tone belongs to the step it was started on (incl. Adjust again)
     if (n === 4) renderSuggestions();
-    syncChoice();
+    syncChoice(); syncRefine();
     // land with the step's title and first instructions just below the sticky header
     const h = $(`.match-step[data-step="${n}"] h2`); if (!h) return;
     const tb = document.querySelector('.topbar'); const top = (tb ? tb.getBoundingClientRect().bottom : 60) + 14;
@@ -722,11 +726,12 @@
   $$('#view-match [data-next]').forEach(b => b.addEventListener('click', () => mShow(mStep + 1)));
   $$('#view-match [data-prev]').forEach(b => b.addEventListener('click', () => mShow(mStep - 1)));
   $$('#view-match [data-ear]').forEach(b => b.addEventListener('click', () => { $$('#view-match [data-ear]').forEach(x => x.setAttribute('aria-checked', x === b)); M.balance = +b.dataset.ear; mChosen.ear = true; syncChoice(); syncSave(); if (engine.tone) engine.toneUpdate({ balance: M.balance }); }));
-  $$('#view-match [data-type]').forEach(b => b.addEventListener('click', () => { $$('#view-match [data-type]').forEach(x => x.setAttribute('aria-checked', x === b)); M.type = b.dataset.type; mChosen.type = true; syncChoice(); syncSave(); if (engine.tone) engine.toneUpdate({ type: M.type }); }));
+  $$('#view-match [data-type]').forEach(b => b.addEventListener('click', () => { $$('#view-match [data-type]').forEach(x => x.setAttribute('aria-checked', x === b)); if (M.type !== b.dataset.type && mRef.attempts.length) { refineReset(); toast('Match restarted for the new sound type.'); } M.type = b.dataset.type; mChosen.type = true; syncChoice(); syncSave(); if (engine.tone) engine.toneUpdate({ type: M.type }); }));
   function setMFreq(hz, fromSlider) {
     M.freq = clamp(Math.round(hz), MINF, MAXF); $('#match-freq-value').textContent = fmt(M.freq);
     if (!fromSlider) { mSlider.value = hzToSlider(M.freq); paintRange(mSlider); }
-    mSlider.setAttribute('aria-valuetext', M.freq + ' hertz');
+    mSlider.setAttribute('aria-valuetext', mRef.active ? Math.round(+mSlider.value / 10) + ' percent of the range' : M.freq + ' hertz');   // no pitch number during a hidden attempt
+    syncRefine();
     if (engine.tone && toneOwner === 'match') engine.toneUpdate({ freq: M.freq });
     syncSave();
   }
@@ -774,7 +779,7 @@
     // Hear: plays that octave; the one sounding is marked, and tapping it again stops it
     [[0.5, 'Hear an octave lower'], [1, 'Hear my tone'], [2, 'Hear an octave higher']].forEach(([k, label]) => {
       const b = document.createElement('button'); b.className = 'btn btn-ghost btn-sm'; b.dataset.k = k; b.setAttribute('aria-pressed', 'false'); if (k === 1) b.dataset.current = '';
-      b.textContent = `${label} (${fmt(centre * k)} Hz)`;
+      b.textContent = mRef.active ? label : `${label} (${fmt(centre * k)} Hz)`;   // no numbers during a hidden attempt
       b.addEventListener('click', async () => {
         const on = !!(engine.tone && engine.tone.playing && toneOwner === 'match');
         if (on && octPlaying === k) { matchStop(); return; }
@@ -785,9 +790,9 @@
       });
       oct.appendChild(b);
     });
-    [[0.5, 'Lower is closer'], [2, 'Higher is closer']].forEach(([k, label]) => { const b = document.createElement('button'); b.className = 'btn btn-secondary btn-sm'; b.textContent = label; b.addEventListener('click', () => { setMFreq(centre * k); matchStop(); renderSuggestions(`Matched at ${fmt(M.freq)} Hz — suggestions below updated.`); toast(`Updated to about ${fmt(M.freq)} Hz`); }); oct.appendChild(b); });
+    [[0.5, 'Lower is closer'], [2, 'Higher is closer']].forEach(([k, label]) => { const b = document.createElement('button'); b.className = 'btn btn-secondary btn-sm'; b.textContent = label; b.addEventListener('click', () => { setMFreq(centre * k); matchStop(); if (mRef.active) { renderSuggestions(); toast(k < 1 ? 'Kept the lower octave.' : 'Kept the higher octave.'); return; } renderSuggestions(`Matched at ${fmt(M.freq)} Hz — suggestions below updated.`); toast(`Updated to about ${fmt(M.freq)} Hz`); }); oct.appendChild(b); });
     if (had >= 0 && oct.children[had]) oct.children[had].focus({ preventScroll: true });   // keyboard users keep their place
-    const st = $('#match-octave-status'); if (st) st.textContent = status || `Your match: ${fmt(M.freq)} Hz.`;
+    const st = $('#match-octave-status'); if (st) st.textContent = mRef.active ? `Attempt ${mRef.attempts.length + 1} of 3 — keep the octave that feels closest.` : (status || `Your match: ${fmt(M.freq)} Hz.`);
     syncOctave(); syncSave();
   }
   function syncOctave() {
@@ -802,12 +807,50 @@
     b.textContent = saved ? 'Saved ✓' : 'Save result on this device'; b.classList.toggle('is-saved', saved); b.setAttribute('aria-disabled', String(saved));
     const c = $('#match-clear'); if (c) c.hidden = !store.get('match');
   }
-  $('#match-save').addEventListener('click', () => { if (matchSaved()) return; matchStop(); store.set('match', { freq: M.freq, type: M.type, balance: M.balance, when: new Date().toISOString() }); syncSave(); toast('Saved on this device only. Nothing is sent anywhere.'); });
+  $('#match-save').addEventListener('click', () => { if (matchSaved()) return; matchStop(); store.set('match', Object.assign({ freq: M.freq, type: M.type, balance: M.balance, when: new Date().toISOString() }, refineRecord())); syncSave(); toast('Saved on this device only. Nothing is sent anywhere.'); });
   $('#match-clear').addEventListener('click', () => { store.del('match'); syncSave(); toast('Saved result removed'); });
+  // ----- repeated matching (optional) -----
+  const attemptNo = () => mRef.attempts.length + 1;
+  function refineReset() { mRef.attempts = []; mRef.active = false; mRef.done = false; mRef.estimate = null; mRef.spread = null; syncRefine(); }
+  // `freq` stays the one number every reader uses; a completed refinement adds its attempts beside it
+  function refineRecord() { return mRef.done ? { matches: mRef.attempts.map(a => ({ freq: a.freq, when: a.when })), estimate: mRef.estimate, spread: Math.round(mRef.spread * 100) / 100 } : {}; }
+  function spreadText(oct) { return oct <= 0.25 ? 'within a quarter octave — a consistent estimate' : oct <= 0.6 ? 'within about half an octave — a reasonable estimate' : 'about an octave apart or more — that is common; treat the estimate as approximate'; }
+  function syncRefine() {
+    const s3 = $('.match-step[data-step="3"]'); if (s3) s3.classList.toggle('is-refining', mRef.active);
+    const note = $('[data-attempt]'); if (note) { note.hidden = !mRef.active; const t = $('[data-attempt-text]', note); if (t && mRef.active) t.textContent = `Attempt ${attemptNo()} of 3 — the pitch number is hidden until you finish, so this attempt starts fresh.`; }
+    const res = $('#match-result'); if (res) res.hidden = mRef.active;
+    const again = $('#match-again'), stop = $('#match-stop-refine'), adj = $('#match-refine-adjust'), copy = $('[data-refine-copy]'), out = $('#match-refine-result');
+    if (!again) return;
+    again.hidden = mRef.done; adj.hidden = !mRef.active; stop.hidden = !mRef.active; copy.hidden = mRef.done;
+    again.textContent = !mRef.active ? 'Match again (2 of 3)' : mRef.attempts.length === 1 ? 'Keep this and match once more (3 of 3)' : 'Keep this — combine my three matches';   // the count never breaks across lines
+    let txt = '';
+    if (mRef.done) txt = M.freq === mRef.estimate ? `Combined from three matches: ${spreadText(mRef.spread)}.` : `Adjusted by hand from the combined estimate of ${fmt(mRef.estimate)} Hz.`;
+    out.hidden = !txt; if (out.textContent !== txt) out.textContent = txt;
+  }
+  function startAttempt() {
+    mRef.attempts.push({ freq: M.freq, when: new Date().toISOString() });
+    if (mRef.attempts.length >= 3) { completeRefine(); return; }
+    mRef.active = true;
+    // the next attempt starts somewhere meaningfully different: half an octave away, either way
+    const dir = Math.random() < 0.5 ? -1 : 1; let f = M.freq * Math.pow(2, dir * 0.5);
+    if (f < MINF * 1.5 || f > MAXF / 1.5) f = M.freq * Math.pow(2, -dir * 0.5);
+    setMFreq(f); mShow(3); toast(`Attempt ${attemptNo()} of 3 — the slider starts somewhere new.`);
+  }
+  function completeRefine() {
+    const s = mRef.attempts.map(a => a.freq).sort((a, b) => a - b);
+    mRef.estimate = s[1];   // the middle of the three — the median is the same on a log or a linear scale
+    mRef.spread = Math.log2(s[2] / s[0]); mRef.active = false; mRef.done = true;
+    setMFreq(mRef.estimate); mShow(4); toast('Combined estimate ready.');
+  }
+  // stopping early: the first accepted match stands; the attempts so far are discarded
+  function quitRefine() { const first = mRef.attempts[0]; refineReset(); if (first) setMFreq(first.freq); matchStop(); if (mStep !== 4) mShow(4); else renderSuggestions(); toast('Kept your first match.'); }
+  $('#match-again').addEventListener('click', () => { matchStop(); startAttempt(); });
+  $('#match-stop-refine').addEventListener('click', quitRefine);
+  $('#match-refine-quit').addEventListener('click', quitRefine);
   // Controls as a fresh visit sees them: from the saved result if there is one, otherwise unchosen.
   function resetMatch() {
     const m = store.get('match');
-    mChosen.ear = mChosen.type = !!m; mSuggested = null;
+    refineReset(); mChosen.ear = mChosen.type = !!m; mSuggested = null;
     if (m) { M.type = m.type; M.balance = m.balance; setMFreq(m.freq); } else { M.type = 'sine'; M.balance = 0; setMFreq(4000); }
     $$('#view-match [data-type]').forEach(x => x.setAttribute('aria-checked', !!m && x.dataset.type === m.type));
     $$('#view-match [data-ear]').forEach(x => x.setAttribute('aria-checked', !!m && +x.dataset.ear === m.balance));
