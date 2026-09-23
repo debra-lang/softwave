@@ -182,7 +182,7 @@
   function ensureLab() {
     if (window.softwaveLab) return Promise.resolve();
     if (labPromise) return labPromise;
-    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=100'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
+    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=101'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
     return labPromise;
   }
   window.softwaveEnsureLab = ensureLab;
@@ -357,7 +357,7 @@
     toast(`Playing “${p.name}” — tap it again to stop`);
   }
 
-  const openDiscovery = async () => { showView('lab'); try { await ensureLab(); window.softwaveLab.open('discovery', { from: { kind: 'entry' } }); } catch (e) { toast(e.message); } };
+  const openDiscovery = async () => { const opener = document.activeElement; showView('lab'); try { await ensureLab(); window.softwaveLab.open('discovery', { from: { kind: 'entry' }, opener }); } catch (e) { toast(e.message); } };
   $('#home-discover').addEventListener('click', openDiscovery); $('#home-tool-discover').addEventListener('click', openDiscovery);
   $('#home-start').addEventListener('click', async () => { if (engine.activeList().length) { await engine.playAll(); openNow(); return; } await loadPreset(PRESETS[0]); openNow(); });
 
@@ -687,7 +687,7 @@
   engine.on(type => { if (type === 'tone') { const on = !!(engine.tone && engine.tone.playing && toneOwner === 'freq'); const b = $('#freq-play'); b.textContent = on ? 'Stop tone' : 'Play tone'; b.setAttribute('aria-pressed', on); } });
   let toneOwner = 'freq';
   const origToneStart = engine.toneStart.bind(engine);
-  engine.toneStart = (o) => { toneOwner = (o === M || (o && o.owner === 'match')) ? 'match' : 'freq'; return origToneStart(o); };   // octave-check tones are the matcher's too
+  engine.toneStart = (o) => { toneOwner = (o === M || (o && o.owner === 'match')) ? 'match' : 'freq'; if (toneOwner === 'match' && !mStarted) { mStarted = true; syncMatchClose(); } return origToneStart(o); };   // octave-check tones are the matcher's too
   new ToneViz($('#freq-viz'), engine, () => F.freq);
   setFreq(4000);
 
@@ -701,12 +701,16 @@
   let octPlaying = null;     // 0.5 | 1 | 2 — which octave-check tone is sounding
   let matchOrigin = null;    // where the user came from, for Done
   let mResetPending = false; // after Done the next visit starts at step 1
+  // Close (X): offered on steps 1–3 until this visit plays its first tone (any matching or octave tone).
+  // It returns the way Done does, immediately, saving nothing; once started, Back / Stop here / Done apply.
+  let mStarted = false, matchOpener = null;
+  function syncMatchClose() { const x = $('#match-close'); if (x) x.hidden = mStarted || mStep > 3; }
   // Optional repeated matching: one match is enough; up to two more attempts, the pitch number
   // hidden during them, then the middle value of the three is the estimate. Stopping early keeps
   // the first accepted match (an incomplete refinement is not a result).
   const mRef = { attempts: [], active: false, done: false, estimate: null, spread: null };
   function mShow(n) {
-    mStep = n; $$('.match-step').forEach(s => s.hidden = +s.dataset.step !== n);
+    mStep = n; $$('.match-step').forEach(s => s.hidden = +s.dataset.step !== n); syncMatchClose();
     matchStop();   // the test tone belongs to the step it was started on (incl. Adjust again)
     if (n === 4) renderSuggestions();
     syncChoice(); syncRefine();
@@ -855,7 +859,7 @@
     $$('#view-match [data-type]').forEach(x => x.setAttribute('aria-checked', !!m && x.dataset.type === m.type));
     $$('#view-match [data-ear]').forEach(x => x.setAttribute('aria-checked', !!m && +x.dataset.ear === m.balance));
     mStep = 1; $$('.match-step').forEach(s => s.hidden = +s.dataset.step !== 1);
-    syncChoice(); syncSave();
+    syncChoice(); syncSave(); syncMatchClose();
   }
   resetMatch();
   // Where Done returns: the in-app screen it was opened from (via the same history step Back uses),
@@ -863,10 +867,20 @@
   const articleRef = (() => { try { const r = new URL(document.referrer); const own = /^\/(index\.html)?$/.test(r.pathname) || r.pathname === location.pathname; return r.origin === location.origin && !own ? r.href : null; } catch (_) { return null; } })();
   function noteMatchEntry(prevView) {
     if (mResetPending) { mResetPending = false; resetMatch(); }
+    mStarted = false; const a = document.activeElement; matchOpener = a && a !== document.body && !a.closest('#view-match') ? a : null; syncMatchClose();
     matchOrigin = { view: prevView ? prevView.id.replace(/^view-/, '') : null, depth: navDepth, exp: null, article: routedOnce ? null : articleRef };
   }
   let pageLeft = false; addEventListener('pagehide', () => { pageLeft = true; });
   $('#match-done').addEventListener('click', () => afterDone('match', matchDone));
+  $('#match-close').addEventListener('click', () => {
+    if (mStarted || mStep > 3) return;
+    const op = matchOpener; matchDone();
+    setTimeout(() => {
+      let el = op && op.isConnected && op.offsetParent ? op : null;
+      if (!el) el = [...document.querySelectorAll('a[href="#match"]')].find(x => x.offsetParent);
+      if (el) { try { el.focus({ preventScroll: true }); } catch (_) { } }
+    }, 450);
+  });
   function matchDone() {
     matchStop();              // the test tone ends; a suggested sound the user chose keeps playing in the player
     mResetPending = true;     // the next visit starts at step 1 (the saved result, if any, is kept)
@@ -1248,7 +1262,20 @@
     let reloaded = false; navigator.serviceWorker.addEventListener('controllerchange', () => { if (reloaded || !navigator.serviceWorker.controller) return; reloaded = true; if (!engine.isPlaying) location.reload(); });
   });
 
-  window.softwaveApp = { afterDone, leaveLab, markMatchReturn: (exp) => { if (matchOrigin) matchOrigin.exp = exp; }, customTimerForm, layerPush, layersClose, layerReplace, topLayerIs, afterLayerClose, updateBackBtn, armIntent, cancelIntent, cancelIntents, pendingIntents, renderPresetsRemount, loadPreset, saveCurrentMix, restoreMix, openSaveSheet, openManageMenu, openMixMenu, savedSessions, soundVol, SAVED_ICO, setMaster, togglePlay, toast, store, PRESETS, paintRange, showView, scheduleAutoAdvance, renderPresets: renderPresetsRemount };
+  function escapeFree(e) {
+    const t = e.target && e.target.closest ? e.target : document.body;
+    if (t.closest('textarea, select, [contenteditable="true"], .inline-form')) return false;
+    if (t.matches('input') && !/^(range|checkbox|radio|button)$/.test(t.type)) return false;
+    if (layers.stack.length) return false;
+    return !['now', 'sleep-screen', 'focus-screen', 'eyes-screen', 'welcome'].some(id => { const el = document.getElementById(id); return el && !el.hidden; })
+      && ![...document.querySelectorAll('.welcome, .addsound-sheet')].some(el => !el.hidden && el.offsetParent !== null);
+  }
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape' || e.defaultPrevented || $('#view-match').hidden) return;
+    const x = $('#match-close'); if (!x || x.hidden || !escapeFree(e)) return;
+    e.preventDefault(); x.click();
+  });
+  window.softwaveApp = { afterDone, escapeFree, leaveLab, markMatchReturn: (exp) => { if (matchOrigin) matchOrigin.exp = exp; }, customTimerForm, layerPush, layersClose, layerReplace, topLayerIs, afterLayerClose, updateBackBtn, armIntent, cancelIntent, cancelIntents, pendingIntents, renderPresetsRemount, loadPreset, saveCurrentMix, restoreMix, openSaveSheet, openManageMenu, openMixMenu, savedSessions, soundVol, SAVED_ICO, setMaster, togglePlay, toast, store, PRESETS, paintRange, showView, scheduleAutoAdvance, renderPresets: renderPresetsRemount };
 
   // ---------- init ----------
   renderSounds(); renderPresets(); renderMixer([]); updatePlayer(); renderProfileHooks(); if (window.SoftwaveField) syncField();
