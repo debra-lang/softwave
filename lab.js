@@ -983,7 +983,7 @@
   function stopRunning(msg, finishedNaturally) {
     if (!running) return; const { exp, ctx } = running; clearTimers(); journeyTok = null; try { exp.stop && exp.stop(ctx); } catch (_) { } if (!exp.keepsSound) engine.stopAll(); engine.setVariation(0); engine.resetMasterShape();
     $$('.lab-detail.exp-compact').forEach(d => d.classList.remove('exp-compact', 'exp-peek'));   // restore the folded explanation
-    const prev = running; running = null; updateRunningUI(); if (msg) app.toast(msg); showAfterFeedback(prev.exp, prev.ctx);
+    const prev = running; running = null; updateRunningUI(); if (msg) app.toast(msg); showAfterFeedback(prev.exp, prev.ctx, prev.at ? Date.now() - prev.at : 0);
   }
   function updateRunningUI() { const lv = $('#view-lab'); if (lv) lv.classList.toggle('running', !!running); const det = $('#lab-detail'); if (det) det.classList.toggle('running', !!running); $$('.lab-tile').forEach(t => t.classList.toggle('running', !!running && t.dataset.id === running.exp.id)); const el = $('#player-exp'); if (el) { if (running) { el.hidden = false; el.textContent = `Experiment: ${running.exp.name}`; } else el.hidden = true; } $$('.lab-card').forEach(c => c.classList.toggle('running', !!running && c.dataset.id === running.exp.id)); $$('[data-exp-start]').forEach(b => { const on = running && b.dataset.expStart === running.exp.id; const c = ctxs[b.dataset.expStart]; b.textContent = on ? 'Running…' : (c && c.hasRun ? 'Start again' : 'Start Experiment'); b.disabled = !!on; }); const pv = document.querySelector('#lab-detail [data-act="preview"]'); if (pv) pv.hidden = !!(running && running.exp.id === 'paint'); $$('#lab-detail [data-finish]').forEach(b => { b.hidden = !(running && running.exp.id === b.dataset.finish); }); }
   $('#player-stop').addEventListener('click', () => { if (running) stopRunning(); });
@@ -1003,14 +1003,49 @@
     // the Experiments page: back near the experiment's tile
     setTimeout(() => { const t = document.querySelector(`#lab-list .lab-tile[data-id="${exp.id}"], #lab-list .lab-card[data-id="${exp.id}"]`); if (t && !$('#view-lab').hidden) t.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 80);
   }
-  function showAfterFeedback(exp, ctx) {
+  // "How did this feel?" is the primary feedback, after every experiment session.
+  // A session of 5 minutes or more may also be asked two optional questions, revealed
+  // only after the comfort answer: did the tinnitus seem quieter, and did it feel less
+  // bothersome. Loudness and bothersomeness can change independently, so they are asked
+  // separately — and neither ever feeds "Worked well for me / Not for me" (comfort,
+  // rating and "use again" do). Personalized Notched Sound already asks its own version
+  // of both after a session, so it is left out here.
+  // Storage: the latest answers on lab:feedback[id] (comfort, again, quieter, bother);
+  // every answered session is also appended to lab:sessions — one entry per session,
+  // filled in as its answers arrive, never rewritten by a later session.
+  const LONG_SESSION = 5 * 60000;
+  const QUIETER = [['quieter', 'Quieter'], ['same', 'Same'], ['louder', 'Louder'], ['unsure', 'Not sure']];
+  const BOTHER = [['less', 'Less'], ['same', 'Same'], ['more', 'More'], ['unsure', 'Not sure']];
+  function showAfterFeedback(exp, ctx, ms) {
     const host = ctx.host && $('[data-after]', ctx.host); if (!host) return;
     const lv = document.getElementById('view-lab'), fs = document.getElementById('focus-screen');
     feedbackOwed = !!((fs && !fs.hidden) || (lv && lv.hidden));
-    host.innerHTML = `<div class="card lab-result"><h3>How did this feel?</h3><div class="btn-row"><button class="btn btn-ghost btn-sm" data-c="more">More comfortable</button><button class="btn btn-ghost btn-sm" data-c="same">About the same</button><button class="btn btn-ghost btn-sm" data-c="less">Less comfortable</button></div><p>Would you use this again?</p><div class="btn-row"><button class="btn btn-ghost btn-sm" data-a="yes">Yes</button><button class="btn btn-ghost btn-sm" data-a="maybe">Maybe</button><button class="btn btn-ghost btn-sm" data-a="no">No</button></div><p class="muted small">Used only to personalise your suggestions; stored on this device.</p><div class="btn-row lab-done-row"><button class="btn btn-primary" data-done>Done</button></div></div>`;
+    const long = (ms || 0) >= LONG_SESSION && exp.id !== 'notched';
+    const opts = (key, list, label) => `<div class="btn-row" role="group" aria-label="${label}">${list.map(([v, l]) => `<button class="btn btn-ghost btn-sm" data-${key}="${v}" aria-pressed="false">${l}</button>`).join('')}</div>`;
+    const more = long ? `<div class="lab-more" data-more hidden><p class="muted small">Tinnitus loudness and how bothersome it feels can change independently. These questions help you notice both.</p><p>Did your tinnitus seem quieter?</p>${opts('q', QUIETER, 'Did your tinnitus seem quieter?')}<p>Did it feel less bothersome?</p>${opts('b', BOTHER, 'Did it feel less bothersome?')}</div>` : '';
+    host.innerHTML = `<div class="card lab-result"><h3>How did this feel?</h3>${opts('c', [['more', 'More comfortable'], ['same', 'About the same'], ['less', 'Less comfortable']], 'How did this feel?')}<p>Would you use this again?</p>${opts('a', [['yes', 'Yes'], ['maybe', 'Maybe'], ['no', 'No']], 'Would you use this again?')}${more}<p class="muted small">Used only to personalise your suggestions; stored on this device.</p><div class="btn-row lab-done-row"><button class="btn btn-primary" data-done>Done</button></div></div>`;
     const dn = $('[data-done]', host); if (dn) dn.addEventListener('click', () => app.afterDone('lab', () => { if (dn.isConnected) labDone(exp); }));   // answering above is optional
-    $$('[data-c]', host).forEach(b => b.addEventListener('click', () => { setFb(exp.id, { comfort: b.dataset.c, rating: b.dataset.c === 'more' ? 'helpful' : b.dataset.c === 'less' ? 'not' : 'neutral' }); $$('[data-c]', host).forEach(x => { const on = x === b; x.classList.toggle('btn-secondary', on); x.classList.toggle('btn-ghost', !on); }); renderLists(); renderProfile(); }));
-    $$('[data-a]', host).forEach(b => b.addEventListener('click', () => { setFb(exp.id, { again: b.dataset.a }); $$('[data-a]', host).forEach(x => { const on = x === b; x.classList.toggle('btn-secondary', on); x.classList.toggle('btn-ghost', !on); }); renderLists(); }));
+    // this session's entry in the history, created by its first answer
+    const sid = 's' + Date.now() + '_' + exp.id, mins = Math.round((ms || 0) / 60000);
+    const logSession = (patch) => { const all = store.get('lab:sessions', []); let e = all.find(x => x.sid === sid); if (!e) { e = { sid, id: exp.id, date: new Date().toISOString(), mins, asked: long }; all.push(e); } Object.assign(e, patch); store.set('lab:sessions', all); };
+    const pick = (key, b) => $$(`[data-${key}]`, host).forEach(x => { const on = x === b; x.classList.toggle('btn-secondary', on); x.classList.toggle('btn-ghost', !on); x.setAttribute('aria-pressed', String(on)); });
+    $$('[data-c]', host).forEach(b => b.addEventListener('click', () => {
+      setFb(exp.id, { comfort: b.dataset.c, rating: b.dataset.c === 'more' ? 'helpful' : b.dataset.c === 'less' ? 'not' : 'neutral' }); logSession({ comfort: b.dataset.c }); pick('c', b); renderLists(); renderProfile();
+      const m = $('[data-more]', host);
+      if (m && m.hidden) {   // the optional questions appear once comfort is answered
+        m.hidden = false;
+        // bring them into view above the fixed player bar, never past the top bar
+        const r = m.getBoundingClientRect(), pl = document.querySelector('.player'), tb = document.querySelector('.topbar');
+        const floor = Math.min(window.innerHeight, pl && pl.offsetHeight ? pl.getBoundingClientRect().top : Infinity) - 12;
+        const ceil = (tb && tb.offsetHeight ? tb.getBoundingClientRect().bottom : 0) + 8;
+        const dy = Math.min(r.bottom - floor, r.top - ceil);
+        if (dy > 0) window.scrollBy({ top: dy, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+      }
+    }));
+    $$('[data-a]', host).forEach(b => b.addEventListener('click', () => { setFb(exp.id, { again: b.dataset.a }); logSession({ again: b.dataset.a }); pick('a', b); renderLists(); }));
+    // loudness and bothersomeness: recorded, never used to classify the experiment
+    $$('[data-q]', host).forEach(b => b.addEventListener('click', () => { setFb(exp.id, { quieter: b.dataset.q }); logSession({ quieter: b.dataset.q }); pick('q', b); }));
+    $$('[data-b]', host).forEach(b => b.addEventListener('click', () => { setFb(exp.id, { bother: b.dataset.b }); logSession({ bother: b.dataset.b }); pick('b', b); }));
   }
 
   // ---------- cards & detail ----------
@@ -1043,7 +1078,7 @@
     try {
       const sc = byId.sculptor; const sctx = ctxFor(sc); sctx.host = $('#lab-detail');
       if (running) stopRunning();
-      running = { exp: sc, ctx: sctx }; sctx.hasRun = true;
+      running = { exp: sc, ctx: sctx, at: Date.now() }; sctx.hasRun = true;
       setFb(sc.id, { tries: ((fb()[sc.id] || {}).tries || 0) + 1, last: Date.now() });
       await sc.start(sctx);
       updateRunningUI();
@@ -1252,12 +1287,12 @@
       <div data-after></div></div>`;
     ctx.host = panel; if (exp.id === 'session') $('[data-settings]', panel).hidden = true; renderSettings(exp, ctx, $('[data-settings]', panel)); if (exp.custom && exp.buildUI) exp.buildUI(ctx, $('[data-custom]', panel));
     $('[data-close]', panel).addEventListener('click', () => { if (running) stopRunning('Experiment stopped'); panel.hidden = true; panel.innerHTML = ''; setExploreHeading(false); setFocusedExp(false); });
-    $('[data-exp-start]', panel).addEventListener('click', async () => { if (!gate(exp)) return; if (running && running.exp !== exp) stopRunning(); else if (running) return; if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); if (exp.id === 'discovery') store.set('lab:discoveries', store.get('lab:discoveries', 0) + 1); await engine.init(); running = { exp, ctx }; ctx.hasRun = true; setFb(exp.id, { tries: ((fb()[exp.id] || {}).tries || 0) + 1, last: Date.now() }); store.set('lab:settings:' + exp.id, ctx.s); updateRunningUI(); try { await Promise.race([exp.start(ctx), new Promise((_, rej) => setTimeout(() => rej(new Error('timed out — check that sound is allowed in your browser')), 12000))]); } catch (e) { console.error(e); app.toast('Could not start: ' + e.message, 5000); if (running && running.exp === exp) { running = null; } updateRunningUI(); } if (running && running.exp === exp && exp.id !== 'discovery') { compactForRun(panel.closest('.lab-detail') || panel); setTimeout(() => scrollToRunControls(panel), 120); } renderLists(); });   // discovery positions itself (specialized A/B flow)
+    $('[data-exp-start]', panel).addEventListener('click', async () => { if (!gate(exp)) return; if (running && running.exp !== exp) stopRunning(); else if (running) return; if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); if (exp.id === 'discovery') store.set('lab:discoveries', store.get('lab:discoveries', 0) + 1); await engine.init(); running = { exp, ctx, at: Date.now() }; ctx.hasRun = true; setFb(exp.id, { tries: ((fb()[exp.id] || {}).tries || 0) + 1, last: Date.now() }); store.set('lab:settings:' + exp.id, ctx.s); updateRunningUI(); try { await Promise.race([exp.start(ctx), new Promise((_, rej) => setTimeout(() => rej(new Error('timed out — check that sound is allowed in your browser')), 12000))]); } catch (e) { console.error(e); app.toast('Could not start: ' + e.message, 5000); if (running && running.exp === exp) { running = null; } updateRunningUI(); } if (running && running.exp === exp && exp.id !== 'discovery') { compactForRun(panel.closest('.lab-detail') || panel); setTimeout(() => scrollToRunControls(panel), 120); } renderLists(); });   // discovery positions itself (specialized A/B flow)
     // Finish: end the session the way this experiment ends naturally (its own sound rule), then ask "How did this feel?"
     const fin = $('[data-finish]', panel); if (fin) fin.addEventListener('click', () => { if (!(running && running.exp === exp)) return; if (exp.finish) { try { exp.finish(ctx); } catch (_) { } } stopRunning(); revealPanel(); });
     $('[data-stop]', panel).addEventListener('click', () => { if (running && running.exp === exp) stopRunning('Stopped'); else { try { exp.stop && exp.stop(ctx); } catch (_) { } } engine.stopAll(); });   // Stop means stop: the experiment and its sound, in one press
     $('[data-reset]', panel).addEventListener('click', () => { if (running && running.exp === exp) stopRunning(); engine.stopAll(); store.del('lab:settings:' + exp.id); delete ctxs[exp.id];
-      const all = fb(); if (all[exp.id]) { delete all[exp.id].comfort; delete all[exp.id].again; delete all[exp.id].rating; store.set('lab:feedback', all); }   // a new session starts without the last one's answers
+      const all = fb(); if (all[exp.id]) { delete all[exp.id].comfort; delete all[exp.id].again; delete all[exp.id].rating; delete all[exp.id].quieter; delete all[exp.id].bother; store.set('lab:feedback', all); }   // a new session starts without the last one's answers; lab:sessions history is kept
       openExperiment(exp.id, { keepOrigin: true }); app.toast('Settings reset'); });   // stopRunning() leaves sound for keepsSound experiments — Reset silences it like [data-stop] does
     $('[data-fav]', panel).addEventListener('click', e => { const l = favs(); const i = l.indexOf(exp.id); if (i >= 0) l.splice(i, 1); else l.push(exp.id); store.set('lab:favs', l); const on = i < 0; e.currentTarget.setAttribute('aria-pressed', on); e.currentTarget.textContent = on ? '★ In Favourites' : '☆ Add to Favourites'; app.toast(on ? '★ Added to Favourites — find it in the Favourites group on the Experiments page.' : 'Removed from Favourites.', 3600); renderLists(); });
     $$('[data-rate]', panel).forEach(b => b.addEventListener('click', () => { setFb(exp.id, { rating: b.dataset.rate }); $$('[data-rate]', panel).forEach(x => x.setAttribute('aria-checked', x === b)); renderLists(); renderProfile(); }));
