@@ -1571,3 +1571,16 @@ html[data-theme="dark"] .lab-view { --lab-bg-a: #0f1320; --lab-bg-b: #090b12; }
 
 /* Frequency Generator: Done finishes with the tool */
 .freq-done-row, .mix-done-row { justify-content: center; margin-top: 14px; }
+
+/* ---------- website analytics choice (production website only; see the Google tag block in index.html) ---------- */
+.consent-card { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(14px + env(safe-area-inset-bottom, 0px)); z-index: 40;
+  width: min(560px, calc(100% - 24px)); padding: 14px 16px 12px; border-radius: var(--radius); background: var(--card-solid); color: var(--text);
+  border: 1px solid var(--border); box-shadow: var(--shadow); font-size: .9rem; line-height: 1.45; }
+.consent-card--player { bottom: calc(var(--player-h) + 26px + env(safe-area-inset-bottom, 0px)); }
+.consent-card p { margin: 0 26px 10px 0; }
+.consent-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+.consent-link { color: var(--muted); font-size: .85rem; margin-left: 4px; }
+.consent-later { position: absolute; top: 6px; right: 8px; width: 30px; height: 30px; border: 0; border-radius: 50%; background: transparent; color: var(--muted); font-size: 1.15rem; line-height: 1; cursor: pointer; }
+.consent-later:hover, .consent-later:focus-visible { color: var(--text); background: var(--accent-soft); }
+.analytics-choice { margin: 6px 0 18px; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.analytics-choice p { margin: 0 0 8px; }

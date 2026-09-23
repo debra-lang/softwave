@@ -26,27 +26,110 @@
 <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/icons/icon-192.png">
 <link rel="manifest" href="/manifest.webmanifest">
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/styles.css?v=16">
-<link rel="stylesheet" href="/site.css?v=16">
+<link rel="stylesheet" href="/fonts/manrope.css?v=1">
+<link rel="stylesheet" href="/styles.css?v=17">
+<link rel="stylesheet" href="/site.css?v=17">
 <script>(function(){try{var t=localStorage.getItem('softwave:theme');t=t?JSON.parse(t):(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.dataset.theme=t;}catch(e){}})();</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://findmyquietsound.com/#org","name":"Find My Quiet Sound","url":"https://findmyquietsound.com/","logo":"https://findmyquietsound.com/icons/icon-512.png","sameAs":["https://github.com/debra-lang/softwave"]},{"@type":"WebSite","@id":"https://findmyquietsound.com/#website","url":"https://findmyquietsound.com/","name":"Find My Quiet Sound","description":"Free tinnitus sound generator: masking sounds, mixer, frequency tools, sleep mode and calm visuals.","publisher":{"@id":"https://findmyquietsound.com/#org"},"inLanguage":"en"},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://findmyquietsound.com/"},{"@type":"ListItem","position":2,"name":"Terms of Use","item":"https://findmyquietsound.com/terms/"}]},{"@type":"WebPage","@id":"https://findmyquietsound.com/terms/","url":"https://findmyquietsound.com/terms/","name":"Terms of Use — Find My Quiet Sound","description":"The plain-language terms for using Find My Quiet Sound: personal use, no medical claims, safe listening, your data stays yours, and the service is provided as-is.","isPartOf":{"@id":"https://findmyquietsound.com/#website"},"dateModified":"2026-08-28"}]}</script>
-<!-- Google tag (gtag.js) -->
+<!-- Google tag (gtag.js) — GA4, strict opt-in, website only.
+Nothing loads and nothing is sent until the visitor chooses Allow (the choice lives in
+localStorage 'softwave:analytics'); No thanks or an active Global Privacy Control signal
+keep Google Analytics unloaded. After Allow: one page_view per page load, carrying the
+page's standard title (captured here, before the app retitles the tab with the playing
+sound), its path without app-state query parameters or #hash (utm_* campaign tags kept)
+and a trimmed referrer. No custom events. Signals and ads personalization refused in the
+tag; advertising storage declared denied. Production hostname only: localhost, previews
+and the native app never run this (build-www.js strips this whole block from the bundle).
+The Privacy page control ([data-analytics-control]) is rendered from here. -->
 <script>
 (function () {
-  var h = location.hostname;
-  if (h !== 'findmyquietsound.com' && h !== 'www.findmyquietsound.com') return;
-  var s = document.createElement('script');
-  s.async = true;
-  s.src = 'https://www.googletagmanager.com/gtag/js?id=G-492Q4R9W97';
-  document.head.appendChild(s);
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){ dataLayer.push(arguments); }
-  window.gtag = gtag;
-  gtag('js', new Date());
-
-  gtag('config', 'G-492Q4R9W97');
+var h = location.hostname;
+if (h !== 'findmyquietsound.com' && h !== 'www.findmyquietsound.com') return;
+var ID = 'G-492Q4R9W97', KEY = 'softwave:analytics', LATER = 'softwave:analytics-later';
+var TITLE = document.title;
+var gpc = navigator.globalPrivacyControl === true;
+var loaded = false;
+function choice() { try { var v = JSON.parse(localStorage.getItem(KEY) || 'null'); return (v && v.choice) || null; } catch (e) { return null; } }
+function remember(c) { try { localStorage.setItem(KEY, JSON.stringify({ choice: c, at: new Date().toISOString(), v: 1 })); } catch (e) { } }
+function pageLocation() {
+var keep = [];
+try { new URLSearchParams(location.search).forEach(function (v, k) { if (/^utm_(source|medium|campaign|term|content|id)$/.test(k)) keep.push(encodeURIComponent(k) + '=' + encodeURIComponent(v)); }); } catch (e) { }
+return location.origin + location.pathname + (keep.length ? '?' + keep.join('&') : '');
+}
+function pageReferrer() {
+try { if (!document.referrer) return ''; var r = new URL(document.referrer); return r.origin === location.origin ? r.origin + r.pathname : r.origin + '/'; } catch (e) { return ''; }
+}
+function load() {
+window['ga-disable-' + ID] = false;
+if (loaded) return;
+loaded = true;
+// Google Analytics batches hits for a few seconds; turning analytics off must also stop a hit it
+// has already queued, so every Analytics transmission passes this gate (installed before gtag.js).
+var gaUrl = /^https:\/\/([a-z0-9-]+\.)*(google-analytics\.com|analytics\.google\.com)\//;
+var blocked = function (u) { return window['ga-disable-' + ID] === true && gaUrl.test(String(u)); };
+if (window.fetch) { var f0 = window.fetch; window.fetch = function (input, init) { if (blocked(input && input.url ? input.url : input)) return Promise.resolve(new Response(null, { status: 204 })); return f0.apply(window, arguments); }; }
+if (navigator.sendBeacon) { var b0 = navigator.sendBeacon.bind(navigator); navigator.sendBeacon = function (u, d) { return blocked(u) ? true : b0(u, d); }; }
+window.dataLayer = window.dataLayer || [];
+function gtag() { dataLayer.push(arguments); }
+window.gtag = gtag;
+gtag('consent', 'default', { ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied', analytics_storage: 'granted' });
+gtag('js', new Date());
+var page = { page_title: TITLE, page_location: pageLocation(), page_referrer: pageReferrer() };
+gtag('set', page);
+gtag('config', ID, { send_page_view: false, allow_google_signals: false, allow_ad_personalization_signals: false });
+gtag('event', 'page_view', page);
+var s = document.createElement('script'); s.async = true; s.src = 'https://www.googletagmanager.com/gtag/js?id=' + ID;
+document.head.appendChild(s);
+}
+function stop() {
+window['ga-disable-' + ID] = true;
+var host = location.hostname, domains = ['', host, '.' + host, 'findmyquietsound.com', '.findmyquietsound.com'];
+document.cookie.split(';').forEach(function (c) {
+var n = c.split('=')[0].trim();
+if (/^_ga(_|$)/.test(n) || n === '_gid' || /^_gat/.test(n)) domains.forEach(function (d) { document.cookie = n + '=; Max-Age=0; path=/' + (d ? '; domain=' + d : ''); });
+});
+}
+function decide(c) {
+remember(c);
+var el = document.getElementById('consent-card'); if (el) el.remove();
+if (c === 'granted' && !gpc) load(); else stop();
+render();
+}
+function render() {
+var box = document.querySelector('[data-analytics-control]'); if (!box) return;
+box.hidden = false;
+if (gpc) { box.innerHTML = '<p>Your browser is sending a Global Privacy Control signal, so website analytics stays off.</p>'; return; }
+var on = choice() === 'granted';
+box.innerHTML = '<p>Website analytics is <strong>' + (on ? 'on' : 'off') + '</strong> in this browser.</p><button type="button" class="btn btn-secondary btn-sm" data-analytics-toggle>' + (on ? 'Turn off website analytics' : 'Allow website analytics') + '</button>';
+box.querySelector('[data-analytics-toggle]').addEventListener('click', function () { decide(on ? 'denied' : 'granted'); });
+}
+function card() {
+if (document.getElementById('consent-card') || choice()) return;
+var onPrivacy = /^\/privacy\//.test(location.pathname);
+var c = document.createElement('div');
+c.id = 'consent-card'; c.className = 'consent-card' + (document.querySelector('.player') ? ' consent-card--player' : '');
+c.setAttribute('role', 'region'); c.setAttribute('aria-label', 'Website analytics choice');
+c.innerHTML = '<p><strong>Can we count your visit?</strong> Google Analytics helps us see how many people use this site. It sets two cookies. Your sounds, saved data, and what you type aren’t sent to Google Analytics.</p>'
++ '<div class="consent-actions"><button type="button" class="btn btn-secondary btn-sm" data-consent="granted">Allow</button>'
++ '<button type="button" class="btn btn-secondary btn-sm" data-consent="denied">No thanks</button>'
++ '<a class="consent-link" href="' + (onPrivacy ? '#analytics' : '/privacy/#analytics') + '">Privacy</a>'
++ '<button type="button" class="consent-later" data-consent="later" aria-label="Decide later">×</button></div>';
+c.addEventListener('click', function (e) {
+var b = e.target.closest && e.target.closest('[data-consent]'); if (!b) return;
+var k = b.getAttribute('data-consent');
+if (k === 'later') { try { sessionStorage.setItem(LATER, '1'); } catch (x) { } c.remove(); return; }
+decide(k);
+});
+document.body.appendChild(c);
+}
+var start = choice();
+if (start === 'granted' && !gpc) load(); else stop();
+function ready() {
+render();
+var later = false; try { later = sessionStorage.getItem(LATER) === '1'; } catch (e) { }
+if (!gpc && !start && !later) setTimeout(card, 900);
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ready); else ready();
 })();
 </script>
 </head>
@@ -60,7 +143,7 @@
 <main id="content" class="site-main">
 <a class="back-link" href="/" onclick="if(history.length>1){history.back();return false}">‹ Back</a>
 <nav class="crumbs" aria-label="Breadcrumb"><ol><li><a href="/">Home</a></li><li><span aria-current="page">Terms of Use</span></li></ol></nav>
-<article class="prose"><header class="page-head"><h1>Terms of Use</h1><p class="muted small">Last reviewed 28 August 2026</p></header>
+<article class="prose"><header class="page-head"><h1>Terms of Use</h1><p class="muted small">Last reviewed 28 August 2026 · Updated 23 September 2026</p></header>
 <p>These terms are short on purpose. By using Find My Quiet Sound you agree to them.</p>
 <h2>What the service is</h2>
 <p>Find My Quiet Sound is a sound generator for masking, relaxation and tinnitus management support. It is provided for personal, non-commercial use. It is currently free to use; as the app evolves, some features may become part of an optional Premium plan, and any pricing or access changes will be communicated clearly before they take effect.</p>
@@ -69,7 +152,7 @@
 <h2>Listen safely</h2>
 <p>You are responsible for your listening levels. Keep the volume low and comfortable and follow the guidance on the <a href="/safe-listening/">safe listening</a> page. Do not use the app in situations that require your full attention, such as driving.</p>
 <h2>Your data</h2>
-<p>Everything you save stays on your device; there is no account and nothing is collected — see the <a href="/privacy/">privacy page</a>, which is part of these terms. Your saved sounds and preferences are yours; nothing you save will be deleted by us.</p>
+<p>No account is required. What you save stays in local storage on your device; your saved sounds and preferences are yours, and nothing you save will be deleted by us. If you allow it, the website uses limited Google Analytics to count visits, as described on the <a href="/privacy/">privacy page</a>, which is part of these terms; it records no events about your sounds, experiments or tinnitus. The current iPhone app does not use Google Analytics.</p>
 <h2>Provided as-is</h2>
 <p>The service is provided "as is" and "as available", without warranties of any kind, express or implied. To the maximum extent permitted by law, the Find My Quiet Sound project is not liable for any damages arising from use of, or inability to use, the service. Sound preferences vary from person to person; the app may not work for everyone.</p>
 <h2>Fair use</h2>
@@ -83,7 +166,7 @@
   <div class="site-footer-grid">
     <div><div class="label-sm">Tools</div><ul><li><a href="/tinnitus-sound-generator/">Tinnitus sound generator</a></li><li><a href="/tinnitus-masking-sounds/">Masking sounds</a></li><li><a href="/white-noise-for-tinnitus/">White noise</a></li><li><a href="/pink-noise-for-tinnitus/">Pink noise</a></li><li><a href="/brown-noise-for-tinnitus/">Brown noise</a></li><li><a href="/tinnitus-frequency-generator/">Frequency generator</a></li><li><a href="/tinnitus-sound-matching/">Sound matching</a></li><li><a href="/tinnitus-sound-mixer/">Sound mixer</a></li><li><a href="/tinnitus-sleep-sounds/">Sleep sounds</a></li></ul></div>
     <div><div class="label-sm">Learn</div><ul><li><a href="/learn/tinnitus-sound-masking/">What is tinnitus masking?</a></li><li><a href="/learn/how-tinnitus-sound-generators-work/">How tinnitus sound generators work</a></li><li><a href="/learn/notched-sound-for-tinnitus/">Notched sound for tinnitus</a></li><li><a href="/learn/white-vs-pink-vs-brown-noise/">White vs pink vs brown noise for tinnitus</a></li><li><a href="/learn/find-a-comfortable-tinnitus-masking-sound/">How to find a comfortable tinnitus masking sound</a></li><li><a href="/learn/tinnitus-and-sleep/">Using sound at night when you have tinnitus</a></li><li><a href="/learn/tinnitus-frequency/">What is tinnitus frequency?</a></li><li><a href="/learn/tinnitus-frequency-matching/">What is tinnitus pitch matching?</a></li><li><a href="/learn/nature-sounds-vs-noise-for-tinnitus/">Nature sounds for tinnitus: rain, ocean and forest vs noise</a></li><li><a href="/learn/how-loud-should-tinnitus-masking-be/">How loud should tinnitus masking sound be?</a></li><li><a href="/learn/speakers-vs-headphones-for-tinnitus-sounds/">Speakers vs headphones for tinnitus sounds</a></li><li><a href="/learn/ask-find-my-quiet-sound/">Ask Find My Quiet Sound</a></li><li><a href="/learn/how-to-use-find-my-sound/">How to use Help Me Find My Sound</a></li></ul></div>
-    <div><div class="label-sm">Find My Quiet Sound</div><ul><li><a href="/about/">About</a></li><li><a href="/premium/">Free & Premium</a></li><li><a href="/how-it-works/">How it works</a></li><li><a href="/research-and-sources/">Research & sources</a></li><li><a href="/safe-listening/">Safe listening</a></li><li><a href="/medical-disclaimer/">Medical disclaimer</a></li><li><a href="/privacy/">Privacy</a></li><li><a href="/terms/">Terms</a></li><li><a href="/contact/">Contact</a></li></ul></div>
+    <div><div class="label-sm">Find My Quiet Sound</div><ul><li><a href="/about/">About</a></li><li><a href="/premium/">Free & Premium</a></li><li><a href="/how-it-works/">How it works</a></li><li><a href="/privacy/#analytics">Analytics choice</a></li><li><a href="/research-and-sources/">Research & sources</a></li><li><a href="/safe-listening/">Safe listening</a></li><li><a href="/medical-disclaimer/">Medical disclaimer</a></li><li><a href="/privacy/">Privacy</a></li><li><a href="/terms/">Terms</a></li><li><a href="/contact/">Contact</a></li></ul></div>
   </div>
   <p class="site-footer-note">Find My Quiet Sound is designed for sound masking, relaxation and tinnitus management support. It does not diagnose, treat or cure tinnitus and is not a substitute for professional medical care.</p>
 </footer>

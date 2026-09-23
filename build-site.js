@@ -11,28 +11,17 @@ const SITE = LIVE_DOMAIN ? 'https://findmyquietsound.com' : 'https://debra-lang.
 const BASE = LIVE_DOMAIN ? '/' : '/softwave/';
 const ORIGIN = SITE + BASE.replace(/\/$/, '');  // https://debra-lang.github.io/softwave
 const VERIFY = { google: '', bing: '' };        // paste verification tokens here when you have them
-// Google tag (gtag.js) — GA4 G-492Q4R9W97; same guarded install as the app's
-// index.html so localhost and previews never pollute the data.
-const ANALYTICS = `<!-- Google tag (gtag.js) -->
-<script>
-(function () {
-  var h = location.hostname;
-  if (h !== 'findmyquietsound.com' && h !== 'www.findmyquietsound.com') return;
-  var s = document.createElement('script');
-  s.async = true;
-  s.src = 'https://www.googletagmanager.com/gtag/js?id=G-492Q4R9W97';
-  document.head.appendChild(s);
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){ dataLayer.push(arguments); }
-  window.gtag = gtag;
-  gtag('js', new Date());
-
-  gtag('config', 'G-492Q4R9W97');
+// Google tag (gtag.js) — GA4 G-492Q4R9W97, strict opt-in. ONE source: the block in index.html
+// (consent card, Privacy control, sanitized page_view), reused verbatim so both page types behave
+// identically; build-www.js strips the same block from the native bundle.
+const ANALYTICS = (() => {
+  const m = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8').match(/[ \t]*<!-- Google tag \(gtag\.js\)[\s\S]*?-->\s*<script>[\s\S]*?<\/script>/);
+  if (!m) throw new Error('analytics block missing from index.html');
+  return m[0].replace(/^[ \t]+/gm, '');
 })();
-</script>`;
 const INDEXNOW_KEY = 'a7c3e9f1b2d4486a9e0c5f7d3b1a6e2c';
 const LASTMOD = REVIEWED;
-const ASSET_V = '16';  // bump with sw.js CACHE when styles/scripts change
+const ASSET_V = '17';  // bump with sw.js CACHE when styles/scripts change
 
 const abs = (href) => href.startsWith('/') ? BASE + href.slice(1) : href;
 const fixLinks = (html) => html.replace(/href="\/(?!\/)/g, `href="${BASE}`);
@@ -41,7 +30,7 @@ const stripTags = (s) => s.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
 const humanDate = (d) => new Date(d + 'T00:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 
 const NAV = [['Sounds', '/'], ['Find My Sound', '/#find'], ['Visual Focus', '/#focus'], ['Sleep', '/#sleep'], ['Experiments', '/#lab'], ['Mixer', '/#mixer'], ['Learn', '/learn/'], ['About', '/about/']];
-const FOOTER = [['About', '/about/'], ['Free & Premium', '/premium/'], ['How it works', '/how-it-works/'], ['Research & sources', '/research-and-sources/'], ['Safe listening', '/safe-listening/'], ['Medical disclaimer', '/medical-disclaimer/'], ['Privacy', '/privacy/'], ['Terms', '/terms/'], ['Contact', '/contact/']];
+const FOOTER = [['About', '/about/'], ['Free & Premium', '/premium/'], ['How it works', '/how-it-works/'], ['Analytics choice', '/privacy/#analytics'], ['Research & sources', '/research-and-sources/'], ['Safe listening', '/safe-listening/'], ['Medical disclaimer', '/medical-disclaimer/'], ['Privacy', '/privacy/'], ['Terms', '/terms/'], ['Contact', '/contact/']];
 const TOOLS = [['Tinnitus sound generator', '/tinnitus-sound-generator/'], ['Masking sounds', '/tinnitus-masking-sounds/'], ['White noise', '/white-noise-for-tinnitus/'], ['Pink noise', '/pink-noise-for-tinnitus/'], ['Brown noise', '/brown-noise-for-tinnitus/'], ['Frequency generator', '/tinnitus-frequency-generator/'], ['Sound matching', '/tinnitus-sound-matching/'], ['Sound mixer', '/tinnitus-sound-mixer/'], ['Sleep sounds', '/tinnitus-sleep-sounds/']];
 
 const ORG = { '@type': 'Organization', '@id': ORIGIN + '/#org', name: 'Find My Quiet Sound', url: ORIGIN + '/', logo: ORIGIN + '/icons/icon-512.png', sameAs: ['https://github.com/debra-lang/softwave'] };
@@ -80,8 +69,7 @@ ${p.type === 'article' ? `<meta property="article:published_time" content="${REV
 <link rel="icon" href="${BASE}icons/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="${BASE}icons/icon-192.png">
 <link rel="manifest" href="${BASE}manifest.webmanifest">
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="${BASE}fonts/manrope.css?v=1">
 <link rel="stylesheet" href="${BASE}styles.css?v=${ASSET_V}">
 <link rel="stylesheet" href="${BASE}site.css?v=${ASSET_V}">
 ${theme}
@@ -139,7 +127,7 @@ function renderPage(p) {
 ${disclaimer}</article>`;
     jsonld.push({ '@type': 'CollectionPage', '@id': url, url, name: p.title, description: p.description, isPartOf: { '@id': ORIGIN + '/#website' } });
   } else if (p.type === 'trust') {
-    body = `<article class="prose"><header class="page-head"><h1>${p.h1}</h1><p class="muted small">Last reviewed ${humanDate(REVIEWED)}</p></header>${p.body}${sourcesBlock(p.sources)}</article>`;
+    body = `<article class="prose"><header class="page-head"><h1>${p.h1}</h1><p class="muted small">Last reviewed ${humanDate(REVIEWED)}${p.updated ? ` · Updated ${humanDate(p.updated)}` : ''}</p></header>${p.body}${sourcesBlock(p.sources)}</article>`;
     jsonld.push({ '@type': 'WebPage', '@id': url, url, name: p.title, description: p.description, isPartOf: { '@id': ORIGIN + '/#website' }, dateModified: LASTMOD });
   } else {
     const isTool = p.type === 'tool';

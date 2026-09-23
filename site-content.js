@@ -529,6 +529,7 @@ trust({
 });
 trust({
   path: 'how-it-works/', title: 'How Find My Quiet Sound Works — Sounds, Mixing, Frequency Tools and Safety',
+  updated: '2026-09-23',
   description: 'How Find My Quiet Sound generates tinnitus sounds in the browser, how mixing and the frequency tools work, and the safety rules every feature follows.',
   h1: 'How Find My Quiet Sound works',
   body: `
@@ -543,7 +544,7 @@ trust({
 <h2>Safety rules</h2>
 <ul><li>Master volume starts at 35% and is never restored above 60%.</li><li>Every sound fades in (about 1.2 s) and out; journeys cross-fade over a minute or more.</li><li>A limiter prevents spikes when layering.</li><li>A warning appears above 75% master.</li><li>No feature raises the volume on its own.</li></ul>
 <h2>Privacy</h2>
-<p>No account, no server, no analytics that can identify you. Settings, favourites and experiment feedback live in your browser’s local storage. See <a href="/privacy/">Privacy</a>.</p>`,
+<p>No account is required. Your settings, results and creations — including saved mixes, experiment feedback and your Find My Tinnitus Sound result — stay in local storage on your device. Website visitors can choose to allow limited Google Analytics, which counts visits and pages but records no events about your sounds, experiments or tinnitus. The current iPhone app does not use Google Analytics. See <a href="/privacy/">Privacy</a>.</p>`,
 });
 trust({
   path: 'research-and-sources/', title: 'Research & Sources Behind Find My Quiet Sound',
@@ -602,6 +603,7 @@ trust({
 });
 trust({
   path: 'terms/', title: 'Terms of Use — Find My Quiet Sound',
+  updated: '2026-09-23',
   description: 'The plain-language terms for using Find My Quiet Sound: personal use, no medical claims, safe listening, your data stays yours, and the service is provided as-is.',
   h1: 'Terms of Use',
   body: `
@@ -613,7 +615,7 @@ trust({
 <h2>Listen safely</h2>
 <p>You are responsible for your listening levels. Keep the volume low and comfortable and follow the guidance on the <a href="/safe-listening/">safe listening</a> page. Do not use the app in situations that require your full attention, such as driving.</p>
 <h2>Your data</h2>
-<p>Everything you save stays on your device; there is no account and nothing is collected — see the <a href="/privacy/">privacy page</a>, which is part of these terms. Your saved sounds and preferences are yours; nothing you save will be deleted by us.</p>
+<p>No account is required. What you save stays in local storage on your device; your saved sounds and preferences are yours, and nothing you save will be deleted by us. If you allow it, the website uses limited Google Analytics to count visits, as described on the <a href="/privacy/">privacy page</a>, which is part of these terms; it records no events about your sounds, experiments or tinnitus. The current iPhone app does not use Google Analytics.</p>
 <h2>Provided as-is</h2>
 <p>The service is provided "as is" and "as available", without warranties of any kind, express or implied. To the maximum extent permitted by law, the Find My Quiet Sound project is not liable for any damages arising from use of, or inability to use, the service. Sound preferences vary from person to person; the app may not work for everyone.</p>
 <h2>Fair use</h2>
@@ -625,18 +627,27 @@ trust({
 });
 trust({
   path: 'privacy/', title: 'Privacy — Find My Quiet Sound',
-  description: 'Find My Quiet Sound works without an account and does not collect hearing or health data. What is stored in your browser, what is not collected, and how to clear it.',
+  description: 'What Find My Quiet Sound stores on your device, what the website sends to Google Analytics only if you allow it, and how to change or clear either.',
+  updated: '2026-09-23',
   h1: 'Privacy',
   body: `
-<h2>What we store</h2>
-<p>Only in your browser’s local storage, only on your device: theme, master volume, saved mixes and combinations, visual settings, the optional Find My Sound result, Experiments settings, feedback and the local preference profile.</p>
+<h2>What is stored on your device</h2>
+<p>The website and the iPhone app keep your settings, preferences and creations in local storage on your device: theme, master volume, saved mixes and sessions, favourites, visual settings, Experiments settings, experiment feedback and session history, Notched Sound profiles, your Find My Tinnitus Sound result and your sound preference profile. This local app data is not sent to us or to Google Analytics.</p>
 <p>The “Clear” button on your sound profile in Experiments removes your sound preference profile (including the sound play counts it draws on) and your latest experiment feedback and ratings. Other locally stored information — such as saved mixes and sessions, favourites, settings, Notched Sound profiles, your Find My Tinnitus Sound result and your experiment session history — stays on this device. To remove all locally stored data, clear this website’s data in your browser settings; in the iPhone app, deleting the app removes it.</p>
+<p>On the website, your analytics choice is also stored on your device, together with two Google Analytics cookies if — and only if — you allow website analytics (see below).</p>
+<h2 id="analytics">Website analytics</h2>
+<p>The website findmyquietsound.com can use Google Analytics, but only if you choose Allow. Until you choose, and if you choose No thanks, Google Analytics is not loaded and nothing is sent to it. If your browser sends a Global Privacy Control signal, website analytics stays off.</p>
+<p>If you allow it, the website sends Google Analytics basic information about each page you open: the page’s standard title and address (without app settings; campaign tags such as utm_source are kept), the page you came from, your browser and operating system, general device and screen information, your language, basic engagement such as how long the page was in use, and your country and region, which Google works out from your IP address. It does not send what you play, save, measure or type, and it records no events about sounds, experiments, your tinnitus or your preferences.</p>
+<p>Google Analytics then sets two first-party cookies, _ga and _ga_492Q4R9W97, holding a random identifier and visit counters. They last at most 13 months from your first visit. Google Analytics is set to keep user-level and event-level data for 2 months; its aggregated visit reports are kept longer. Google Signals and ads personalization are off, and the website is not linked to Google Ads. <a href="https://policies.google.com/technologies/partner-sites" rel="noopener">How Google uses information from sites that use its services</a>.</p>
+<p>You can change your choice here at any time. Turning website analytics off stops anything further being sent and removes the Google Analytics cookies from this site.</p>
+<div class="analytics-choice" data-analytics-control aria-live="polite" hidden></div>
+<h2>The iPhone app</h2>
+<p>The current iPhone app does not use Google Analytics and does not show this website analytics choice.</p>
+<h2>Other services</h2>
+<p>The website’s fonts are served from findmyquietsound.com itself; the website makes no Google Fonts requests. The currently submitted iPhone app still loads its fonts from Google Fonts until a later iPhone build, so the app requests the font files from Google.</p>
+<p>The website is hosted on GitHub Pages; GitHub’s own server logs apply to that hosting (see <a href="https://docs.github.com/en/pages/getting-started-with-github-pages/about-github-pages#data-collection" rel="noopener">GitHub Pages data collection</a>). On the website, if you tap the microphone in Ask, your browser or device provider may process your spoken request (Google on Chrome, Edge and Android; Apple on Safari). Voice input is not available in the iPhone app. No other third-party resources load; links to research sources open other websites only when you follow them.</p>
 <h2>What we do not collect</h2>
-<p>No account, no email, no hearing or health information, no audio. The site is static files served by GitHub Pages; GitHub’s own server logs apply to that hosting (see <a href="https://docs.github.com/en/pages/getting-started-with-github-pages/about-github-pages#data-collection" rel="noopener">GitHub Pages data collection</a>).</p>
-<h2>Fonts</h2>
-<p>The interface font is loaded from Google Fonts, which means your browser requests the font file from Google; no other third-party resources are loaded.</p>
-<h2>Analytics</h2>
-<p>None at present. If privacy-respecting, cookie-free page statistics are added in future (counts of visits and which tools are used — never health information), this page will say so.</p>`,
+<p>There is no account. We don’t ask for or store your email address, hearing records or health records on our servers. Your tinnitus pitch result, experiment feedback, preferences and saved creations stay on your device, as described above; we don’t receive them.</p>`,
 });
 trust({
   path: 'contact/', title: 'Contact — Find My Quiet Sound',
