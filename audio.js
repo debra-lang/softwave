@@ -32,6 +32,7 @@
     { id: 'thunder',   name: 'Distant Thunder', group: 'Lab', lab: true, desc: 'Occasional far-off rumbles.',                      icon: '⛈', hue: 240 },
     { id: 'city',      name: 'Distant City',    group: 'Lab', lab: true, desc: 'A faraway urban hum.',                            icon: '⌂', hue: 280 },
     { id: 'cabin',     name: 'Cabin Hum',       group: 'Lab', lab: true, desc: 'Steady low aircraft-cabin ambience.',             icon: '✈', hue: 220 },
+    { id: 'drift',     name: 'Ambient Drift',   group: 'Lab', lab: true, desc: 'Slowly evolving music that never plays exactly the same way twice.', icon: '♫', hue: 215 },
     { id: 'chimes',    name: 'Gentle Chimes',   group: 'Lab', lab: true, desc: 'Soft, never-repeating tones.',                    icon: '♪', hue: 45 },
     { id: 'paint',     name: 'Painted Noise',   group: 'Lab', lab: true, desc: 'Noise shaped by your drawing.',                   icon: '✎', hue: 300 },
     { id: 'sculpt',    name: 'My Sound',        group: 'Lab', lab: true, desc: 'A custom sound shaped by plain-language controls.', icon: '◈', hue: 160 },
@@ -52,7 +53,7 @@
     rain: 0.45, ocean: 0.71, stream: 0.4, waterfall: 0.38, forest: 0.76,
     wind: 0.64, fan: 0.5, fire: 1.15, night: 1.03,
     glassrain: 0.55, lapping: 0.15, crickets: 1.55, cicadas: 0.19, summernight: 1.0, leaves: 0.71,
-    thunder: 1.0, city: 0.9, cabin: 0.8, chimes: 0.5, paint: 0.3, sculpt: 0.42, discoA: 0.42, discoB: 0.42,
+    thunder: 1.0, city: 0.9, cabin: 0.8, chimes: 0.5, drift: 1.0, paint: 0.3, sculpt: 0.42, discoA: 0.42, discoB: 0.42,
   };
 
   // ---------- buffer generators (run in a Web Worker so the UI never stalls) ----------
@@ -493,6 +494,13 @@
       s.start();
       return s;
     }
+    // A generated 4.5 s hall (darkened, decaying noise; decorrelated channels), made once per context.
+    _hallIR() {
+      if (this._hall && this._hallCtx === this.ctx) return this._hall;
+      const sr = this.ctx.sampleRate, n = Math.floor(sr * 4.5), ir = this.ctx.createBuffer(2, n, sr);
+      for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); let y = 0; for (let i = 0; i < n; i++) { y = y * 0.75 + (Math.random() * 2 - 1) * 0.25; d[i] = y * Math.pow(1 - i / n, 2.8); } }
+      this._hall = ir; this._hallCtx = this.ctx; return ir;
+    }
     _filter(type, freq, q = 1) {
       const f = this.ctx.createBiquadFilter();
       f.type = type; f.frequency.value = freq; f.Q.value = q; return f;
@@ -899,6 +907,98 @@
           const s2 = this._src(B.pink); const bp = this._filter('bandpass', 900, 0.6); const g2 = ctx.createGain(); g2.gain.value = 0.25; this._chain(e, [s2, bp, g2], out);
           const hum = ctx.createOscillator(); hum.type = 'triangle'; hum.frequency.value = 95; const hg = ctx.createGain(); hg.gain.value = 0.05; hum.start();
           e.nodes.push(...this._lfo(0.4, 0.015, hg.gain, 0.05)); this._chain(e, [hum, hg], out); break;
+        }
+        case 'drift': {
+          // Ambient Drift — slowly evolving music that never plays exactly the same way twice.
+          // Engine-native, so the mixer, volume memory, timer fade, notch stage, Save and
+          // lock-screen/background audio all apply exactly as for every other sound.
+          //   Pad   five voices (two sines ±3 cents + a whisper of triangle, each with its own
+          //         slow breath) glide between A-Dorian chords chosen by a weighted random walk
+          //         over a chord graph: each chord held 20–45 s, 4–8 s glides, no fixed order.
+          //   Line  a felt-piano voice: a phrase of 1–3 notes taken from the current chord, then
+          //         a real rest of 10–26 s; sometimes a whole phrase is left silent.
+          //   Space a generated 4.5 s hall and one warm lowpass that breathes very slowly.
+          // Invariants — no binaural beats: each voice's detuned oscillators are summed BEFORE
+          // its panner, so both ears receive the same waveform (a slow chorus, never a
+          // difference between ears); pans stay within ±0.3; adjacent pad voices are at least
+          // 2 semitones apart in every voicing and glide in parallel order, so no two voices
+          // ever approach unison; line notes are centred. Everything is scheduled on the audio
+          // clock (_pump), so a locked phone's throttled timers cannot stall or bunch it.
+          // Level: TRIM.drift, measured like the rest of the library; safe-listening limits,
+          // the level warning and the master chain are untouched.
+          const R = Math.random, hz = m => 440 * Math.pow(2, (m - 69) / 12);
+          const bus = ctx.createGain(); bus.gain.value = 1; bus.connect(out);
+          const hall = ctx.createConvolver(); hall.buffer = this._hallIR();
+          const wet = ctx.createGain(); wet.gain.value = 0.9; const dry = ctx.createGain(); dry.gain.value = 0.5;
+          hall.connect(wet); wet.connect(bus); dry.connect(bus);
+          const lp = this._filter('lowpass', 760, 0.3); lp.connect(dry); lp.connect(hall);
+          e.nodes.push(bus, hall, wet, dry, lp, ...this._lfo(0.03 + R() * 0.03, 200, lp.frequency, 760));
+          // chord graph (MIDI notes, ascending; `s` = sub an octave under the lowest voice)
+          const CH = [
+            { n: 'Am9',   v: [45, 52, 57, 64, 71], s: 33, to: [[1, 3], [3, 2], [2, 2], [4, 1], [5, 1]] },
+            { n: 'D6/9',  v: [50, 57, 62, 66, 71], s: 38, to: [[0, 3], [2, 2], [3, 1], [5, 1]] },
+            { n: 'Gadd9', v: [43, 59, 62, 69, 74], s: 31, to: [[0, 2], [1, 2], [4, 2], [3, 1]] },
+            { n: 'Em9',   v: [52, 59, 62, 66, 71], s: 40, to: [[0, 3], [1, 2], [6, 1]] },
+            { n: 'Cmaj7', v: [48, 55, 59, 64, 67], s: 36, to: [[2, 2], [0, 2], [1, 1]] },
+            { n: 'Bm11',  v: [47, 54, 57, 62, 64], s: 35, to: [[3, 2], [0, 2], [2, 1]] },
+            { n: 'Aadd9', v: [45, 52, 61, 69, 71], s: 33, to: [[1, 2], [0, 2]] },
+          ];
+          const pick = (opts) => { let tot = 0; opts.forEach(o => tot += o[1]); let x = R() * tot; for (const o of opts) { if ((x -= o[1]) <= 0) return o[0]; } return opts[0][0]; };
+          let cur = pick([[0, 4], [1, 2], [2, 1], [3, 1]]), prev = -1;
+          const t0 = ctx.currentTime;
+          // a pad voice: oscillators → breath (level LFO) → thinning level → panner
+          const voice = (m, pan, amp, sineOnly) => {
+            const g = ctx.createGain(); g.gain.value = amp; const lvl = ctx.createGain(); lvl.gain.value = 1; g.connect(lvl);
+            if (ctx.createStereoPanner) { const p = ctx.createStereoPanner(); p.pan.value = pan; lvl.connect(p); p.connect(lp); e.nodes.push(p); } else lvl.connect(lp);
+            const kinds = sineOnly ? [['sine', -3, 1], ['sine', 3, 1]] : [['sine', -3, 1], ['sine', 3, 1], ['triangle', 0, 0.28]];
+            const oscs = kinds.map(([ty, det, w]) => { const o = ctx.createOscillator(); o.type = ty; o.frequency.setValueAtTime(hz(m), t0); o.detune.value = det; const og = ctx.createGain(); og.gain.value = w; o.connect(og); og.connect(g); o.start(t0); e.nodes.push(o, og); return o; });
+            e.nodes.push(g, lvl, ...this._lfo(0.04 + R() * 0.07, amp * 0.6, g.gain, amp));
+            return { oscs, lvl };
+          };
+          const pans = [-0.1, 0.25, -0.3, 0.3, -0.2].map(p => Math.max(-0.3, Math.min(0.3, p + (R() - 0.5) * 0.1)));
+          const amps = [0.05, 0.048, 0.042, 0.032, 0.022];
+          const vs = CH[cur].v.map((m, i) => voice(m, pans[i], amps[i]));
+          const sub = voice(CH[cur].s, 0, 0.035, true);
+          // when each chord begins, so a line note can use the chord sounding at its own time
+          const timeline = [{ t: t0, c: cur }];
+          const chordAt = (t) => { let c = timeline[0].c; for (const x of timeline) { if (x.t <= t) c = x.c; } return c; };
+          this._pump(e, id, 20 + R() * 25, () => 20 + R() * 25, (t) => {
+            // next chord: weighted by the graph, a return to the chord just left counts half
+            const next = pick(CH[cur].to.map(([j, w]) => [j, j === prev ? w / 2 : w]));
+            prev = cur; cur = next;
+            const tau = 1.3 + R() * 1.4;   // ≈ 4–8 s glide
+            vs.forEach((v, i) => v.oscs.forEach(o => o.frequency.setTargetAtTime(hz(CH[cur].v[i]), t, tau)));
+            sub.oscs.forEach(o => o.frequency.setTargetAtTime(hz(CH[cur].s), t, tau + 0.4));
+            // now and then the top voice rests for a chord, so the texture thins and returns
+            vs[4].lvl.gain.setTargetAtTime(R() < 0.25 ? 0.12 : 1, t, 3);
+            timeline.push({ t, c: cur }); if (timeline.length > 8) timeline.shift();
+            return 20 + R() * 25;
+          }, 20);
+          // the line: felt-piano tone (fundamental + two soft partials), dark register A3–E5
+          const note = (t, f, amp, dur) => {
+            [[1, 1], [2, 0.3], [3, 0.1]].forEach(([k, w]) => {
+              const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = f * k;
+              const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t);
+              g.gain.exponentialRampToValueAtTime(amp * w, t + 0.04); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+              o.connect(g); g.connect(lp); o.start(t); o.stop(t + dur + 0.2);
+              o.onended = () => { try { g.disconnect(); } catch (_) { } };
+            });
+          };
+          const tonesFor = (c) => { const set = new Set(); CH[c].v.forEach(m => { for (let k = -24; k <= 24; k += 12) { const x = m + k; if (x >= 57 && x <= 76) set.add(x); } }); return [...set].sort((a, b) => a - b); };
+          let last = 64, left = 0;
+          this._pump(e, id, 6 + R() * 8, () => 12, (t) => {
+            if (left <= 0) {
+              if (R() < 0.18) return 10 + R() * 16;   // this phrase is silence
+              const r = R(); left = r < 0.4 ? 1 : r < 0.8 ? 2 : 3;
+            }
+            const set = tonesFor(chordAt(t));
+            let i = 0, best = 1e9; set.forEach((m, j) => { const d = Math.abs(m - last); if (d < best) { best = d; i = j; } });
+            i = Math.max(0, Math.min(set.length - 1, i + (R() < 0.5 ? -1 : 1) * (R() < 0.7 ? 1 : 2)));
+            last = set[i]; note(t, hz(last), 0.035 + R() * 0.02, 3.2 + R() * 2);
+            left--;
+            return left > 0 ? 1.8 + R() * 2.6 : 10 + R() * 16;
+          }, 12);
+          break;
         }
         case 'chimes': {
           // Fractal-style: a random walk over a pentatonic set, slow attacks, long releases, never the same twice.
