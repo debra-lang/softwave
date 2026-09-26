@@ -131,7 +131,7 @@
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <link rel="stylesheet" href="fonts/manrope.css?v=1">
   <link rel="stylesheet" href="fonts/fraunces.css?v=1">
-  <link rel="stylesheet" href="styles.css?v=137">
+  <link rel="stylesheet" href="styles.css?v=138">
   <script type="application/ld+json">
   {"@context":"https://schema.org","@graph":[
     {"@type":"Organization","@id":"https://findmyquietsound.com/#org","name":"Find My Quiet Sound","url":"https://findmyquietsound.com/","logo":"https://findmyquietsound.com/icons/icon-512.png","sameAs":["https://github.com/debra-lang/softwave"]},
@@ -234,6 +234,17 @@
         </div>
       </template>
 
+      <a class="ri-feature section-block" href="#ri" data-view="ri" data-ri-card aria-label="Discover What Changes Your Tinnitus">
+        <div class="ri-feature-orb" aria-hidden="true"></div>
+        <div class="ri-feature-body">
+          <div class="ri-feature-eyebrow">Sound Response</div>
+          <h2 class="ri-feature-title" data-ri-title>Discover What Changes Your Tinnitus</h2>
+          <p class="ri-feature-desc" data-ri-desc>Explore how your tinnitus responds to different sounds. We’ll learn from your responses and gradually build your personal Sound Response Profile.</p>
+          <p class="ri-feature-stats" data-ri-stats hidden></p>
+          <span class="btn btn-primary ri-feature-cta" data-ri-cta>Start exploring →</span>
+          <p class="ri-feature-note">Simple sound experiments · You can stop anytime</p>
+        </div>
+      </a>
       <div class="two-tools two-tools-low section-block" aria-label="Three ways to explore">
         <h2 class="row-title">Three ways to explore</h2>
         <button class="two-tool" id="home-tool-discover"><strong>Help Me Find My Sound</strong><span>Compare different sounds and discover which ones you personally prefer.</span></button>
@@ -251,7 +262,7 @@
           <div><h3>Who it is for</h3><p>People with tinnitus who want an easy, free way to add a comfortable background sound — at a desk, in a quiet room or at bedtime. It works with speakers, headphones or a pillow speaker, on phones, tablets and computers.</p></div>
           <div><h3>How to start</h3><p>Tap a sound, keep the level low — just enough to blend with the tinnitus — and try others until one feels comfortable. There is no single sound that works for everyone.</p></div>
         </div>
-        <p class="muted small">Sound masking and relaxation — not a medical treatment. Read <a href="learn/tinnitus-sound-masking/">what tinnitus masking is</a>, compare <a href="learn/white-vs-pink-vs-brown-noise/">white, pink and brown noise</a>, or browse all <a href="learn/">guides</a>. <a href="tinnitus-sound-generator/">About this tinnitus sound generator</a> · <a href="about/">About Find My Quiet Sound</a> · <a href="premium/">Free &amp; Premium</a>. <span class="muted small" id="build-tag">· v242</span></p>
+        <p class="muted small">Sound masking and relaxation — not a medical treatment. Read <a href="learn/tinnitus-sound-masking/">what tinnitus masking is</a>, compare <a href="learn/white-vs-pink-vs-brown-noise/">white, pink and brown noise</a>, or browse all <a href="learn/">guides</a>. <a href="tinnitus-sound-generator/">About this tinnitus sound generator</a> · <a href="about/">About Find My Quiet Sound</a> · <a href="premium/">Free &amp; Premium</a>. <span class="muted small" id="build-tag">· v243</span></p>
         </details>
       </section>
     </section>
@@ -481,6 +492,13 @@
       </div>
     </section>
 
+    <!-- ============ SOUND RESPONSE LAB (Discover What Changes Your Tinnitus) ============ -->
+    <section id="view-ri" class="view ri-view" aria-labelledby="ri-title" hidden>
+      <h2 id="ri-title" class="visually-hidden">Discover What Changes Your Tinnitus</h2>
+      <div id="ri-root" class="ri-root"><p class="muted ri-center" style="padding:40px 0">Loading…</p></div>
+      <p class="fineprint ri-center">Sound Response is an exploratory feature for personal observation. It does not diagnose, treat or cure tinnitus, and a temporary change after a sound is not a treatment effect.</p>
+    </section>
+
     <!-- ============ SLEEP ============ -->
     <section id="view-sleep" class="view" aria-labelledby="sleep-title" hidden>
       <div class="hero compact">
@@ -532,6 +550,17 @@
           <p class="muted small" style="margin:10px 0 0"><a href="learn/how-to-use-find-my-sound/">How to use it — step-by-step guide →</a></p></span>
         </div>
       </div>
+      <a class="ri-feature ri-feature-lab" href="#ri" data-view="ri" data-ri-card aria-label="Discover What Changes Your Tinnitus">
+        <div class="ri-feature-orb" aria-hidden="true"></div>
+        <div class="ri-feature-body">
+          <div class="ri-feature-eyebrow">Sound Response <span class="muted">· Residual Inhibition Lab</span></div>
+          <h3 class="ri-feature-title" data-ri-title>Discover What Changes Your Tinnitus</h3>
+          <p class="ri-feature-desc" data-ri-desc>Explore how your tinnitus responds to different sounds. We’ll learn from your responses and gradually build your personal Sound Response Profile.</p>
+          <p class="ri-feature-stats" data-ri-stats hidden></p>
+          <span class="btn btn-primary ri-feature-cta" data-ri-cta>Start exploring →</span>
+          <p class="ri-feature-note">Simple sound experiments · You can stop anytime</p>
+        </div>
+      </a>
       <div class="lab-notice">
         <strong>Experimental features</strong> are exploratory tools for relaxation, attention, sound personalization, and tinnitus management support. They are not proven treatments and may not work for everyone. Everything starts quiet, fades in and out, never raises your volume, and can be stopped instantly with <em>Stop</em>.
       </div>
@@ -733,7 +762,7 @@
   <script src="audio.js?v=58" defer></script>
   <script src="visuals.js?v=26" defer></script>
   <script src="field.js?v=13" defer></script>
-  <script src="app.js?v=150" defer></script>
+  <script src="app.js?v=151" defer></script>
   <script src="focus.js?v=78" defer></script>
 </body>
 </html>

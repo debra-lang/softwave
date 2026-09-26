@@ -55,7 +55,7 @@
   $('#theme-toggle').addEventListener('click', () => applyTheme(root.dataset.theme === 'dark' ? 'light' : 'dark'));
 
   // ---------- views ----------
-  const views = ['sounds', 'focus', 'lab', 'mixer', 'frequency', 'match', 'sleep', 'learn'];
+  const views = ['sounds', 'focus', 'lab', 'mixer', 'frequency', 'match', 'sleep', 'learn', 'ri'];
   // The app owns all scroll positions (every navigation re-scrolls deliberately);
   // the browser's async restoration on Back would fight and override those scrolls.
   try { if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; } catch (_) { }
@@ -109,6 +109,8 @@
     if (TOOLS.includes(name) && (!prevView || prevView.id !== 'view-' + name)) toolEntry[name] = { view: prevView ? prevView.id.replace(/^view-/, '') : null, depth: navDepth, article: routedOnce ? null : articleRef };
     if (name === 'lab' && (!prevView || prevView.id !== 'view-lab' || opts.keepHash)) labEntry = { view: prevView && prevView.id !== 'view-lab' ? prevView.id.replace(/^view-/, '') : null, depth: navDepth, find: !!opts.keepHash, article: routedOnce ? null : articleRef };
     if (prevView && prevView.id === 'view-match' && name !== 'match') matchStop();   // a matching tone is a test signal, not background audio
+    if (prevView && prevView.id === 'view-ri' && name !== 'ri' && window.softwaveRI) softwaveRI.leave();   // a sound test never continues off-screen
+    if (name === 'ri') ensureRI().then(() => softwaveRI.open()).catch(() => toast('Could not load the experiment. Please try again.'));
     views.forEach(v => { const el = $('#view-' + v); el.hidden = v !== name; el.classList.toggle('active', v === name); });
     $$('.nav a').forEach(a => a.classList.toggle('active', a.dataset.view === name));
     // Collapsed layers left history entries behind: count them as stale so Back swallows them —
@@ -125,7 +127,7 @@
   let labEntry = null;
   // Stand-alone tools with a Done: where each was opened from. Done goes back the way the user came
   // (the same history step Back uses), to the Learn article on a fresh load, or to Sounds.
-  const TOOLS = ['frequency', 'mixer']; const toolEntry = {};
+  const TOOLS = ['frequency', 'mixer', 'ri']; const toolEntry = {};
   function leaveTool(name) {
     const e = toolEntry[name] || {};
     if (e.view && navDepth > e.depth) { history.back(); return; }
@@ -182,10 +184,31 @@
   function ensureLab() {
     if (window.softwaveLab) return Promise.resolve();
     if (labPromise) return labPromise;
-    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=101'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
+    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=102'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
     return labPromise;
   }
   window.softwaveEnsureLab = ensureLab;
+  // Sound Response Lab ("Discover What Changes Your Tinnitus"): loaded on first visit
+  let riPromise = null;
+  function ensureRI() {
+    if (window.softwaveRI) return Promise.resolve();
+    if (riPromise) return riPromise;
+    const load = src => new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = src; s.defer = true; s.onload = resolve; s.onerror = () => reject(new Error('load ' + src)); document.head.appendChild(s); });
+    riPromise = load('ri-protocol.js?v=1').then(() => load('ri.js?v=1')).catch(e => { riPromise = null; throw e; });
+    return riPromise;
+  }
+  // the home and Experiments cards reflect the profile summary the lab keeps in storage
+  function syncRiCards() {
+    const s = store.get('ri:summary'); const started = !!(s && (s.sessions || s.tested));
+    $$('[data-ri-card]').forEach(card => {
+      card.classList.toggle('is-started', started);
+      const t = $('[data-ri-title]', card), d = $('[data-ri-desc]', card), c = $('[data-ri-cta]', card), st = $('[data-ri-stats]', card);
+      if (!started) { if (t) t.textContent = 'Discover What Changes Your Tinnitus'; if (d) d.textContent = 'Explore how your tinnitus responds to different sounds. We\u2019ll learn from your responses and gradually build your personal Sound Response Profile.'; if (c) c.textContent = 'Start exploring \u2192'; if (st) st.hidden = true; return; }
+      if (t) t.textContent = 'Continue Your Sound Response Profile'; if (d) d.textContent = 'We\u2019ve started learning how your tinnitus responds.'; if (c) c.textContent = 'Continue exploring \u2192';
+      if (st) { st.hidden = false; st.textContent = `${s.tested} sound${s.tested === 1 ? '' : 's'} tested \u00b7 ${s.reductions} temporary change${s.reductions === 1 ? '' : 's'}`; }
+    });
+  }
+  syncRiCards();
 
   // ---------- background ----------
   const bg = new Background($('#bg'), engine); window.softwaveBg = bg;
@@ -1275,7 +1298,7 @@
     const x = $('#match-close'); if (!x || x.hidden || !escapeFree(e)) return;
     e.preventDefault(); x.click();
   });
-  window.softwaveApp = { afterDone, escapeFree, leaveLab, markMatchReturn: (exp) => { if (matchOrigin) matchOrigin.exp = exp; }, customTimerForm, layerPush, layersClose, layerReplace, topLayerIs, afterLayerClose, updateBackBtn, armIntent, cancelIntent, cancelIntents, pendingIntents, renderPresetsRemount, loadPreset, saveCurrentMix, restoreMix, openSaveSheet, openManageMenu, openMixMenu, savedSessions, soundVol, SAVED_ICO, setMaster, togglePlay, toast, store, PRESETS, paintRange, showView, scheduleAutoAdvance, renderPresets: renderPresetsRemount };
+  window.softwaveApp = { afterDone, escapeFree, leaveLab, syncRiCards, leaveTool, markMatchReturn: (exp) => { if (matchOrigin) matchOrigin.exp = exp; }, customTimerForm, layerPush, layersClose, layerReplace, topLayerIs, afterLayerClose, updateBackBtn, armIntent, cancelIntent, cancelIntents, pendingIntents, renderPresetsRemount, loadPreset, saveCurrentMix, restoreMix, openSaveSheet, openManageMenu, openMixMenu, savedSessions, soundVol, SAVED_ICO, setMaster, togglePlay, toast, store, PRESETS, paintRange, showView, scheduleAutoAdvance, renderPresets: renderPresetsRemount };
 
   // ---------- init ----------
   renderSounds(); renderPresets(); renderMixer([]); updatePlayer(); renderProfileHooks(); if (window.SoftwaveField) syncField();
