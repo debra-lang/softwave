@@ -16,7 +16,7 @@
   'use strict';
 
   const PROTOCOL_VERSION = 'RI-WEB-V1.0';
-  const ALGORITHM_VERSION = 'RI-ADAPT-V1.0';
+  const ALGORITHM_VERSION = 'RI-ADAPT-V1.1';   // V1.1: the control challenge is EVALUATED (candidate vs control), not concluded by pair count
 
   const CONFIG = {
     stimulusSeconds: 60,            // fixed in V1 — frequency/bandwidth/modulation are explored, never duration
@@ -35,10 +35,11 @@
     defaultBandwidthOct: 1 / 3,     // one-third-octave narrow-band noise
     bandwidthGrid: [1 / 6, 1 / 3, 1],
     modulationGrid: [0, 10, 40],    // Hz; 0 = unmodulated
-    discoveryAmHz: 40,              // the one modulated discovery condition (Reavis 2012 reported greater suppression near 40 Hz AM — a starting choice, not a claim)
+    discoveryAmHz: 40,              // 40 Hz included as an exploratory AM condition based on prior modulated-sound tinnitus studies; not an established optimal rate
     ratioGrid: [0.70, 0.80, 0.90, 1.00, 1.10, 1.20, 1.30],   // centre frequency ÷ tinnitus frequency
     broadband: { lo: 100, hi: 12000 },
-    controlPairsRequired: 3,        // candidate-vs-control pairs across separate sessions
+    controlPairsRequired: 3,        // candidate-vs-control pairs across separate sessions before the comparison is evaluated
+    controlPairsMax: 6,             // an inconclusive comparison with the candidate ahead may keep testing up to this many pairs
     controlRatioForBroadResponder: 0.50,   // when broadband itself is the candidate, the control is a distant narrow band
     minCentreHz: 100,
     maxCentreFraction: 0.45,        // of the sample rate
@@ -125,6 +126,22 @@
     const best = bestCandidate(profile); if (!best) return null;
     return best.params.type === 'bbn' ? NBN(CONFIG.controlRatioForBroadResponder) : { type: 'bbn', ratio: null, bw: null, mod: 0 };
   }
+  // Control challenge — a simple, predefined, deterministic comparison of positive-response COUNTS across the
+  // completed pairs. No statistics (three pairs cannot carry them), no composite score; durations are
+  // descriptive only and never decide anything. A tie on counts is never read as candidate superiority.
+  const CONTROL_OUTCOMES = ['candidate_specific_response', 'broad_or_nonspecific_response', 'control_better_or_inconclusive'];
+  const CONTROL_RULE = 'control ahead → inconclusive; candidate ≥2 and ≥2 ahead → specific; both ≥2 → nonspecific; else inconclusive';
+  function evaluateControl(profile) {
+    const done = profile.controlPairs.filter(p => p.complete);
+    const candPos = done.filter(p => p.results[p.candidate] === 'pos').length, ctrlPos = done.filter(p => p.results[p.control] === 'pos').length;
+    let outcome;
+    if (ctrlPos > candPos) outcome = 'control_better_or_inconclusive';
+    else if (candPos >= 2 && candPos - ctrlPos >= 2) outcome = 'candidate_specific_response';
+    else if (candPos >= 2 && ctrlPos >= 2) outcome = 'broad_or_nonspecific_response';
+    else outcome = 'control_better_or_inconclusive';
+    const durs = k => done.map(p => p.ri && p.ri[k]).filter(x => typeof x === 'number');
+    return { outcome, pairs: done.length, candidate_pos: candPos, control_pos: ctrlPos, candidate_median_ri: median(durs('candidate')), control_median_ri: median(durs('control')), rule: CONTROL_RULE, algorithm_version: ALGORITHM_VERSION };
+  }
   function bestCandidate(profile) {
     if (profile.locked.ratio != null) { const id = cid(NBN(profile.locked.ratio, profile.locked.bw != null ? profile.locked.bw : CONFIG.defaultBandwidthOct, profile.locked.mod || 0)); if (profile.candidates[id]) return profile.candidates[id]; }
     return profile.primary ? profile.candidates[profile.primary] : null;
@@ -187,8 +204,15 @@
       }
       if (profile.locked.mod != null) profile.stage = 'control';
     }
-    if (profile.stage === 'control' && profile.controlPairs.filter(p => p.complete).length >= CONFIG.controlPairsRequired) {
-      profile.concluded = { kind: 'concluded_responder', at: profile.counts.valid }; profile.stage = 'concluded_responder';
+    if (profile.stage === 'control') {
+      const done = profile.controlPairs.filter(p => p.complete);
+      if (done.length >= CONFIG.controlPairsRequired) {
+        const c = evaluateControl(profile); profile.control = c;
+        // a directional or clearly non-specific result concludes; "inconclusive with the candidate ahead"
+        // may keep testing (more pairs) up to controlPairsMax, then concludes as inconclusive
+        const keepTesting = c.outcome === 'control_better_or_inconclusive' && c.candidate_pos > c.control_pos && done.length < CONFIG.controlPairsMax;
+        if (!keepTesting) { profile.concluded = { kind: 'concluded_control', outcome: c.outcome, at: profile.counts.valid }; profile.stage = 'concluded_control'; }
+      }
     }
     return profile;
   }
@@ -238,8 +262,8 @@
     if (trial.control_pair) {
       let pair = profile.controlPairs.find(p => p.session_id === trial.session_id);
       if (!pair) { pair = { session_id: trial.session_id, candidate: trial.control_pair.candidate, control: trial.control_pair.control, results: {}, complete: false }; profile.controlPairs.push(pair); }
-      if (trial.trial_valid !== false) pair.results[c.id] = outcomeOf(trial);
-      pair.complete = !!(pair.results[pair.candidate] && pair.results[pair.control]);
+      if (trial.trial_valid !== false) { pair.results[c.id] = outcomeOf(trial); pair.ri = pair.ri || {}; pair.ri[c.id === pair.candidate ? 'candidate' : 'control'] = typeof trial.ri_duration_seconds === 'number' ? trial.ri_duration_seconds : null; }
+      pair.complete = !!(pair.results[pair.candidate] && pair.results[pair.control]);   // an invalid trial never completes a pair
     }
     return recompute(profile);
   }
@@ -260,14 +284,16 @@
     const confirmed = cs.filter(c => c.status === 'confirmed');
     if (confirmed.length) {
       const bbn = profile.candidates.bbn;
-      if (bbn && bbn.status === 'confirmed' && confirmed.some(c => c.params.type === 'nbn')) patterns.push('broad_ri_responder');
+      if (profile.control) { if (profile.control.outcome === 'candidate_specific_response') patterns.push('parameter_specific_responder'); else if (profile.control.outcome === 'broad_or_nonspecific_response') patterns.push('broad_ri_responder'); }
+      else if (bbn && bbn.status === 'confirmed' && confirmed.some(c => c.params.type === 'nbn')) patterns.push('broad_ri_responder');
       else if (confirmed.some(c => c.params.type === 'nbn') && bbn && bbn.status === 'inactive') patterns.push('parameter_specific_responder');
       if (pos.length && pos.filter(e => e.magnitude === 'much-quieter').length / pos.length >= 0.5) patterns.push('strong_ri_responder');
       if (durs.length && median(durs) >= 300) patterns.push('prolonged_ri_responder');
     }
     if (validEx.length >= 3 && validEx.filter(e => e.outcome === 'neg').length / validEx.length >= 0.3) patterns.push('residual_excitation_tendency');
     return { sessions: profile.counts.sessions, tested, reductions: pos.length, valid: validEx.length, worsening: validEx.filter(e => e.outcome === 'neg').length,
-      longestRi: durs.length ? Math.max(...durs) : null, medianRi: median(durs), durRange: durs.length >= 2 ? [Math.min(...durs), Math.max(...durs)] : null,
+      longestRi: durs.length ? Math.max(...durs) : null, medianRi: median(durs), durCount: durs.length, durRange: durs.length >= 2 ? [Math.min(...durs), Math.max(...durs)] : null,
+      control: profile.control || null,
       mostConsistent: mostConsistent ? { id: mostConsistent.id, pos: mostConsistent.exposures.filter(e => e.outcome === 'pos').length, valid: mostConsistent.exposures.filter(e => e.outcome !== 'invalid').length } : null,
       stage: profile.stage, stageIndex, patterns, concluded: profile.concluded ? profile.concluded.kind : null };
   }
@@ -285,5 +311,5 @@
   function configure(overrides) { Object.assign(CONFIG, overrides); testMode = true; }
   const version = () => PROTOCOL_VERSION + (testMode ? '-test' : '');
 
-  return { PROTOCOL_VERSION, ALGORITHM_VERSION, CONFIG, version, configure, cid, parse, NBN, discoverySet, FIRST_SESSION, stimulus, feasible, newProfile, ensureCandidate, evalCandidate, recompute, planSession, recordTrial, closeSession, summarize, describe, bestCandidate, controlFor, shuffle, seedFrom, outcomeOf, isTestMode: () => testMode };
+  return { PROTOCOL_VERSION, ALGORITHM_VERSION, CONFIG, CONTROL_OUTCOMES, CONTROL_RULE, version, configure, cid, parse, NBN, discoverySet, FIRST_SESSION, stimulus, feasible, newProfile, ensureCandidate, evalCandidate, recompute, planSession, recordTrial, closeSession, summarize, describe, bestCandidate, controlFor, evaluateControl, shuffle, seedFrom, outcomeOf, isTestMode: () => testMode };
 });

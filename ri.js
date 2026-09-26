@@ -29,6 +29,10 @@
   const trials = () => store.get('ri:trials', []); const sessions = () => store.get('ri:sessions', []);
   function writeSummary(p) { const s = P.summarize(p); store.set('ri:summary', { sessions: s.sessions, tested: s.tested, reductions: s.reductions, concluded: s.concluded, stageIndex: s.stageIndex }); if (app.syncRiCards) app.syncRiCards(); }
   function wipe() { ['ri:profile', 'ri:trials', 'ri:sessions', 'ri:active', 'ri:summary', 'ri:safety', 'ri:level', 'ri:anon'].forEach(k => store.del(k)); if (app.syncRiCards) app.syncRiCards(); }
+  // RI-ADAPT-V1.1 changed how the control challenge is concluded. Nothing has reached production, so a
+  // profile built under an older algorithm version (private-preview test data) is cleared rather than
+  // reinterpreted. A future bump with real user data needs an explicit migration decision instead.
+  try { const p0 = store.get('ri:profile'); if (p0 && p0.algorithm_version !== P.ALGORITHM_VERSION) wipe(); } catch (_) { }
   // reuse what Find My Quiet Sound already knows — never invent a pitch
   function knownMatch() {
     const m = store.get('match'); if (m && m.freq) return { hz: m.freq, source: 'Find My Tinnitus Sound', type: m.type, balance: m.balance, when: m.when, refined: !!m.matches };
@@ -279,14 +283,21 @@
     track('ri_profile_viewed');
     const p = profile(), sum = P.summarize(p), m = knownMatch();
     const steps = ['Finding responsive sounds', 'Checking repeatability', 'Refining your response'];
+    const ctl = sum.control;   // the evaluated comparison, once three pairs are complete (may still be running if inconclusive)
     const learning = sum.concluded === 'concluded_none' ? 'We haven’t detected a repeatable temporary reduction from the sounds tested so far. That is a valid result, and your records are kept.'
-      : sum.concluded === 'concluded_responder' ? 'Certain sounds have repeatedly been followed by temporary reductions in your tinnitus, and that response held up against a comparison sound. Everything we tested is listed below.'
+      : ctl && ctl.outcome === 'candidate_specific_response' ? 'Certain sounds have repeatedly been followed by temporary reductions in your tinnitus. The response also appeared more consistently with this sound than with the comparison sound.'
+      : ctl && ctl.outcome === 'broad_or_nonspecific_response' ? 'Several different sounds have been followed by temporary reductions in your tinnitus. So far, the response does not appear specific to one sound pattern.'
+      : ctl ? 'We’ve seen temporary changes, but the comparison results aren’t consistent enough yet to show whether one sound pattern is more reliable than another.'
       : sum.stageIndex === 0 ? (sum.valid ? 'We’re trying a small set of carefully chosen sounds to see whether any are followed by a temporary change.' : 'Your first session will try three carefully chosen sounds.')
       : sum.stageIndex === 1 ? 'A sound was followed by a temporary reduction once. We’re checking whether that repeats before reading anything into it.'
       : 'Certain sounds have repeatedly been followed by temporary reductions in your tinnitus. We’re now checking how specific that response is.';
     const canContinue = !sum.concluded;
     const mc = sum.mostConsistent && sum.mostConsistent.pos >= 2 ? `<div class="ri-stat-row"><span class="label-sm">Most consistent response</span><strong>Quieter in ${sum.mostConsistent.pos} of ${sum.mostConsistent.valid} repeat tests</strong></div>` : '';
-    const dur = sum.durRange ? `<div class="ri-stat-row"><span class="label-sm">Typical duration</span><strong>${mmss(sum.durRange[0])}–${mmss(sum.durRange[1])}</strong></div><div class="ri-stat-row"><span class="label-sm">Longest observed</span><strong>${mmss(sum.longestRi)}</strong></div>` : (sum.longestRi ? `<div class="ri-stat-row"><span class="label-sm">Longest observed</span><strong>${mmss(sum.longestRi)}</strong></div>` : '');
+    // durations: the median is "typical" (3+ observations); min–max is the "observed range" (2+ distinct); longest always
+    const row = (l, v) => `<div class="ri-stat-row"><span class="label-sm">${l}</span><strong>${v}</strong></div>`;
+    const dur = (sum.durCount >= 3 ? row('Typical duration', mmss(sum.medianRi)) : '')
+      + (sum.durRange && sum.durRange[0] !== sum.durRange[1] ? row('Observed range', `${mmss(sum.durRange[0])}–${mmss(sum.durRange[1])}`) : '')
+      + (sum.longestRi ? row('Longest observed', mmss(sum.longestRi)) : '');
     const rows = Object.values(p.candidates).filter(c => c.exposures.length).map(c => {
       const ex = c.exposures.map(e => e.outcome === 'invalid' ? 'interrupted' : e.outcome === 'pos' ? `quieter${e.ri ? ' (' + mmss(e.ri) + ')' : ''}` : e.outcome === 'neg' ? 'louder' : e.outcome === 'unsure' ? 'not sure' : 'same').join(' · ');
       const sp = P.stimulus(c.params, m ? m.hz : 1000);
