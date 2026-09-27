@@ -194,7 +194,7 @@
     if (window.softwaveRI) return Promise.resolve();
     if (riPromise) return riPromise;
     const load = src => new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = src; s.defer = true; s.onload = resolve; s.onerror = () => reject(new Error('load ' + src)); document.head.appendChild(s); });
-    riPromise = load('ri-protocol.js?v=2').then(() => load('ri.js?v=2')).catch(e => { riPromise = null; throw e; });
+    riPromise = load('ri-protocol.js?v=2').then(() => load('ri.js?v=3')).catch(e => { riPromise = null; throw e; });
     return riPromise;
   }
   // the home and Experiments cards reflect the profile summary the lab keeps in storage
@@ -834,7 +834,10 @@
     b.textContent = saved ? 'Saved ✓' : 'Save result on this device'; b.classList.toggle('is-saved', saved); b.setAttribute('aria-disabled', String(saved));
     const c = $('#match-clear'); if (c) c.hidden = !store.get('match');
   }
-  $('#match-save').addEventListener('click', () => { if (matchSaved()) return; matchStop(); store.set('match', Object.assign({ freq: M.freq, type: M.type, balance: M.balance, when: new Date().toISOString() }, refineRecord())); syncSave(); toast('Saved on this device only. Nothing is sent anywhere.'); });
+  function saveMatch() { store.set('match', Object.assign({ freq: M.freq, type: M.type, balance: M.balance, when: new Date().toISOString() }, refineRecord())); syncSave(); }
+  $('#match-save').addEventListener('click', () => { if (matchSaved()) return; matchStop(); saveMatch(); toast('Saved on this device only. Nothing is sent anywhere.'); });
+  // Sound Response mode: the same record, then straight back to the experiment
+  $('#match-ri-continue').addEventListener('click', () => { matchStop(); saveMatch(); toast('Match saved for Sound Response.'); afterDone('match', matchDone); });
   $('#match-clear').addEventListener('click', () => { store.del('match'); syncSave(); toast('Saved result removed'); });
   // ----- repeated matching (optional) -----
   const attemptNo = () => mRef.attempts.length + 1;
@@ -845,7 +848,8 @@
   function syncRefine() {
     const s3 = $('.match-step[data-step="3"]'); if (s3) s3.classList.toggle('is-refining', mRef.active);
     const note = $('[data-attempt]'); if (note) { note.hidden = !mRef.active; const t = $('[data-attempt-text]', note); if (t && mRef.active) t.textContent = `Attempt ${attemptNo()} of 3 — the pitch number is hidden until you finish, so this attempt starts fresh.`; }
-    const res = $('#match-result'); if (res) res.hidden = mRef.active;
+    const res = $('#match-result'); if (res) res.hidden = mRef.active || riMode();
+    const rr = $('#match-ri-row'), rn = $('#match-ri-note'); if (rr) rr.hidden = !riMode() || mRef.active; if (rn) rn.hidden = !riMode() || mRef.active;
     const again = $('#match-again'), stop = $('#match-stop-refine'), adj = $('#match-refine-adjust'), copy = $('[data-refine-copy]'), out = $('#match-refine-result');
     if (!again) return;
     again.hidden = mRef.done; adj.hidden = !mRef.active; stop.hidden = !mRef.active; copy.hidden = mRef.done;
@@ -888,10 +892,15 @@
   // Where Done returns: the in-app screen it was opened from (via the same history step Back uses),
   // the site article that linked to it on a fresh load, or Sounds.
   const articleRef = (() => { try { const r = new URL(document.referrer); const own = /^\/(index\.html)?$/.test(r.pathname) || r.pathname === location.pathname; return r.origin === location.origin && !own ? r.href : null; } catch (_) { return null; } })();
+  // matcher entered on behalf of Sound Response: remembered on entry (also after a reload within the same sitting)
+  function riReturnFresh() { const r = store.get('ri:return'); return !!(r && r.step === 'match' && Date.now() - r.at < 30 * 60 * 1000); }
+  function riMode() { return !!(matchOrigin && matchOrigin.ri); }   // declarations: syncRefine() runs during init, before this line
   function noteMatchEntry(prevView) {
     if (mResetPending) { mResetPending = false; resetMatch(); }
     mStarted = false; const a = document.activeElement; matchOpener = a && a !== document.body && !a.closest('#view-match') ? a : null; syncMatchClose();
-    matchOrigin = { view: prevView ? prevView.id.replace(/^view-/, '') : null, depth: navDepth, exp: null, article: routedOnce ? null : articleRef };
+    matchOrigin = { view: prevView ? prevView.id.replace(/^view-/, '') : null, depth: navDepth, exp: null, article: routedOnce ? null : articleRef,
+      ri: (!!prevView && prevView.id === 'view-ri') || riReturnFresh() };   // Sound Response needs the pitch, nothing more
+    syncRefine();
   }
   let pageLeft = false; addEventListener('pagehide', () => { pageLeft = true; });
   $('#match-done').addEventListener('click', () => afterDone('match', matchDone));
@@ -914,6 +923,7 @@
         setTimeout(() => { const u = $('#lab-detail [data-nx="usesaved"]'); if (u && !$('#view-lab').hidden) u.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 450); }, 0); }; addEventListener('popstate', go); }
       history.back(); return;
     }
+    if (o.ri) { showView('ri', { tab: true }); return; }   // no history step to go back to (reloaded mid-match): open the experiment directly
     if (o.article) { history.back(); setTimeout(() => { if (!pageLeft && !$('#view-match').hidden) showView('sounds', { tab: true }); }, 900); return; }
     showView('sounds', { tab: true });
   }

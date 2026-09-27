@@ -13,6 +13,7 @@
   try { const o = LOCAL ? JSON.parse(localStorage.getItem('softwave:ri:test') || 'null') : null; if (o) P.configure(o); } catch (_) { }
   const C = P.CONFIG;
   const SAFETY_VERSION = 'RI-SAFETY-V1';
+  const RETURN_TTL = 30 * 60 * 1000;   // a hand-off to Find My Tinnitus Sound is resumed within the same sitting only
   const fmt = n => Math.round(n).toLocaleString('en-US');
   const mmss = s => { s = Math.max(0, Math.round(s)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
   const minutes = s => { const m = Math.round(s / 60); return m < 1 ? 'under a minute' : m === 1 ? 'about 1 minute' : `about ${m} minutes`; };
@@ -134,7 +135,7 @@
     html: `<h2 class="ri-h">First, let’s find your tinnitus pitch</h2>
       <p class="ri-p">The sounds in this experiment are chosen around the pitch you hear, so your tinnitus match comes first. It takes a couple of minutes, and you’ll come straight back here.</p>
       <div class="ri-actions">${btn('match', 'Find My Tinnitus Sound →')}${btn('later', 'Not now', 'btn-ghost')}</div>`,
-    wire(h) { on(h, 'match', () => { S.resumeAfterMatch = true; app.showView('match'); }); on(h, 'later', () => leaveView()); }
+    wire(h) { on(h, 'match', () => { store.set('ri:return', { step: 'match', at: Date.now() }); app.showView('match'); }); on(h, 'later', () => { store.del('ri:return'); leaveView(); }); }
   });
   SCREENS.quiet = () => ({
     html: `<h2 class="ri-h">The experiment needs a quiet starting point</h2>
@@ -326,7 +327,12 @@
     track('ri_opened');
     const act = store.get('ri:active');
     if (act && act.session && !act.session.ended) { recover(act); return; }
-    if (S.resumeAfterMatch) { S.resumeAfterMatch = false; if (knownMatch()) { afterSafety(); return; } }
+    // back from Find My Tinnitus Sound: welcome and safety were already completed, so resume at the
+    // first step still missing — the pitch itself if the match was not completed, otherwise the setup
+    // (the context stays until the match is used, the user declines, or it goes stale — so this is idempotent)
+    const ret = store.get('ri:return');
+    if (ret && ret.step === 'match' && Date.now() - ret.at < RETURN_TTL) { if (knownMatch()) afterSafety(); else show('needmatch'); return; }
+    if (ret) store.del('ri:return');
     const p = profile();
     if (!p.counts.sessions && !trials().length) show('welcome'); else show('ready');
   }
@@ -337,6 +343,7 @@
     afterQuiet();
   }
   function afterQuiet() {
+    store.del('ri:return');   // the hand-off (if any) is resolved: the session starts with a known pitch
     S.session = { session_id: uid(), started: new Date().toISOString(), level: store.get('ri:level', 0.3), baseline: null, plan: null, qi: 0, trials: [], avoid_today: [], ended: null, stop_reason: null, protocol_version: P.version(), algorithm_version: P.ALGORITHM_VERSION };
     S.waitCount = 0; S.lastTrialEnd = 0; persist(); show('setup');
   }

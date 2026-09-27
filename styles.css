@@ -1562,7 +1562,7 @@ html[data-theme="dark"] .lab-view { --lab-bg-a: #0f1320; --lab-bg-b: #090b12; }
 .match-refine p { margin: 0 0 10px; }
 .match-refine .btn-row { margin: 0; }
 #match-refine-result { margin: 10px 0 0; }
-#match-refine [hidden], #match-result[hidden], .match-attempt[hidden] { display: none; }
+#match-refine [hidden], #match-result[hidden], .match-attempt[hidden], #match-ri-row[hidden], #match-ri-note[hidden] { display: none; }
 
 /* ---------- Sound Response Lab: "Discover What Changes Your Tinnitus" ---------- */
 /* feature cards (home + Experiments): a major destination, in the app's own language */
