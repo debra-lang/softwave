@@ -1640,6 +1640,35 @@ html[data-theme="dark"] .lab-view { --lab-bg-a: #0f1320; --lab-bg-b: #090b12; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 @media (prefers-reduced-motion: reduce) { .ri-dot { animation: none; opacity: .5; } .ri-feature, .ri-card { transition: none; } .ri-feature:hover { transform: none; } }
 
+/* ---------- Sound Response: every tap answers (≥150 ms pressed state set by ri.js), every retained choice stays visible ---------- */
+#view-ri .btn, #view-ri .ri-card, #view-ri .ri-seg button, #view-ri .ri-check, [data-ri-card] { transition: transform .12s, box-shadow .12s, background .12s, border-color .12s, filter .12s; }
+#view-ri .is-pressed, [data-ri-card].is-pressed { transition: none; transform: scale(.97); }
+#view-ri .btn.is-pressed, #view-ri .btn:active { box-shadow: 0 0 0 3px var(--ring); }
+#view-ri .btn-primary.is-pressed, #view-ri .btn-primary:active { filter: brightness(1.15); }
+#view-ri .btn-secondary.is-pressed, #view-ri .btn-secondary:active { background: var(--ring); }
+#view-ri .btn-ghost.is-pressed, #view-ri .btn-ghost:active { background: var(--accent-soft); border-color: var(--accent); }
+#view-ri .ri-card.is-pressed, #view-ri .ri-card:active { background: var(--accent-soft); border-color: var(--accent); box-shadow: 0 0 0 3px var(--ring); }
+#view-ri .ri-seg button.is-pressed { background: var(--accent-soft); color: var(--accent); }
+#view-ri .ri-check.is-pressed { background: var(--accent-soft); }
+[data-ri-card].is-pressed { box-shadow: 0 0 0 3px var(--ring); border-color: var(--accent); }
+/* retained choices: fill + weight + a mark, never colour alone */
+#view-ri .ri-seg button[aria-checked="true"] { background: var(--accent); color: #fff; font-weight: 800; box-shadow: 0 6px 18px var(--ring); }
+#view-ri .ri-seg button[aria-checked="true"]::before { content: "✓ "; }
+#view-ri .btn[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); box-shadow: inset 0 0 0 2px var(--accent); display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+#view-ri .btn[aria-pressed="true"]::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: currentColor; flex: none; }
+#view-ri .ri-check { min-height: 44px; border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; }
+#view-ri .ri-check.is-on { border-color: var(--accent); background: var(--accent-soft); font-weight: 700; }
+#view-ri .ri-check input { accent-color: var(--accent); }
+.ri-status { text-align: center; font-weight: 700; color: var(--accent); margin: 6px 0 0; }
+.ri-status[hidden] { display: none; }
+#view-ri .ri-listen.is-paused .ri-count { opacity: .4; }
+/* keyboard focus is its own signal, separate from pressed and selected; touch targets ≥ 44 px */
+#view-ri :is(button, input, summary, a, [tabindex]):focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+#view-ri .ri-actions .btn-sm { min-height: 44px; }
+#view-ri .linklike { display: inline-block; padding: 10px 0; }
+#view-ri .ri-details summary { min-height: 44px; display: flex; align-items: center; }
+@media (prefers-reduced-motion: reduce) { #view-ri .is-pressed, [data-ri-card].is-pressed { transform: none; } }
+
 /* Experiments: Done closes the "How did this feel?" card (answering above it is optional) */
 .lab-result .lab-done-row { margin-top: 16px; }
 .lab-result .lab-more { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }

@@ -86,6 +86,17 @@
   function persist() { if (S.session) store.set('ri:active', { session: S.session, trial: S.trial ? Object.assign({}, S.trial, { audio: undefined }) : null, screen: S.screen }); else store.del('ri:active'); }
   const stopReasons = { done: null, user_stop: 'You stopped the session.', adverse_uncomfortable: 'We stopped because an increase felt uncomfortable.', prolonged_ri: 'That change lasted a while, so we stopped today’s session there to keep the next test clean.', ri_timeout: 'We didn’t hear back about the change, so today’s session ended there.', baseline_not_reestablished: 'Your tinnitus didn’t settle back to where today started, so we stopped rather than muddle the next test.', audio_failed: 'Sound couldn’t start on this device, so today’s session ended.', left: null, no_trials: null };
 
+  // ---------- press feedback: a tap always answers, for at least ~150 ms, on touch as on mouse ----------
+  (function pressFeedback() {
+    const SEL = '#view-ri button, #view-ri .ri-card, #view-ri .ri-check, #view-ri a.btn, [data-ri-card]';
+    document.addEventListener('pointerdown', e => {
+      const b = e.target.closest(SEL); if (!b || b.disabled || (b.matches('label') && b.querySelector('input:disabled'))) return;
+      const t0 = performance.now(); b.classList.add('is-pressed');
+      const up = () => { removeEventListener('pointerup', up); removeEventListener('pointercancel', up); setTimeout(() => b.classList.remove('is-pressed'), Math.max(0, 150 - (performance.now() - t0))); };
+      addEventListener('pointerup', up); addEventListener('pointercancel', up);
+    });
+  })();
+
   // ---------- screens ----------
   const SCREENS = {};
   function show(name, data) {
@@ -155,7 +166,7 @@
         <p class="muted small">This is general guidance, not a diagnosis. An audiologist or doctor can advise on your situation.</p></details>
       <label class="ri-check"><input type="checkbox" id="ri-safety-ok"> <span>I understand and want to continue.</span></label>
       <div class="ri-actions">${btn('next', 'Continue →', 'btn-primary', 'disabled')}</div>`,
-    wire(h) { const cb = $('#ri-safety-ok', h), b = $('[data-act="next"]', h); cb.addEventListener('change', () => { b.disabled = !cb.checked; }); on(h, 'next', () => { if (!cb.checked) return; store.set('ri:safety', { version: SAFETY_VERSION, at: new Date().toISOString() }); track('ri_safety_accepted'); afterSafety(); }); }
+    wire(h) { const cb = $('#ri-safety-ok', h), b = $('[data-act="next"]', h); cb.addEventListener('change', () => { b.disabled = !cb.checked; cb.closest('.ri-check').classList.toggle('is-on', cb.checked); }); on(h, 'next', () => { if (!cb.checked) return; store.set('ri:safety', { version: SAFETY_VERSION, at: new Date().toISOString() }); track('ri_safety_accepted'); afterSafety(); }); }
   });
   SCREENS.needmatch = () => ({
     html: `<h2 class="ri-h">First, let’s find your tinnitus pitch</h2>
@@ -229,8 +240,10 @@
   SCREENS.listen = () => ({
     html: `${eyebrow(`Sound ${S.session.qi + 1} of ${S.session.plan.queue.length}`)}<h2 class="ri-h">Just listen normally.</h2>
       <div class="ri-count" id="ri-count" aria-live="off">${mmss(C.stimulusSeconds)}</div><p class="muted small ri-center">The sound stops on its own.</p>
-      <div class="ri-actions ri-row">${btn('pause', 'Pause', 'btn-secondary')}${btn('stopx', 'Stop experiment', 'btn-ghost')}</div>`,
-    wire(h) { const pb = $('[data-act="pause"]', h); on(h, 'pause', () => { if (!S.audio) return; if (S.audio.pausedAt == null) { pauseStim(); pb.textContent = 'Resume'; } else { resumeStim(); pb.textContent = 'Pause'; } }); on(h, 'stopx', () => { stopAudio(); invalidateTrial('stopped'); endSession('user_stop', 'stopped'); }); }
+      <p class="ri-status" id="ri-pause-note" hidden aria-live="polite">Paused — the sound and countdown continue when you tap Resume.</p>
+      <div class="ri-actions ri-row">${btn('pause', 'Pause', 'btn-secondary', 'aria-pressed="false"')}${btn('stopx', 'Stop experiment', 'btn-ghost')}</div>`,
+    wire(h) { const pb = $('[data-act="pause"]', h), note = $('#ri-pause-note', h); const paused = on_ => { pb.textContent = on_ ? 'Resume' : 'Pause'; pb.setAttribute('aria-pressed', String(on_)); h.classList.toggle('is-paused', on_); note.hidden = !on_; };
+      on(h, 'pause', () => { if (!S.audio) return; if (S.audio.pausedAt == null) { pauseStim(); paused(true); } else { resumeStim(); if (S.audio) paused(false); } }); on(h, 'stopx', () => { stopAudio(); invalidateTrial('stopped'); endSession('user_stop', 'stopped'); }); }
   });
   SCREENS.gap = () => ({ html: `<div class="ri-quiet"><div class="ri-dot" aria-hidden="true"></div><p class="muted">The sound has stopped.</p></div>` });
   SCREENS.response = () => ({
