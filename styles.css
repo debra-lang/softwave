@@ -1665,8 +1665,8 @@ html[data-theme="dark"] .lab-view { --lab-bg-a: #0f1320; --lab-bg-b: #090b12; }
 #view-find .find-card h3, #view-find .ri-feature-title { color: var(--text); }
 #view-find .find-grid { grid-template-columns: 1fr; gap: 14px; align-items: stretch; }
 @media (min-width: 720px) { #view-find .find-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-#view-find .find-card, #view-find .ri-feature { display: flex; flex-direction: column; gap: 8px; padding: 22px; margin: 0; max-width: none; grid-column: auto; min-height: 100%; box-sizing: border-box; }
-#view-find .ri-feature-orb { width: 40px; height: 40px; margin: 0 0 4px; box-shadow: 0 0 22px color-mix(in srgb, var(--accent) 30%, transparent); }
+#view-find .find-card, #view-find .ri-feature { display: flex; flex-direction: column; align-items: stretch; gap: 8px; padding: 22px; margin: 0; max-width: none; grid-column: auto; min-height: 100%; box-sizing: border-box; }
+#view-find .ri-feature-orb { width: 40px; height: 40px; margin: 0 0 4px; align-self: flex-start; box-shadow: 0 0 22px color-mix(in srgb, var(--accent) 30%, transparent); }
 #view-find .ri-feature-body { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 0; }
 #view-find .ri-feature-eyebrow, #view-find .find-cat { font-size: .72rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
 #view-find .ri-feature-title { font-size: 1.25rem; line-height: 1.2; margin: 0; }
