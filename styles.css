@@ -1602,6 +1602,12 @@ html[data-theme="dark"] .lab-view { --lab-bg-a: #0f1320; --lab-bg-b: #090b12; }
 .ri-scale { margin: 10px 0 6px; }
 .ri-scale-num { text-align: center; font-size: clamp(3rem, 12vw, 4.5rem); font-weight: 800; letter-spacing: -.03em; font-variant-numeric: tabular-nums; line-height: 1; margin-bottom: 8px; }
 .ri-scale input[type="range"] { width: 100%; height: 44px; }
+/* required scales: the visual default is muted until it becomes a real answer; the track is one big target */
+.ri-scale-num.is-default { opacity: .38; }
+.ri-scale-track { position: relative; min-height: 44px; padding: 6px 0; margin: 4px 0; touch-action: pan-y; cursor: pointer; }
+.ri-scale-track input[type="range"] { pointer-events: none; display: block; height: 32px; margin: 0; }
+.ri-scale-track input[type="range"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 6px; border-radius: 999px; }
+@media (pointer: coarse) { .ri-scale-track input[type="range"]::-webkit-slider-thumb { width: 30px; height: 30px; margin-top: -11px; } .ri-scale-track input[type="range"]::-moz-range-thumb { width: 28px; height: 28px; } }
 .ri-scale-ends { display: flex; justify-content: space-between; gap: 12px; font-size: .8rem; color: var(--muted); margin-top: 2px; }
 .ri-scale-hint { text-align: center; font-weight: 700; color: var(--accent); margin: 10px 0 0; }
 .ri-scale-hint[hidden] { display: none; }

@@ -98,18 +98,41 @@
   }
   const eyebrow = t => `<div class="ri-eyebrow">${t}</div>`;
   const btn = (id, label, cls = 'btn-primary', extra = '') => `<button type="button" class="btn ${cls} ri-btn" data-act="${id}" ${extra}>${label}</button>`;
-  // an untouched required scale says what to do (and tells assistive tech via aria-describedby); nothing is ever preselected
-  const scale = (id, value) => `<div class="ri-scale" data-scale="${id}"><div class="ri-scale-num" aria-hidden="true">${value == null ? '—' : value}</div>
-      <input type="range" min="0" max="10" step="1" value="${value == null ? 5 : value}" aria-label="How noticeable, 0 barely to 10 extremely" ${value == null ? `data-untouched aria-describedby="ri-scale-hint-${id}"` : ''}>
+  // A REQUIRED scale (value == null) opens at a visual default of 5 — muted number, thumb centred — while
+  // the answer stays unset until a deliberate interaction: a tap anywhere on the track (including on the
+  // thumb, to choose 5), a drag, or the keyboard. The instruction is tied to the input (aria-describedby).
+  // Nothing is ever recorded because the screen opened. A preset scale (the optional post-sound rating)
+  // keeps the plain native control, unchanged.
+  const scale = (id, value) => value == null
+    ? `<div class="ri-scale ri-scale-required" data-scale="${id}"><div class="ri-scale-num is-default" aria-hidden="true">5</div>
+      <div class="ri-scale-track"><input type="range" min="0" max="10" step="1" value="5" aria-label="How noticeable, 0 barely to 10 extremely" aria-valuetext="5, not yet rated" data-untouched aria-describedby="ri-scale-hint-${id}"></div>
       <div class="ri-scale-ends"><span>0 — Barely noticeable</span><span>10 — Extremely noticeable</span></div>
-      ${value == null ? `<p class="ri-scale-hint" id="ri-scale-hint-${id}">Move the slider to rate how noticeable your tinnitus is right now.</p>` : ''}</div>`;
+      <p class="ri-scale-hint" id="ri-scale-hint-${id}">Move the slider to rate how noticeable your tinnitus is right now.</p></div>`
+    : `<div class="ri-scale" data-scale="${id}"><div class="ri-scale-num" aria-hidden="true">${value}</div>
+      <input type="range" min="0" max="10" step="1" value="${value}" aria-label="How noticeable, 0 barely to 10 extremely">
+      <div class="ri-scale-ends"><span>0 — Barely noticeable</span><span>10 — Extremely noticeable</span></div></div>`;
   function wireScale(host, id, onChange) {
     const box = $(`[data-scale="${id}"]`, host), r = $('input', box), num = $('.ri-scale-num', box);
-    const hint = $('.ri-scale-hint', box);
-    const paint = () => { app.paintRange(r); num.textContent = r.value; r.setAttribute('aria-valuetext', r.value + ' of 10'); if (hint) hint.hidden = true; };
-    if (!r.hasAttribute('data-untouched')) paint(); else app.paintRange(r);
-    r.addEventListener('input', () => { r.removeAttribute('data-untouched'); paint(); onChange(+r.value); });
-    r.addEventListener('change', () => { r.removeAttribute('data-untouched'); paint(); onChange(+r.value); });
+    const hint = $('.ri-scale-hint', box), track = $('.ri-scale-track', box);
+    const paint = () => { app.paintRange(r); num.textContent = r.value; r.setAttribute('aria-valuetext', r.value + ' of 10'); };
+    // the moment of intent: the visual default becomes a real answer (even when that answer is 5)
+    const select = () => { if (r.hasAttribute('data-untouched')) { r.removeAttribute('data-untouched'); num.classList.remove('is-default'); if (hint) hint.hidden = true; } paint(); onChange(+r.value); };
+    const setVal = v => { r.value = String(Math.max(0, Math.min(10, Math.round(v)))); select(); };
+    app.paintRange(r); if (!r.hasAttribute('data-untouched')) paint();
+    r.addEventListener('input', select); r.addEventListener('change', select);   // drag on the native control, keyboard arrows/Home/End
+    if (track) {
+      // tap anywhere on the 44 px track to choose that value; drag to slide; a vertical pan is scrolling, never a rating
+      const THUMB = 15;   // half the thumb, so 0 and 10 sit under the thumb's centre at each end
+      const fromX = x => { const b = track.getBoundingClientRect(); return ((x - b.left - THUMB) / (b.width - 2 * THUMB)) * 10; };
+      let start = null, dragging = false;
+      track.addEventListener('pointerdown', e => { if (e.button !== 0) return; start = { x: e.clientX, y: e.clientY, id: e.pointerId }; dragging = false; r.focus({ preventScroll: true }); if (e.pointerType !== 'touch') e.preventDefault(); });
+      track.addEventListener('pointermove', e => { if (!start) return; const dx = e.clientX - start.x, dy = e.clientY - start.y;
+        if (!dragging && Math.abs(dx) > 6 && Math.abs(dx) > Math.abs(dy)) { dragging = true; try { track.setPointerCapture(start.id); } catch (_) { } }
+        if (dragging) setVal(fromX(e.clientX)); });
+      const end = e => { if (!start) return; if (!dragging) setVal(fromX(e.clientX)); start = null; dragging = false; try { track.releasePointerCapture(e.pointerId); } catch (_) { } };
+      track.addEventListener('pointerup', end);
+      track.addEventListener('pointercancel', () => { start = null; dragging = false; });   // the browser took it for scrolling: nothing selected
+    }
     return () => r.hasAttribute('data-untouched') ? null : +r.value;
   }
   const on = (host, id, fn) => { const b = $(`[data-act="${id}"]`, host); if (b) b.addEventListener('click', fn); return b; };
