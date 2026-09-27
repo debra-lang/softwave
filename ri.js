@@ -261,7 +261,7 @@
     wire(h) { on(h, 'back', () => { S.lastTrialEnd = Date.now(); nextTrial(); }); on(h, 'stop', () => endSession('user_stop')); }
   });
   SCREENS.track = () => ({
-    html: `<h2 class="ri-h">Your tinnitus became quieter</h2><p class="ri-p">Let’s see how long the change lasts.</p>
+    html: `<h2 class="ri-h">Your tinnitus became quieter</h2><p class="ri-p">When your tinnitus returns to its usual level, tap the button below. You don’t need to do anything while it stays quieter.</p>
       <div class="ri-actions">${btn('back', 'Back to my usual level')}<div class="ri-row">${btn('louder', 'It became louder', 'btn-ghost btn-sm')}${btn('unsure', 'I’m not sure', 'btn-ghost btn-sm')}</div></div>
       <p class="muted small ri-center" id="ri-track-note" hidden>Still quieter? That’s fine — we’ll finish today’s session when you’re back to usual.</p>`,
     wire(h) {

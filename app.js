@@ -194,7 +194,7 @@
     if (window.softwaveRI) return Promise.resolve();
     if (riPromise) return riPromise;
     const load = src => new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = src; s.defer = true; s.onload = resolve; s.onerror = () => reject(new Error('load ' + src)); document.head.appendChild(s); });
-    riPromise = load('ri-protocol.js?v=2').then(() => load('ri.js?v=5')).catch(e => { riPromise = null; throw e; });
+    riPromise = load('ri-protocol.js?v=2').then(() => load('ri.js?v=6')).catch(e => { riPromise = null; throw e; });
     return riPromise;
   }
   // the home and Experiments cards reflect the profile summary the lab keeps in storage
