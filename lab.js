@@ -228,16 +228,16 @@
     let fp = $('.profile-fp', el.parentElement); if (!fp) { fp = document.createElement('div'); fp.className = 'profile-fp'; fp.innerHTML = '<canvas aria-label="Your sound fingerprint — an abstract picture of your preferences"></canvas>'; el.parentElement.insertBefore(fp, el); liveShape($('canvas', fp), () => { const pp = profileParams(); return { p: pp ? Object.assign({}, pp, { nature: profile().nature }) : Object.assign(DEF(), { colour: 0.45, width: 0.5 }), live: false, speed: 0.6, scale: 0.4 }; }); }
     if (!pr.rounds) {
       el.innerHTML = `<p class="muted">Complete Find My Sound to create your personal sound profile.</p><div class="btn-row"><button class="btn btn-primary btn-sm" data-p="find">Find My Sound</button></div>`;
-      $('[data-p="find"]', el).addEventListener('click', () => openExperiment('discovery')); return;
+      $('[data-p="find"]', el).addEventListener('click', () => { if (app.showView) app.showView('lab'); openExperiment('discovery', { from: { kind: 'entry' } }); }); return;
     }
     el.innerHTML = `${pr.rounds ? `<p>You seem to prefer:</p><ul class="bullets">${pr.lines.map(l => `<li>${l}</li>`).join('')}</ul><p class="muted small">Learned from ${pr.rounds} comparison${pr.rounds === 1 ? '' : 's'} in Find My Sound.</p>` : `<p>Nothing learned yet. Run <strong>Help Me Find My Sound</strong> — about ten quick comparisons — and Find My Quiet Sound will summarise what you preferred here.</p>`}
       <div class="btn-row"><button class="btn btn-primary btn-sm" data-p="play" ${pr.rounds ? '' : 'disabled'}>Play my sound</button><button class="btn btn-secondary btn-sm" data-p="sound" ${pr.rounds ? '' : 'disabled'}>Fine tune</button><button class="btn btn-secondary btn-sm" data-p="visual" ${pr.rounds ? '' : 'disabled'}>Add visual</button><button class="btn btn-secondary btn-sm" data-p="sleep" ${pr.rounds ? '' : 'disabled'}>Build sleep session</button><button class="btn btn-ghost btn-sm" data-p="explore">Try another experiment</button></div>
       <p class="muted small">A sound preference profile — not a hearing profile, not a diagnosis. Built only from your own taps; stored only on this device. <button class="btn btn-ghost btn-sm" data-p="clear">Clear</button></p>`;
     $('[data-p="play"]', el).addEventListener('click', async () => { safeMaster(); await engine.loadMix(soundMix({ params: pr.pp, nature: pr.nature, natureVol: 0.3 })); app.toast('Playing the sound you preferred.'); });
-    $('[data-p="sound"]', el).addEventListener('click', async () => { safeMaster(); await engine.loadMix(soundMix({ params: pr.pp, nature: pr.nature, natureVol: 0.3 })); await openSculptorRunning(pr.pp, pr.nature); });
+    $('[data-p="sound"]', el).addEventListener('click', async () => { if (app.showView) app.showView('lab'); safeMaster(); await engine.loadMix(soundMix({ params: pr.pp, nature: pr.nature, natureVol: 0.3 })); await openSculptorRunning(pr.pp, pr.nature); });
     $('[data-p="sleep"]', el).addEventListener('click', async () => { app.toast('Building your sleep session from your Sound Profile…'); safeMaster(); const p = Object.assign({}, pr.pp, { colour: Math.min(pr.pp.colour, 0.45), soft: Math.min(pr.pp.soft, -0.2), moving: 0 }); await engine.loadMix(soundMix({ params: p, nature: pr.nature === 'none' ? 'rain' : pr.nature, natureVol: 0.25 }, 0.5)); engine.setTimer(60, true); app.showView('sleep'); app.toast('Sleep session ready — 60-minute timer with gentle fade. Opening your sleep screen…', 4200); if (app.scheduleAutoAdvance) app.scheduleAutoAdvance('sleep', 4000); });
     $('[data-p="visual"]', el).addEventListener('click', async () => { if (!engine.activeList().length) { safeMaster(); await engine.loadMix(soundMix({ params: pr.pp, nature: pr.nature, natureVol: 0.3 })); } focus.setVisual(visualForProfile()); focus.enterFocus(); });
-    $('[data-p="explore"]', el).addEventListener('click', () => $('#thelab').scrollIntoView({ behavior: 'smooth' }));
+    $('[data-p="explore"]', el).addEventListener('click', () => { if (app.showView) app.showView('lab'); setTimeout(() => { const t = $('#thelab'); if (t) t.scrollIntoView({ behavior: 'smooth' }); }, 80); });
     $('[data-p="clear"]', el).addEventListener('click', () => { ['lab:prefs2', 'lab:feedback', 'playcounts'].forEach(k => store.del(k)); renderProfile(); renderLists(); document.dispatchEvent(new CustomEvent('softwave:profile')); app.toast('Profile cleared'); });
   }
   const sculptSettingsFrom = (p, nature) => ({ colour: p.colour, warm: Math.round(p.warm * 100), deep: Math.round(p.deep * 100), smooth: Math.round(p.smooth * 100), soft: Math.round(p.soft * 100), width: Math.round(p.width * 100), moving: Math.round(p.moving * 100), rich: Math.round(p.rich * 100), nature: nature || 'none' });
@@ -248,7 +248,7 @@
   const EXPERIMENTS = [
     // ---------- DISCOVER ----------
     {
-      id: 'discovery', name: 'Find My Sound', cat: 'Discover', featured: true, premium: true, evidence: 'promising', from: 'Preference learning by pairwise comparison (also used to personalise hearing aids)',
+      id: 'discovery', name: 'Find My Sound', cat: 'Discover', featured: true, hub: true, premium: true, evidence: 'promising', from: 'Preference learning by pairwise comparison (also used to personalise hearing aids)',
       what: 'Two sounds, A and B. Switch between them as often as you like and say which feels more comfortable. The winner is kept and gently varied each round. After about ten rounds you have your preferred sound.',
       why: 'Everyone’s tinnitus is different, and so is the sound that feels comfortable next to it. Comparing two things at a time is the easiest way to find out what you actually prefer — no sliders, no jargon.',
       how: 'Press Start. Listen to A, tap B, listen again, then choose. “Comfortable” means easy to listen to — the sound you could leave on and forget about, not the most interesting one. "No difference" is a perfectly good answer. Keep the volume low.',
@@ -1351,7 +1351,7 @@
   // ---------- lists ----------
   function renderLists() {
     const host = $('#lab-list'); host.innerHTML = '';
-    CATS.forEach(([cat, blurb]) => { const sec = document.createElement('section'); sec.className = 'lab-group'; sec.innerHTML = `<h3 class="lab-group-title">${cat}</h3><p class="muted small">${blurb}</p><div class="lab-grid"></div>`; EXPERIMENTS.filter(e => e.cat === cat).forEach(e => $('.lab-grid', sec).appendChild(card(e))); host.appendChild(sec); });
+    CATS.forEach(([cat, blurb]) => { const sec = document.createElement('section'); sec.className = 'lab-group'; sec.innerHTML = `<h3 class="lab-group-title">${cat}</h3><p class="muted small">${blurb}</p><div class="lab-grid"></div>`; EXPERIMENTS.filter(e => e.cat === cat && !e.hub).forEach(e => $('.lab-grid', sec).appendChild(card(e))); host.appendChild(sec); });
     // history: sections are rendered only when they contain data — no headings over blank space
     const f = fb();
     const groups = [
@@ -1375,11 +1375,11 @@
     }
     updateRunningUI();
   }
-  $('#lab-start-discovery').addEventListener('click', () => openExperiment('discovery'));
+  const sdLab = $('#view-lab #lab-start-discovery'); if (sdLab) sdLab.addEventListener('click', () => openExperiment('discovery'));   // the button now lives in the Find My Sound section (app.js routes it)
   const lf = $('#lab-field'); if (lf) liveShape(lf, () => ({ field: true }));
   const flag = $('#lab-flagship canvas'); if (flag) liveShape(flag, () => { const pp = profileParams(); return { p: pp ? Object.assign({}, pp, { nature: profile().nature }) : Object.assign(DEF(), { colour: 0.4, width: 0.5, moving: 0.2 }), live: true, speed: 0.7, scale: 0.4 }; });
 
-  window.softwaveLab = { open: (id, opts) => openExperiment(id, opts), stop: stopRunning, revealPanel, experiments: EXPERIMENTS, isRunning: () => !!running,
+  window.softwaveLab = { open: (id, opts) => openExperiment(id, opts), stop: stopRunning, revealPanel, renderProfile, experiments: EXPERIMENTS, isRunning: () => !!running,
     // Arriving at the Experiments page shows the LIST, with three protected states: a
     // running experiment, a feedback card the user has not been shown yet, and (for
     // history/Back arrivals) the completed Find My Sound result. A merely-opened placard

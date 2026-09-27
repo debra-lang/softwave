@@ -55,7 +55,7 @@
   $('#theme-toggle').addEventListener('click', () => applyTheme(root.dataset.theme === 'dark' ? 'light' : 'dark'));
 
   // ---------- views ----------
-  const views = ['sounds', 'focus', 'lab', 'mixer', 'frequency', 'match', 'sleep', 'learn', 'ri'];
+  const views = ['sounds', 'focus', 'lab', 'mixer', 'frequency', 'match', 'sleep', 'learn', 'ri', 'find', 'profile'];
   // The app owns all scroll positions (every navigation re-scrolls deliberately);
   // the browser's async restoration on Back would fight and override those scrolls.
   try { if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; } catch (_) { }
@@ -95,8 +95,6 @@
     // stale; the popstate handler swallows those silently on a later Back).
     const collapsed = layers.stack.length;
     if (collapsed) { while (layers.stack.length) { try { layers.stack.pop()(); } catch (_) { } } }
-    // #find = the Find My Sound feature (lives in the Lab): show the Lab and open it directly
-    if (name === 'find') { const wanted = tabReplace(opts) ? 'replace' : 'push'; showView('lab', { push: false, keepHash: true }); layers.stale += collapsed; if (location.hash !== '#find') { if (wanted === 'replace' && collapsed) layers.stale--; writeState(wanted, '#find'); } $$('.nav a').forEach(a => a.classList.toggle('active', a.dataset.view === 'find')); ensureLab().then(() => { if (window.softwaveLab) softwaveLab.open('discovery', { from: { kind: 'entry' } }); }).catch(() => { }); updateBackBtn(); return; }
     if (!views.includes(name)) name = 'sounds';
     if (name === 'lab') {
       ensureLab();
@@ -111,6 +109,9 @@
     if (prevView && prevView.id === 'view-match' && name !== 'match') matchStop();   // a matching tone is a test signal, not background audio
     if (prevView && prevView.id === 'view-ri' && name !== 'ri' && window.softwaveRI) softwaveRI.leave();   // a sound test never continues off-screen
     if (name === 'ri') ensureRI().then(() => softwaveRI.open()).catch(() => toast('Could not load the experiment. Please try again.'));
+    // the one profile view: lab.js renders the preference profile into it; the Sound Response summary comes from storage
+    if (name === 'profile') { syncProfileCards(); ensureLab().then(() => { if (window.softwaveLab && softwaveLab.renderProfile) softwaveLab.renderProfile(); }).catch(() => { }); }
+    if (name === 'find') { syncProfileCards(); ensureLab().catch(() => { }); }   // the lab animates the Find My Sound panel's orb and renders the profile
     views.forEach(v => { const el = $('#view-' + v); el.hidden = v !== name; el.classList.toggle('active', v === name); });
     $$('.nav a').forEach(a => a.classList.toggle('active', a.dataset.view === name));
     // Collapsed layers left history entries behind: count them as stale so Back swallows them —
@@ -184,7 +185,7 @@
   function ensureLab() {
     if (window.softwaveLab) return Promise.resolve();
     if (labPromise) return labPromise;
-    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=102'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
+    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=103'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
     return labPromise;
   }
   window.softwaveEnsureLab = ensureLab;
@@ -194,7 +195,7 @@
     if (window.softwaveRI) return Promise.resolve();
     if (riPromise) return riPromise;
     const load = src => new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = src; s.defer = true; s.onload = resolve; s.onerror = () => reject(new Error('load ' + src)); document.head.appendChild(s); });
-    riPromise = load('ri-protocol.js?v=2').then(() => load('ri.js?v=7')).catch(e => { riPromise = null; throw e; });
+    riPromise = load('ri-protocol.js?v=2').then(() => load('ri.js?v=8')).catch(e => { riPromise = null; throw e; });
     return riPromise;
   }
   // the home and Experiments cards reflect the profile summary the lab keeps in storage
@@ -207,8 +208,19 @@
       if (t) t.textContent = 'Continue Your Sound Response Profile'; if (d) d.textContent = 'We\u2019ve started learning how your tinnitus responds.'; if (c) c.textContent = 'Continue exploring \u2192';
       if (st) { st.hidden = false; st.textContent = `${s.tested} sound${s.tested === 1 ? '' : 's'} tested \u00b7 ${s.reductions} temporary change${s.reductions === 1 ? '' : 's'}`; }
     });
+    if (typeof syncProfileCards === 'function') syncProfileCards();
   }
-  syncRiCards();
+  // hub + Experiments profile links and the profile view's Sound Response block reflect what is stored
+  function syncProfileCards() {
+    const n = (store.get('lab:prefs2') || {}).n || 0;
+    $$('[data-find-profile]').forEach(el => { el.textContent = n ? `Learned from ${n} comparison${n === 1 ? '' : 's'} in Find My Sound. Open it to play, fine-tune or clear.` : 'Complete Help Me Find My Sound to create your sound preference profile.'; });
+    const s = store.get('ri:summary'); const started = !!(s && (s.sessions || s.tested));
+    const line = $('[data-profile-ri-line]'), cta = $('[data-profile-ri-cta]');
+    if (line) line.textContent = started ? `${s.sessions} session${s.sessions === 1 ? '' : 's'} · ${s.tested} sound${s.tested === 1 ? '' : 's'} tested · ${s.reductions} temporary reduction${s.reductions === 1 ? '' : 's'}.` : 'Nothing tested yet. Discover What Changes Your Tinnitus starts with three short sound tests.';
+    if (cta) cta.textContent = started ? 'Open my Sound Response Profile →' : 'Start exploring →';
+  }
+  document.addEventListener('softwave:profile', syncProfileCards);
+  syncRiCards(); syncProfileCards();
 
   // ---------- background ----------
   const bg = new Background($('#bg'), engine); window.softwaveBg = bg;
@@ -382,6 +394,7 @@
 
   const openDiscovery = async () => { const opener = document.activeElement; showView('lab'); try { await ensureLab(); window.softwaveLab.open('discovery', { from: { kind: 'entry' }, opener }); } catch (e) { toast(e.message); } };
   $('#home-discover').addEventListener('click', openDiscovery); $('#home-tool-discover').addEventListener('click', openDiscovery);
+  const sdBtn = $('#lab-start-discovery'); if (sdBtn) sdBtn.addEventListener('click', openDiscovery);
   $('#home-start').addEventListener('click', async () => { if (engine.activeList().length) { await engine.playAll(); openNow(); return; } await loadPreset(PRESETS[0]); openNow(); });
 
   // ---------- Sound preference profile, available app-wide (read-only summary; the Lab owns the details) ----------
@@ -1221,8 +1234,8 @@
       const br = d.querySelector('[data-back-result]');
       if (br) { br.click(); setTimeout(updateBackBtn, 120); return; }
       if (lab && lab.isRunning()) { lab.stop('Experiment stopped'); if (lab.revealPanel) lab.revealPanel(); setTimeout(updateBackBtn, 120); return; }
-      // On the Find My Sound tab the placard IS the page — it is the section's root.
-      if (location.hash !== '#find') {
+      // Opened from the Find My Sound section, the placard IS the page: Back returns to the section (step 4).
+      if (location.hash !== '#find' && !(labEntry && labEntry.view === 'find')) {
         const c = d.querySelector('[data-close]');
         if (c) { c.click(); setTimeout(updateBackBtn, 120); return; }
         d.hidden = true; d.innerHTML = ''; setTimeout(updateBackBtn, 120); return;
@@ -1308,7 +1321,7 @@
     const x = $('#match-close'); if (!x || x.hidden || !escapeFree(e)) return;
     e.preventDefault(); x.click();
   });
-  window.softwaveApp = { afterDone, escapeFree, leaveLab, syncRiCards, leaveTool, markMatchReturn: (exp) => { if (matchOrigin) matchOrigin.exp = exp; }, customTimerForm, layerPush, layersClose, layerReplace, topLayerIs, afterLayerClose, updateBackBtn, armIntent, cancelIntent, cancelIntents, pendingIntents, renderPresetsRemount, loadPreset, saveCurrentMix, restoreMix, openSaveSheet, openManageMenu, openMixMenu, savedSessions, soundVol, SAVED_ICO, setMaster, togglePlay, toast, store, PRESETS, paintRange, showView, scheduleAutoAdvance, renderPresets: renderPresetsRemount };
+  window.softwaveApp = { afterDone, escapeFree, leaveLab, syncRiCards, syncProfileCards, leaveTool, markMatchReturn: (exp) => { if (matchOrigin) matchOrigin.exp = exp; }, customTimerForm, layerPush, layersClose, layerReplace, topLayerIs, afterLayerClose, updateBackBtn, armIntent, cancelIntent, cancelIntents, pendingIntents, renderPresetsRemount, loadPreset, saveCurrentMix, restoreMix, openSaveSheet, openManageMenu, openMixMenu, savedSessions, soundVol, SAVED_ICO, setMaster, togglePlay, toast, store, PRESETS, paintRange, showView, scheduleAutoAdvance, renderPresets: renderPresetsRemount };
 
   // ---------- init ----------
   renderSounds(); renderPresets(); renderMixer([]); updatePlayer(); renderProfileHooks(); if (window.SoftwaveField) syncField();

@@ -1640,6 +1640,22 @@ html[data-theme="dark"] .lab-view { --lab-bg-a: #0f1320; --lab-bg-b: #090b12; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 @media (prefers-reduced-motion: reduce) { .ri-dot { animation: none; opacity: .5; } .ri-feature, .ri-card { transition: none; } .ri-feature:hover { transform: none; } }
 
+/* ---------- Find My Sound (section) and My Sound Profile (one profile, two doors) ---------- */
+.find-view .hero, .profile-view .hero { margin-bottom: 18px; }
+.find-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; max-width: 980px; margin: 0 auto 26px; }
+.find-card { display: flex; flex-direction: column; gap: 8px; padding: 22px; border-radius: 24px; border: 1px solid var(--border); background: var(--card-solid); color: inherit; text-decoration: none; box-shadow: 0 10px 30px rgba(0,0,0,.08); transition: transform .25s, border-color .25s; }
+.find-card:hover { transform: translateY(-2px); border-color: var(--accent); }
+.find-card h3 { margin: 0; font-size: 1.25rem; line-height: 1.2; text-wrap: balance; }
+.find-card p { margin: 0; color: var(--muted); }
+.find-cat { font-size: .72rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
+.find-cta { align-self: flex-start; pointer-events: none; margin-top: 6px; }
+.find-grid .ri-feature { grid-column: 1 / -1; max-width: none; margin: 0; }
+#view-lab .profile-link { max-width: 980px; margin: 0 auto 26px; }
+.profile-view .lab-profile-card, .profile-ri-card { max-width: 980px; margin: 0 auto 22px; }
+.profile-ri-card h2 { font-size: 1.15rem; margin: 0 0 8px; }
+.profile-ri-card .btn-row { margin: 8px 0 10px; }
+@media (prefers-reduced-motion: reduce) { .find-card { transition: none; } .find-card:hover { transform: none; } }
+
 /* ---------- Sound Response: every tap answers (≥150 ms pressed state set by ri.js), every retained choice stays visible ---------- */
 #view-ri .btn, #view-ri .ri-card, #view-ri .ri-seg button, #view-ri .ri-check, [data-ri-card] { transition: transform .12s, box-shadow .12s, background .12s, border-color .12s, filter .12s; }
 #view-ri .is-pressed, [data-ri-card].is-pressed { transition: none; transform: scale(.97); }

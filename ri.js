@@ -41,6 +41,8 @@
     return null;
   }
   const locationWord = m => !m ? null : m.balance != null ? (m.balance < 0 ? 'left' : m.balance > 0 ? 'right' : 'both') : (m.where || null);
+  // the response sound = the candidate that has repeatedly been followed by a temporary change (confirmed), refined if refinement has locked in
+  function responseSound() { const p = profile(); const c = P.bestCandidate(p); return c && c.status === 'confirmed' ? c : null; }
 
   // ---------- stimulus generator (controlled, reproducible, RMS-matched) ----------
   const Stim = {
@@ -216,17 +218,49 @@
     const p = profile(); const plan = P.planSession(JSON.parse(JSON.stringify(p)), { tinnitusHz: (knownMatch() || {}).hz || 1000, sampleRate: 48000 });
     const n = plan.queue.length; const est = n ? `${Math.max(2, Math.round(n * 1.4))}–${Math.max(3, Math.round(n * 2.2))} minutes` : '';
     if (!n) return SCREENS.nothing();
+    const rs = responseSound();
     return {
       html: `${eyebrow('Discover What Changes Your Tinnitus')}<h2 class="ri-h">Ready to continue?</h2>
         <p class="ri-p">Today’s session should take about ${est}.</p>
-        <div class="ri-actions">${btn('start', 'Start today’s session →')}${btn('profile', 'View my Sound Response Profile', 'btn-ghost')}</div>`,
-      wire(h) { on(h, 'start', () => { track('ri_returning_session_started'); afterWelcome(); }); on(h, 'profile', () => show('profile')); }
+        <div class="ri-actions">${btn('start', rs ? 'Continue testing →' : 'Start today’s session →')}${rs ? btn('listen', 'Listen to my response sound', 'btn-secondary') : ''}${btn('profile', 'View my Sound Response Profile', 'btn-ghost')}</div>`,
+      wire(h) { on(h, 'start', () => { track('ri_returning_session_started'); afterWelcome(); }); on(h, 'listen', () => show('listenSound')); on(h, 'profile', () => show('profile')); }
     };
   };
   SCREENS.nothing = () => ({
-    html: `<h2 class="ri-h">Nothing more to test for now</h2><p class="ri-p">We’ve completed the sounds this version explores. Your Sound Response Profile keeps everything we learned.</p><div class="ri-actions">${btn('profile', 'View my Sound Response Profile →')}</div>`,
-    wire(h) { on(h, 'profile', () => show('profile')); }
+    html: `<h2 class="ri-h">Nothing more to test for now</h2><p class="ri-p">We’ve completed the sounds this version explores. Your Sound Response Profile keeps everything we learned.</p><div class="ri-actions">${responseSound() ? btn('listen', 'Listen to my response sound', 'btn-secondary') : ''}${btn('profile', 'View my Sound Response Profile →')}</div>`,
+    wire(h) { on(h, 'listen', () => show('listenSound')); on(h, 'profile', () => show('profile')); }
   });
+  // Listening to the response sound is outside the experiment: the same controlled stimulus at the
+  // user's experiment level, for one fixed play of the protocol length, nothing recorded, nothing timed, never a treatment.
+  SCREENS.listenSound = () => {
+    const c = responseSound(); if (!c) return SCREENS.profile();
+    const m = knownMatch(); const hz = m ? m.hz : 1000; const words = P.describe(c.params, hz);
+    const busy = engine.activeList().length || (engine.tone && engine.tone.playing);
+    return {
+      html: `${eyebrow('Your response sound')}<h2 class="ri-h">Listen to my response sound</h2>
+        <p class="ri-p"><strong>${esc(words)}</strong></p>
+        <p class="ri-p">This is the sound that has most consistently been followed by a temporary change in your tinnitus so far. It plays for ${C.stimulusSeconds} seconds at your experiment level, then stops.</p>
+        <p class="muted small">Listening here is outside the experiment: nothing is recorded or timed, and it is not a treatment. Keep the level comfortable.</p>
+        ${busy ? `<p class="ri-status" id="ri-play-busy">Other sounds are playing. Stop them to hear this sound on its own.</p>` : ''}
+        <div class="ri-count" id="ri-play-count" hidden aria-live="off">${mmss(C.stimulusSeconds)}</div>
+        <div class="ri-actions" id="ri-play-actions">${busy ? btn('quietplay', 'Stop sounds and listen', 'btn-primary') : btn('play', 'Play →', 'btn-primary')}${btn('stop', 'Stop', 'btn-secondary', 'hidden')}${btn('back', 'Back', 'btn-ghost')}</div>
+        <div id="ri-play-done" hidden><h3 class="ri-h3">That’s the end of this listen.</h3><div class="ri-actions">${btn('again', 'Play again', 'btn-secondary')}${btn('back2', 'Back to my profile', 'btn-ghost')}</div></div>`,
+      wire(h) {
+        const cnt = $('#ri-play-count', h), stop = $('[data-act="stop"]', h), done = $('#ri-play-done', h), play = $('[data-act="play"]', h), qp = $('[data-act="quietplay"]', h), busyNote = $('#ri-play-busy', h);
+        const start = async () => {
+          done.hidden = true; if (play) play.hidden = true; if (qp) qp.hidden = true; if (busyNote) busyNote.hidden = true;
+          const ok = await playResponseSound(c, () => { cnt.hidden = true; stop.hidden = true; done.hidden = false; }, left => { cnt.textContent = mmss(Math.ceil(left)); });
+          if (!ok) { app.toast('Sound couldn’t start. Check the device volume and try again.'); if (play) play.hidden = false; return; }
+          cnt.hidden = false; stop.hidden = false; track('ri_response_sound_played');
+        };
+        if (play) on(h, 'play', start);
+        if (qp) on(h, 'quietplay', () => { engine.stopAll(); start(); });
+        on(h, 'stop', () => { stopPlay(); cnt.hidden = true; stop.hidden = true; done.hidden = false; });
+        on(h, 'again', start);
+        const back = () => { stopPlay(); show('profile'); }; on(h, 'back', back); on(h, 'back2', back);
+      }
+    };
+  };
   SCREENS.trialBaseline = () => ({
     html: `${eyebrow(`Sound ${S.session.qi + 1} of ${S.session.plan.queue.length}`)}<h2 class="ri-h">Right now, before this sound — how noticeable is your tinnitus?</h2>${scale('t', null)}
       <div class="ri-actions">${btn('start', 'Start the sound →', 'btn-primary', 'disabled')}${btn('stop', 'Stop for today', 'btn-ghost btn-sm')}</div>`,
@@ -331,7 +365,7 @@
       : sum.stageIndex === 0 ? (sum.valid ? 'We’re trying a small set of carefully chosen sounds to see whether any are followed by a temporary change.' : 'Your first session will try three carefully chosen sounds.')
       : sum.stageIndex === 1 ? 'A sound was followed by a temporary reduction once. We’re checking whether that repeats before reading anything into it.'
       : 'Certain sounds have repeatedly been followed by temporary reductions in your tinnitus. We’re now checking how specific that response is.';
-    const canContinue = !sum.concluded;
+    const canContinue = !sum.concluded; const rs = responseSound();
     const mc = sum.mostConsistent && sum.mostConsistent.pos >= 2 ? `<div class="ri-stat-row"><span class="label-sm">Most consistent response</span><strong>Quieter in ${sum.mostConsistent.pos} of ${sum.mostConsistent.valid} repeat tests</strong></div>` : '';
     // durations: the median is "typical" (3+ observations); min–max is the "observed range" (2+ distinct); longest always
     const row = (l, v) => `<div class="ri-stat-row"><span class="label-sm">${l}</span><strong>${v}</strong></div>`;
@@ -349,13 +383,13 @@
         ${mc}${dur}
         <ol class="ri-progress" aria-label="Progress">${steps.map((s, i) => `<li class="${i < sum.stageIndex ? 'is-done' : i === sum.stageIndex ? 'is-now' : ''}"><span></span>${s}</li>`).join('')}</ol>
         <p class="ri-p">${learning}</p>
-        <div class="ri-actions">${canContinue ? btn('continue', sum.sessions ? 'Continue discovering →' : 'Start exploring →') : ''}${btn('home', 'Back to Sounds', 'btn-ghost')}</div>
+        <div class="ri-actions">${canContinue ? btn('continue', rs ? 'Continue testing →' : sum.sessions ? 'Continue discovering →' : 'Start exploring →') : ''}${rs ? btn('listen', 'Listen to My Response Sound', 'btn-secondary') : ''}${btn('home', 'Back to Sounds', 'btn-ghost')}</div>
         <details class="ri-details ri-tech"><summary>View experiment details</summary>
           <p class="small">${m ? `Tinnitus match: ${fmt(m.hz)} Hz${locationWord(m) ? ', ' + locationWord(m) + (locationWord(m) === 'both' ? ' ears' : ' ear') : ''} (from ${m.source}${m.when ? ', ' + new Date(m.when).toLocaleDateString() : ''}).` : 'No tinnitus match yet.'} Each sound plays for ${C.stimulusSeconds} seconds at your chosen level, level-matched across sounds, followed by ${C.quietGapSeconds} seconds of silence before the question. A sound counts as repeatable when it is followed by a reduction in at least ${C.replication.positiveOf} of ${C.replication.outOf} separate tests — a design choice, not a medical threshold.</p>
           ${rows ? `<ul class="bullets small ri-rows">${rows}</ul>` : '<p class="muted small">No sounds tested yet.</p>'}
           <p class="muted small">Protocol ${esc(P.version())} · algorithm ${esc(P.ALGORITHM_VERSION)} · stored only on this device. <button type="button" class="linklike" data-act="wipe">Delete my Sound Response data</button></p><div data-wipe-box></div></details>`,
       wire(h) {
-        on(h, 'continue', () => { if (sum.sessions) show('ready'); else afterWelcome(); }); on(h, 'home', () => leaveView());
+        on(h, 'continue', () => { if (sum.sessions) show('ready'); else afterWelcome(); }); on(h, 'listen', () => show('listenSound')); on(h, 'home', () => leaveView());
         on(h, 'wipe', () => { const box = $('[data-wipe-box]', h); if (box.children.length) return; box.innerHTML = `<div class="inline-form" role="group" aria-label="Confirm deletion"><span style="flex-basis:100%">Delete every session, sound test and this profile from this device? This cannot be undone.</span><button type="button" class="btn btn-ghost btn-sm btn-danger" data-act="wipe-yes">Delete everything</button><button type="button" class="btn btn-ghost btn-sm" data-act="wipe-no">Cancel</button></div>`; on(h, 'wipe-no', () => { box.innerHTML = ''; }); on(h, 'wipe-yes', () => { wipe(); app.toast('Sound Response data deleted.'); show('profile'); }); });
       }
     };
@@ -427,6 +461,25 @@
   }
   async function setSampleLevel() { if (!S.sample) return; const g = await Stim.gainFor(S.sample.spec, S.session.level); if (S.sample) S.sample.node.gain.gain.setTargetAtTime(g, engine.ctx.currentTime, 0.08); }
   function stopSample() { if (!S.sample) return; const s = S.sample; S.sample = null; try { s.node.gain.gain.setTargetAtTime(0, engine.ctx.currentTime, 0.08); } catch (_) { } setTimeout(() => Stim.tearDown(s.node), 400); }
+  // playback outside the experiment: the same generator, one fixed length, nothing recorded
+  async function playResponseSound(c, onEnd, onTick) {
+    stopPlay();
+    if (!(await ensureAudio())) return false;
+    engine.notchClear(); engine.resetMasterShape();
+    const m = knownMatch(); const spec = P.stimulus(c.params, m ? m.hz : 1000, engine.ctx.sampleRate);
+    let g; try { g = await Stim.gainFor(spec, store.get('ri:level', 0.3)); } catch (_) { return false; }
+    if (S.screen !== 'listenSound') return false;
+    const ctx = engine.ctx; const node = Stim.graph(ctx, spec, engine.trim); const t0 = ctx.currentTime + 0.05;
+    node.src.start(t0); node.gain.gain.setValueAtTime(0, t0); node.gain.gain.linearRampToValueAtTime(g, t0 + C.fadeSeconds);
+    const P0 = { node, ctx, t0, ending: false }; S.play = P0;
+    S.tick = setInterval(() => {
+      if (S.play !== P0) return; const left = C.stimulusSeconds - (ctx.currentTime - t0); onTick(left);
+      if (!P0.ending && left <= C.fadeSeconds) { P0.ending = true; node.gain.gain.cancelScheduledValues(ctx.currentTime); node.gain.gain.setValueAtTime(node.gain.gain.value, ctx.currentTime); node.gain.gain.linearRampToValueAtTime(0, ctx.currentTime + Math.max(0.05, left)); }
+      if (left <= 0) { stopPlay(); onEnd(); }
+    }, 200);
+    return true;
+  }
+  function stopPlay() { const p = S.play; S.play = null; if (S.tick) { clearInterval(S.tick); S.tick = null; } if (!p) return; try { p.node.gain.gain.cancelScheduledValues(p.ctx.currentTime); p.node.gain.gain.setTargetAtTime(0, p.ctx.currentTime, 0.03); } catch (_) { } setTimeout(() => Stim.tearDown(p.node), 200); }
   async function startListening() {
     show('listen');
     if (!(await ensureAudio())) { invalidateTrial('audio_failed'); endSession('audio_failed', 'audioFailed'); return; }
@@ -530,7 +583,7 @@
   // leaving the view (Back, menu, another tab): no sound continues, nothing partial counts
   function leaveView() { app.leaveTool ? app.leaveTool('ri') : app.showView('sounds'); }
   function leave() {
-    stopSample(); if (!S.session) { clearTimers(); return; }
+    stopSample(); stopPlay(); if (!S.session) { clearTimers(); return; }
     if (S.audio || S.gapGuard || (S.trial && !S.trial.immediate_response_category)) { stopAudio(); S.gapGuard = false; }
     endSession('left');
   }
