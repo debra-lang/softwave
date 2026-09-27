@@ -1673,25 +1673,41 @@ html[data-theme="dark"] .lab-view { --lab-bg-a: #0f1320; --lab-bg-b: #090b12; }
 #view-find .ri-feature-desc { margin: 0; max-width: none; }
 #view-find .ri-feature-stats { margin: 0; }
 #view-find .ri-feature-note { margin: 0; order: 8; }
-#view-find .find-cta, #view-find .ri-feature-cta { order: 9; margin-top: auto; padding-top: 0; align-self: flex-start; }
-#view-find .find-cta { margin-top: auto; }
-#view-find .find-card > .find-cta { margin-top: auto; }
-#view-find .ri-feature-cta { background: var(--accent-soft); color: var(--accent); box-shadow: none; }
+#view-find .ri-feature-cta { background: transparent; box-shadow: none; padding: 0; }
 @media (prefers-reduced-motion: reduce) { #view-find .find-card, #view-find .ri-feature { transition: none; } #view-find .find-card:hover, #view-find .ri-feature:hover, #view-find .find-card:focus-visible, #view-find .ri-feature:focus-visible, #view-find .find-card.is-pressed, #view-find .ri-feature.is-pressed { transform: none; } }
-/* the hero is an interactive feature card too: same frame, hover, focus and press language */
-#view-find .lab-flagship { border: 2px solid color-mix(in srgb, var(--accent) 48%, var(--border)); cursor: pointer; transition: transform .28s ease, border-color .28s ease, box-shadow .28s ease, background-color .28s ease; }
+/* the first card (Find My Sound) belongs to the same card system: compact, framed, same corners; illustration kept */
+#view-find .lab-flagship { border: 2px solid color-mix(in srgb, var(--accent) 48%, var(--border)); border-radius: 16px; cursor: pointer; margin: 0 auto 12px; padding: 18px 22px; gap: 18px; grid-template-columns: minmax(150px, 210px) 1fr; max-width: 980px; transition: transform .28s ease, border-color .28s ease, box-shadow .28s ease, background-color .28s ease; }
+#view-find .lab-flagship .lab-flag-obj { max-width: 210px; }
+#view-find .lab-flagship .lab-cat { font-size: .68rem; letter-spacing: .14em; color: var(--accent); font-weight: 800; }
+#view-find .lab-flagship h3 { font-size: clamp(1.35rem, 2.4vw, 1.8rem); margin: 4px 0 6px; }
+#view-find .lab-flagship p { font-size: .95rem; margin: 0 0 12px; max-width: 52ch; }
+#view-find .lab-flagship .btn-xl { padding: 12px 28px; font-size: 1.02rem; max-width: 360px; }
+#view-find .lab-flagship .muted.small { margin: 8px 0 0 !important; font-size: .82rem; }
+@media (max-width: 719px) { #view-find .lab-flagship { grid-template-columns: 1fr; padding: 16px; gap: 8px; } #view-find .lab-flagship .lab-flag-obj { max-width: 150px; } }
 @media (hover: hover) { #view-find .lab-flagship:hover { border-color: var(--accent); box-shadow: 0 0 0 4px var(--ring), 0 18px 44px color-mix(in srgb, var(--accent) 24%, transparent); background-color: color-mix(in srgb, var(--accent) 7%, var(--card-solid)); transform: translateY(-3px); } }
 #view-find .lab-flagship:focus-visible { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px var(--ring), 0 0 0 7px color-mix(in srgb, var(--accent) 40%, transparent), 0 18px 44px color-mix(in srgb, var(--accent) 24%, transparent); transform: translateY(-3px); }
 #view-find .lab-flagship.is-pressed { transition: none; transform: scale(.99); border-color: var(--accent); box-shadow: 0 0 0 4px var(--ring); }
-/* compact function cards: tighter padding and type, the action close below the text, no filler */
-#view-find .find-card, #view-find .ri-feature { padding: 18px 20px; gap: 6px; min-height: 0; }
-#view-find .find-card h3, #view-find .ri-feature-title { font-size: 1.12rem; line-height: 1.25; }
-#view-find .find-card p, #view-find .ri-feature-desc { font-size: .92rem; line-height: 1.45; }
-#view-find .ri-feature-orb { width: 32px; height: 32px; margin: 0 0 2px; }
-#view-find .ri-feature-eyebrow .muted, #view-find .ri-feature-note { display: none; }
-#view-find .ri-feature-body { gap: 6px; }
-#view-find .find-cta, #view-find .ri-feature-cta { padding: 9px 16px; font-size: .9rem; margin-top: 10px; }
-#view-find .find-grid { margin-top: 14px; }
+/* function cards after the reference: two compact cards side by side, My Sound Profile full width beneath;
+   name · one line · link action; Sound Response carries a small orb and a cyan-leaning edge as its only distinction */
+#view-find .find-grid { grid-template-columns: 1fr; gap: 12px; margin-top: 12px; align-items: stretch; }
+@media (min-width: 720px) { #view-find .find-grid { grid-template-columns: 1fr 1fr; } #view-find .find-card-wide { grid-column: 1 / -1; } }
+#view-find .find-card, #view-find .ri-feature { position: relative; display: flex; flex-direction: column; align-items: stretch; gap: 5px; padding: 14px 16px 13px; margin: 0; min-height: 0; max-width: none; grid-column: auto; border-radius: 16px; }
+#view-find .find-card-wide { grid-column: auto; }
+@media (min-width: 720px) { #view-find .find-card-wide { grid-column: 1 / -1; } }
+#view-find .find-cat { font-size: .66rem; letter-spacing: .13em; line-height: 1.3; }
+#view-find .find-card h3, #view-find .ri-feature-title { font-size: 1.08rem; line-height: 1.2; margin: 0; color: var(--text); }
+#view-find .find-card p, #view-find .ri-feature-desc, #view-find .ri-feature-stats { font-size: .9rem; line-height: 1.4; margin: 0; color: var(--muted); max-width: none; }
+#view-find .ri-feature-stats { font-weight: 700; color: var(--text); }
+#view-find .find-link { display: inline-block; margin-top: 4px; font-weight: 700; font-size: .92rem; color: var(--accent); pointer-events: none; }
+#view-find .find-card:hover .find-link, #view-find .find-card:focus-visible .find-link { text-decoration: underline; text-underline-offset: 3px; }
+#view-find .ri-feature-orb { position: absolute; top: 14px; right: 16px; width: 22px; height: 22px; margin: 0; box-shadow: 0 0 16px color-mix(in srgb, var(--accent-2) 45%, transparent); background: radial-gradient(circle at 35% 35%, color-mix(in srgb, var(--accent-2) 55%, white) 0, var(--accent-2) 45%, color-mix(in srgb, var(--accent-2) 35%, transparent) 72%, transparent 74%); }
+#view-find .ri-feature-body { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 0; }
+#view-find .ri-feature-note, #view-find .ri-feature-eyebrow { display: none; }
+#view-find .find-card-ri .find-cat { padding-right: 34px; }
+@media (min-width: 720px) { #view-find .find-card-wide { padding: 8px 16px 8px; gap: 3px; } }   /* the full-width profile card: no spare height */
+#view-find .find-card-ri { border-color: color-mix(in srgb, var(--accent-2) 60%, var(--border)); }
+@media (hover: hover) { #view-find .find-card-ri:hover { border-color: var(--accent-2); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-2) 30%, transparent), 0 18px 44px color-mix(in srgb, var(--accent-2) 22%, transparent); } }
+#view-find .find-card-ri:focus-visible { border-color: var(--accent-2); }
 @media (prefers-reduced-motion: reduce) { #view-find .lab-flagship { transition: none; } #view-find .lab-flagship:hover, #view-find .lab-flagship:focus-visible, #view-find .lab-flagship.is-pressed { transform: none; } }
 /* Experiments: a compact profile shortcut in the intro; experiment tiles respond like cards, in the lab's own accent */
 .lab-shortcuts { margin: 14px 0 0; }

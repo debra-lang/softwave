@@ -204,6 +204,12 @@
     $$('[data-ri-card]').forEach(card => {
       card.classList.toggle('is-started', started);
       const t = $('[data-ri-title]', card), d = $('[data-ri-desc]', card), c = $('[data-ri-cta]', card), st = $('[data-ri-stats]', card);
+      if (card.dataset.riCard === 'compact') {
+        if (d) d.textContent = started ? 'We\u2019ve started learning how your tinnitus responds.' : 'How your tinnitus responds to different sounds.';
+        if (c) c.textContent = started ? 'Continue exploring \u2192' : 'Start exploring \u2192';
+        if (st) { st.hidden = !started; if (started) st.textContent = `${s.tested} sound${s.tested === 1 ? '' : 's'} tested \u00b7 ${s.reductions} temporary change${s.reductions === 1 ? '' : 's'}`; }
+        return;
+      }
       if (!started) { if (t) t.textContent = 'Discover What Changes Your Tinnitus'; if (d) d.textContent = 'Explore how your tinnitus responds to different sounds. We\u2019ll learn from your responses and gradually build your personal Sound Response Profile.'; if (c) c.textContent = 'Start exploring \u2192'; if (st) st.hidden = true; return; }
       if (t) t.textContent = 'Continue Your Sound Response Profile'; if (d) d.textContent = 'We\u2019ve started learning how your tinnitus responds.'; if (c) c.textContent = 'Continue exploring \u2192';
       if (st) { st.hidden = false; st.textContent = `${s.tested} sound${s.tested === 1 ? '' : 's'} tested \u00b7 ${s.reductions} temporary change${s.reductions === 1 ? '' : 's'}`; }
@@ -213,7 +219,7 @@
   // hub + Experiments profile links and the profile view's Sound Response block reflect what is stored
   function syncProfileCards() {
     const n = (store.get('lab:prefs2') || {}).n || 0;
-    $$('[data-find-profile]').forEach(el => { el.textContent = n ? `Learned from ${n} comparison${n === 1 ? '' : 's'} in Find My Sound. Open it to play, fine-tune or clear.` : 'Complete Help Me Find My Sound to create your sound preference profile.'; });
+    $$('[data-find-profile]').forEach(el => { el.textContent = n ? `Learned from ${n} comparison${n === 1 ? '' : 's'} in Find My Sound \u2014 play, fine-tune or clear it.` : 'Your sound preferences and what you\u2019ve learned so far.'; });
     const s = store.get('ri:summary'); const started = !!(s && (s.sessions || s.tested));
     const line = $('[data-profile-ri-line]'), cta = $('[data-profile-ri-cta]');
     if (line) line.textContent = started ? `${s.sessions} session${s.sessions === 1 ? '' : 's'} · ${s.tested} sound${s.tested === 1 ? '' : 's'} tested · ${s.reductions} temporary reduction${s.reductions === 1 ? '' : 's'}.` : 'Nothing tested yet. Discover What Changes Your Tinnitus starts with three short sound tests.';
