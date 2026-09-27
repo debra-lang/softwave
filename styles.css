@@ -1603,6 +1603,8 @@ html[data-theme="dark"] .lab-view { --lab-bg-a: #0f1320; --lab-bg-b: #090b12; }
 .ri-scale-num { text-align: center; font-size: clamp(3rem, 12vw, 4.5rem); font-weight: 800; letter-spacing: -.03em; font-variant-numeric: tabular-nums; line-height: 1; margin-bottom: 8px; }
 .ri-scale input[type="range"] { width: 100%; height: 44px; }
 .ri-scale-ends { display: flex; justify-content: space-between; gap: 12px; font-size: .8rem; color: var(--muted); margin-top: 2px; }
+.ri-scale-hint { text-align: center; font-weight: 700; color: var(--accent); margin: 10px 0 0; }
+.ri-scale-hint[hidden] { display: none; }
 .ri-level { display: flex; flex-direction: column; gap: 12px; margin: 16px 0 8px; }
 .ri-level-label { display: flex; justify-content: space-between; font-weight: 700; }
 .ri-level input[type="range"] { width: 100%; height: 44px; }

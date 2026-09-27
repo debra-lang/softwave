@@ -98,12 +98,15 @@
   }
   const eyebrow = t => `<div class="ri-eyebrow">${t}</div>`;
   const btn = (id, label, cls = 'btn-primary', extra = '') => `<button type="button" class="btn ${cls} ri-btn" data-act="${id}" ${extra}>${label}</button>`;
+  // an untouched required scale says what to do (and tells assistive tech via aria-describedby); nothing is ever preselected
   const scale = (id, value) => `<div class="ri-scale" data-scale="${id}"><div class="ri-scale-num" aria-hidden="true">${value == null ? '—' : value}</div>
-      <input type="range" min="0" max="10" step="1" value="${value == null ? 5 : value}" aria-label="How noticeable, 0 barely to 10 extremely" ${value == null ? 'data-untouched' : ''}>
-      <div class="ri-scale-ends"><span>0 — Barely noticeable</span><span>10 — Extremely noticeable</span></div></div>`;
+      <input type="range" min="0" max="10" step="1" value="${value == null ? 5 : value}" aria-label="How noticeable, 0 barely to 10 extremely" ${value == null ? `data-untouched aria-describedby="ri-scale-hint-${id}"` : ''}>
+      <div class="ri-scale-ends"><span>0 — Barely noticeable</span><span>10 — Extremely noticeable</span></div>
+      ${value == null ? `<p class="ri-scale-hint" id="ri-scale-hint-${id}">Move the slider to rate how noticeable your tinnitus is right now.</p>` : ''}</div>`;
   function wireScale(host, id, onChange) {
     const box = $(`[data-scale="${id}"]`, host), r = $('input', box), num = $('.ri-scale-num', box);
-    const paint = () => { app.paintRange(r); num.textContent = r.value; r.setAttribute('aria-valuetext', r.value + ' of 10'); };
+    const hint = $('.ri-scale-hint', box);
+    const paint = () => { app.paintRange(r); num.textContent = r.value; r.setAttribute('aria-valuetext', r.value + ' of 10'); if (hint) hint.hidden = true; };
     if (!r.hasAttribute('data-untouched')) paint(); else app.paintRange(r);
     r.addEventListener('input', () => { r.removeAttribute('data-untouched'); paint(); onChange(+r.value); });
     r.addEventListener('change', () => { r.removeAttribute('data-untouched'); paint(); onChange(+r.value); });
