@@ -131,7 +131,7 @@
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <link rel="stylesheet" href="fonts/manrope.css?v=1">
   <link rel="stylesheet" href="fonts/fraunces.css?v=1">
-  <link rel="stylesheet" href="styles.css?v=146">
+  <link rel="stylesheet" href="styles.css?v=147">
   <script type="application/ld+json">
   {"@context":"https://schema.org","@graph":[
     {"@type":"Organization","@id":"https://findmyquietsound.com/#org","name":"Find My Quiet Sound","url":"https://findmyquietsound.com/","logo":"https://findmyquietsound.com/icons/icon-512.png","sameAs":["https://github.com/debra-lang/softwave"]},
@@ -262,7 +262,7 @@
           <div><h3>Who it is for</h3><p>People with tinnitus who want an easy, free way to add a comfortable background sound — at a desk, in a quiet room or at bedtime. It works with speakers, headphones or a pillow speaker, on phones, tablets and computers.</p></div>
           <div><h3>How to start</h3><p>Tap a sound, keep the level low — just enough to blend with the tinnitus — and try others until one feels comfortable. There is no single sound that works for everyone.</p></div>
         </div>
-        <p class="muted small">Sound masking and relaxation — not a medical treatment. Read <a href="learn/tinnitus-sound-masking/">what tinnitus masking is</a>, compare <a href="learn/white-vs-pink-vs-brown-noise/">white, pink and brown noise</a>, or browse all <a href="learn/">guides</a>. <a href="tinnitus-sound-generator/">About this tinnitus sound generator</a> · <a href="about/">About Find My Quiet Sound</a> · <a href="premium/">Free &amp; Premium</a>. <span class="muted small" id="build-tag">· v252</span></p>
+        <p class="muted small">Sound masking and relaxation — not a medical treatment. Read <a href="learn/tinnitus-sound-masking/">what tinnitus masking is</a>, compare <a href="learn/white-vs-pink-vs-brown-noise/">white, pink and brown noise</a>, or browse all <a href="learn/">guides</a>. <a href="tinnitus-sound-generator/">About this tinnitus sound generator</a> · <a href="about/">About Find My Quiet Sound</a> · <a href="premium/">Free &amp; Premium</a>. <span class="muted small" id="build-tag">· v253</span></p>
         </details>
       </section>
     </section>
@@ -504,7 +504,7 @@
         <h2 class="h1" id="find-title">Find what works for you.</h2>
         <p class="lead">Three ways to learn about your tinnitus and the sounds around it — and one profile that keeps what you’ve learned.</p>
       </div>
-      <div class="lab-flagship" id="lab-flagship">
+      <div class="lab-flagship" id="lab-flagship" tabindex="0" role="link" aria-label="Help Me Find My Sound">
         <div class="lab-flag-obj"><canvas aria-hidden="true"></canvas></div>
         <div class="lab-flag-body">
           <div class="lab-cat">Find My Sound</div>
@@ -606,31 +606,15 @@
           <div class="lab-eyebrow">Experiments</div>
           <h2 class="h1" id="lab-title">Explore sound differently.</h2>
           <p class="lead">Discover, shape and save the sound that works for you — then build sessions around it.</p>
+          <p class="lab-shortcuts"><a class="lab-shortcut" href="#profile" data-view="profile">My Sound Profile →</a></p>
         </div>
       </div>
-      <a class="ri-feature ri-feature-lab" href="#ri" data-view="ri" data-ri-card aria-label="Discover What Changes Your Tinnitus">
-        <div class="ri-feature-orb" aria-hidden="true"></div>
-        <div class="ri-feature-body">
-          <div class="ri-feature-eyebrow">Sound Response <span class="muted">· Residual Inhibition Lab</span></div>
-          <h3 class="ri-feature-title" data-ri-title>Discover What Changes Your Tinnitus</h3>
-          <p class="ri-feature-desc" data-ri-desc>Explore how your tinnitus responds to different sounds. We’ll learn from your responses and gradually build your personal Sound Response Profile.</p>
-          <p class="ri-feature-stats" data-ri-stats hidden></p>
-          <span class="btn btn-primary ri-feature-cta" data-ri-cta>Start exploring →</span>
-          <p class="ri-feature-note">Simple sound experiments · You can stop anytime</p>
-        </div>
-      </a>
       <div class="lab-notice">
         <strong>Experimental features</strong> are exploratory tools for relaxation, attention, sound personalization, and tinnitus management support. They are not proven treatments and may not work for everyone. Everything starts quiet, fades in and out, never raises your volume, and can be stopped instantly with <em>Stop</em>.
       </div>
 
       <div id="lab-detail" class="lab-detail" hidden></div>
 
-      <a class="find-card profile-link" href="#profile" data-view="profile">
-        <div class="find-cat">My Sound Profile</div>
-        <h3>What you’ve learned so far</h3>
-        <p data-find-profile>Complete Help Me Find My Sound to create your sound preference profile.</p>
-        <span class="btn btn-secondary find-cta">Open My Sound Profile →</span>
-      </a>
 
       <h2 class="row-title" id="thelab">Try an experiment</h2>
       <div id="lab-list"></div>
@@ -822,7 +806,7 @@
   <script src="audio.js?v=58" defer></script>
   <script src="visuals.js?v=26" defer></script>
   <script src="field.js?v=13" defer></script>
-  <script src="app.js?v=158" defer></script>
+  <script src="app.js?v=159" defer></script>
   <script src="focus.js?v=78" defer></script>
 </body>
 </html>

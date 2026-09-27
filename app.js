@@ -395,9 +395,12 @@
   const openDiscovery = async () => { const opener = document.activeElement; showView('lab'); try { await ensureLab(); window.softwaveLab.open('discovery', { from: { kind: 'entry' }, opener }); } catch (e) { toast(e.message); } };
   $('#home-discover').addEventListener('click', openDiscovery); $('#home-tool-discover').addEventListener('click', openDiscovery);
   const sdBtn = $('#lab-start-discovery'); if (sdBtn) sdBtn.addEventListener('click', openDiscovery);
+  // the whole hero card opens Help Me Find My Sound (its guide link keeps its own job); Enter/Space from the keyboard too
+  const flag = $('#view-find #lab-flagship');
+  if (flag) { flag.addEventListener('click', e => { if (e.target.closest('a, button')) return; openDiscovery(); }); flag.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target === flag) { e.preventDefault(); openDiscovery(); } }); }
   // Find My Sound section cards: a tap answers at once (pressed state held ≥150 ms), on touch as on mouse
   document.addEventListener('pointerdown', e => {
-    const c = e.target.closest('#view-find .find-card, #view-find .ri-feature'); if (!c) return;
+    const c = e.target.closest('#view-find .find-card, #view-find .ri-feature, #view-find .lab-flagship, #view-lab .lab-tile, #view-lab .lab-shortcut'); if (!c) return;
     const t0 = performance.now(); c.classList.add('is-pressed');
     const up = () => { removeEventListener('pointerup', up); removeEventListener('pointercancel', up); setTimeout(() => c.classList.remove('is-pressed'), Math.max(0, 150 - (performance.now() - t0))); };
     addEventListener('pointerup', up); addEventListener('pointercancel', up);

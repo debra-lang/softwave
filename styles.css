@@ -1678,6 +1678,31 @@ html[data-theme="dark"] .lab-view { --lab-bg-a: #0f1320; --lab-bg-b: #090b12; }
 #view-find .find-card > .find-cta { margin-top: auto; }
 #view-find .ri-feature-cta { background: var(--accent-soft); color: var(--accent); box-shadow: none; }
 @media (prefers-reduced-motion: reduce) { #view-find .find-card, #view-find .ri-feature { transition: none; } #view-find .find-card:hover, #view-find .ri-feature:hover, #view-find .find-card:focus-visible, #view-find .ri-feature:focus-visible, #view-find .find-card.is-pressed, #view-find .ri-feature.is-pressed { transform: none; } }
+/* the hero is an interactive feature card too: same frame, hover, focus and press language */
+#view-find .lab-flagship { border: 2px solid color-mix(in srgb, var(--accent) 48%, var(--border)); cursor: pointer; transition: transform .28s ease, border-color .28s ease, box-shadow .28s ease, background-color .28s ease; }
+@media (hover: hover) { #view-find .lab-flagship:hover { border-color: var(--accent); box-shadow: 0 0 0 4px var(--ring), 0 18px 44px color-mix(in srgb, var(--accent) 24%, transparent); background-color: color-mix(in srgb, var(--accent) 7%, var(--card-solid)); transform: translateY(-3px); } }
+#view-find .lab-flagship:focus-visible { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px var(--ring), 0 0 0 7px color-mix(in srgb, var(--accent) 40%, transparent), 0 18px 44px color-mix(in srgb, var(--accent) 24%, transparent); transform: translateY(-3px); }
+#view-find .lab-flagship.is-pressed { transition: none; transform: scale(.99); border-color: var(--accent); box-shadow: 0 0 0 4px var(--ring); }
+/* compact function cards: tighter padding and type, the action close below the text, no filler */
+#view-find .find-card, #view-find .ri-feature { padding: 18px 20px; gap: 6px; min-height: 0; }
+#view-find .find-card h3, #view-find .ri-feature-title { font-size: 1.12rem; line-height: 1.25; }
+#view-find .find-card p, #view-find .ri-feature-desc { font-size: .92rem; line-height: 1.45; }
+#view-find .ri-feature-orb { width: 32px; height: 32px; margin: 0 0 2px; }
+#view-find .ri-feature-eyebrow .muted, #view-find .ri-feature-note { display: none; }
+#view-find .ri-feature-body { gap: 6px; }
+#view-find .find-cta, #view-find .ri-feature-cta { padding: 9px 16px; font-size: .9rem; margin-top: 10px; }
+#view-find .find-grid { margin-top: 14px; }
+@media (prefers-reduced-motion: reduce) { #view-find .lab-flagship { transition: none; } #view-find .lab-flagship:hover, #view-find .lab-flagship:focus-visible, #view-find .lab-flagship.is-pressed { transform: none; } }
+/* Experiments: a compact profile shortcut in the intro; experiment tiles respond like cards, in the lab's own accent */
+.lab-shortcuts { margin: 14px 0 0; }
+.lab-shortcut { display: inline-flex; align-items: center; min-height: 40px; padding: 8px 16px; border-radius: 999px; border: 1.5px solid color-mix(in srgb, var(--lab) 55%, var(--sf-line)); background: var(--sf-glass); color: var(--sf-ink); text-decoration: none; font-weight: 600; font-size: .9rem; transition: transform .2s, border-color .2s, box-shadow .2s; }
+.lab-shortcut:hover, .lab-shortcut:focus-visible { outline: none; border-color: var(--lab); box-shadow: 0 0 0 4px color-mix(in srgb, var(--lab) 28%, transparent); transform: translateY(-1px); }
+.lab-shortcut.is-pressed { transition: none; transform: scale(.97); border-color: var(--lab); }
+#view-lab .lab-tile { border: 1.5px solid color-mix(in srgb, var(--lab) 40%, var(--sf-line)); transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease; }
+@media (hover: hover) { #view-lab .lab-tile:hover { border-color: var(--lab); box-shadow: 0 0 0 4px color-mix(in srgb, var(--lab) 26%, transparent), 0 16px 40px rgba(0,0,0,.25); transform: translateY(-3px); } }
+#view-lab .lab-tile:focus-visible { outline: none; border-color: var(--lab); box-shadow: 0 0 0 4px color-mix(in srgb, var(--lab) 26%, transparent), 0 0 0 7px color-mix(in srgb, var(--lab) 40%, transparent); transform: translateY(-3px); }
+#view-lab .lab-tile.is-pressed { transition: none; transform: scale(.985); border-color: var(--lab); box-shadow: 0 0 0 4px color-mix(in srgb, var(--lab) 26%, transparent); }
+@media (prefers-reduced-motion: reduce) { #view-lab .lab-tile, .lab-shortcut { transition: none; } #view-lab .lab-tile:hover, #view-lab .lab-tile:focus-visible, #view-lab .lab-tile.is-pressed, .lab-shortcut:hover, .lab-shortcut.is-pressed { transform: none; } }
 
 /* ---------- Sound Response: every tap answers (≥150 ms pressed state set by ri.js), every retained choice stays visible ---------- */
 #view-ri .btn, #view-ri .ri-card, #view-ri .ri-seg button, #view-ri .ri-check, [data-ri-card] { transition: transform .12s, box-shadow .12s, background .12s, border-color .12s, filter .12s; }
