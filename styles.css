@@ -1655,6 +1655,29 @@ html[data-theme="dark"] .lab-view { --lab-bg-a: #0f1320; --lab-bg-b: #090b12; }
 .profile-ri-card h2 { font-size: 1.15rem; margin: 0 0 8px; }
 .profile-ri-card .btn-row { margin: 8px 0 10px; }
 @media (prefers-reduced-motion: reduce) { .find-card { transition: none; } .find-card:hover { transform: none; } }
+/* the section's three function cards: clearly framed, clearly interactive — the whole card is the link */
+#view-find .find-card, #view-find .ri-feature { border: 2px solid color-mix(in srgb, var(--accent) 48%, var(--border)); box-shadow: 0 10px 30px rgba(0,0,0,.10), inset 0 0 0 1px color-mix(in srgb, var(--accent) 14%, transparent); transition: transform .28s ease, border-color .28s ease, box-shadow .28s ease, background-color .28s ease; }
+@media (hover: hover) {
+  #view-find .find-card:hover, #view-find .ri-feature:hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--card-solid)); box-shadow: 0 0 0 4px var(--ring), 0 18px 44px color-mix(in srgb, var(--accent) 24%, transparent); transform: translateY(-3px); }
+}
+#view-find .find-card:focus-visible, #view-find .ri-feature:focus-visible { outline: none; border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--card-solid)); box-shadow: 0 0 0 4px var(--ring), 0 0 0 7px color-mix(in srgb, var(--accent) 40%, transparent), 0 18px 44px color-mix(in srgb, var(--accent) 24%, transparent); transform: translateY(-3px); }
+#view-find .find-card.is-pressed, #view-find .ri-feature.is-pressed, #view-find .find-card:active, #view-find .ri-feature:active { transition: none; transform: scale(.985); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--card-solid)); box-shadow: 0 0 0 4px var(--ring); }
+#view-find .find-card h3, #view-find .ri-feature-title { color: var(--text); }
+#view-find .find-grid { grid-template-columns: 1fr; gap: 14px; align-items: stretch; }
+@media (min-width: 720px) { #view-find .find-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+#view-find .find-card, #view-find .ri-feature { display: flex; flex-direction: column; gap: 8px; padding: 22px; margin: 0; max-width: none; grid-column: auto; min-height: 100%; box-sizing: border-box; }
+#view-find .ri-feature-orb { width: 40px; height: 40px; margin: 0 0 4px; box-shadow: 0 0 22px color-mix(in srgb, var(--accent) 30%, transparent); }
+#view-find .ri-feature-body { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 0; }
+#view-find .ri-feature-eyebrow, #view-find .find-cat { font-size: .72rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
+#view-find .ri-feature-title { font-size: 1.25rem; line-height: 1.2; margin: 0; }
+#view-find .ri-feature-desc { margin: 0; max-width: none; }
+#view-find .ri-feature-stats { margin: 0; }
+#view-find .ri-feature-note { margin: 0; order: 8; }
+#view-find .find-cta, #view-find .ri-feature-cta { order: 9; margin-top: auto; padding-top: 0; align-self: flex-start; }
+#view-find .find-cta { margin-top: auto; }
+#view-find .find-card > .find-cta { margin-top: auto; }
+#view-find .ri-feature-cta { background: var(--accent-soft); color: var(--accent); box-shadow: none; }
+@media (prefers-reduced-motion: reduce) { #view-find .find-card, #view-find .ri-feature { transition: none; } #view-find .find-card:hover, #view-find .ri-feature:hover, #view-find .find-card:focus-visible, #view-find .ri-feature:focus-visible, #view-find .find-card.is-pressed, #view-find .ri-feature.is-pressed { transform: none; } }
 
 /* ---------- Sound Response: every tap answers (≥150 ms pressed state set by ri.js), every retained choice stays visible ---------- */
 #view-ri .btn, #view-ri .ri-card, #view-ri .ri-seg button, #view-ri .ri-check, [data-ri-card] { transition: transform .12s, box-shadow .12s, background .12s, border-color .12s, filter .12s; }

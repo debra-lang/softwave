@@ -395,6 +395,13 @@
   const openDiscovery = async () => { const opener = document.activeElement; showView('lab'); try { await ensureLab(); window.softwaveLab.open('discovery', { from: { kind: 'entry' }, opener }); } catch (e) { toast(e.message); } };
   $('#home-discover').addEventListener('click', openDiscovery); $('#home-tool-discover').addEventListener('click', openDiscovery);
   const sdBtn = $('#lab-start-discovery'); if (sdBtn) sdBtn.addEventListener('click', openDiscovery);
+  // Find My Sound section cards: a tap answers at once (pressed state held ≥150 ms), on touch as on mouse
+  document.addEventListener('pointerdown', e => {
+    const c = e.target.closest('#view-find .find-card, #view-find .ri-feature'); if (!c) return;
+    const t0 = performance.now(); c.classList.add('is-pressed');
+    const up = () => { removeEventListener('pointerup', up); removeEventListener('pointercancel', up); setTimeout(() => c.classList.remove('is-pressed'), Math.max(0, 150 - (performance.now() - t0))); };
+    addEventListener('pointerup', up); addEventListener('pointercancel', up);
+  });
   $('#home-start').addEventListener('click', async () => { if (engine.activeList().length) { await engine.playAll(); openNow(); return; } await loadPreset(PRESETS[0]); openNow(); });
 
   // ---------- Sound preference profile, available app-wide (read-only summary; the Lab owns the details) ----------
