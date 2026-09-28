@@ -1785,7 +1785,7 @@ html[data-theme="dark"] .lab-view { --lab-bg-a: #0f1320; --lab-bg-b: #090b12; }
 .match-card > .fn-close { top: calc(clamp(18px, 3vw, 30px) - 10px); right: calc(clamp(18px, 3vw, 30px) - 12px); }   /* on the step title's line, which is where each step lands */
 .match-card .match-step > h2 { padding-right: 44px; }
 
-/* ===================== Sounds opening experience (v262) =====================
+/* ===================== Sounds opening experience (v263) =====================
    The Sound Field stage keeps its living canvas, play hub, name/descriptor and controller; this layer adds
    the opening composition: eyebrow, gradient headline, a field of sound (hero.js paints one static canvas)
    behind the control, the Find My Sound card and the pitch route. Dark mode is the visual benchmark. */
@@ -1823,7 +1823,8 @@ html:not([data-theme="dark"]) #sf-stage .hero-wave-art { mix-blend-mode: multipl
 
 /* the control: a luminous portal — dark centre, cyan light on the lower left, blue-violet on the right, fine perimeter */
 #sf-stage .field-core, #sf-stage .field-core.idle { position: relative; left: 0; top: 0; width: 100%; height: 100%; margin: 0; border: 0; color: #fff;
-  background: radial-gradient(circle at 18% 78%, color-mix(in srgb, var(--hero-cyan) 42%, transparent), transparent 42%), radial-gradient(circle at 86% 40%, color-mix(in srgb, var(--hero-violet) 34%, transparent), transparent 42%), radial-gradient(circle at 50% 20%, color-mix(in srgb, var(--hero-cyan-2) 16%, transparent), transparent 45%), radial-gradient(circle at 50% 55%, color-mix(in srgb, var(--hero-blue) 10%, var(--hero-core-bg)), var(--hero-core-bg) 70%);
+  /* internally lit: soft cyan toward the centre-left, richer blue low in the centre, a darker navy rim */
+  background: radial-gradient(circle at 40% 44%, color-mix(in srgb, var(--hero-cyan) 30%, transparent), transparent 56%), radial-gradient(circle at 50% 80%, color-mix(in srgb, var(--hero-blue) 58%, transparent), transparent 62%), radial-gradient(circle at 20% 72%, color-mix(in srgb, var(--hero-cyan) 26%, transparent), transparent 46%), radial-gradient(circle at 86% 40%, color-mix(in srgb, var(--hero-violet) 22%, transparent), transparent 42%), radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--hero-blue) 24%, var(--hero-core-bg)) 0%, var(--hero-core-bg) 66%, color-mix(in srgb, #040a1c 60%, var(--hero-core-bg)) 100%);
   box-shadow: 0 0 0 1.5px var(--hero-core-line), 0 0 0 5px color-mix(in srgb, var(--hero-cyan) 9%, transparent), 0 0 36px var(--hero-glow), 0 0 90px color-mix(in srgb, var(--hero-blue) 22%, transparent), inset 0 0 30px color-mix(in srgb, var(--hero-cyan) 14%, transparent), inset -10px -8px 34px color-mix(in srgb, var(--hero-violet) 18%, transparent), 0 18px 46px rgba(0, 0, 0, .38);
   backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); transition: transform .35s ease, box-shadow .35s ease; }
 #sf-stage .field-core::before { content: ""; position: absolute; inset: -1.5px; border-radius: 50%; padding: 1.5px; background: conic-gradient(from 200deg, var(--hero-cyan), var(--hero-cyan-2) 30%, var(--hero-blue) 55%, var(--hero-violet) 75%, var(--hero-cyan) 100%); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none; }
