@@ -230,7 +230,7 @@
       el.innerHTML = `<p class="muted">Complete Find My Sound to create your personal sound profile.</p><div class="btn-row"><button class="btn btn-primary btn-sm" data-p="find">Find My Sound</button></div>`;
       $('[data-p="find"]', el).addEventListener('click', () => { if (app.showView) app.showView('lab'); openExperiment('discovery', { from: { kind: 'entry' } }); }); return;
     }
-    el.innerHTML = `${pr.rounds ? `<p>You seem to prefer:</p><ul class="bullets">${pr.lines.map(l => `<li>${l}</li>`).join('')}</ul><p class="muted small">Learned from ${pr.rounds} comparison${pr.rounds === 1 ? '' : 's'} in Find My Sound.</p>` : `<p>Nothing learned yet. Run <strong>Help Me Find My Sound</strong> — about ten quick comparisons — and Find My Quiet Sound will summarise what you preferred here.</p>`}
+    el.innerHTML = `${pr.rounds ? `<p>You seem to prefer:</p><ul class="bullets">${pr.lines.map(l => `<li>${l}</li>`).join('')}</ul><p class="muted small">Learned from ${pr.rounds} comparison${pr.rounds === 1 ? '' : 's'} in Find My Sound.</p>` : `<p>Nothing learned yet. Run <strong>Help Me Find My Sound</strong> — about twelve quick comparisons — and Find My Quiet Sound will summarise what you preferred here.</p>`}
       <div class="btn-row"><button class="btn btn-primary btn-sm" data-p="play" ${pr.rounds ? '' : 'disabled'}>Play my sound</button><button class="btn btn-secondary btn-sm" data-p="sound" ${pr.rounds ? '' : 'disabled'}>Fine tune</button><button class="btn btn-secondary btn-sm" data-p="visual" ${pr.rounds ? '' : 'disabled'}>Add visual</button><button class="btn btn-secondary btn-sm" data-p="sleep" ${pr.rounds ? '' : 'disabled'}>Build sleep session</button><button class="btn btn-ghost btn-sm" data-p="explore">Try another experiment</button></div>
       <p class="muted small">A sound preference profile — not a hearing profile, not a diagnosis. Built only from your own taps; stored only on this device. <button class="btn btn-ghost btn-sm" data-p="clear">Clear</button></p>`;
     $('[data-p="play"]', el).addEventListener('click', async () => { safeMaster(); await engine.loadMix(soundMix({ params: pr.pp, nature: pr.nature, natureVol: 0.3 })); app.toast('Playing the sound you preferred.'); });
@@ -249,7 +249,7 @@
     // ---------- DISCOVER ----------
     {
       id: 'discovery', name: 'Find My Sound', cat: 'Discover', featured: true, hub: true, premium: true, evidence: 'promising', from: 'Preference learning by pairwise comparison (also used to personalise hearing aids)',
-      what: 'Two sounds, A and B. Switch between them as often as you like and say which feels more comfortable. The winner is kept and gently varied each round. After about ten rounds you have your preferred sound.',
+      what: 'Two sounds, A and B. Switch between them as often as you like and say which feels more comfortable. The winner is kept and gently varied each round. After about twelve rounds you have your preferred sound.',
       why: 'Everyone’s tinnitus is different, and so is the sound that feels comfortable next to it. Comparing two things at a time is the easiest way to find out what you actually prefer — no sliders, no jargon.',
       how: 'Press Start. Listen to A, tap B, listen again, then choose. “Comfortable” means easy to listen to — the sound you could leave on and forget about, not the most interesting one. "No difference" is a perfectly good answer. Keep the volume low.',
       guide: 'learn/how-to-use-find-my-sound/',
@@ -527,12 +527,12 @@
       id: 'space', name: 'Sound Space', cat: 'Explore', premium: true, evidence: 'exploratory', from: 'Spatial-audio and relaxation research',
       what: 'Place sounds around you on a simple map: rain to the left, ocean in front, brown noise centred, wind far to the right. Stationary by default, with optional very slow movement.',
       why: 'Space gives each sound its own place, so a mix feels less crowded — and a 2024 study found slow spatial movement more relaxing than static sound.',
-      how: 'Press Start (a starter mix is provided if nothing is playing), then drag the dots. Far from centre is quieter and softer. Headphones recommended.',
+      how: 'Press Start (a starter mix is provided if nothing is playing), then drag the dots. Far from centre sounds more distant — softer in tone, with the level unchanged. Headphones recommended.',
       whyTest: 'Exploratory evidence from one controlled study on spatially moving sound. Movement is capped to a very slow drift.',
       settings: [{ key: 'move', label: 'Movement', type: 'buttons', options: [['off', 'Stationary'], ['slow', 'Very slow movement']] }],
       defaults: { move: 'off' }, custom: true,
       buildUI(ctx, host) {
-        host.innerHTML = `<canvas class="spatial-map" width="520" height="360" aria-label="Sound space map. Drag a sound to place it around you."></canvas><p class="muted small">You are the dot in the middle. Drag a sound; far away is quieter and softer.</p><details class="kbd-alt" open><summary class="muted small">Adjust without dragging</summary><div class="kbd-grid" data-alt></div></details>`;
+        host.innerHTML = `<canvas class="spatial-map" width="520" height="360" aria-label="Sound space map. Drag a sound to place it around you."></canvas><p class="muted small">You are the dot in the middle. Drag a sound; far away sounds more distant and softer in tone.</p><details class="kbd-alt" open><summary class="muted small">Adjust without dragging</summary><div class="kbd-grid" data-alt></div></details>`;
         const c = $('canvas', host), cx = c.getContext('2d'); ctx.pos = store.get('lab:spatial', {}); let drag = null;
         const items = () => engine.activeList().map(s => ({ id: s.id, p: ctx.pos[s.id] || (ctx.pos[s.id] = { x: 0.5 + (Math.random() - 0.5) * 0.6, y: 0.5 + (Math.random() - 0.5) * 0.6 }) }));
         const applyOne = it => { const dx = it.p.x - 0.5, dy = it.p.y - 0.5; const dist = Math.min(1, Math.hypot(dx, dy) / 0.5); engine.setBalance(it.id, clamp(dx * 2, -1, 1)); engine.setCutoff(it.id, 20000 * Math.pow(0.08, dist * dist) + 500, 0.4); };
@@ -663,11 +663,24 @@
         await engine.init(); const ac = engine.ctx; if (!ac) return;
         const o = ac.createOscillator(); o.type = 'sine'; o.frequency.value = hz;
         const g = ac.createGain(); const t = ac.currentTime;
-        g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.06, t + 0.05);
-        g.gain.setValueAtTime(0.06, t + ms / 1000 - 0.15); g.gain.exponentialRampToValueAtTime(0.0001, t + ms / 1000);
-        o.connect(g); g.connect(ac.destination);   // matching tones bypass the notch on purpose
+        // The tone level follows the app's master volume (same taper as the engine; 0.06 at the 35 %
+        // default) and passes the limiter. It bypasses only the notch stage, on purpose, so the pitch
+        // being matched can be heard.
+        const peak = Math.max(0.0005, 0.06 * engine._curve(engine.masterVolume) / engine._curve(0.35));
+        g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + 0.05);
+        g.gain.setValueAtTime(peak, t + ms / 1000 - 0.15); g.gain.exponentialRampToValueAtTime(0.0001, t + ms / 1000);
+        o.connect(g); g.connect(engine.limiter);
         o.start(t); o.stop(t + ms / 1000 + 0.05);
       } catch (_) { }
+    }
+    // Own-audio track: fades out over 0.8 s like every other sound, then stops.
+    function stopOwnAudio(N) {
+      const src = N.node, g = N.nodeGain; N.node = null; N.nodeGain = null; if (!src) return;
+      try {
+        const t = engine.ctx.currentTime;
+        if (g) { g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(Math.max(0.0001, g.gain.value), t); g.gain.linearRampToValueAtTime(0.0001, t + 0.8); }
+        src.stop(t + 0.85);
+      } catch (_) { try { src.stop(); } catch (_) { } }
     }
     function widthOct(N) { return NCFG().widths[N.width].oct; }
     function depthDb(N) { return NCFG().depths[N.depth].db; }
@@ -822,14 +835,15 @@
     }
     async function startSource(ctx) {
       const N = ctx.n;
-      if (N.node) { try { N.node.stop(); } catch (_) { } N.node = null; }
+      stopOwnAudio(N);
       if (N.source === 'myaudio' && N.buf) {
         // a whisper of engine sound keeps the graph/master alive; the track rides through the same notch path
         await engine.loadMix([{ id: 'brown', volume: 0.001 }]);
         const src = engine.ctx.createBufferSource(); src.buffer = N.buf; src.loop = true;
-        const g = engine.ctx.createGain(); g.gain.value = 0.85;
+        const g = engine.ctx.createGain(); const t0 = engine.ctx.currentTime;
+        g.gain.setValueAtTime(0.0001, t0); g.gain.linearRampToValueAtTime(0.85, t0 + 1.2);   // fades in like every other sound
         src.connect(g); g.connect(engine.master); src.start();
-        N.node = src;
+        N.node = src; N.nodeGain = g;
       } else {
         await engine.loadMix([{ id: N.source === 'myaudio' ? 'pink' : N.source, volume: 0.55 }]);
       }
@@ -909,7 +923,7 @@
       cancelAnimationFrame(vizRaf); vizRaf = 0;
       engine.notchClear();
       const N = ctx.n || {};
-      if (N.node) { try { N.node.stop(); } catch (_) { } N.node = null; }
+      stopOwnAudio(N);
       if (ctx.nEl) {
         ctx.nEl.live.hidden = true;
         const mins = sessionStart ? Math.round((Date.now() - sessionStart) / 60000) : 0;

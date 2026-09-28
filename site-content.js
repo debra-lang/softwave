@@ -36,7 +36,7 @@ const PAGES = [];
 
 // ===== TOOL LANDING PAGES =====
 PAGES.push({
-  path: 'tinnitus-sound-generator/', type: 'tool', updated: '2026-09-14',
+  path: 'tinnitus-sound-generator/', type: 'tool', updated: '2026-09-27',
   title: 'Tinnitus Sound Generator: Play Free Noise & Nature Sounds',
   description: 'Free tinnitus sound and noise generator in your browser: white, pink and brown noise, rain, ocean and more. Layer up to five sounds at a low level. No account.',
   h1: 'Free online tinnitus sound generator',
@@ -47,7 +47,7 @@ PAGES.push({
 <ul>
 <li><strong>Broadband noise:</strong> <a href="/white-noise-for-tinnitus/">white</a>, <a href="/pink-noise-for-tinnitus/">pink</a> and <a href="/brown-noise-for-tinnitus/">brown</a> noise, gentle static and a soft hiss — all synthesised live, so they loop without clicks or gaps.</li>
 <li><strong>Nature and indoor sounds:</strong> rain, rain on window, ocean waves, lapping water, flowing water, waterfall, forest, rustling leaves, wind, crickets, cicadas, night sounds, summer night, fan and fireplace. See how they compare with noise in <a href="/learn/nature-sounds-vs-noise-for-tinnitus/">nature sounds for tinnitus</a>.</li>
-<li><strong>A <a href="/tinnitus-sound-mixer/">mixer</a></strong> to layer up to five sounds with individual levels and left/right balance, plus one-tap presets (Gentle Relief, Sleep, Focus, Ocean, Rainy Night).</li>
+<li><strong>A <a href="/tinnitus-sound-mixer/">mixer</a></strong> to layer up to five sounds with individual levels and left/right balance, plus one-tap presets (Gentle Relief, Sleep, Focus, Ocean, Rainy Night, Rain on Window, Summer Night).</li>
 <li><strong>A <a href="/tinnitus-frequency-generator/">frequency generator</a></strong> and a guided <a href="/tinnitus-sound-matching/">sound-matching</a> tool for people who want to explore the pitch of their tinnitus.</li>
 <li><strong><a href="/tinnitus-sleep-sounds/">Sleep Mode</a></strong> with 15/30/60/90-minute timers and a gradual fade-out.</li>
 <li><strong>Visual Focus</strong> — calm, slow visuals to watch while you listen, with a Reduce Motion option.</li>
@@ -123,11 +123,11 @@ for (const c of COLOUR_PAGES) {
 }
 
 PAGES.push({
-  path: 'tinnitus-frequency-generator/', type: 'tool', updated: '2026-09-14',
+  path: 'tinnitus-frequency-generator/', type: 'tool', updated: '2026-09-27',
   title: 'Tinnitus Frequency Generator: Free Online Tone, 20 Hz–16 kHz',
   description: 'Manual tinnitus frequency generator: a continuous tone adjustable by 1 Hz, pure tone or narrow noise, and a low default level. Free, for careful exploration.',
   h1: 'Tinnitus frequency generator',
-  intro: 'A manual tone generator built for tinnitus: a continuous tone from 20 Hz to 16,000 Hz with coarse, fine and 1 Hz steps, a choice of pure tone, soft tone or narrow noise band, left/right balance, and a volume that starts low. If you would rather be guided step by step, with an octave check, use the <a href="/tinnitus-sound-matching/">guided tinnitus frequency finder</a>.',
+  intro: 'A manual tone generator built for tinnitus: a continuous tone from 20 Hz to 16,000 Hz with coarse, fine and 1 Hz steps, a choice of pure tone, soft tone, triangle, narrow noise band or hiss band, left/right balance, and a volume that starts low. If you would rather be guided step by step, with an octave check, use the <a href="/tinnitus-sound-matching/">guided tinnitus frequency finder</a>.',
   try: [{ href: '/#frequency', label: 'Open the frequency generator' }, { href: '/#match', label: 'Guided: Find My Tinnitus Sound' }],
   body: `
 <h2>What a frequency generator is for</h2>
@@ -141,8 +141,8 @@ PAGES.push({
 </ol>
 <h2>Typical ranges</h2>
 <p>Most people place their tinnitus between about 3,000 and 8,000 Hz, but lower and higher pitches are common. If yours sounds more like a hiss than a ring, the narrow-band and hiss-band tone types will feel closer than a pure tone. More in <a href="/learn/tinnitus-frequency/">what tinnitus frequency means and typical ranges</a>.</p>
-<h2>Frequency Bloom visualiser</h2>
-<p>The generator links to a live visualiser whose pattern changes with the frequency and level you set — a calm way to see what you are hearing. It is decorative, not diagnostic.</p>`,
+<h2>Sound Visualizer (Frequency Bloom)</h2>
+<p>The <em>Open Sound Visualizer</em> button opens Frequency Bloom, a live visual whose pattern changes with the frequency and level you set — a calm way to see what you are hearing. It is decorative, not diagnostic.</p>`,
   sources: ['pitch', 'ipod', 'nidcd', 'who'],
 });
 
@@ -187,19 +187,19 @@ PAGES.push({
 });
 
 PAGES.push({
-  path: 'tinnitus-sleep-sounds/', type: 'tool',
+  path: 'tinnitus-sleep-sounds/', updated: '2026-09-27', type: 'tool',
   title: 'Sleep Sounds for Tinnitus with Timer & Fade-Out | Find My Quiet Sound',
   description: 'Tinnitus sounds for sleeping: brown noise and rain, a 15–90 minute timer, slow fade-out and a dark sleep screen. How to use sound when ringing feels loudest.',
   h1: 'Sleep sounds for tinnitus',
-  intro: 'Tinnitus often feels loudest in a quiet bedroom. A soft, steady sound gives the brain something else to rest on. Find My Quiet Sound’s Sleep Mode adds a timer, a gradual fade-out, and a dark screen with only three controls.',
-  try: [{ href: '/#sleep', label: 'Open Sleep Mode' }, { href: '/?preset=sleep', label: 'Sleep preset: brown noise + rain' }, { href: '/?exp=journey', label: 'Lab: Adaptive Sound Journey with sleep fade' }],
+  intro: 'Tinnitus often feels loudest in a quiet bedroom. A soft, steady sound gives the brain something else to rest on. Find My Quiet Sound’s Sleep Mode adds a timer, a gradual fade-out, and a dark screen that shows the clock, the time remaining and the sounds you are playing, with the same simple controls.',
+  try: [{ href: '/#sleep', label: 'Open Sleep Mode' }, { href: '/?preset=sleep', label: 'Sleep preset: brown noise + rain' }, { href: '/?exp=journey', label: 'Experiments: Adaptive Sound Journey with sleep fade' }],
   body: `
 <h2>Why tinnitus seems worse at night</h2>
 <p>During the day, room noise partly masks tinnitus without you noticing. At night the contrast between silence and the ringing is at its greatest. Earplugs make that worse; a low-level sound makes it smaller.</p>
 <h2>Good bedtime sounds</h2>
 <ul><li><a href="/brown-noise-for-tinnitus/">Brown noise</a> — deep and eventless; the most common sleep choice.</li><li>Rain, ocean or a fan — natural and steady; avoid sounds with sudden events (thunder, birds) unless they are very distant.</li><li>A mix: brown noise with a little rain is the Sleep preset.</li></ul>
 <h2>Settings that matter</h2>
-<ul><li><strong>Level:</strong> lower than you think. It should fade into the background within a minute.</li><li><strong>Timer:</strong> 30–60 minutes with the gradual fade if you only need help falling asleep; continuous if you wake in the night.</li><li><strong>Speaker or pillow speaker</strong> rather than earbuds for all-night use.</li><li><strong>Dark screen:</strong> the sleep screen shows only the time, the timer and pause.</li></ul>
+<ul><li><strong>Level:</strong> lower than you think. It should fade into the background within a minute.</li><li><strong>Timer:</strong> 30–60 minutes with the gradual fade if you only need help falling asleep; continuous if you wake in the night.</li><li><strong>Speaker or pillow speaker</strong> rather than earbuds for all-night use.</li><li><strong>Dark screen:</strong> the sleep screen shows the clock, the time remaining and your sounds, with volume, pause, stop, timer and save close at hand.</li></ul>
 <h2>Beyond sound</h2>
 <p>Sleep guidance for tinnitus also stresses a regular schedule, limiting caffeine and alcohol late in the day, and getting help for persistent insomnia — CBT for insomnia is well supported. If tinnitus is keeping you awake most nights, talk to a professional.</p>`,
   sources: ['sleepf', 'nidcd', 'aao'],
@@ -252,7 +252,7 @@ learn({
 });
 
 learn({
-  slug: 'notched-sound-for-tinnitus',
+  slug: 'notched-sound-for-tinnitus', updated: '2026-09-27',
   title: 'Notched Sound for Tinnitus: What It Is and What the Evidence Says',
   description: 'Personalized notched sound explained in plain language: how it differs from masking, what the mixed research actually found, and how to try it carefully with a free tool.',
   h1: 'Notched sound for tinnitus',
@@ -273,7 +273,7 @@ learn({
 <h2>Trying it in Find My Quiet Sound</h2>
 <p>The <strong>Personalized Notched Sound</strong> experiment lives in the <a href="/#lab">Experiments</a> section, labelled honestly as experimental with mixed evidence. It works like this:</p>
 <ol>
-<li><strong>Choose your pitch.</strong> Adjust a tone until it sounds approximately similar to the pitch you hear, or let the comparison assistant narrow it down. This is your personal estimate, not a clinical measurement or hearing test.</li>
+<li><strong>Choose your pitch.</strong> Adjust a tone until it sounds approximately similar to the pitch you hear, or tap <em>Narrow it down for me</em> and answer a few comparisons. This is your personal estimate, not a clinical measurement or hearing test.</li>
 <li><strong>Choose a sound.</strong> Broadband sounds — pink noise, rain, a waterfall — carry energy around most pitches, so the notch has something to remove. You can also use your own audio; it is processed on your device and never uploaded.</li>
 <li><strong>Listen and compare.</strong> A NORMAL / NOTCHED switch lets you hear the original and the notched version at the same level, any time. A live spectrum shows the band being reduced.</li>
 <li><strong>Keep the volume low and comfortable.</strong> Stop if the sound causes discomfort or seems to make your tinnitus worse.</li>
@@ -308,7 +308,7 @@ learn({
 });
 
 learn({
-  slug: 'find-a-comfortable-tinnitus-masking-sound',
+  slug: 'find-a-comfortable-tinnitus-masking-sound', updated: '2026-09-27',
   title: 'How to Find a Comfortable Tinnitus Masking Sound',
   description: 'A step-by-step way to find a tinnitus masking sound you can live with: start quiet, compare at equal level, match your tinnitus’s character, give it days.',
   h1: 'How to find a comfortable tinnitus masking sound',
@@ -317,7 +317,7 @@ learn({
 <h2>1. Describe your tinnitus first</h2>
 <p>Ringing (a pure tone), whistling (narrow), hissing (broad and high), or humming/buzzing (low)? High sounds blend with white noise, hiss, rain and waterfall; mid sounds with pink noise, streams and fans; low sounds with brown noise, ocean and wind. The <a href="/tinnitus-sound-matching/">sound matching</a> tool does this for you.</p>
 <h2>2. Compare at the same low level</h2>
-<p>Set the master volume low and leave it there. Switch between sounds rather than adjusting volume. <a href="/?exp=discovery">Find My Sound</a> in Experiments turns this into a guided A/B comparison.</p>
+<p>Set the master volume low and leave it there. Switch between sounds rather than adjusting volume. <a href="/?exp=discovery">Help Me Find My Sound</a>, in the Find My Sound section, turns this into a guided A/B comparison.</p>
 <h2>3. Find the mixing point</h2>
 <p>With your chosen sound, raise the level slowly until the tinnitus just starts to blend. That is your level.</p>
 <h2>4. Add texture if pure noise feels clinical</h2>
@@ -454,7 +454,7 @@ learn({
 });
 
 learn({
-  slug: 'ask-find-my-quiet-sound',
+  slug: 'ask-find-my-quiet-sound', updated: '2026-09-27',
   title: 'Ask Find My Quiet Sound — Voice & Text Sound Control',
   description: 'A tinnitus sound app you can control by voice or text. Say "something gentle for sleep" or "add a little rain" — hands-free masking sounds, with the microphone on only when you tap it.',
   h1: 'Ask Find My Quiet Sound',
@@ -474,15 +474,15 @@ learn({
 <h2>Your choices stay in your control</h2>
 <p>You can always use the normal controls, and you can undo changes made through Ask Find My Quiet Sound. Volume increases through Ask are always gradual — for larger changes, the volume slider is yours.</p>
 <h2>About voice</h2>
-<p>Voice recognition may be processed by your browser or device provider. Find My Quiet Sound does not store your voice or send your Sound Profile or tinnitus information with your request. The microphone listens only when you tap it, one request at a time — never in the background.</p>
+<p>Voice recognition may be processed by your browser or device provider. Find My Quiet Sound does not store your voice or send My Sound Profile or tinnitus information with your request. The microphone listens only when you tap it, one request at a time — never in the background.</p>
 <p><a href="/">Try it now — it lives just under the main controls on the Sounds page →</a></p>`,
   sources: [],
 });
 
 learn({
-  slug: 'how-to-use-find-my-sound',
+  slug: 'how-to-use-find-my-sound', updated: '2026-09-27',
   title: 'How to Use Help Me Find My Sound',
-  description: 'Find My Sound works like the eye test at the optician — "better with one, or two?" — but with sound. A plain guide to using it, and what to do with your result.',
+  description: 'Help Me Find My Sound works like the eye test at the optician — "better with one, or two?" — but with sound. A plain guide to using it, and what to do with your result.',
   h1: 'How to use Help Me Find My Sound',
   intro: 'You know the test at the eye doctor: they flip a lens and ask, "Better with one… or two?" You do not need to know anything about eyes — you just say which looks clearer, and the right glasses come out at the end. Help Me Find My Sound is exactly that, for your ears. It plays two sounds, you say which one feels nicer, and after a handful of these questions it hands you your sound.',
   body: `
@@ -490,20 +490,20 @@ learn({
 <ul><li>Headphones help, but are not required.</li><li>Keep the volume <strong>low and comfortable</strong>. You are choosing which sound feels nicer — never which is louder.</li></ul>
 <h2>How to do it</h2>
 <ol>
-<li><strong>Open it.</strong> Tap <strong>Find My Sound</strong> in the top menu (or the <em>"Help Me Find My Sound"</em> link under the big circle on the Sounds page) and press <strong>Start Experiment</strong>.</li>
+<li><strong>Open it.</strong> Tap <strong>Find My Sound</strong> in the top menu, then the big <strong>Help Me Find My Sound</strong> button (or the <em>"Help Me Find My Sound"</em> link under the big circle on the Sounds page), and press <strong>Start Experiment</strong>.</li>
 <li><strong>Listen to both.</strong> You will see two circles, <strong>A</strong> and <strong>B</strong>. Tap A to hear one, tap B to hear the other. Go back and forth as many times as you like — there is no clock and no score.</li>
 <li><strong>Say which feels nicer.</strong> Tap <strong>A</strong>, <strong>B</strong>, or <strong>No difference</strong>. "Nicer" simply means the one you could leave on and forget about — the one your ears relax into. If you honestly cannot tell, <strong>No difference</strong> is a perfectly good answer.</li>
 </ol>
-<p>That is the whole skill. A soft green note tells you when a new round begins, and the same question comes back with a slightly different pair — about ten times in all. There are no wrong answers, and nothing about your hearing is being tested or measured. It only learns what you <em>like</em>.</p>
+<p>That is the whole skill. A soft green note tells you when a new round begins, and the same question comes back with a slightly different pair — about twelve times in all (you can choose 8 or 15 rounds in the settings). There are no wrong answers, and nothing about your hearing is being tested or measured. It only learns what you <em>like</em>.</p>
 <h2>What to do when it finishes</h2>
 <p>After the last round, the app shows you the sound you chose most often. Two things are worth doing right away:</p>
 <ul>
-<li><strong>Tap "See Your Moments."</strong> Finishing Find My Sound unlocks <strong>Your Moments</strong> at the top of the Sounds page — one-tap buttons that build your personal quiet, sleep or focus sound. This is the real reward: from now on, your sound is always one tap away.</li>
+<li><strong>Tap "See Your Moments."</strong> Your first choices in Help Me Find My Sound unlock <strong>Your Moments</strong> at the top of the Sounds page — one-tap buttons that build your personal quiet, sleep or focus sound. This is the real reward: from now on, your sound is always one tap away.</li>
 <li><strong>Save your sound</strong> if you like it. Give it a name and it appears under <em>My Saved Sounds</em> on the Sounds page.</li>
 </ul>
-<p>The other buttons are extras for whenever you want them: fine-tune the sound with sliders, add a calm visual, send it straight into a 60-minute sleep session, or run the whole thing again.</p>
+<p>The other buttons are extras for whenever you want them: <em>Listen to Your Quiet</em> plays your sound now, <em>Fine-Tune Your Sound</em> opens it in Sound Sculptor, and <em>Start New Experiment</em> runs the whole thing again. Adding a calm visual or building a 60-minute sleep session from your sound is done from My Sound Profile.</p>
 <h2>What the app remembers</h2>
-<p>Your choices build a simple picture of your taste — warmer or brighter, steady or moving, rain or ocean. The app quietly uses that picture everywhere: Your Moments, sleep suggestions, a recommended visual, and a gentle <em>"Tuned to you"</em> touch on whatever you play. It all stays on your device, and it gets a little smarter every time you use Find My Sound. You can see it any time under <strong>My Sound Profile</strong> in the Find My Sound section, alongside your <a href="/learn/how-sound-response-works/">Sound Response</a> summary.</p>
+<p>Your choices build a simple picture of your taste — warmer or brighter, steady or moving, rain or ocean. The app quietly uses that picture everywhere: Your Moments, sleep suggestions, a recommended visual, and a gentle <em>"Tuned to you"</em> touch on whatever you play. It all stays on your device, and it gets a little smarter every time you use Help Me Find My Sound. You can see it any time under <strong>My Sound Profile</strong> in the Find My Sound section, alongside your <a href="/learn/how-sound-response-works/">Sound Response</a> summary.</p>
 <h2>Good to know</h2>
 <ul><li>Your taste can change with the time of day — running it again at night may find a softer sound than in the morning. Run it again whenever you feel like it.</li><li>If the two sounds start feeling the same near the end, that is a good sign: you have found your sound. Finish, save it, and enjoy it.</li><li>This tool explores what you find comfortable. It does not diagnose or treat anything.</li></ul>
 <p><a href="/?exp=discovery">Try Help Me Find My Sound now →</a></p>`,
@@ -521,19 +521,19 @@ learn({
 <p>Residual inhibition is well documented: for many people with tinnitus a sound can be followed by seconds to minutes of quieter tinnitus, more often when the sound has energy near the tinnitus pitch. It is short-lived, and repeating it has not been shown to change tinnitus over time. Sound Response simply records what <em>you</em> notice after each sound, in your own words (“a little quieter”, “about the same”, “louder”), and looks for a pattern that repeats. It does not diagnose anything, does not treat anything, and never raises the volume to try to force a change.</p>
 <h2>Before you start</h2>
 <ul>
-<li><strong>Your tinnitus pitch comes first.</strong> The sounds are chosen around the pitch you hear, so the app sends you through <a href="/learn/tinnitus-frequency-matching/">Find My Tinnitus Sound</a> if you have not done it yet — a couple of minutes, and you come straight back.</li>
+<li><strong>Your tinnitus pitch comes first.</strong> The sounds are chosen around the pitch you hear, so the app sends you through <a href="/tinnitus-sound-matching/">Find My Tinnitus Sound</a> if you have not done it yet — a couple of minutes, and you come straight back. A pitch you accepted in Personalized Notched Sound counts too.</li>
 <li><strong>Headphones or earbuds, somewhere reasonably quiet.</strong> Use the same ones for the whole session if you can.</li>
 <li><strong>A comfortable level, never more.</strong> You set the level yourself with a sample sound. It does not need to cover your tinnitus, and nothing in the experiment ever turns it up.</li>
 <li><strong>When not to use it.</strong> Do not continue — and get a medical evaluation — if your tinnitus is sudden or new and has not been evaluated, if you have sudden hearing loss, ear pain, fluid from an ear, sudden or severe dizziness, pain from ordinary sounds, or a sudden major change in your tinnitus. The app asks you to confirm this before the first session.</li>
 </ul>
 <h2>What a session looks like</h2>
 <ol>
-<li><strong>A quiet start.</strong> Any sound already playing in the app is stopped, so every test begins from silence.</li>
+<li><strong>A quiet start.</strong> If something is playing in the app, you are asked to stop it first, so every test begins from silence.</li>
 <li><strong>How noticeable is it right now?</strong> You rate your tinnitus from 0 to 10 and say whether today is quieter, louder or about usual. This is the day’s starting point.</li>
 <li><strong>Set the level.</strong> Start low and raise a sample sound until it is clear and comfortable.</li>
 <li><strong>Each sound test.</strong> A quick 0–10 rating, then the sound plays for one minute — just listen normally. It stops, there are five seconds of silence, and the app asks <em>What happened to your tinnitus?</em> — much quieter, a little quieter, about the same, louder, or not sure. You can add a 0–10 rating or skip it.</li>
 <li><strong>If it became quieter,</strong> the app waits with you. Tap the button when your tinnitus is back to its usual level; the time is measured silently, with no clock on screen, so you are not tempted to stretch it. You can also say it became louder instead, or that you are not sure.</li>
-<li><strong>A short rest,</strong> at least 45 seconds, then the next sound. The first session tries three sounds; later sessions try one to three. The app tells you roughly how long today will take before you begin.</li>
+<li><strong>A short rest,</strong> at least 45 seconds, then the next sound. The first session tries three sounds; later sessions try one to three, and from the second session on the app tells you roughly how long today will take before you begin. You can pause a sound for up to 15 seconds in total; a longer pause, switching apps or leaving the screen marks that test as interrupted, and leaving Sound Response ends the session. The test sounds have their own level control: the app’s volume slider does not affect them, but your device’s volume does.</li>
 </ol>
 <p>Every question is short on purpose, and “not sure” is always an honest answer. There are no right or wrong results.</p>
 <h2>Which sounds it tries</h2>
@@ -541,7 +541,7 @@ learn({
 <ul>
 <li><strong>Narrow-band noise around your pitch</strong> — a third of an octave wide, centred on your matched pitch, and versions centred a little below and a little above it.</li>
 <li><strong>Broadband noise</strong> — the whole range, roughly 100 Hz to 12 kHz, as a comparison.</li>
-<li><strong>A slowly pulsing version</strong> of the narrow band (40 pulses per second) in later sessions. Small studies found pulsing sounds produced more residual inhibition than steady noise, so it is included as an exploratory condition — no rate has been shown to be best.</li>
+<li><strong>A pulsing version</strong> of the narrow band (40 pulses per second) in later sessions. Small studies found pulsing sounds produced more residual inhibition than steady noise, so it is included as an exploratory condition — no rate has been shown to be best.</li>
 </ul>
 <p>Sounds are matched to each other by measured energy at the level you chose, so a narrow band is never louder than the broadband noise. If a sound is followed by a repeatable change, later sessions gently vary its centre, width and pulsing to see what matters.</p>
 <h2>How it decides what to test next</h2>
@@ -558,7 +558,7 @@ learn({
 <p>After every session the profile shows the plain counts: sessions, sounds tested, temporary reductions, and — once there is enough to say — the most consistent response, the typical (middle) duration, the observed range and the longest change. A progress line shows which stage you are at, and <em>View experiment details</em> lists every sound with its exact band, what happened each time and the protocol version. There is deliberately no single score: how often a change appears, how long it lasts and whether anything made things louder are different questions, and one number would hide the pattern.</p>
 <p>Once a sound is repeatable you can <strong>listen to your response sound</strong> at any time from the profile. It plays for the same fixed minute and nothing is recorded — it is there so you can hear it, not to treat anything.</p>
 <h2>Where the results live</h2>
-<p>Sound Response is part of the <strong>Find My Sound</strong> section, next to Help Me Find My Sound and Find My Tinnitus Sound. All three feed <strong>My Sound Profile</strong>: the sound preferences learned by Help Me Find My Sound, and the Sound Response summary. Everything stays on your device — nothing is uploaded — and <em>Delete my Sound Response data</em> in the experiment details removes every session, test and the profile in one step.</p>
+<p>Sound Response is part of the <strong>Find My Sound</strong> section, next to Help Me Find My Sound and Find My Tinnitus Sound. <strong>My Sound Profile</strong> shows the sound preferences learned by Help Me Find My Sound and the Sound Response summary; your tinnitus match stays with Find My Tinnitus Sound. Everything stays on your device — nothing is uploaded — and <em>Delete my Sound Response data</em> in the experiment details removes every session, test and the profile in one step.</p>
 <h2>What it cannot tell you</h2>
 <ul>
 <li>Whether any sound <strong>treats</strong> your tinnitus, or whether a change will last. Residual inhibition is temporary by definition.</li>
@@ -582,19 +582,19 @@ learn({
 <h2>Rules every experiment follows</h2>
 <ul><li>Everything starts quiet and fades in; nothing starts abruptly.</li><li>No experiment ever raises your volume on its own.</li><li>Every experiment stops instantly with <em>Stop</em>.</li><li>Feedback you give (“more comfortable”, “no difference”) stays on your device and is about comfort, never medical outcomes.</li></ul>
 <h2>Discover — find a sound that suits you</h2>
-<h3>Help Me Find My Sound</h3><p><em>Promising research.</em> Two sounds at a time, “which feels nicer?”, about ten rounds, and the app hands you your sound. It learns what you prefer and says nothing about your hearing. Full guide: <a href="/learn/how-to-use-find-my-sound/">How to use Help Me Find My Sound</a>.</p>
+<h3>Help Me Find My Sound</h3><p><em>Promising research.</em> It lives in the Find My Sound section rather than in the Experiments list, but it is built the same way. Two sounds at a time, “which feels more comfortable?”, about twelve rounds, and the app hands you your sound. It learns what you prefer and says nothing about your hearing. Full guide: <a href="/learn/how-to-use-find-my-sound/">How to use Help Me Find My Sound</a>.</p>
 <h3>Frequency Painting</h3><p><em>Experimental — research is limited.</em> Paint the noise you want to hear: left is low, right is high, higher means stronger, and what you draw is what you hear straight away. Some people want the lows, some an airy hiss, some a dip where the tinnitus sits. Shaping a sound’s spectrum is ordinary audio practice; what the app is learning is whether drawing gets people to a comfortable sound faster than picking a noise colour.</p>
 <h3>Sound Sculptor</h3><p><em>Experimental — research is limited.</em> Shape a sound with words instead of controls: Warm ↔ Bright, Deep ↔ Airy, Smooth ↔ Textured, Soft ↔ Crisp, Centred ↔ Wide, Still ↔ Moving, Simple ↔ Rich. An interface experiment — you should not need to know what a filter is to make a sound that suits you.</p>
-<h3>Personalized Notched Sound</h3><p><em>Experimental — evidence is mixed.</em> Broadband sound with a narrow gap around your matched tinnitus pitch, switchable between normal and notched. Early studies were positive, a large trial found no advantage over placebo, and reviews rate the evidence as low quality. Full guide: <a href="/learn/notched-sound-for-tinnitus/">Notched sound for tinnitus</a>.</p>
+<h3>Personalized Notched Sound</h3><p><em>Experimental — evidence is mixed.</em> Broadband sound (or your own audio) with a gap around your matched tinnitus pitch — one octave wide as standard, narrower or wider if you choose — switchable between normal and notched. Early studies were positive, a large trial found no advantage over placebo, and reviews rate the evidence as low quality. Full guide: <a href="/learn/notched-sound-for-tinnitus/">Notched sound for tinnitus</a>.</p>
 <h2>Explore — sounds that move and blend</h2>
 <h3>Generative Sound</h3><p><em>Experimental — research is limited.</em> Rain, ocean, wind, forest, an abstract ambience, broadband noise, or <strong>Ambient Drift</strong> — slowly evolving music that never plays exactly the same way twice — with one Stable ↔ Organic control. Real rain never repeats; small variation feels natural and may be easier to stop noticing over a long session. Sound-therapy research mostly tests steady sound, so this comes from ambient sound design, not trials.</p>
 <h3>Sound Morph</h3><p><em>Experimental — research is limited.</em> One slider that glides from brown noise through pink to rain. Sometimes the comfortable spot is between two sounds; this asks whether one dimension finds it faster than a mixer.</p>
-<h3>Sound Space</h3><p><em>Experimental — research is limited.</em> Place sounds around you on a simple map — rain to the left, ocean in front, wind far right — stationary by default, with optional very slow movement. Space gives each sound its own place so a mix feels less crowded, and one controlled study found slow spatial movement more relaxing than static sound.</p>
+<h3>Sound Space</h3><p><em>Experimental — research is limited.</em> Place sounds around you on a simple map — rain to the left, ocean in front, wind far right — stationary by default, with optional very slow movement (about nine minutes per circle). Moving a sound changes where it sits and how distant it feels in tone; it does not change its level. Space gives each sound its own place so a mix feels less crowded, and one controlled study found slow spatial movement more relaxing than static sound.</p>
 <h2>Focus — somewhere for attention to rest</h2>
 <h3>Attention Focus</h3><p><em>Promising research.</em> Gentle visual activities — Follow the Light, Floating Bubble, Ripple, Notice the Change — with no scores, no timers and no failing. Practising where attention goes is the idea behind attention-training studies for tinnitus; a randomised trial of an attention-training game reduced tinnitus distress more than a control game. Promising for distress; no claim about loudness.</p>
-<h3>Sound + Visual Journey</h3><p><em>Promising research.</em> Sound and picture evolve together over 20–40 minutes — Ocean to Night, Rain to Sleep, Forest Evening — and end soft. Studies of virtual nature find audio and visuals together relax more than either alone. Relaxation only.</p>
+<h3>Sound + Visual Journey</h3><p><em>Promising research.</em> Sound and picture evolve together over 20–40 minutes — Ocean to Night, Rain to Sleep, Forest Evening. With the fade option on, it ends soft; otherwise the last sound stays on until you stop it. Studies of virtual nature find audio and visuals together relax more than either alone. Relaxation only.</p>
 <h2>Sessions — built for you</h2>
-<h3>Adaptive Sound Journey</h3><p><em>Experimental — research is limited.</em> A soundscape that changes very slowly: brown noise and rain, then less rain, an ocean appears, the sound warms, simplifies, and can fade toward sleep. A loop becomes familiar and easy for the brain to set aside — which can let tinnitus back in; slow change keeps sound gently interesting without asking for attention.</p>
+<h3>Adaptive Sound Journey</h3><p><em>Experimental — research is limited.</em> A soundscape that changes very slowly: brown noise and rain, then less rain, an ocean appears, the sound warms, simplifies, and — with the sleep option on — fades away at the end. A loop becomes familiar and easy for the brain to set aside — which can let tinnitus back in; slow change keeps sound gently interesting without asking for attention.</p>
 <h3>Build My Session</h3><p><em>Experimental — research is limited.</em> Four quick questions — what you are doing, which sound you prefer, visuals or not, how much variation — and a session is built for you. A convenience experiment: when you are tired you should not have to design anything.</p>
 <h2>Where Sound Response fits</h2>
 <p><strong>Sound Response</strong> — Discover What Changes Your Tinnitus — lives in the Find My Sound section rather than in Experiments, because it follows a fixed protocol and records observations over several sessions. It has its own guide: <a href="/learn/how-sound-response-works/">How Sound Response works</a>.</p>
@@ -617,7 +617,7 @@ learn({
 <p>The quickest way in is a suggested environment. One tap sets both the sound and the picture, and you can change either afterwards:</p>
 <ul>
 <li><strong>Deep Ocean</strong> — brown noise with ocean waves.</li>
-<li><strong>Rain Window</strong> — pink noise with rain on a window.</li>
+<li><strong>Rain Window</strong> — pink noise and rain, with the rain-on-a-window visual.</li>
 <li><strong>Night Float</strong> — brown noise with night sounds under a night sky.</li>
 <li><strong>Soft Ripple</strong> — pink noise with slow ripples.</li>
 <li><strong>Deep Focus</strong> — your personal sound from Help Me Find My Sound, with Abstract Flow.</li>
@@ -626,24 +626,24 @@ learn({
 <h2>All visuals</h2>
 <p>Below the suggestions the whole library is grouped by what the visual does:</p>
 <ul>
-<li><strong>Nature</strong> — ocean, rain window, forest breeze, clouds, a night sky, a fireplace.</li>
-<li><strong>Abstract</strong> — slow geometry, flowing colour, soft light, expanding circles.</li>
-<li><strong>Sound Reactive</strong> — visuals that move with the sound you are playing: an audio spectrum, a moving waveform, sound ripples, reactive particles, and Frequency Bloom, which blooms around the tone of the frequency generator.</li>
+<li><strong>Nature</strong> — Underwater (the starting visual), Deep Ocean, Rain Window, Forest Breeze, Waterfall, Flowing River, clouds, a night sky, a fireplace.</li>
+<li><strong>Abstract</strong> — Abstract Flow, Slow Geometry, Slow Waves, Flowing Colours, Soft Light, Expanding Circles, Floating Particles, Gentle Tunnel.</li>
+<li><strong>Sound Reactive</strong> — visuals that move with the sound you are playing: Audio Spectrum, Moving Waveform, Sound Ripples, Reactive Particles, Pulsating Rings, Sound Field, Synced Scene, and Frequency Bloom, which blooms around the tone of the frequency generator.</li>
 <li><strong>Interactive</strong> — visuals that respond to a touch or a slow drag, such as touch circles and gentle followers.</li>
-<li><strong>Breathing</strong> — a breathing circle that expands and contracts at a slow, steady pace, with optional “Breathe in / out” text.</li>
-<li><strong>Focus Activities</strong> — Follow the Light, Floating Bubble, Ripple and Notice the Change: the gentle attention exercises from the <a href="/learn/experiments-explained/">Attention Focus experiment</a>, with no scores or timers.</li>
+<li><strong>Breathing</strong> — a breathing circle that expands and contracts in a steady rhythm, with optional “Breathe in / out” text. Its pace follows the Movement setting: about 15 seconds a breath at Medium, slower at Low, much faster at High, and still at Still.</li>
+<li><strong>Focus Activities</strong> — Follow the Light, Floating Bubble, Ripple, Colour Flow and Living Pattern: gentle things to rest attention on, with no scores or timers. The <a href="/learn/experiments-explained/">Attention Focus experiment</a> uses the first three plus Notice the Change.</li>
 </ul>
 <h2>Movement and motion settings</h2>
 <ul>
 <li><strong>Movement</strong> — Still, Low, Medium or High sets how much every visual moves. Still keeps a picture almost completely static; it is a good choice at night or if movement tires your eyes.</li>
-<li><strong>Reduce motion</strong> — a switch that calms all movement further. It also follows your device’s own reduce-motion setting automatically.</li>
+<li><strong>Reduce motion</strong> — a switch that calms all movement further. It starts from your device’s own reduce-motion setting; once you change it here, your choice is kept.</li>
 <li><strong>“Breathe in / out” text</strong> — on or off for the breathing visual.</li>
 </ul>
 <p>Nothing in Visual Focus flashes, and everything eases in and out rather than jumping.</p>
 <h2>Enter Focus</h2>
-<p><strong>Enter Focus</strong> opens the chosen environment full screen with the sound playing. The controls fade away; tap anywhere to bring them back, pause the visual, set a timer, or exit. On a computer you can also go truly full screen. When you leave, the sound keeps playing on the Sounds page until you stop it.</p>
+<p><strong>Enter Focus</strong> opens the chosen environment full screen (tapping a visual tile also opens it after a moment). The controls fade away; tap anywhere to bring them back, change the sound or visual, pause the visual, set a timer, or adjust movement. On a computer you can also go truly full screen. To leave, use <em>Stop visual</em>, which keeps the sound playing and returns you to the Sounds page, or <em>Stop everything</em>; Escape and Back also close it.</p>
 <h2>Saving and coming back</h2>
-<p><strong>Save environment</strong> keeps the current sound and visual together under <em>My Saved Sessions</em>, so a combination you like is one tap away next time. If you have completed Help Me Find My Sound, the app also recommends a visual that suits your taste, and the <strong>Your Focus</strong> Moment on the Sounds page starts your personal sound with that visual in one tap. Saved sessions stay on your device.</p>
+<p><strong>Save environment</strong> keeps the current sound and visual together under <em>My Saved Sessions</em>, so a combination you like is one tap away next time. If you have completed Help Me Find My Sound, the app also recommends a visual that suits your taste, and the <strong>Your Focus</strong> Moment on the Sounds page starts your personal sound with the visual you last used here (Underwater until you pick one). Saved sessions stay on your device.</p>
 <h2>Visual Focus and Sleep Mode</h2>
 <p>Visual Focus is for when you are awake and looking at the screen. For bedtime, <a href="/tinnitus-sleep-sounds/">Sleep Mode</a> is the better fit: a darker, simpler screen with a timer that fades the sound out gently. The <a href="/learn/experiments-explained/">Sound + Visual Journey</a> experiment sits between the two — a picture and a sound that evolve together over twenty to forty minutes and end soft.</p>
 <p><a href="/#focus">Open Visual Focus →</a></p>`,
@@ -658,32 +658,34 @@ learn({
   intro: 'Find My Quiet Sound is built so that the first tap does something useful: pick a sound, and it starts low and fades in. Everything else — personal Moments, presets, saved mixes, sleep timers, the finder tools and the experiments — is there when you want it. This page walks through the app once, so you know what each part is for and where to find it.',
   body: `
 <h2>The Sounds page</h2>
-<p>The library is grouped so you can browse by character rather than by name: <strong>Noise</strong> (white, pink, brown, gentle static, soft hiss), <strong>Water</strong> (rain, rain on a window, ocean, lapping water, flowing water, waterfall), <strong>Nature</strong> (forest, rustling leaves, wind, crickets, cicadas, night sounds, summer night), <strong>Environment</strong> (fan, fireplace) and <strong>Lab</strong> — sounds made by the experiments and a few unusual ones: Distant Thunder, Distant City, Cabin Hum, Gentle Chimes, and Ambient Drift, slowly evolving music that never plays exactly the same way twice. Painted Noise and My Sound appear here once you have created them in Frequency Painting or Sound Sculptor. Every sound is generated live in the browser, so nothing loops with a click and nothing has to download; read <a href="/learn/how-tinnitus-sound-generators-work/">how the sounds are made</a>.</p>
+<p>The library is grouped so you can browse by character rather than by name: <strong>Noise</strong> (white, pink, brown, gentle static, soft hiss), <strong>Water</strong> (rain, rain on a window, ocean, lapping water, flowing water, waterfall), <strong>Nature</strong> (forest, rustling leaves, wind, crickets, cicadas, night sounds, summer night), and <strong>Environment</strong> (fan, fireplace). A few sounds live only inside the experiments: Generative Sound offers Ambient Drift, slowly evolving music that never plays exactly the same way twice, and Gentle Chimes; the sounds you make in Frequency Painting or Sound Sculptor appear under <em>My Saved Sounds</em> once you save them. Every sound is generated live in the browser, so nothing loops with a click and nothing has to download; read <a href="/learn/how-tinnitus-sound-generators-work/">how the sounds are made</a>.</p>
 <h2>The circle and its controls</h2>
-<p>Tap any sound and the big circle starts it, quietly. The controls under it are the same wherever you are in the app: <strong>Volume</strong>, <strong>Pause</strong>, <strong>Stop all sounds</strong>, and <strong>Immerse</strong>, which opens a full-screen player with the same controls and nothing else on screen. The volume starts at 35%, every sound fades in and out, a warning appears if you go above 75%, and no feature ever raises the volume on its own. If you would rather talk than tap, <a href="/learn/ask-find-my-quiet-sound/">Ask Find My Quiet Sound</a> takes plain requests such as “something gentle for sleep”.</p>
+<p>Tap any sound and the big circle starts it, quietly. Under it sit <strong>Volume</strong>, <strong>Pause</strong> and <strong>Stop all sounds</strong>, plus <strong>Add sound</strong>, <strong>Timer</strong>, <strong>Add Visual</strong>, <strong>Mixer</strong> and <strong>Save</strong>, and on the Sounds page <strong>Immerse</strong>, which opens a full-screen player with nothing else on screen. The same volume control appears on every screen that plays sound, with a smaller set of actions that fits the place. The volume starts at 35% on first use and remembers your last level, never above 60% when you come back; every sound fades in and out; a warning appears if you go above 75% on any volume slider; and no feature ever raises the volume on its own. If you would rather talk than tap, <a href="/learn/ask-find-my-quiet-sound/">Ask Find My Quiet Sound</a> takes plain requests such as “something gentle for sleep”.</p>
 <h2>Your Moments</h2>
-<p>Once you have completed <a href="/learn/how-to-use-find-my-sound/">Help Me Find My Sound</a>, four one-tap Moments appear at the top of the Sounds page, each built from your own preferences:</p>
+<p>From your first choices in <a href="/learn/how-to-use-find-my-sound/">Help Me Find My Sound</a>, four one-tap Moments appear at the top of the Sounds page, each built from your own preferences (they get better as you complete more rounds):</p>
 <ul>
 <li><strong>Your Quiet</strong> — your sound, ready now.</li>
 <li><strong>Your Sleep</strong> — a 60-minute session with a gentle fade at the end.</li>
-<li><strong>Your Focus</strong> — your sound with the visual that suits you.</li>
+<li><strong>Your Focus</strong> — your sound with the visual you last used in Visual Focus (Underwater until you pick one).</li>
 <li><strong>Woke Up at Night</strong> — an extra-gentle 30-minute version for the middle of the night.</li>
 </ul>
 <h2>Tuned to You</h2>
 <p>After a few comparisons in Help Me Find My Sound, a small <em>Tuned to you</em> chip appears beside the controls. It applies two gentle, reversible touches to whatever you play: people who consistently chose warmer sounds get the very top of the sound softened, and people who chose moving sounds get a little of the engine’s slow variation. It never rewrites a sound’s character — hiss stays hissy, cicadas stay bright — and it never touches the frequency generator or Find My Tinnitus Sound, which must always play exactly as set. One tap turns it off.</p>
 <h2>One-tap presets and saved items</h2>
-<p><strong>One-tap presets</strong> are ready-made blends: Gentle Relief (soft broadband sound, low), Sleep (brown noise and gentle rain), Focus (pink noise and subtle nature), Ocean, Rainy Night, Rain on Window and Summer Night. Below them the app keeps what you make yourself: <strong>My Saved Mixes</strong> from the <a href="/tinnitus-sound-mixer/">mixer</a>, <strong>My Saved Sessions</strong> from Visual Focus, and <strong>My Saved Sounds</strong> from the experiments. All of it stays on this device.</p>
+<p><strong>One-tap presets</strong> are ready-made blends: Gentle Relief (soft broadband sound, low), Sleep (brown noise and gentle rain), Focus (pink noise and subtle nature), Ocean, Rainy Night, Rain on Window and Summer Night. Below them the app keeps what you make yourself: <strong>My Saved Mixes</strong> (Save on the Sounds page, in Immerse, on the sleep screen, in the <a href="/tinnitus-sound-mixer/">mixer</a>, or a Sound Morph blend), <strong>My Saved Sessions</strong> (Save environment in Visual Focus, Save on the Focus screen, or Build My Session), and <strong>My Saved Sounds</strong> from Frequency Painting, Sound Sculptor and Help Me Find My Sound. All of it stays on this device.</p>
 <h2>Sleep Mode</h2>
-<p><a href="/tinnitus-sleep-sounds/">Sleep Mode</a> is a darker, simpler screen for bedtime. Choose 15, 30, 60 or 90 minutes or leave it continuous, keep <em>gradual fade-out</em> on so the sound eases away before the timer ends, and pick a preset or build a session from your profile. On the sleep screen, tap anywhere to show the controls, and use full screen on a computer. Practical advice on levels, speakers versus earbuds and night-time listening is in <a href="/learn/tinnitus-and-sleep/">using sound at night</a>.</p>
+<p><a href="/tinnitus-sleep-sounds/">Sleep Mode</a> is a darker, simpler screen for bedtime. Choose 15, 30, 60 or 90 minutes or leave it continuous, keep <em>gradual fade-out</em> on so the sound eases away before the timer ends, and pick a preset or build a session from your profile. The sleep screen shows the clock, the time remaining and your sounds, with volume, pause, stop, timer and save close at hand. The Timer control on any screen also takes a custom length from 5 to 180 minutes, always with the fade. Practical advice on levels, speakers versus earbuds and night-time listening is in <a href="/learn/tinnitus-and-sleep/">using sound at night</a>.</p>
 <h2>Find My Sound</h2>
-<p>The <strong>Find My Sound</strong> section holds the three tools that learn something about you, and the one place they report to. <a href="/learn/how-to-use-find-my-sound/">Help Me Find My Sound</a> discovers the sound you prefer; <a href="/learn/tinnitus-frequency-matching/">Find My Tinnitus Sound</a> explores the pitch and character of the sound you hear; <a href="/learn/how-sound-response-works/">Sound Response</a> records whether your tinnitus is temporarily quieter after particular sounds. <strong>My Sound Profile</strong> keeps what all three have learned, on this device, with a Clear button for each part.</p>
+<p>The <strong>Find My Sound</strong> section holds the three tools that learn something about you, and the one place they report to. <a href="/learn/how-to-use-find-my-sound/">Help Me Find My Sound</a> discovers the sound you prefer; <a href="/learn/tinnitus-frequency-matching/">Find My Tinnitus Sound</a> explores the pitch and character of the sound you hear; <a href="/learn/how-sound-response-works/">Sound Response</a> records whether your tinnitus is temporarily quieter after particular sounds. <strong>My Sound Profile</strong> shows your sound preferences and your Sound Response summary, on this device. <em>Clear</em> on the preferences card removes the preferences, your experiment ratings and play counts; Sound Response records are deleted from <em>View experiment details</em> in Sound Response; a saved tinnitus match is forgotten from Find My Tinnitus Sound itself.</p>
 <h2>Mixer, Frequency Generator, Visual Focus and Experiments</h2>
 <p>The <a href="/tinnitus-sound-mixer/">Mixer</a> layers up to five sounds with their own level and left–right balance. The <a href="/tinnitus-frequency-generator/">Frequency Generator</a> plays a continuous tone from 20 Hz to 16 kHz at a lower level cap than other sounds. <a href="/learn/visual-focus-explained/">Visual Focus</a> pairs a calm picture with your sound. <a href="/learn/experiments-explained/">Experiments</a> is where the app tries ideas that go beyond pressing play, each with an evidence label.</p>
+<h2>The first time you open it</h2>
+<p>A short welcome explains the three ideas the app is built on (choose a sound, keep it comfortable, personalise it) and ends with <em>Start Listening</em>. On the website a small card asks whether we may count your visit; <em>No thanks</em> is a full answer and can be changed later on the Privacy page. Below the sound library a five-step starter guide (<em>New here? Get comfortable with sound</em>) is there if you want it and can be dismissed. Your Moments, the profile suggestions in Visual Focus and Sleep, and the <em>Tuned to you</em> chip only appear once Help Me Find My Sound has something to work from, so on a first visit those spots are simply empty.</p>
 <h2>Install, offline and privacy</h2>
-<p>An <strong>Install app</strong> button appears in the top bar on browsers that support it; installed or not, the app works offline after the first visit because the sounds are generated on your device. There is no account. Your settings, saved items, profile and experiment records live in your browser’s storage on this device and are not uploaded; see <a href="/privacy/">Privacy</a> for exactly what is kept and how to clear it.</p>
+<p>An <strong>Install app</strong> button appears in the top bar on browsers that offer installation (Chrome and Edge; on iPhone and iPad use Safari’s Share → Add to Home Screen instead). The app keeps its own files in the browser after your first visit, so the sounds keep working without a connection; Ask, Your Moments and Tuned to you become available offline from your second online visit. There is no account. Your settings, saved items, profile and experiment records live in your browser’s storage on this device and are not uploaded; see <a href="/privacy/">Privacy</a> for exactly what is kept and how to clear it.</p>
 <h2>Small things that help</h2>
 <ul>
-<li><strong>Back</strong> — the ← Back button in the top bar, your browser’s back button, or the Backspace key all step back through the app; Escape closes the sleep screen and Immerse.</li>
+<li><strong>Back</strong> — the ← Back button in the top bar, your browser’s back button, or the Backspace key all step back through the app; Escape closes the sleep screen and Immerse; Space plays or pauses.</li>
 <li><strong>Light or dark</strong> — the moon and sun button in the top bar.</li>
 <li><strong>Learn</strong> — the Learn tab has safe-listening basics, when to see a professional, and links to every guide.</li>
 </ul>
@@ -710,7 +712,7 @@ trust({
 });
 trust({
   path: 'how-it-works/', title: 'How Find My Quiet Sound Works — Sounds, Mixing, Frequency Tools and Safety',
-  updated: '2026-09-23',
+  updated: '2026-09-27',
   description: 'How Find My Quiet Sound generates tinnitus sounds in the browser, how mixing and the frequency tools work, and the safety rules every feature follows.',
   h1: 'How Find My Quiet Sound works',
   body: `
@@ -723,11 +725,13 @@ trust({
 <h2>Sound Response</h2>
 <p>Discover What Changes Your Tinnitus plays one-minute test sounds built from seeded noise: a third-octave band-pass around your matched pitch (or broadband noise, 100 Hz to 12 kHz), optionally amplitude-modulated, faded in and out. Every test sound is matched to the others by measured energy at the level you chose, that level is capped, and nothing in the experiment raises it. Five seconds of silence follow each sound before the question, at least 45 seconds of rest separate tests, and a change is timed silently until you say your tinnitus is back to usual. The protocol and the adaptive rules are versioned (RI-WEB-V1.0, RI-ADAPT-V1.1) and shown in the experiment details. <a href="/learn/how-sound-response-works/">How Sound Response works</a>.</p>
 <h2>Visuals</h2>
-<p>All visuals are procedural Canvas drawings with a global movement level (Still / Low / Medium / High), a Reduce Motion switch that also follows your device setting, and nothing that flashes.</p>
+<p>All visuals are procedural Canvas drawings with a global movement level (Still / Low / Medium / High), a Reduce Motion switch that starts from your device setting (once you change it in the app, your choice is kept), and nothing that flashes.</p>
+<h2>Accessibility</h2>
+<p>A skip-to-content link, visible focus rings and labelled controls throughout. On a keyboard, Space plays or pauses, Backspace steps back, and Escape closes the sleep screen and Immerse. Frequency Painting has a slider alternative to drawing, and the Sound Response 0–10 scale can be set with the arrow keys. Every visual can be stilled, and Reduce Motion starts from your device setting.</p>
 <h2>Safety rules</h2>
 <ul><li>Master volume starts at 35% and is never restored above 60%.</li><li>Every sound fades in (about 1.2 s) and out; journeys cross-fade over a minute or more.</li><li>A limiter prevents spikes when layering.</li><li>A warning appears above 75% master.</li><li>No feature raises the volume on its own.</li></ul>
 <h2>Privacy</h2>
-<p>No account is required. Your settings, results and creations — including saved mixes, experiment feedback, your Find My Tinnitus Sound result and your Sound Response sessions and profile — stay in local storage on your device. Website visitors can choose to allow limited Google Analytics, which counts visits and pages but records no events about your sounds, experiments or tinnitus. The current iPhone app does not use Google Analytics. See <a href="/privacy/">Privacy</a>.</p>`,
+<p>No account is required. Your settings, results and creations — including saved mixes, experiment feedback, your Find My Tinnitus Sound result and your Sound Response sessions and profile — stay in local storage on your device. Website visitors can choose to allow limited Google Analytics, which counts visits and pages and, for Sound Response, which steps of the experiment were reached (opened, safety accepted, session started or completed, profile viewed) — never ratings, responses, sounds, results or anything you enter. The current iPhone app does not use Google Analytics. See <a href="/privacy/">Privacy</a>.</p>`,
 });
 trust({
   path: 'research-and-sources/', title: 'Research & Sources Behind Find My Quiet Sound',
@@ -786,7 +790,7 @@ trust({
 });
 trust({
   path: 'terms/', title: 'Terms of Use — Find My Quiet Sound',
-  updated: '2026-09-23',
+  updated: '2026-09-27',
   description: 'The plain-language terms for using Find My Quiet Sound: personal use, no medical claims, safe listening, your data stays yours, and the service is provided as-is.',
   h1: 'Terms of Use',
   body: `
@@ -798,7 +802,7 @@ trust({
 <h2>Listen safely</h2>
 <p>You are responsible for your listening levels. Keep the volume low and comfortable and follow the guidance on the <a href="/safe-listening/">safe listening</a> page. Do not use the app in situations that require your full attention, such as driving.</p>
 <h2>Your data</h2>
-<p>No account is required. What you save stays in local storage on your device; your saved sounds and preferences are yours, and nothing you save will be deleted by us. If you allow it, the website uses limited Google Analytics to count visits, as described on the <a href="/privacy/">privacy page</a>, which is part of these terms; it records no events about your sounds, experiments or tinnitus. The current iPhone app does not use Google Analytics.</p>
+<p>No account is required. What you save stays in local storage on your device; your saved sounds and preferences are yours, and nothing you save will be deleted by us. If you allow it, the website uses limited Google Analytics to count visits, as described on the <a href="/privacy/">privacy page</a>, which is part of these terms; it records page views and, for Sound Response, which steps of the experiment were reached — never your sounds, ratings, responses or results. The current iPhone app does not use Google Analytics.</p>
 <h2>Provided as-is</h2>
 <p>The service is provided "as is" and "as available", without warranties of any kind, express or implied. To the maximum extent permitted by law, the Find My Quiet Sound project is not liable for any damages arising from use of, or inability to use, the service. Sound preferences vary from person to person; the app may not work for everyone.</p>
 <h2>Fair use</h2>
@@ -811,16 +815,16 @@ trust({
 trust({
   path: 'privacy/', title: 'Privacy — Find My Quiet Sound',
   description: 'What Find My Quiet Sound stores on your device, what the website sends to Google Analytics only if you allow it, and how to change or clear either.',
-  updated: '2026-09-23',
+  updated: '2026-09-27',
   h1: 'Privacy',
   body: `
 <h2>What is stored on your device</h2>
 <p>The website and the iPhone app keep your settings, preferences and creations in local storage on your device: theme, master volume, saved mixes and sessions, favourites, visual settings, Experiments settings, experiment feedback and session history, Notched Sound profiles, your Find My Tinnitus Sound result and your sound preference profile. This local app data is not sent to us or to Google Analytics.</p>
-<p>If you use Discover What Changes Your Tinnitus (the Sound Response Lab), your session baselines, sound-test records and Sound Response Profile are also kept in local storage on this device only, and can be deleted from “View experiment details” on that profile. <a href="/learn/how-sound-response-works/">How Sound Response works</a> describes what is recorded. The “Clear” button on My Sound Profile removes your sound preference profile (including the sound play counts it draws on) and your latest experiment feedback and ratings. Other locally stored information — such as saved mixes and sessions, favourites, settings, Notched Sound profiles, your Find My Tinnitus Sound result and your experiment session history — stays on this device. To remove all locally stored data, clear this website’s data in your browser settings; in the iPhone app, deleting the app removes it.</p>
+<p>If you use Discover What Changes Your Tinnitus (Sound Response), your session baselines, sound-test records and Sound Response Profile — with a random identifier that only labels these records on this device and is never sent — are also kept in local storage on this device only, and can be deleted from “View experiment details” on that profile. <a href="/learn/how-sound-response-works/">How Sound Response works</a> describes what is recorded. The “Clear” button on My Sound Profile removes your sound preference profile (including the sound play counts it draws on) and your latest experiment feedback and ratings. Other locally stored information — such as saved mixes and sessions, favourites, settings, Notched Sound profiles, your Find My Tinnitus Sound result and your experiment session history — stays on this device. To remove all locally stored data, clear this website’s data in your browser settings; in the iPhone app, deleting the app removes it.</p>
 <p>On the website, your analytics choice is also stored on your device, together with two Google Analytics cookies if — and only if — you allow website analytics (see below).</p>
 <h2 id="analytics">Website analytics</h2>
 <p>The website findmyquietsound.com can use Google Analytics, but only if you choose Allow. Until you choose, and if you choose No thanks, Google Analytics is not loaded and nothing is sent to it. If your browser sends a Global Privacy Control signal, website analytics stays off.</p>
-<p>If you allow it, the website sends Google Analytics basic information about each page you open: the page’s standard title and address (without app settings; campaign tags such as utm_source are kept), the page you came from, your browser and operating system, general device and screen information, your language, basic engagement such as how long the page was in use, and your country and region, which Google works out from your IP address. It does not send what you play, save, measure or type, and it records no events about sounds, experiments, your tinnitus or your preferences.</p>
+<p>If you allow it, the website sends Google Analytics basic information about each page you open: the page’s standard title and address (without app settings; campaign tags such as utm_source are kept), the page you came from, your browser and operating system, general device and screen information, your language, basic engagement such as how long the page was in use, and your country and region, which Google works out from your IP address. It does not send what you play, save, measure or type. The only events beyond page views come from Sound Response, and they say which step you reached: opened, welcome and safety completed, baseline completed, session started (and whether it was your first) or completed, a sound test completed, profile viewed, response sound played. No ratings, responses, sounds, tinnitus characteristics, results or preferences are ever sent.</p>
 <p>Google Analytics then sets two first-party cookies, _ga and _ga_492Q4R9W97, holding a random identifier and visit counters. They last at most 13 months from your first visit. Google Analytics is set to keep user-level and event-level data for 2 months; its aggregated visit reports are kept longer. Google Signals and ads personalization are off, and the website is not linked to Google Ads. <a href="https://policies.google.com/technologies/partner-sites" rel="noopener">How Google uses information from sites that use its services</a>.</p>
 <p>You can change your choice here at any time. Turning website analytics off stops anything further being sent and removes the Google Analytics cookies from this site.</p>
 <div class="analytics-choice" data-analytics-control aria-live="polite" hidden></div>
@@ -843,15 +847,15 @@ trust({
 });
 
 trust({
-  path: 'premium/', title: 'Find My Quiet Sound Premium — Personal Find My Sound',
-  description: 'Find My Quiet Sound is currently free to use. What the optional Premium plan is expected to include: Find My Sound, your sound profile, Frequency Painting, Sound Sculptor, generative sound, Sound Space and journeys.',
+  path: 'premium/', updated: '2026-09-27', title: 'Find My Quiet Sound Premium — Personal Sound Discovery',
+  description: 'Find My Quiet Sound is currently free to use. What the optional Premium plan is expected to include: Help Me Find My Sound, My Sound Profile, Frequency Painting, Sound Sculptor, generative sound, Sound Space and journeys.',
   h1: 'Free and Premium',
   body: `
 <p><strong>Find My Quiet Sound is currently free to use.</strong> As the app evolves, some features may become part of an optional Premium plan. Any pricing or access changes will be communicated clearly before they take effect. This page explains what the personalisation layer — Find My Quiet Sound Premium — is expected to include.</p>
 <h2>Free today</h2>
-<ul><li>White, pink and brown noise, gentle static and soft hiss</li><li>Rain, ocean, flowing water, waterfall, forest, wind, fan, fireplace and night sounds</li><li>The mixer (up to five layers, balance, saved mixes)</li><li>The frequency generator and Find My Tinnitus Sound</li><li>Visual Focus and Focus Mode, the breathing circle, Attention Focus</li><li>Sleep Mode with timers and fade-out</li><li>Sound Morph and Build My Session</li><li>Works offline, no account, no tracking of your hearing</li></ul>
+<ul><li>White, pink and brown noise, gentle static and soft hiss</li><li>Rain, ocean, flowing water, waterfall, forest, wind, fan, fireplace and night sounds</li><li>The mixer (up to five layers, balance, saved mixes)</li><li>The frequency generator and Find My Tinnitus Sound</li><li>Visual Focus, the breathing circle, Attention Focus</li><li>Sleep Mode with timers and fade-out</li><li>Sound Morph and Build My Session</li><li>Works offline, no account, no tracking of your hearing</li></ul>
 <h2>Find My Quiet Sound Premium — discover and build your personal sound experience</h2>
-<ul><li><strong>Find My Sound</strong> — the guided A/B journey to your preferred sound, and the profile it builds</li><li><strong>Sound Sculptor</strong> and <strong>Frequency Painting</strong> — shape your own sounds and keep them</li><li><strong>Generative Sound</strong> — sounds that never quite repeat</li><li><strong>Sound Space</strong> — place sounds around you</li><li><strong>Adaptive Sound Journeys</strong> and <strong>Sound + Visual Journeys</strong></li><li>Unlimited saved sounds and experiences, and recommendations built from your own preferences</li></ul>
+<ul><li><strong>Help Me Find My Sound</strong> — the guided A/B journey to your preferred sound, and the My Sound Profile it builds</li><li><strong>Sound Sculptor</strong> and <strong>Frequency Painting</strong> — shape your own sounds and keep them</li><li><strong>Generative Sound</strong> — sounds that never quite repeat</li><li><strong>Sound Space</strong> — place sounds around you</li><li><strong>Adaptive Sound Journeys</strong> and <strong>Sound + Visual Journeys</strong></li><li>Unlimited saved sounds and experiences, and recommendations built from your own preferences</li></ul>
 <p>Premium is about personalisation, not "more noise". Nothing you save will be deleted.</p>
 <h2>Accounts</h2>
 <p>You do not need an account to use Find My Quiet Sound; everything is kept on your device. An optional free account to keep your sounds across devices is planned; it will never ask for hearing or health information.</p>`,

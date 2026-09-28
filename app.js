@@ -185,7 +185,7 @@
   function ensureLab() {
     if (window.softwaveLab) return Promise.resolve();
     if (labPromise) return labPromise;
-    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=103'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
+    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=104'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
     return labPromise;
   }
   window.softwaveEnsureLab = ensureLab;
@@ -195,7 +195,7 @@
     if (window.softwaveRI) return Promise.resolve();
     if (riPromise) return riPromise;
     const load = src => new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = src; s.defer = true; s.onload = resolve; s.onerror = () => reject(new Error('load ' + src)); document.head.appendChild(s); });
-    riPromise = load('ri-protocol.js?v=2').then(() => load('ri.js?v=8')).catch(e => { riPromise = null; throw e; });
+    riPromise = load('ri-protocol.js?v=2').then(() => load('ri.js?v=9')).catch(e => { riPromise = null; throw e; });
     return riPromise;
   }
   // the home and Experiments cards reflect the profile summary the lab keeps in storage
@@ -440,7 +440,7 @@
     const groups = [...new Set(engine.defs().map(d => d.group))];
     groups.forEach(g => {
       const h = document.createElement('h2'); h.className = 'group-title'; h.textContent = g; host.appendChild(h);
-      if (g === 'Broadband') { const l = document.createElement('p'); l.className = 'group-learn muted small'; l.innerHTML = 'Not sure which to pick? <a href="learn/white-vs-pink-vs-brown-noise/">White vs pink vs brown noise for tinnitus →</a>'; host.appendChild(l); }
+      if (g === 'Noise') { const l = document.createElement('p'); l.className = 'group-learn muted small'; l.innerHTML = 'Not sure which to pick? <a href="learn/white-vs-pink-vs-brown-noise/">White vs pink vs brown noise for tinnitus →</a>'; host.appendChild(l); }
       if (g === 'Nature') { const l = document.createElement('p'); l.className = 'group-learn muted small'; l.innerHTML = '<a href="learn/nature-sounds-vs-noise-for-tinnitus/">Nature sounds vs noise — which should you use? →</a>'; host.appendChild(l); }
       const grid = document.createElement('div'); grid.className = 'sound-grid'; grid.setAttribute('role', 'list');
       engine.defs().filter(d => d.group === g).forEach(d => {
@@ -645,21 +645,23 @@
 
   // ---------- player bar ----------
   const masterEl = $('#master-vol');
+  let warned = false;
   function setMaster(v, fromSlider) {
     engine.setMasterVolume(v);
     if (!fromSlider) { masterEl.value = Math.round(v * 100); paintRange(masterEl); }
     $('#master-out').textContent = Math.round(v * 100) + '%';
     $('.player-vol').classList.toggle('warn', v > 0.75);
     const fv = $('.field-vol'); if (fv) fv.classList.toggle('warn', v > 0.75);
-    store.set('master', v);
-  }
-  let warned = false;
-  masterEl.addEventListener('input', () => {
-    const v = +masterEl.value / 100; setMaster(v, true);
+    // the high-level warning fires once per crossing from every master slider (player bar, Sounds
+    // panel, Immerse, Sleep screen, Mixer, Focus screen), not only from the player bar
     if (v > 0.75 && !warned) { warned = true; toast('High level. The lowest comfortable level that still helps is usually best — louder is not better masking.', 4000); }
     if (v <= 0.75) warned = false;
-  });
-  setMaster(clamp(store.get('master', 0.45), 0.1, 1)); // restore last-used level (floor avoids opening silent)
+    store.set('master', v);
+  }
+  masterEl.addEventListener('input', () => { setMaster(+masterEl.value / 100, true); });
+  // First use starts at 35 %. A remembered level is restored, but never above 60 % (and never below
+  // 10 %, so the app does not open silent) — the safety rule the site documents.
+  setMaster(clamp(store.get('master', 0.35), 0.1, 0.6));
   // The phone's hardware volume multiplies with the app slider — when both are low the app seems
   // broken. That hardware level is unreadable from a web app, so a brief hint is the only bridge.
   let volHinted = false;

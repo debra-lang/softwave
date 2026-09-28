@@ -538,7 +538,7 @@
     const host = $('#pairings'); host.innerHTML = '';
     PAIRINGS.forEach(p => {
       const v = byId[p.visual]; const el = document.createElement('div'); el.className = 'pair-card';
-      el.innerHTML = `<canvas width="320" height="180" aria-hidden="true"></canvas><div class="pair-body"><div class="pair-name">${p.name}</div><div class="pair-rows"><div><span class="lbl">Visual</span>${v.name}</div><div><span class="lbl">Sound</span>${p.mix ? p.mix.map(m => engine.def(m.id).name).join(' + ') : 'Your personal sound (from Sound Discovery)'}</div></div><button class="btn btn-primary btn-sm">Try this</button></div>`;
+      el.innerHTML = `<canvas width="320" height="180" aria-hidden="true"></canvas><div class="pair-body"><div class="pair-name">${p.name}</div><div class="pair-rows"><div><span class="lbl">Visual</span>${v.name}</div><div><span class="lbl">Sound</span>${p.mix ? p.mix.map(m => engine.def(m.id).name).join(' + ') : 'Your personal sound (from Help Me Find My Sound)'}</div></div><button class="btn btn-primary btn-sm">Try this</button></div>`;
       const c = $('canvas', el); previews.set(c, { inst: v.make(), visible: false }); io.observe(c);
       $('button', el).addEventListener('click', async () => { setVisual(p.visual); const mix = p.mix || (window.softwaveProfile && softwaveProfile.mix()) || [{ id: 'pink', volume: 0.45 }]; await app.loadPreset({ name: p.name, mix, master: 0.35 }); enterFocus(true); });
       host.appendChild(el);

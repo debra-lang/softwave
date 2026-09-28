@@ -19,7 +19,10 @@
   const minutes = s => { const m = Math.round(s / 60); return m < 1 ? 'under a minute' : m === 1 ? 'about 1 minute' : `about ${m} minutes`; };
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
-  // ---------- analytics: product funnel only — never ratings, responses or parameters ----------
+  // ---------- analytics: product funnel only. An event says which step was reached (opened, welcome,
+  // safety, baseline, session started/completed, trial completed, profile viewed, response sound
+  // played) and, for a session start, whether it is the first. Never ratings, responses, sounds,
+  // tinnitus characteristics, session outcomes or any other experiment content. ----------
   function track(name, params) { try { if (typeof window.gtag === 'function') window.gtag('event', name, Object.assign({ feature: 'sound_response_lab' }, params || {})); } catch (_) { } }
 
   // ---------- storage (all local, softwave:ri:* — see the Privacy page) ----------
@@ -555,7 +558,7 @@
     const all = trials(); all.push(rec); store.set('ri:trials', all);
     const p = profile(); P.recordTrial(p, rec); saveProfile(p);
     if (sess) { sess.trials.push(rec.trial_id); sess.qi++; persist(); }
-    track('ri_trial_completed', { valid: rec.trial_valid ? 1 : 0 });
+    track('ri_trial_completed');
   }
   function endSession(reason, screen) {
     stopAudio(); clearTimers(); S.gapGuard = false;
@@ -564,7 +567,7 @@
     sess.ended = new Date().toISOString(); sess.stop_reason = reason; sess.valid_trials = trials().filter(t => t.session_id === sess.session_id && t.trial_valid !== false).length;
     const all = sessions(); all.push(sess); store.set('ri:sessions', all);
     const p = profile(); P.closeSession(p); saveProfile(p);
-    S.session = null; S.trial = null; persist(); track('ri_session_completed', { reason });
+    S.session = null; S.trial = null; persist(); track('ri_session_completed');
     if (reason === 'left') return;
     if (screen === 'stopped') { show('stopped'); return; }
     if (screen === 'adverse') { show('adverseEnd'); return; }

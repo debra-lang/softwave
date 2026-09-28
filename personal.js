@@ -125,7 +125,7 @@
       { t: 'Sounds are different tools', b: 'Broadband noise (white, pink, brown) blends steadily. Nature sounds add life and character. Neither is “correct” — comfort is personal, and quieter usually works better than louder.', a: 'Next' },
       { t: 'Compare two sounds', b: 'Listen to each for a few seconds at the same volume. Notice which one your ears relax into — that reaction is the whole method.', a: 'Next', demo: true },
       { t: 'Find your level', b: 'Using the volume under the big circle, start low and adjust to a comfortable level — one where the sound sits beside your tinnitus rather than fighting it.', a: 'Next' },
-      { t: 'Let it learn your preferences', b: 'Find My Sound plays pairs of sounds and learns from your choices — about ten quick comparisons. “No difference” is a perfectly good answer.', a: 'Start Find My Sound', discover: true },
+      { t: 'Let it learn your preferences', b: 'Find My Sound plays pairs of sounds and learns from your choices — about twelve quick comparisons. “No difference” is a perfectly good answer.', a: 'Start Find My Sound', discover: true },
       { t: 'Your first Moment', b: 'Your preferences are learned. “Your Moments” now sit at the top of the Sounds page — one tap builds your personal quiet, sleep or focus environment.', a: 'Try Your Quiet', moment: true },
     ];
     function renderJourneyCard() {

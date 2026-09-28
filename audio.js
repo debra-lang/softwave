@@ -365,6 +365,7 @@
       const t = ctx.currentTime;
       gain.gain.setValueAtTime(0, t);
       gain.gain.linearRampToValueAtTime(this._curve(volume) * entry.trim, t + FADE_IN);
+      entry.fadeUntil = t + FADE_IN;   // a level change during the start fade keeps fading (see setVolume)
       this._keepAlive(true);
       this.emit('sounds', this.activeList());
       return true;
@@ -396,7 +397,11 @@
       const t = this.ctx.currentTime;
       e.gain.gain.cancelScheduledValues(t);
       e.gain.gain.setValueAtTime(e.gain.gain.value, t);
-      e.gain.gain.linearRampToValueAtTime(this._curve(v) * e.trim, t + 0.1);
+      // While the start fade is still running, the new level is reached along the same 1.2 s fade,
+      // so a level applied right after a start (the remembered per-sound level) cannot cut it short.
+      // Afterwards a short 0.1 s glide, as before.
+      const until = e.fadeUntil && t < e.fadeUntil ? e.fadeUntil : t + 0.1;
+      e.gain.gain.linearRampToValueAtTime(this._curve(v) * e.trim, until);
     }
     setBalance(id, b) {
       const e = this.active.get(id); if (!e) return;
@@ -426,7 +431,8 @@
         const t = this.ctx.currentTime; const tc = Math.max(1, rate * 0.6);
         this.active.forEach((e) => {
           const a = this.variation.amount;
-          const gTarget = this._curve(e.volume) * e.trim * (1 + (Math.random() * 2 - 1) * 0.22 * a);
+          // the walk stays at or below the level the user set: variation never raises a sound on its own
+          const gTarget = this._curve(e.volume) * e.trim * (1 - Math.random() * 0.22 * a);
           e.gain.gain.cancelScheduledValues(t); e.gain.gain.setTargetAtTime(Math.max(0, gTarget), t, tc);
           if (e.pan) e.pan.pan.setTargetAtTime(Math.max(-1, Math.min(1, e.balance + (Math.random() * 2 - 1) * 0.35 * a)), t, tc);
           const base = Math.min(e.cutoff, 20000); const f = base * Math.pow(2, (Math.random() * 2 - 1) * 1.2 * a);

@@ -131,13 +131,13 @@ ${disclaimer}</article>`;
     jsonld.push({ '@type': 'WebPage', '@id': url, url, name: p.title, description: p.description, isPartOf: { '@id': ORIGIN + '/#website' }, dateModified: LASTMOD });
   } else {
     const isTool = p.type === 'tool';
-    body = `<article class="prose"><header class="page-head"><p class="eyebrow">${isTool ? 'Free tool' : 'Learn'}</p><h1>${p.h1}</h1><p class="lead">${p.intro}</p><p class="muted small">Last reviewed ${humanDate(REVIEWED)}${p.updated ? ` · Updated ${humanDate(p.updated)}` : ''} · Sources listed below · Not medical advice</p></header>
+    body = `<article class="prose"><header class="page-head"><p class="eyebrow">${isTool ? 'Free tool' : 'Learn'}</p><h1>${p.h1}</h1><p class="lead">${p.intro}</p><p class="muted small">Last reviewed ${humanDate(REVIEWED)}${p.updated ? ` · Updated ${humanDate(p.updated)}` : ''}${p.sources && p.sources.length ? ' · Sources listed below' : ''} · Not medical advice</p></header>
 ${isTool && p.try ? tryBox(p.try) : ''}
 ${p.body}
 ${!isTool ? tryBox(toolLinksFor(p)) : ''}
 ${sourcesBlock(p.sources)}
 ${disclaimer}
-<p class="muted small">Written from the sources above by the Find My Quiet Sound project; no clinician has reviewed this page. See <a href="/research-and-sources/">Research &amp; Sources</a> and the <a href="/medical-disclaimer/">medical disclaimer</a>.</p>
+<p class="muted small">${p.sources && p.sources.length ? 'Written from the sources above by the Find My Quiet Sound project' : 'Written by the Find My Quiet Sound project from the app itself'}; no clinician has reviewed this page. See <a href="/research-and-sources/">Research &amp; Sources</a> and the <a href="/medical-disclaimer/">medical disclaimer</a>.</p>
 </article>`;
     const wp = { '@type': isTool ? 'WebPage' : 'Article', '@id': url, url, name: p.title, headline: p.h1, description: p.description, isPartOf: { '@id': ORIGIN + '/#website' }, datePublished: REVIEWED, dateModified: p.updated || LASTMOD, author: { '@id': ORIGIN + '/#org' }, publisher: { '@id': ORIGIN + '/#org' }, inLanguage: 'en', image: ORIGIN + '/og-image.png' };
     if (isTool) { wp.mainEntity = { '@id': ORIGIN + '/#app' }; jsonld.push(APP); }
