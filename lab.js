@@ -526,9 +526,9 @@
     {
       id: 'space', name: 'Sound Space', cat: 'Explore', premium: true, evidence: 'exploratory', from: 'Spatial-audio and relaxation research',
       what: 'Place sounds around you on a simple map: rain to the left, ocean in front, brown noise centred, wind far to the right. Stationary by default, with optional very slow movement.',
-      why: 'Space gives each sound its own place, so a mix feels less crowded — and a 2024 study found slow spatial movement more relaxing than static sound.',
+      why: 'Space gives each sound its own place, so a mix feels less crowded. Slow movement is offered as something to explore, not as a proven tinnitus benefit.',
       how: 'Press Start (a starter mix is provided if nothing is playing), then drag the dots. Far from centre sounds more distant — softer in tone, with the level unchanged. Headphones recommended.',
-      whyTest: 'Exploratory evidence from one controlled study on spatially moving sound. Movement is capped to a very slow drift.',
+      whyTest: 'An exploratory idea from spatial-audio and relaxation design, not a tested tinnitus treatment. Movement is capped to a very slow drift, and comfort is the only outcome we ask about.',
       settings: [{ key: 'move', label: 'Movement', type: 'buttons', options: [['off', 'Stationary'], ['slow', 'Very slow movement']] }],
       defaults: { move: 'off' }, custom: true,
       buildUI(ctx, host) {
@@ -553,9 +553,9 @@
     {
       id: 'attention', name: 'Attention Focus', cat: 'Focus', evidence: 'promising', from: 'Attention-training research',
       what: 'Gentle visual activities that give your attention somewhere to rest: Follow the Light, Floating Bubble, Ripple, Notice the Change. No scores, no timers, no failing.',
-      why: 'Practising where attention goes is the idea behind attention-training studies for tinnitus. This is the quietest possible version.',
+      why: 'Attention-training approaches have been studied in relation to tinnitus distress. This is a calm version of that idea — somewhere for attention to rest.',
       how: 'Pick an activity and press Start. Focus Mode opens; exit whenever you like.',
-      whyTest: 'A randomised trial of an attention-training game reduced tinnitus distress more than a control game; small multisensory-training trials showed modest effects. We removed every stressful element. Promising for distress, no claim about loudness.',
+      whyTest: 'Attention-training approaches have been studied in relation to tinnitus distress; this experiment explores a calm version of that idea with every stressful element removed. It makes no claim about reducing tinnitus loudness, and comfort is the only outcome we ask about.',
       settings: [{ key: 'act', label: 'Activity', type: 'buttons', options: [['followlight', 'Follow the Light'], ['bubble', 'Floating Bubble'], ['touchwater', 'Ripple'], ['noticechange', 'Notice the Change']] }, { key: 'sync', label: 'Let the sound follow the light (Follow the Light only)', type: 'toggle' }],
       defaults: { act: 'followlight', sync: true },
       async start(ctx) { safeMaster(); if (!engine.activeList().length) await engine.startSound('pink', app.soundVol ? app.soundVol('pink') : 0.45); if (ctx.s.act === 'followlight' && ctx.s.sync) { focus.setParam('target', 'light'); focus.setParam('sync', true); focus.setVisual('target', { remember: false }); } else focus.setVisual(ctx.s.act, { remember: false }); focus.setParam('soundTouch', ctx.s.act === 'touchwater'); focus.setReturn('lab'); focus.enterFocus(); },
