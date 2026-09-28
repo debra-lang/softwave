@@ -1118,7 +1118,7 @@
     // hiding it outright, so + Add sound — highlighted blue — stays reachable as the next step;
     // its volume row, timer, etc. hide until there's something for them to control.
     $('#field-controls').hidden = false; $('#field-controls').classList.toggle('controls-idle', !any);
-    const core = $('#field-core'); core.classList.toggle('idle', !any); core.setAttribute('aria-pressed', playing); core.setAttribute('aria-label', !any ? 'Choose a sound to begin' : playing ? 'Pause' : 'Play');
+    const core = $('#field-core'); core.classList.toggle('idle', !any); core.setAttribute('aria-pressed', playing); core.setAttribute('aria-label', !any ? 'Start listening — explore and customize 20 sounds' : playing ? 'Pause' : 'Play');
     $('#field').dataset.state = !any ? 'idle' : playing ? 'playing' : 'paused';
     const v = $('#field-vol'); v.value = Math.round(engine.masterVolume * 100); paintRange(v); $('#field-vol-out').textContent = v.value + '%';
     const t = engine.timer; $$('.sound-controller [data-act="timer"] span').forEach(el => { el.textContent = t.endsAt ? `Timer · ${Math.max(1, Math.ceil((t.endsAt - Date.now()) / 60000))} min` : 'Timer'; });
