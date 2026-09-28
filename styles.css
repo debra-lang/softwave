@@ -1785,7 +1785,7 @@ html[data-theme="dark"] .lab-view { --lab-bg-a: #0f1320; --lab-bg-b: #090b12; }
 .match-card > .fn-close { top: calc(clamp(18px, 3vw, 30px) - 10px); right: calc(clamp(18px, 3vw, 30px) - 12px); }   /* on the step title's line, which is where each step lands */
 .match-card .match-step > h2 { padding-right: 44px; }
 
-/* ===================== Sounds opening experience (v263) =====================
+/* ===================== Sounds opening experience (v264) =====================
    The Sound Field stage keeps its living canvas, play hub, name/descriptor and controller; this layer adds
    the opening composition: eyebrow, gradient headline, a field of sound (hero.js paints one static canvas)
    behind the control, the Find My Sound card and the pitch route. Dark mode is the visual benchmark. */
@@ -1795,13 +1795,16 @@ html[data-theme="dark"] { --hero-cyan: #5ff0ff; --hero-cyan-2: #3cc2ff; --hero-b
 #sf-stage { padding-top: 22px; padding-bottom: 14px; }
 #sf-stage .sf-hero { max-width: 34rem; }
 #sf-stage .sf-hero .brand-eyebrow { color: var(--hero-cyan); font-weight: 600; letter-spacing: .3em; font-size: clamp(.66rem, 1.9vw, .78rem); margin-bottom: 8px; }
+#sf-stage .sf-hero h1 br { display: block; }
 #sf-stage .sf-hero h1 { font-size: clamp(2.5rem, 12.8vw, 3.9rem); line-height: 1.02; letter-spacing: -.015em; font-weight: 400; text-wrap: balance; }
 #sf-stage .sf-hero h1 .hero-quiet { background: linear-gradient(92deg, var(--hero-cyan) 0%, var(--hero-cyan-2) 45%, var(--hero-blue) 100%); -webkit-background-clip: text; background-clip: text; color: transparent; padding-right: .03em; }
 #sf-stage .sf-hero .lead { font-family: inherit; font-weight: 500; font-size: clamp(1rem, 4.3vw, 1.2rem); color: var(--sf-ink-2); max-width: 30ch; margin-top: 10px; line-height: 1.4; }
 
 /* the field of sound: one painted canvas, breathing and drifting only via CSS */
 #sf-stage .field-wrap { position: relative; margin-top: 0; }
-#sf-stage .hero-wave { position: absolute; left: 0; top: 0; width: 100%; aspect-ratio: 850 / 495; pointer-events: none; z-index: 0; }
+#sf-stage .hero-wave, #sf-stage .hero-atmo { position: absolute; left: 0; top: 0; width: 100%; aspect-ratio: 850 / 495; pointer-events: none; z-index: 0; }
+#sf-stage .hero-atmo { opacity: .42; filter: blur(1.5px); -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 12%, #000 88%, transparent 100%); mask-image: linear-gradient(90deg, transparent 0, #000 12%, #000 88%, transparent 100%); }
+#sf-stage .hero-atmo[hidden] { display: none; }
 #sf-stage .hero-wave-art { position: absolute; inset: 0; width: 100%; height: 100%; display: block; object-fit: fill; }
 html:not([data-theme="dark"]) #sf-stage .hero-wave-art { mix-blend-mode: multiply; opacity: .75; }
 @media (prefers-reduced-motion: no-preference) {
@@ -1882,9 +1885,9 @@ html:not([data-theme="dark"]) #sf-stage { background: linear-gradient(180deg, #f
 @media (min-width: 720px) {
   #sf-stage { padding-top: 36px; }
   #sf-stage .sf-hero h1 { font-size: clamp(3rem, 5vw, 3.8rem); }
-  #sf-stage .hero-wave { -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 10%, #000 90%, transparent 100%); mask-image: linear-gradient(90deg, transparent 0, #000 10%, #000 90%, transparent 100%); }
-  #sf-stage .field { width: 172px; margin-top: 26px; }
-  #sf-stage .hero-routes { width: min(100%, 520px); margin-top: 18px; }
+  #sf-stage .hero-wave { -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 14%, #000 86%, transparent 100%); mask-image: linear-gradient(90deg, transparent 0, #000 14%, #000 86%, transparent 100%); }
+  #sf-stage .field { width: 168px; margin-top: 24px; }
+  #sf-stage .hero-routes { width: min(100%, 480px); margin-top: 16px; }
   #sf-stage .hero-card { width: 100%; padding: 16px 18px 16px 16px; gap: 16px; }
   #sf-stage .hero-alt { justify-content: center; }
 }
