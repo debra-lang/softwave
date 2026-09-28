@@ -1785,7 +1785,7 @@ html[data-theme="dark"] .lab-view { --lab-bg-a: #0f1320; --lab-bg-b: #090b12; }
 .match-card > .fn-close { top: calc(clamp(18px, 3vw, 30px) - 10px); right: calc(clamp(18px, 3vw, 30px) - 12px); }   /* on the step title's line, which is where each step lands */
 .match-card .match-step > h2 { padding-right: 44px; }
 
-/* ===================== Sounds opening experience (v264) =====================
+/* ===================== Sounds opening experience (v265) =====================
    The Sound Field stage keeps its living canvas, play hub, name/descriptor and controller; this layer adds
    the opening composition: eyebrow, gradient headline, a field of sound (hero.js paints one static canvas)
    behind the control, the Find My Sound card and the pitch route. Dark mode is the visual benchmark. */
@@ -1848,7 +1848,7 @@ html:not([data-theme="dark"]) #sf-stage .field-core .ico-play, html:not([data-th
 
 /* routes: the personalized card (narrow, glass, cyan-lit edges) and the pitch route */
 #sf-stage .hero-routes { position: relative; z-index: 1; width: min(100%, 560px); margin: 12px auto 0; display: grid; gap: 8px; }
-#sf-stage .hero-card { position: relative; overflow: hidden; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; width: min(100%, 92vw); margin: 0 auto; padding: 13px 14px 13px 12px; border-radius: 20px; text-decoration: none; color: var(--sf-ink);
+#sf-stage .hero-card { position: relative; overflow: hidden; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; width: min(100%, 92vw); margin: 0 auto; padding: 7px 14px 7px 12px; border-radius: 18px; text-decoration: none; color: var(--sf-ink);
   background: linear-gradient(135deg, color-mix(in srgb, var(--hero-cyan) 12%, var(--hero-card-bg)) 0%, var(--hero-card-bg) 38%, var(--hero-card-bg-2) 100%);
   border: 1.5px solid var(--hero-card-line);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--hero-cyan) 14%, transparent), 0 0 30px color-mix(in srgb, var(--hero-cyan) 20%, transparent), inset 0 0 26px color-mix(in srgb, var(--hero-cyan) 9%, transparent), inset 0 -18px 30px color-mix(in srgb, var(--hero-blue) 10%, transparent), 0 14px 40px rgba(0, 0, 0, .3);
@@ -1859,12 +1859,12 @@ html:not([data-theme="dark"]) #sf-stage .field-core .ico-play, html:not([data-th
 #sf-stage .hero-card:hover { transform: translateY(-2px); border-color: var(--hero-cyan); box-shadow: 0 0 0 1px color-mix(in srgb, var(--hero-cyan) 22%, transparent), 0 0 40px color-mix(in srgb, var(--hero-cyan) 26%, transparent), inset 0 0 26px color-mix(in srgb, var(--hero-cyan) 11%, transparent), inset 0 -18px 30px color-mix(in srgb, var(--hero-blue) 12%, transparent), 0 18px 46px rgba(0, 0, 0, .32); }
 #sf-stage .hero-card:focus-visible { outline: none; border-color: var(--hero-cyan); box-shadow: 0 0 0 4px color-mix(in srgb, var(--hero-cyan) 40%, transparent), 0 14px 40px rgba(0, 0, 0, .3); }
 #sf-stage .hero-card.is-pressed { transform: scale(.99); }
-#sf-stage .hero-card-icon { display: grid; place-items: center; width: 62px; height: 62px; border-radius: 50%; position: relative; background: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--hero-blue) 26%, transparent), color-mix(in srgb, var(--hero-core-bg) 76%, transparent) 72%); box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--hero-cyan) 72%, transparent), 0 0 18px var(--hero-glow), inset 0 0 14px color-mix(in srgb, var(--hero-cyan) 14%, transparent); }
+#sf-stage .hero-card-icon { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; position: relative; background: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--hero-blue) 26%, transparent), color-mix(in srgb, var(--hero-core-bg) 76%, transparent) 72%); box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--hero-cyan) 72%, transparent), 0 0 18px var(--hero-glow), inset 0 0 14px color-mix(in srgb, var(--hero-cyan) 14%, transparent); }
 #sf-stage .hero-card-icon svg { filter: drop-shadow(0 0 5px color-mix(in srgb, var(--hero-cyan) 55%, transparent)); }
-#sf-stage .hero-card-body { display: grid; gap: 2px; min-width: 0; }
-#sf-stage .hero-card-eyebrow { font-size: .56rem; letter-spacing: .16em; text-transform: uppercase; font-weight: 600; color: var(--hero-ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-#sf-stage .hero-card-title { font-family: var(--sf-display); font-weight: 400; font-size: clamp(1.4rem, 5.9vw, 1.8rem); line-height: 1.08; letter-spacing: -.01em; color: var(--sf-ink); }
-#sf-stage .hero-card-desc { font-size: clamp(.82rem, 3.4vw, .94rem); line-height: 1.32; color: var(--hero-ink-soft); }
+#sf-stage .hero-card-body { display: grid; gap: 0; min-width: 0; }
+#sf-stage .hero-card-eyebrow { font-size: .56rem; line-height: 1.2; letter-spacing: .16em; text-transform: uppercase; font-weight: 600; color: var(--hero-ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#sf-stage .hero-card-title { font-family: var(--sf-display); font-weight: 400; font-size: clamp(1.4rem, 5.9vw, 1.8rem); line-height: 1; letter-spacing: -.01em; color: var(--sf-ink); }
+#sf-stage .hero-card-desc { font-size: clamp(.82rem, 3.4vw, .94rem); line-height: 1.2; margin-top: 1px; color: var(--hero-ink-soft); }
 #sf-stage .hero-card-arrow { color: var(--sf-ink); opacity: .95; transition: transform .3s ease; }
 #sf-stage .hero-card:hover .hero-card-arrow { transform: translateX(3px); }
 #sf-stage .hero-or { display: flex; align-items: center; gap: 14px; color: var(--sf-ink-3); font-size: .68rem; letter-spacing: .28em; text-transform: uppercase; font-weight: 600; padding: 0 10px; margin: 2px 0; }
@@ -1888,15 +1888,15 @@ html:not([data-theme="dark"]) #sf-stage { background: linear-gradient(180deg, #f
   #sf-stage .hero-wave { -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 14%, #000 86%, transparent 100%); mask-image: linear-gradient(90deg, transparent 0, #000 14%, #000 86%, transparent 100%); }
   #sf-stage .field { width: 168px; margin-top: 24px; }
   #sf-stage .hero-routes { width: min(100%, 480px); margin-top: 16px; }
-  #sf-stage .hero-card { width: 100%; padding: 16px 18px 16px 16px; gap: 16px; }
+  #sf-stage .hero-card { width: 100%; padding: 9px 18px 9px 14px; gap: 16px; }
   #sf-stage .hero-alt { justify-content: center; }
 }
 @media (max-width: 359px) {
   #sf-stage .sf-hero .brand-eyebrow { letter-spacing: .2em; }
   #sf-stage .sf-hero h1 { font-size: 2.35rem; }
   #sf-stage .field { width: 142px; }
-  #sf-stage .hero-card { grid-template-columns: auto 1fr; gap: 10px; padding: 12px 12px; width: min(100%, 94vw); }
+  #sf-stage .hero-card { grid-template-columns: auto 1fr; gap: 10px; padding: 8px 12px; width: min(100%, 94vw); }
   #sf-stage .hero-card-arrow { display: none; }
-  #sf-stage .hero-card-icon { width: 54px; height: 54px; }
+  #sf-stage .hero-card-icon { width: 50px; height: 50px; }
   #sf-stage .hero-card-eyebrow { white-space: normal; letter-spacing: .12em; font-size: .54rem; }
 }
