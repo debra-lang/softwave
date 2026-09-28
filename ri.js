@@ -8,9 +8,12 @@
   const P = window.RIProtocol; const engine = window.softwave, app = window.softwaveApp; const store = app.store;
   const $ = (s, r = document) => r.querySelector(s); const $$ = (s, r = document) => [...r.querySelectorAll(s)];
   const root = document.getElementById('ri-root'); if (!root || !P) return;
-  const LOCAL = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
+  // Development overrides apply only on a plain local web server, never inside the iPhone app (capacitor://localhost).
+  const NATIVE_SHELL = !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform());
+  const LOCAL = !NATIVE_SHELL && (location.protocol === 'http:' || location.protocol === 'https:') && /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
+  let WAKE_MAX_MS = 120000;   // keep-awake safety limit (see "keep the screen awake" below)
   // Test-only timing overrides, localhost only; trials made under them are stamped "-test" by the protocol.
-  try { const o = LOCAL ? JSON.parse(localStorage.getItem('softwave:ri:test') || 'null') : null; if (o) P.configure(o); } catch (_) { }
+  try { const o = LOCAL ? JSON.parse(localStorage.getItem('softwave:ri:test') || 'null') : null; if (o) { if (o.wakeMaxSeconds > 0) WAKE_MAX_MS = o.wakeMaxSeconds * 1000; delete o.wakeMaxSeconds; P.configure(o); } } catch (_) { }
   const C = P.CONFIG;
   const SAFETY_VERSION = 'RI-SAFETY-V1';
   const RETURN_TTL = 30 * 60 * 1000;   // a hand-off to Find My Tinnitus Sound is resumed within the same sitting only
@@ -23,7 +26,42 @@
   // safety, baseline, session started/completed, trial completed, profile viewed, response sound
   // played) and, for a session start, whether it is the first. Never ratings, responses, sounds,
   // tinnitus characteristics, session outcomes or any other experiment content. ----------
+  /* bundle:web-analytics:begin (the iPhone app bundler replaces this block with an empty track()) */
   function track(name, params) { try { if (typeof window.gtag === 'function') window.gtag('event', name, Object.assign({ feature: 'sound_response_lab' }, params || {})); } catch (_) { } }
+  /* bundle:web-analytics:end */
+
+  // ---------- keep the screen awake while a test sound plays ----------
+  // Held from "Start the sound" through the answer to "What happened to your tinnitus?" (the listen, gap
+  // and response screens) and released by whichever comes first: any other screen, an interruption, Stop,
+  // leaving Sound Response, the session ending, the page being hidden or unloaded, or WAKE_MAX_MS.
+  // In the iPhone app it uses the KeepAwake plugin when present; on the website, the Screen Wake Lock API on
+  // touch-screen devices only. Where neither exists, or a call fails, nothing happens and the test runs as before.
+  const KEEP_AWAKE = true;   // kill switch
+  const WAKE_SCREENS = new Set(['listen', 'gap', 'response']);
+  const wake = (() => {
+    let held = false, sentinel = null, gen = 0, timer = null, ka;
+    const plugin = () => { if (ka !== undefined) return ka; ka = null; try { const c = window.Capacitor; if (NATIVE_SHELL && c) ka = (c.Plugins && c.Plugins.KeepAwake) || (typeof c.registerPlugin === 'function' ? c.registerPlugin('KeepAwake') : null); } catch (_) { } return ka; };
+    const webLock = () => { try { return !NATIVE_SHELL && !!(navigator.wakeLock && typeof navigator.wakeLock.request === 'function') && !!(window.matchMedia && matchMedia('(pointer: coarse)').matches); } catch (_) { return false; } };
+    const quiet = f => { try { const r = f(); if (r && typeof r.catch === 'function') r.catch(() => { }); } catch (_) { } };
+    function hold() {
+      if (!KEEP_AWAKE || held || document.hidden) return;
+      const k = plugin(); if (!k && !webLock()) return;
+      held = true; const my = ++gen; clearTimeout(timer); timer = setTimeout(release, WAKE_MAX_MS);
+      if (k) { quiet(() => k.keepAwake()); return; }
+      try {
+        navigator.wakeLock.request('screen').then(sl => { if (my !== gen || !held) quiet(() => sl.release()); else sentinel = sl; },
+          () => { if (my === gen) { held = false; clearTimeout(timer); timer = null; } });
+      } catch (_) { held = false; clearTimeout(timer); timer = null; }
+    }
+    function release() {
+      if (!held) return; held = false; gen++; clearTimeout(timer); timer = null;
+      const k = plugin(); if (k) { quiet(() => k.allowSleep()); return; }
+      const sl = sentinel; sentinel = null; if (sl) quiet(() => sl.release());
+    }
+    document.addEventListener('visibilitychange', () => { if (document.hidden) release(); });
+    addEventListener('pagehide', release);
+    return { hold, release };
+  })();
 
   // ---------- storage (all local, softwave:ri:* — see the Privacy page) ----------
   const uid = () => 'ri_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
@@ -105,6 +143,7 @@
   // ---------- screens ----------
   const SCREENS = {};
   function show(name, data) {
+    if (!WAKE_SCREENS.has(name)) wake.release();
     clearTimers(); S.screen = name; persist();
     const s = SCREENS[name](data || {});
     root.innerHTML = `<section class="ri-screen ri-${name}" aria-live="polite">${s.html}</section>`;
@@ -484,6 +523,7 @@
   }
   function stopPlay() { const p = S.play; S.play = null; if (S.tick) { clearInterval(S.tick); S.tick = null; } if (!p) return; try { p.node.gain.gain.cancelScheduledValues(p.ctx.currentTime); p.node.gain.gain.setTargetAtTime(0, p.ctx.currentTime, 0.03); } catch (_) { } setTimeout(() => Stim.tearDown(p.node), 200); }
   async function startListening() {
+    wake.hold();   // inside the tap on "Start the sound"
     show('listen');
     if (!(await ensureAudio())) { invalidateTrial('audio_failed'); endSession('audio_failed', 'audioFailed'); return; }
     engine.notchClear(); engine.resetMasterShape();
@@ -524,12 +564,12 @@
     S.guards = () => { document.removeEventListener('visibilitychange', vis); if (engine.ctx) engine.ctx.removeEventListener('statechange', st); off(); };
   }
   function disarmGuards() { if (S.guards) { S.guards(); S.guards = null; } }
-  function interrupted(reason) { stopAudio(); S.gapGuard = false; clearTimers(); invalidateTrial(reason); show('interrupted'); }
+  function interrupted(reason) { wake.release(); stopAudio(); S.gapGuard = false; clearTimers(); invalidateTrial(reason); show('interrupted'); }
   function invalidateTrial(reason) { if (!S.trial) return; S.trial.trial_valid = false; S.trial.trial_invalid_reason = reason; finishTrial(); }
 
   // ---------- responses → records ----------
   function responseGiven(cat) {
-    const t = S.trial; if (!t) return; t.immediate_response_category = cat; t.responded_at = new Date().toISOString();
+    wake.release(); const t = S.trial; if (!t) return; t.immediate_response_category = cat; t.responded_at = new Date().toISOString();
     if (cat === 'louder' && S.session) { S.session.avoid_today.push(t.candidate_id); }
     persist(); show('rating');
   }
@@ -561,7 +601,7 @@
     track('ri_trial_completed');
   }
   function endSession(reason, screen) {
-    stopAudio(); clearTimers(); S.gapGuard = false;
+    wake.release(); stopAudio(); clearTimers(); S.gapGuard = false;
     if (S.trial) { if (S.trial.immediate_response_category && !S.trial.trial_invalid_reason) finishTrial(); else invalidateTrial(reason === 'user_stop' ? 'stopped' : reason); }
     const sess = S.session; if (!sess) { show(screen || 'profile'); return; }
     sess.ended = new Date().toISOString(); sess.stop_reason = reason; sess.valid_trials = trials().filter(t => t.session_id === sess.session_id && t.trial_valid !== false).length;
@@ -586,7 +626,7 @@
   // leaving the view (Back, menu, another tab): no sound continues, nothing partial counts
   function leaveView() { app.leaveTool ? app.leaveTool('ri') : app.showView('sounds'); }
   function leave() {
-    stopSample(); stopPlay(); if (!S.session) { clearTimers(); return; }
+    wake.release(); stopSample(); stopPlay(); if (!S.session) { clearTimers(); return; }
     if (S.audio || S.gapGuard || (S.trial && !S.trial.immediate_response_category)) { stopAudio(); S.gapGuard = false; }
     endSession('left');
   }

@@ -119,7 +119,9 @@
   // The browser renders it but cannot forge it: the billing table has no client write policies.
   let serverState = null;
   function setServerState(s) { serverState = s || null; }
-  const DEV_HOST = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+  // development only on a plain local web server, never inside the iPhone app (capacitor://localhost)
+  const NATIVE_SHELL = !!(global.Capacitor && typeof global.Capacitor.isNativePlatform === 'function' && global.Capacitor.isNativePlatform());
+  const DEV_HOST = !NATIVE_SHELL && (location.protocol === 'http:' || location.protocol === 'https:') && /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
   // Dev-only preview of the future monetized experience (production hosts ignore this entirely):
   //   localStorage.setItem('softwave:dev:flags', '{"MONETIZATION_ENABLED":true,"LAUNCH_ALL_ACCESS":false}')
   // then reload, and use simulate('free'|'trial'|...) to walk the states. Real entitlement authority
