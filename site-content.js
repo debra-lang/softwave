@@ -330,7 +330,7 @@ learn({
 });
 
 learn({
-  slug: 'tinnitus-and-sleep',
+  slug: 'tinnitus-and-sleep', updated: '2026-09-27',
   title: 'Using Sound at Night When You Have Tinnitus',
   description: 'Using sound at night with tinnitus: why it feels louder in bed, which sounds help, how loud, timer or all night, speakers or earbuds, and when to get help.',
   h1: 'Using sound at night when you have tinnitus',
@@ -347,7 +347,7 @@ learn({
 <h2>Speakers, pillow speakers or earbuds?</h2>
 <p>A small speaker or a pillow speaker is better for all-night use: no pressure on the ears, no risk of hours of headphone listening, and the level stays low. If you share a bed, a pillow speaker keeps the sound local.</p>
 <h2>If sleep is the real problem</h2>
-<p>Persistent insomnia with tinnitus responds well to cognitive behavioural therapy for insomnia, and sleep foundations recommend regular schedules, less late caffeine and alcohol, and a dark, cool room. Talk to a professional if most nights are difficult.</p>
+<p>If insomnia persists, ask a doctor about cognitive behavioural therapy for insomnia (CBT-I), the usual first approach; sleep foundations also recommend regular schedules, less late caffeine and alcohol, and a dark, cool room. Talk to a professional if most nights are difficult.</p>
 <p>Try <a href="/tinnitus-sleep-sounds/">Sleep Mode</a>.</p>`,
   sources: ['sleepf', 'nidcd', 'aao', 'who'],
 });
@@ -589,9 +589,9 @@ learn({
 <h2>Explore — sounds that move and blend</h2>
 <h3>Generative Sound</h3><p><em>Experimental — research is limited.</em> Rain, ocean, wind, forest, an abstract ambience, broadband noise, or <strong>Ambient Drift</strong> — slowly evolving music that never plays exactly the same way twice — with one Stable ↔ Organic control. Real rain never repeats; small variation feels natural and may be easier to stop noticing over a long session. Sound-therapy research mostly tests steady sound, so this comes from ambient sound design, not trials.</p>
 <h3>Sound Morph</h3><p><em>Experimental — research is limited.</em> One slider that glides from brown noise through pink to rain. Sometimes the comfortable spot is between two sounds; this asks whether one dimension finds it faster than a mixer.</p>
-<h3>Sound Space</h3><p><em>Experimental — research is limited.</em> Place sounds around you on a simple map — rain to the left, ocean in front, wind far right — stationary by default, with optional very slow movement (about nine minutes per circle). Moving a sound changes where it sits and how distant it feels in tone; it does not change its level. Space gives each sound its own place so a mix feels less crowded, and one controlled study found slow spatial movement more relaxing than static sound.</p>
+<h3>Sound Space</h3><p><em>Experimental — research is limited.</em> Place sounds around you on a simple map — rain to the left, ocean in front, wind far right — stationary by default, with optional very slow movement (about nine minutes per circle). Moving a sound changes where it sits and how distant it feels in tone; it does not change its level. Space gives each sound its own place so a mix feels less crowded. Slow movement is offered as something to try, not as a proven benefit.</p>
 <h2>Focus — somewhere for attention to rest</h2>
-<h3>Attention Focus</h3><p><em>Promising research.</em> Gentle visual activities — Follow the Light, Floating Bubble, Ripple, Notice the Change — with no scores, no timers and no failing. Practising where attention goes is the idea behind attention-training studies for tinnitus; a randomised trial of an attention-training game reduced tinnitus distress more than a control game. Promising for distress; no claim about loudness.</p>
+<h3>Attention Focus</h3><p><em>Promising research.</em> Gentle visual activities — Follow the Light, Floating Bubble, Ripple, Notice the Change — with no scores, no timers and no failing. Practising where attention goes is the idea behind attention-training approaches that have been studied for tinnitus distress. This version keeps only the calm part of that idea, and it makes no claim about tinnitus loudness.</p>
 <h3>Sound + Visual Journey</h3><p><em>Promising research.</em> Sound and picture evolve together over 20–40 minutes — Ocean to Night, Rain to Sleep, Forest Evening. With the fade option on, it ends soft; otherwise the last sound stays on until you stop it. Studies of virtual nature find audio and visuals together relax more than either alone. Relaxation only.</p>
 <h2>Sessions — built for you</h2>
 <h3>Adaptive Sound Journey</h3><p><em>Experimental — research is limited.</em> A soundscape that changes very slowly: brown noise and rain, then less rain, an ocean appears, the sound warms, simplifies, and — with the sleep option on — fades away at the end. A loop becomes familiar and easy for the brain to set aside — which can let tinnitus back in; slow change keeps sound gently interesting without asking for attention.</p>
