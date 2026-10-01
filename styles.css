@@ -1045,6 +1045,18 @@ html[data-theme="dark"] #sound-groups .sound-card.active .desc { color: rgba(238
 :root:not([data-theme="dark"]) #sound-groups .sound-card.active .tile-preview { box-shadow: 0 0 0 1px rgba(63, 99, 224, .30), 0 8px 20px rgba(30, 40, 80, .12); }
 :root:not([data-theme="dark"]) #sound-groups .sound-card.active .desc { color: rgba(31, 29, 26, .70); }
 @media (prefers-reduced-motion: reduce) { #sound-groups .sound-card, #sound-groups .sound-card::before { transition: none; } }
+/* Inactive library cards: the dimming moves from the whole card to the artwork, so names and descriptors stay readable.
+   Active card untouched. */
+#sound-groups .sound-card, #sound-groups .sound-card:hover { opacity: 1; }
+#sound-groups .sound-card .tile-preview { transition: transform .5s cubic-bezier(.2,.8,.2,1), box-shadow .5s, opacity .35s; }
+#sound-groups .sound-card:not(.active) .tile-preview { opacity: .62; }
+#sound-groups .sound-card:not(.active):hover .tile-preview { opacity: .9; }
+html[data-theme="dark"] #sound-groups .sound-card:not(.active) .name { color: rgba(238, 240, 244, .84); }
+html[data-theme="dark"] #sound-groups .sound-card:not(.active) .desc { color: rgba(238, 240, 244, .56); }
+:root:not([data-theme="dark"]) #sound-groups .sound-card:not(.active) .tile-preview { opacity: .78; }
+:root:not([data-theme="dark"]) #sound-groups .sound-card:not(.active) .name { color: rgba(21, 26, 43, .88); }
+:root:not([data-theme="dark"]) #sound-groups .sound-card:not(.active) .desc { color: rgba(31, 29, 26, .62); }
+@media (prefers-reduced-motion: reduce) { #sound-groups .sound-card .tile-preview { transition: none; } }
 .presets-row { margin-top: 36px; }
 .row-title { font-size: .7rem; letter-spacing: .26em; color: var(--sf-ink-3); font-weight: 500; text-transform: uppercase; }
 html[data-theme="dark"] .row-title { color: rgba(238,240,244,.42); }
