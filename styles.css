@@ -1609,30 +1609,30 @@ html[data-theme="dark"] .lab-view { --lab-bg-a: #0f1320; --lab-bg-b: #090b12; }
 .ri-feature[hidden] { display: none; }
 @media (max-width: 560px) { .ri-feature { grid-template-columns: 1fr; gap: 12px; padding: 18px; } .ri-feature-orb { width: 64px; height: 64px; } }
 /* Sounds page: the Sound Response card as an outlined row in the family of the "Four ways to explore" tiles (v268).
-   It stays where it is in the page (after the presets and saved rows); CSS aligns its left edge with the tile grid
-   (the presets row is a centred block up to 1060 px) and gives it the grid's width: two tiles + gap (854 px) when the
+   It is the fourth item inside the "Four ways to explore" block, so it moves with that block (app.js places the block
+   after the one-tap presets, before the saved rows). It gets the grid's width: two tiles + gap (854 px) when the
    grid has two columns, one tile (420 px, stacked like the phone) when it has one, full width on phones. Same green frame as
    the tiles; the 22 px blue sphere beside the eyebrow and the button carry its identity. Wording, button, link and live updates unchanged. */
-#view-sounds > a.ri-feature { position: relative; display: block; box-sizing: border-box; width: min(100%, 854px); max-width: none; margin: 0 0 14px max(0px, (100% - 1060px) / 2); padding: 14px 18px; border-radius: 16px; border: 2px solid rgba(62, 154, 114, .45); background: var(--card); box-shadow: 0 6px 20px rgba(30, 40, 80, .06); }
-:root[data-theme="dark"] #view-sounds > a.ri-feature { border-color: rgba(159, 224, 187, .45); box-shadow: 0 6px 20px rgba(0, 0, 0, .3); }
-#view-sounds > a.ri-feature:hover, #view-sounds > a.ri-feature:focus-visible { border-color: #3e9a72; }
-:root[data-theme="dark"] #view-sounds > a.ri-feature:hover, :root[data-theme="dark"] #view-sounds > a.ri-feature:focus-visible { border-color: #9fe0bb; }
-#view-sounds > a.ri-feature .ri-feature-orb { position: absolute; left: 18px; top: 16px; width: 22px; height: 22px; margin: 0; box-shadow: none; }
-#view-sounds > a.ri-feature .ri-feature-eyebrow { padding-left: 30px; min-height: 22px; display: flex; align-items: center; }
-#view-sounds > a.ri-feature .ri-feature-body { display: grid; grid-template-columns: 1fr auto; column-gap: 22px; align-items: center; }
-#view-sounds > a.ri-feature .ri-feature-body > * { grid-column: 1; }
-#view-sounds > a.ri-feature .ri-feature-cta { grid-column: 2; grid-row: 1 / span 4; align-self: center; }
-#view-sounds > a.ri-feature .ri-feature-title { font-size: 1.1rem; font-weight: 800; margin: 6px 0 3px; }
-#view-sounds > a.ri-feature .ri-feature-desc { font-size: .85rem; margin: 0; }
-#view-sounds > a.ri-feature .ri-feature-stats { margin: 6px 0 0; }
-#view-sounds > a.ri-feature .ri-feature-note { margin: 6px 0 0; font-size: .76rem; }
+#view-sounds .two-tools > a.ri-feature { position: relative; display: block; box-sizing: border-box; width: min(100%, 854px); max-width: none; margin: 4px 0 14px max(0px, (100% - 1060px) / 2);   /* 4 px top keeps the 18 px gap below the tiles the card had before it moved into the block */ padding: 14px 18px; border-radius: 16px; border: 2px solid rgba(62, 154, 114, .45); background: var(--card); box-shadow: 0 6px 20px rgba(30, 40, 80, .06); }
+:root[data-theme="dark"] #view-sounds .two-tools > a.ri-feature { border-color: rgba(159, 224, 187, .45); box-shadow: 0 6px 20px rgba(0, 0, 0, .3); }
+#view-sounds .two-tools > a.ri-feature:hover, #view-sounds .two-tools > a.ri-feature:focus-visible { border-color: #3e9a72; }
+:root[data-theme="dark"] #view-sounds .two-tools > a.ri-feature:hover, :root[data-theme="dark"] #view-sounds .two-tools > a.ri-feature:focus-visible { border-color: #9fe0bb; }
+#view-sounds .two-tools > a.ri-feature .ri-feature-orb { position: absolute; left: 18px; top: 16px; width: 22px; height: 22px; margin: 0; box-shadow: none; }
+#view-sounds .two-tools > a.ri-feature .ri-feature-eyebrow { padding-left: 30px; min-height: 22px; display: flex; align-items: center; }
+#view-sounds .two-tools > a.ri-feature .ri-feature-body { display: grid; grid-template-columns: 1fr auto; column-gap: 22px; align-items: center; }
+#view-sounds .two-tools > a.ri-feature .ri-feature-body > * { grid-column: 1; }
+#view-sounds .two-tools > a.ri-feature .ri-feature-cta { grid-column: 2; grid-row: 1 / span 4; align-self: center; }
+#view-sounds .two-tools > a.ri-feature .ri-feature-title { font-size: 1.1rem; font-weight: 800; margin: 6px 0 3px; }
+#view-sounds .two-tools > a.ri-feature .ri-feature-desc { font-size: .85rem; margin: 0; }
+#view-sounds .two-tools > a.ri-feature .ri-feature-stats { margin: 6px 0 0; }
+#view-sounds .two-tools > a.ri-feature .ri-feature-note { margin: 6px 0 0; font-size: .76rem; }
 @media (max-width: 939px) {
-  #view-sounds > a.ri-feature { width: min(100%, 420px); }
-  #view-sounds > a.ri-feature .ri-feature-body { display: block; }
-  #view-sounds > a.ri-feature .ri-feature-cta { margin-top: 12px; }
+  #view-sounds .two-tools > a.ri-feature { width: min(100%, 420px); }
+  #view-sounds .two-tools > a.ri-feature .ri-feature-body { display: block; }
+  #view-sounds .two-tools > a.ri-feature .ri-feature-cta { margin-top: 12px; }
 }
-@media (max-width: 640px) { #view-sounds > a.ri-feature { width: 100%; } }
-#view-sounds > a.ri-feature[hidden] { display: none; }
+@media (max-width: 640px) { #view-sounds .two-tools > a.ri-feature { width: 100%; } }
+#view-sounds .two-tools > a.ri-feature[hidden] { display: none; }
 /* "Play tone" frames (v268): green in Personalized Notched Sound, soft red in Find My Tinnitus Sound. The existing 1 px border
    is coloured and a 1 px inset line of the same colour makes a 2 px frame without changing the button's size. In the matcher
    the playing state keeps its own blue inset ring; the red edge stays outside it. */
