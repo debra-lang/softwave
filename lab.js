@@ -9,8 +9,6 @@
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
   const store = app.store;
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-  // Inside the iPhone app (Capacitor shell). Used only to leave Ambient Drift out of the app for now (website unchanged).
-  const NATIVE_SHELL = !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform());
   const NAME = id => (engine.def(id) || { name: id }).name;
   const LIB = engine.defs().map(d => d.id);
   const VISUALS = focus.visuals;
@@ -503,14 +501,13 @@
     },
     {
       id: 'generative', name: 'Generative Sound', cat: 'Explore', premium: true, evidence: 'exploratory', from: 'Generative audio / procedural sound design',
-      what: NATIVE_SHELL ? 'Sounds that subtly evolve instead of repeating — rain, ocean, wind, forest, an abstract ambience or broadband noise — with one Stable ↔ Organic control.'
-        : 'Sounds that subtly evolve instead of repeating — rain, ocean, wind, forest, an abstract ambience, Ambient Drift (slowly evolving music that never plays exactly the same way twice) or broadband noise — with one Stable ↔ Organic control.',
+      what: 'Sounds that subtly evolve instead of repeating — rain, ocean, wind, forest, an abstract ambience, Ambient Drift (slowly evolving music that never plays exactly the same way twice) or broadband noise — with one Stable ↔ Organic control.',
       why: 'Real rain never sounds the same twice. Small variation feels more natural and may be easier to stop noticing over a long session.',
       how: 'Pick a base, press Start, then set how alive you want it. Changes are always subtle.',
       whyTest: 'Sound-therapy research mostly tests steady sound. We are learning where on the stable ↔ organic scale people with tinnitus feel most at ease. Evidence comes from ambient sound design, not clinical trials.',
-      settings: [{ key: 'base', label: 'Base', type: 'buttons', options: [['rain', 'Rain'], ['ocean', 'Ocean'], ['wind', 'Wind'], ['forest', 'Forest'], ['abstract', 'Abstract ambience'], ['drift', 'Ambient Drift'], ['noise', 'Broadband noise']].filter(o => !(NATIVE_SHELL && o[0] === 'drift')) }, { key: 'organic', label: 'Stable ↔ Organic', type: 'range', min: 0, max: 100, scale: ['Stable', 'Gently alive', 'Organic'], fmt: v => v < 15 ? 'Stable' : v < 50 ? 'Gently alive' : 'Organic' }],
+      settings: [{ key: 'base', label: 'Base', type: 'buttons', options: [['rain', 'Rain'], ['ocean', 'Ocean'], ['wind', 'Wind'], ['forest', 'Forest'], ['abstract', 'Abstract ambience'], ['drift', 'Ambient Drift'], ['noise', 'Broadband noise']] }, { key: 'organic', label: 'Stable ↔ Organic', type: 'range', min: 0, max: 100, scale: ['Stable', 'Gently alive', 'Organic'], fmt: v => v < 15 ? 'Stable' : v < 50 ? 'Gently alive' : 'Organic' }],
       defaults: { base: 'rain', organic: 35 },
-      async start(ctx) { safeMaster(); if (NATIVE_SHELL && ctx.s.base === 'drift') ctx.s.base = 'rain'; const b = ctx.s.base; const mix = b === 'abstract' ? [{ id: 'chimes', volume: 0.45 }, { id: 'brown', volume: 0.35 }] : b === 'drift' ? [{ id: 'drift', volume: 0.5 }] : b === 'noise' ? [{ id: 'sculpt', volume: 0.55, params: Object.assign(DEF(), { colour: 0.4, moving: 0.4, mod: 0.3 }) }] : [{ id: b, volume: 0.5 }, { id: 'brown', volume: 0.2 }]; await engine.loadMix(mix); engine.setVariation(ctx.s.organic / 100, 8 - ctx.s.organic / 25); },
+      async start(ctx) { safeMaster(); const b = ctx.s.base; const mix = b === 'abstract' ? [{ id: 'chimes', volume: 0.45 }, { id: 'brown', volume: 0.35 }] : b === 'drift' ? [{ id: 'drift', volume: 0.5 }] : b === 'noise' ? [{ id: 'sculpt', volume: 0.55, params: Object.assign(DEF(), { colour: 0.4, moving: 0.4, mod: 0.3 }) }] : [{ id: b, volume: 0.5 }, { id: 'brown', volume: 0.2 }]; await engine.loadMix(mix); engine.setVariation(ctx.s.organic / 100, 8 - ctx.s.organic / 25); },
       onSetting(ctx, key) { if (!running || running.exp.id !== 'generative') return; if (key === 'base') { this.start(ctx); return; } engine.setVariation(ctx.s.organic / 100, 8 - ctx.s.organic / 25); },
       stop() { engine.setVariation(0); }, keepsSound: true,
     },
@@ -1109,7 +1106,7 @@
     if (!x || !(app.escapeFree ? app.escapeFree(e) : true)) return;
     e.preventDefault(); x.click();
   });
-  function ctxFor(exp) { if (ctxs[exp.id]) return ctxs[exp.id]; const d = typeof exp.defaults === 'function' ? exp.defaults() : Object.assign({}, exp.defaults); const saved = store.get('lab:settings:' + exp.id); if (saved) Object.assign(d, saved); if (NATIVE_SHELL && exp.id === 'generative' && d.base === 'drift') d.base = 'rain'; ctxs[exp.id] = { s: d, host: null }; return ctxs[exp.id]; }
+  function ctxFor(exp) { if (ctxs[exp.id]) return ctxs[exp.id]; const d = typeof exp.defaults === 'function' ? exp.defaults() : Object.assign({}, exp.defaults); const saved = store.get('lab:settings:' + exp.id); if (saved) Object.assign(d, saved); ctxs[exp.id] = { s: d, host: null }; return ctxs[exp.id]; }
   const TINT = { discovery: [200, 175, 140], paint: [185, 170, 205], sculptor: [200, 165, 125], generative: [225, 200, 150], morph: [180, 175, 200], space: [150, 185, 200], attention: [225, 210, 180], svjourney: [140, 175, 200], journey: [170, 185, 200], session: [190, 180, 170] };
   const LIGHT_TINT = { discovery: [125, 90, 60], paint: [110, 90, 140], sculptor: [125, 90, 60], generative: [150, 120, 60], morph: [100, 95, 130], space: [60, 110, 140], attention: [150, 125, 70], svjourney: [60, 105, 140], journey: [90, 110, 135], session: [110, 100, 90] };
   function card(exp) {
