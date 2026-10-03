@@ -126,9 +126,10 @@
   async function upgradeChecks() {
     var post = {}; for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k.indexOf('softwave:') === 0) post[k] = localStorage.getItem(k); }
     // unchanged, or (for JSON objects such as usage counters) every 1.0 field kept with its value: additive only
-    var keeps = function (a, b) { try { var x = JSON.parse(a), y = JSON.parse(b); if (x && typeof x === 'object' && !Array.isArray(x) && y && typeof y === 'object') return Object.keys(x).every(function (f) { return JSON.stringify(x[f]) === JSON.stringify(y[f]); }); } catch (e) { } return false; };
+    // usage counters (softwave:metrics) only count up, as they do in 1.0 on every launch
+    var keeps = function (a, b, k) { try { var x = JSON.parse(a), y = JSON.parse(b); if (x && typeof x === 'object' && !Array.isArray(x) && y && typeof y === 'object') return Object.keys(x).every(function (f) { return JSON.stringify(x[f]) === JSON.stringify(y[f]) || (k === 'softwave:metrics' && typeof x[f] === 'number' && y[f] >= x[f]); }); } catch (e) { } return false; };
     var lost = [], changed = [], added = [];
-    Object.keys(PRE).forEach(function (k) { if (!(k in post)) lost.push(k); else if (post[k] !== PRE[k]) (keeps(PRE[k], post[k]) ? added : changed).push(k); });
+    Object.keys(PRE).forEach(function (k) { if (!(k in post)) lost.push(k); else if (post[k] !== PRE[k]) (keeps(PRE[k], post[k], k) ? added : changed).push(k); });
     L('additive', added);
     L('post', { keys: Object.keys(post).length, data: post });
     ok('every saved 1.0 key is still present after the upgrade', lost.length === 0, lost);
