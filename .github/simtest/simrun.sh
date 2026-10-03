@@ -9,7 +9,8 @@ newdev() { local u; u=$(xcrun simctl create "t-$L-$1" "$DT" "$RT") || return 1; 
 
 # run the app with its console attached; answer screenshot (B61SHOT) and background (B61BG) requests; stop at the marker
 run_app() {
-  local U=$1 tag=$2 marker=$3 to=$4 log="$OUT/$L-$tag.log" t=0
+  local U=$1 tag=$2 marker=$3 to=$4 t=0
+  local log="$OUT/$L-$tag.log"
   xcrun simctl launch --console --terminate-running-process "$U" "$APPID" > "$log" 2>&1 &
   local pid=$!
   while [ $t -lt "$to" ]; do
