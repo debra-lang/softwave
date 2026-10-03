@@ -1655,6 +1655,10 @@ html[data-theme="dark"] .lab-view { --lab-bg-a: #0f1320; --lab-bg-b: #090b12; }
 #sf-stage .appstore-badge:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 @media (max-width: 640px) { #sf-stage .appstore-line { flex-direction: column; gap: 8px; } }
 html.native-shell #appstore-line { display: none !important; }
+/* "Four ways to explore" heading in the green of its four tiles (v271): a deeper green on light for small-text contrast
+   (#2b7654, about 4.8:1), the tiles' bright green on dark. Other section headings unchanged. */
+#view-sounds .two-tools > .row-title { color: #2b7654; }
+html[data-theme="dark"] #view-sounds .two-tools > .row-title { color: #9fe0bb; }
 /* screens: one thing at a time, generous spacing, large targets */
 .ri-view { padding-bottom: 30px; }
 .ri-root { max-width: 560px; margin: 0 auto; }
