@@ -1646,6 +1646,15 @@ html[data-theme="dark"] .lab-view { --lab-bg-a: #0f1320; --lab-bg-b: #090b12; }
 :root[data-theme="dark"] #view-match #match-play { border-color: rgba(255, 143, 140, .55); }
 :root[data-theme="dark"] #view-match #match-play[aria-pressed="false"] { box-shadow: inset 0 0 0 1px rgba(255, 143, 140, .55); }
 :root[data-theme="dark"] #view-match #match-play:hover, :root[data-theme="dark"] #view-match #match-play:focus-visible { border-color: rgba(255, 143, 140, .85); }
+/* App Store line on the Sounds page (v270): after the two ways in, before the Learn note. Apple's official black badge,
+   unmodified, 40 px tall (Apple's on-screen minimum), clear space well above a quarter of its height. Hidden inside the
+   iPhone app, where the inline head script marks <html class="native-shell">. */
+#sf-stage .appstore-line { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px; margin: 18px auto 4px; color: var(--sf-ink-3, var(--muted)); font-size: .82rem; letter-spacing: .02em; }
+#sf-stage .appstore-badge { display: inline-block; line-height: 0; border-radius: 8px; }
+#sf-stage .appstore-badge img { display: block; height: 40px; width: auto; }
+#sf-stage .appstore-badge:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+@media (max-width: 640px) { #sf-stage .appstore-line { flex-direction: column; gap: 8px; } }
+html.native-shell #appstore-line { display: none !important; }
 /* screens: one thing at a time, generous spacing, large targets */
 .ri-view { padding-bottom: 30px; }
 .ri-root { max-width: 560px; margin: 0 auto; }
