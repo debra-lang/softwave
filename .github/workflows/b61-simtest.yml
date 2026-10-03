@@ -1,0 +1,112 @@
+# TEST-ONLY workflow (branch ios-61-simtest; delete the branch afterwards). Nothing is signed or uploaded and no
+# secrets are used. Compiles simulator builds of Build 61 (this branch = ios-61 + .github/simtest) and of
+# Build 60 = App Store 1.0 (commit fc40884), each with a test-only script injected into its web bundle, then runs:
+# fresh install of 61, and an upgrade 1.0 -> 1.1 carrying 1.0 data, on iOS 15.0 and 15.4 (iPhone 6s), iOS 17
+# (macos-14) and the current iOS (macos-26).
+name: Build 61 simulator tests
+
+on:
+  push:
+    branches: [ios-61-simtest]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Select Xcode 26
+        run: |
+          XC=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1)
+          if [ -n "$XC" ]; then sudo xcode-select -s "$XC"; fi
+          xcodebuild -version
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build both simulator apps
+        run: |
+          set -eo pipefail
+          SIM=$GITHUB_WORKSPACE/.github/simtest; mkdir -p $GITHUB_WORKSPACE/simapps
+          build() {   # $1 = native dir, $2 = injected script, $3 = output name
+            cd "$1"; npm ci --no-audit --no-fund >/dev/null
+            node build-www.js
+            node $SIM/inject.js www "$2"
+            npx cap sync ios
+            # test-only: let Capacitor print the page's console to stdout in this simulator build
+            node -e "const f='ios/App/App/capacitor.config.json',c=JSON.parse(require('fs').readFileSync(f));c.loggingBehavior='production';require('fs').writeFileSync(f,JSON.stringify(c,null,1))"
+            xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug -sdk iphonesimulator \
+              -destination 'generic/platform=iOS Simulator' -derivedDataPath dd CODE_SIGNING_ALLOWED=NO ARCHS=arm64 ONLY_ACTIVE_ARCH=NO build | tail -3
+            APP=$(find dd/Build/Products -name App.app -type d | head -1)
+            /usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' -c 'Print CFBundleVersion' -c 'Print MinimumOSVersion' "$APP/Info.plist"
+            mkdir -p $GITHUB_WORKSPACE/simapps/$3; cp -R "$APP" $GITHUB_WORKSPACE/simapps/$3/
+          }
+          build $GITHUB_WORKSPACE/native $SIM/b61check.js b61
+          git worktree add $GITHUB_WORKSPACE/../b60 fc40884
+          build $GITHUB_WORKSPACE/../b60/native $SIM/seed60.js b60
+          cd $GITHUB_WORKSPACE && tar -czf simapps.tgz simapps
+      - uses: actions/upload-artifact@v4
+        with:
+          name: simapps
+          path: simapps.tgz
+          retention-days: 7
+
+  test-ios15-17:
+    needs: build
+    runs-on: macos-14
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: simapps
+      - name: Install iOS 15.0 and 15.4 simulator runtimes
+        run: |
+          tar -xzf simapps.tgz
+          for v in 15.0 15.4; do sudo xcodes runtimes install "iOS $v" 2>&1 | tail -2; done
+          xcrun simctl list runtimes
+      - name: Run on iOS 15.0, 15.4 and 17
+        run: |
+          S=.github/simtest; chmod +x $S/simrun.sh
+          RT() { xcrun simctl list runtimes -j | python3 -c "import json,sys; v=sys.argv[1]; r=[x for x in json.load(sys.stdin)['runtimes'] if x['platform']=='iOS' and x['version'].startswith(v) and x['isAvailable']]; print(sorted(r,key=lambda x:x['version'])[-1]['identifier'] if r else '')" "$1"; }
+          $S/simrun.sh ios15.0 "iPhone 6s" "$(RT 15.0)" simapps out
+          $S/simrun.sh ios15.4 "iPhone 6s" "$(RT 15.4)" simapps out
+          R17=$(RT 17); if [ -n "$R17" ]; then $S/simrun.sh ios17 "iPhone 15" "$R17" simapps out; else echo "no iOS 17 runtime on this image"; fi
+      - name: Summary
+        if: always()
+        run: python3 .github/simtest/summarize.py out ios15.0 ios15.4 ios17
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: results-ios15-17
+          path: out/
+
+  test-ios26:
+    needs: build
+    runs-on: macos-26
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: simapps
+      - name: Run on the current iOS
+        run: |
+          tar -xzf simapps.tgz; S=.github/simtest; chmod +x $S/simrun.sh
+          XC=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1); if [ -n "$XC" ]; then sudo xcode-select -s "$XC"; fi
+          RT=$(xcrun simctl list runtimes -j | python3 -c "import json,sys; r=[x for x in json.load(sys.stdin)['runtimes'] if x['platform']=='iOS' and x['isAvailable']]; print(sorted(r,key=lambda x:[int(p) for p in x['version'].split('.')])[-1]['identifier'])")
+          DT=$(xcrun simctl list devicetypes | grep -oE 'iPhone 1[67]( Pro)?' | grep -v Pro | sort -V | tail -1)
+          echo "runtime $RT device $DT"
+          $S/simrun.sh ios-current "$DT" "$RT" simapps out
+      - name: Summary
+        if: always()
+        run: python3 .github/simtest/summarize.py out ios-current
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: results-ios-current
+          path: out/
