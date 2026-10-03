@@ -7,14 +7,16 @@
   if (location.pathname.replace(/\/index\.html$/, '/') !== '/') return;          // app page only
   var PRE = {}, n = 0;
   try { for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k.indexOf('softwave:') === 0) { PRE[k] = localStorage.getItem(k); n++; } } } catch (e) { }
-  var L = function (tag, o) { var s; try { s = JSON.stringify(o); } catch (e) { s = '"(unserializable)"'; } console.log('B61TEST ' + tag + ' ' + s); };
+  var SINK = 'http://127.0.0.1:8799/';   // CI host (the simulator shares its network); console output reaches CI late
+  var out = function (line) { console.log(line); try { fetch(SINK, { method: 'POST', mode: 'no-cors', body: line, keepalive: line.length < 60000 }); } catch (e) { } };
+  var L = function (tag, o) { var s; try { s = JSON.stringify(o); } catch (e) { s = '"(unserializable)"'; } out('B61TEST ' + tag + ' ' + s); };
   L('pre', { keys: n, data: PRE });
   var errs = []; window.addEventListener('error', function (e) { errs.push(String(e.message).slice(0, 200)); });
   window.addEventListener('unhandledrejection', function (e) { errs.push('rejection: ' + String(e.reason && e.reason.message || e.reason).slice(0, 200)); });
   var upgrade = !!PRE['softwave:mixes'];
   var res = [], ok = function (name, pass, info) { res.push([name, !!pass]); L(pass ? 'PASS' : 'FAIL', { name: name, info: info === undefined ? null : info }); };
   var w = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
-  var shot = async function (name) { console.log('B61SHOT ' + name); await w(3500); };
+  var shot = async function (name) { out('B61SHOT ' + name); await w(3500); };
   var screen = function () { return window.softwaveRI ? softwaveRI._state.screen : null; };
   var act = function (a) { var b = document.querySelector('#ri-root [data-act="' + a + '"]'); if (b) b.click(); return !!b; };
   var ids = function () { return window.softwave.activeList().map(function (s) { return s.id; }).sort().join(','); };
@@ -51,7 +53,7 @@
 
     if (upgrade) await upgradeChecks(); else await freshChecks();
 
-    var ext = performance.getEntriesByType('resource').map(function (e) { return e.name; }).filter(function (u) { return u.indexOf(location.origin + '/') !== 0 && !/^(data:|blob:)/.test(u); });
+    var ext = performance.getEntriesByType('resource').map(function (e) { return e.name; }).filter(function (u) { return u.indexOf(location.origin + '/') !== 0 && u.indexOf(SINK) !== 0 && !/^(data:|blob:)/.test(u); });
     ok('no request leaves the device (all resources local)', ext.length === 0, ext.slice(0, 5));
     ok('no runtime errors', errs.length === 0, errs.slice(0, 4));
     finish();
@@ -82,7 +84,7 @@
     ok('Stable ↔ Organic drives the variation and drift keeps playing', ids() === 'drift' && window.softwave.variation.amount === 0.9, window.softwave.variation.amount);
     // background and return (the CI script switches to Settings and back)
     var hid = false, back = false; document.addEventListener('visibilitychange', function () { if (document.hidden) hid = true; else if (hid) back = true; });
-    console.log('B61BG'); for (var t = 0; t < 120 && !back; t++) await w(500);
+    out('B61BG'); for (var t = 0; t < 480 && !back; t++) await w(500);
     await w(2500);
     ok('after background and return, drift still plays and audio runs', hid && back && ids() === 'drift' && (!ctx || ctx.state === 'running'), { hid: hid, back: back, ids: ids(), ctx: ctx && ctx.state });
     base('rain').click(); await w(2500); var toRain = ids(); base('drift').click(); await w(2500); var backDrift = ids();

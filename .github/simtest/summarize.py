@@ -7,10 +7,12 @@ lines = []
 
 
 def grab(path, tag):
-    if not os.path.exists(path):
+    ev = path[:-4] + '.events'
+    src = [p for p in (ev, path) if os.path.exists(p) and os.path.getsize(p) > 0][:1]
+    if not src:
         return []
     res = []
-    for ln in open(path, encoding='utf-8', errors='replace'):
+    for ln in open(src[0], encoding='utf-8', errors='replace'):
         i = ln.find(tag + ' ')
         if i >= 0:
             res.append(ln[i + len(tag) + 1:].strip())

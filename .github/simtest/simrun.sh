@@ -4,31 +4,34 @@
 set -u
 L=$1; DT=$2; RT=$3; APPS=$4; OUT=$5; mkdir -p "$OUT"
 APPID=com.findmyquietsound.app
+SINK_FILE="$OUT/.events" python3 "$(dirname "$0")/sink.py" & SINKPID=$!; trap "kill $SINKPID 2>/dev/null" EXIT; sleep 1
 
 newdev() { local u; u=$(xcrun simctl create "t-$L-$1" "$DT" "$RT") || return 1; xcrun simctl boot "$u"; xcrun simctl bootstatus "$u" -b >/dev/null 2>&1; echo "$u"; }
 
 # run the app with its console attached; answer screenshot (B61SHOT) and background (B61BG) requests; stop at the marker
 run_app() {
   local U=$1 tag=$2 marker=$3 to=$4 t=0
-  local log="$OUT/$L-$tag.log"
+  local log="$OUT/$L-$tag.log" ev="$OUT/$L-$tag.events"
+  : > "$OUT/.events"
   # script(1) gives simctl a terminal and flushes every write (-F), so markers reach the log immediately
   script -q -F "$log" xcrun simctl launch --console-pty --terminate-running-process "$U" "$APPID" >/dev/null 2>&1 &
   local pid=$!
   while [ $t -lt "$to" ]; do
     sleep 1; t=$((t + 1))
-    for name in $(grep -o 'B61SHOT [a-z0-9-]*' "$log" | awk '{print $2}'); do
+    cp "$OUT/.events" "$ev" 2>/dev/null
+    for name in $(cat "$ev" "$log" 2>/dev/null | grep -ao 'B61SHOT [a-z0-9-]*' | awk '{print $2}' | sort -u); do
       [ -f "$OUT/$L-$name.png" ] || xcrun simctl io "$U" screenshot "$OUT/$L-$name.png" >/dev/null 2>&1
     done
-    if grep -q 'B61BG' "$log" && [ ! -f "$OUT/.bg-$L-$tag" ]; then
+    if cat "$ev" "$log" 2>/dev/null | grep -aq 'B61BG' && [ ! -f "$OUT/.bg-$L-$tag" ]; then
       touch "$OUT/.bg-$L-$tag"; echo "$L/$tag: app to background (Settings) for 20 s"
       xcrun simctl launch "$U" com.apple.Preferences >/dev/null 2>&1; sleep 20
       xcrun simctl io "$U" screenshot "$OUT/$L-background-settings.png" >/dev/null 2>&1
       xcrun simctl launch "$U" "$APPID" >/dev/null 2>&1
     fi
-    grep -Eq "$marker" "$log" && break
+    cat "$ev" "$log" 2>/dev/null | grep -aEq "$marker" && break
   done
   [ $t -ge "$to" ] && echo "$L/$tag: TIMEOUT after ${to}s"
-  sleep 3; kill "$pid" 2>/dev/null; wait "$pid" 2>/dev/null
+  sleep 3; cp "$OUT/.events" "$ev" 2>/dev/null; kill "$pid" 2>/dev/null; wait "$pid" 2>/dev/null
 }
 
 # 1. fresh install of Build 61
