@@ -30,6 +30,15 @@
   async function run() {
     var ua = navigator.userAgent, ios = (ua.match(/OS (\d+)_(\d+)/) || []).slice(1).join('.');
     L('env', { ios: ios, ua: ua.slice(0, 140), has: CSS.supports('selector(:has(*))'), colorMix: CSS.supports('color', 'color-mix(in srgb, red, blue)'), mode: upgrade ? 'upgrade' : 'fresh' });
+    // first launch of the app: the opening film ("Tap to begin", ~29 s, then the app). Let it play through like a user.
+    var ov = document.querySelector('.fi-skip') && document.querySelector('.fi-skip').parentElement;
+    if (ov && !upgrade) {
+      await shot('intro-tap-to-begin'); ov.click(); await w(12000); await shot('intro-playing');
+      for (var q = 0; q < 50 && document.querySelector('.fi-skip'); q++) await w(500);
+      await w(1500); ok('opening film plays through and hands over to the app', !document.querySelector('.fi-skip'), null);
+      await shot('intro-handover');
+    } else L('intro', { shown: !!ov, introSeen: localStorage.getItem('softwave:introSeen') });
+    if (upgrade) ok('opening film does not replay for an existing 1.0 user', !ov, localStorage.getItem('softwave:introSeen'));
     var C = window.Capacitor;
     ok('runs in the native iOS shell', C && C.isNativePlatform && C.isNativePlatform() && C.getPlatform() === 'ios', C && C.getPlatform && C.getPlatform());
     ok('html.native-shell is set', document.documentElement.classList.contains('native-shell'));

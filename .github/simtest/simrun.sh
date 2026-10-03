@@ -11,7 +11,7 @@ newdev() { local u; u=$(xcrun simctl create "t-$L-$1" "$DT" "$RT") || return 1; 
 run_app() {
   local U=$1 tag=$2 marker=$3 to=$4 t=0
   local log="$OUT/$L-$tag.log"
-  xcrun simctl launch --console --terminate-running-process "$U" "$APPID" > "$log" 2>&1 &
+  xcrun simctl launch --console-pty --terminate-running-process "$U" "$APPID" > "$log" 2>&1 &
   local pid=$!
   while [ $t -lt "$to" ]; do
     sleep 1; t=$((t + 1))
