@@ -712,7 +712,7 @@ trust({
 });
 trust({
   path: 'how-it-works/', title: 'How Find My Quiet Sound Works — Sounds, Mixing, Frequency Tools and Safety',
-  updated: '2026-09-27',
+  updated: '2026-10-05',
   description: 'How Find My Quiet Sound generates tinnitus sounds in the browser, how mixing and the frequency tools work, and the safety rules every feature follows.',
   h1: 'How Find My Quiet Sound works',
   body: `
@@ -731,7 +731,7 @@ trust({
 <h2>Safety rules</h2>
 <ul><li>Master volume starts at 35% and is never restored above 60%.</li><li>Every sound fades in (about 1.2 s) and out; journeys cross-fade over a minute or more.</li><li>A limiter prevents spikes when layering.</li><li>A warning appears above 75% master.</li><li>No feature raises the volume on its own.</li></ul>
 <h2>Privacy</h2>
-<p>No account is required. Your settings, results and creations — including saved mixes, experiment feedback, your Find My Tinnitus Sound result and your Sound Response sessions and profile — stay in local storage on your device. Website visitors can choose to allow limited Google Analytics, which counts visits and pages and, for Sound Response, which steps of the experiment were reached (opened, safety accepted, session started or completed, profile viewed) — never ratings, responses, sounds, results or anything you enter. The current iPhone app does not use Google Analytics. See <a href="/privacy/">Privacy</a>.</p>`,
+<p>No account is required. Your settings, results and creations — including saved mixes, experiment feedback, your Find My Tinnitus Sound result and your Sound Response sessions and profile — stay in local storage on your device. Website visitors can choose to allow limited Google Analytics, which counts visits and pages, four anonymous product interactions (a sound started, 30 seconds of listening, Help Me Find My Sound started or completed) and, for Sound Response, which steps of the experiment were reached (opened, safety accepted, session started or completed, profile viewed) — never which sound, ratings, responses, results or anything you enter. The current iPhone app does not use Google Analytics. See <a href="/privacy/">Privacy</a>.</p>`,
 });
 trust({
   path: 'research-and-sources/', title: 'Research & Sources Behind Find My Quiet Sound',
@@ -790,7 +790,7 @@ trust({
 });
 trust({
   path: 'terms/', title: 'Terms of Use — Find My Quiet Sound',
-  updated: '2026-09-27',
+  updated: '2026-10-05',
   description: 'The plain-language terms for using Find My Quiet Sound: personal use, no medical claims, safe listening, your data stays yours, and the service is provided as-is.',
   h1: 'Terms of Use',
   body: `
@@ -802,7 +802,7 @@ trust({
 <h2>Listen safely</h2>
 <p>You are responsible for your listening levels. Keep the volume low and comfortable and follow the guidance on the <a href="/safe-listening/">safe listening</a> page. Do not use the app in situations that require your full attention, such as driving.</p>
 <h2>Your data</h2>
-<p>No account is required. What you save stays in local storage on your device; your saved sounds and preferences are yours, and nothing you save will be deleted by us. If you allow it, the website uses limited Google Analytics to count visits, as described on the <a href="/privacy/">privacy page</a>, which is part of these terms; it records page views and, for Sound Response, which steps of the experiment were reached — never your sounds, ratings, responses or results. The current iPhone app does not use Google Analytics.</p>
+<p>No account is required. What you save stays in local storage on your device; your saved sounds and preferences are yours, and nothing you save will be deleted by us. If you allow it, the website uses limited Google Analytics to count visits, as described on the <a href="/privacy/">privacy page</a>, which is part of these terms; it records page views, four anonymous product-interaction events (a sound was started, 30 seconds of listening, Help Me Find My Sound started or completed) and, for Sound Response, which steps of the experiment were reached — never which sound you play, your ratings, responses or results. The current iPhone app does not use Google Analytics.</p>
 <h2>Provided as-is</h2>
 <p>The service is provided "as is" and "as available", without warranties of any kind, express or implied. To the maximum extent permitted by law, the Find My Quiet Sound project is not liable for any damages arising from use of, or inability to use, the service. Sound preferences vary from person to person; the app may not work for everyone.</p>
 <h2>Fair use</h2>
@@ -815,7 +815,7 @@ trust({
 trust({
   path: 'privacy/', title: 'Privacy — Find My Quiet Sound',
   description: 'What Find My Quiet Sound stores on your device, what the website sends to Google Analytics only if you allow it, and how to change or clear either.',
-  updated: '2026-09-27',
+  updated: '2026-10-05',
   h1: 'Privacy',
   body: `
 <h2>What is stored on your device</h2>
@@ -824,7 +824,7 @@ trust({
 <p>On the website, your analytics choice is also stored on your device, together with two Google Analytics cookies if — and only if — you allow website analytics (see below).</p>
 <h2 id="analytics">Website analytics</h2>
 <p>The website findmyquietsound.com can use Google Analytics, but only if you choose Allow. Until you choose, and if you choose No thanks, Google Analytics is not loaded and nothing is sent to it. If your browser sends a Global Privacy Control signal, website analytics stays off.</p>
-<p>If you allow it, the website sends Google Analytics basic information about each page you open: the page’s standard title and address (without app settings; campaign tags such as utm_source are kept), the page you came from, your browser and operating system, general device and screen information, your language, basic engagement such as how long the page was in use, and your country and region, which Google works out from your IP address. It does not send what you play, save, measure or type. The only events beyond page views come from Sound Response, and they say which step you reached: opened, welcome and safety completed, baseline completed, session started (and whether it was your first) or completed, a sound test completed, profile viewed, response sound played. No ratings, responses, sounds, tinnitus characteristics, results or preferences are ever sent.</p>
+<p>If you allow it, the website sends Google Analytics basic information about each page you open: the page’s standard title and address (without app settings; campaign tags such as utm_source are kept), the page you came from, your browser and operating system, general device and screen information, your language, basic engagement such as how long the page was in use, and your country and region, which Google works out from your IP address. It does not send what you play, save, measure or type. Beyond page views it sends two kinds of events, none of which carry any detail about you. Four product-interaction events record only that something happened: a sound was started, sound has played for 30 seconds during a visit, Help Me Find My Sound was started, and Help Me Find My Sound was completed — not which sound, and nothing about the result. The Sound Response events say which step you reached: opened, welcome and safety completed, baseline completed, session started (and whether it was your first) or completed, a sound test completed, profile viewed, response sound played. No sound names, ratings, responses, tinnitus characteristics, results or preferences are ever sent.</p>
 <p>Google Analytics then sets two first-party cookies, _ga and _ga_492Q4R9W97, holding a random identifier and visit counters. They last at most 13 months from your first visit. Google Analytics is set to keep user-level and event-level data for 2 months; its aggregated visit reports are kept longer. Google Signals and ads personalization are off, and the website is not linked to Google Ads. <a href="https://policies.google.com/technologies/partner-sites" rel="noopener">How Google uses information from sites that use its services</a>.</p>
 <p>You can change your choice here at any time. Turning website analytics off stops anything further being sent and removes the Google Analytics cookies from this site.</p>
 <div class="analytics-choice" data-analytics-control aria-live="polite" hidden></div>

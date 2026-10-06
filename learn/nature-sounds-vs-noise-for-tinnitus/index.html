@@ -37,7 +37,8 @@ localStorage 'softwave:analytics'); No thanks or an active Global Privacy Contro
 keep Google Analytics unloaded. After Allow: one page_view per page load, carrying the
 page's standard title (captured here, before the app retitles the tab with the playing
 sound), its path without app-state query parameters or #hash (utm_* campaign tags kept)
-and a trimmed referrer. No custom events. Signals and ads personalization refused in the
+and a trimmed referrer. Beyond page views: the Sound Response step events (ri.js) and four parameter-free
+product-interaction events (the app-events section below). Signals and ads personalization refused in the
 tag; advertising storage declared denied. Production hostname only: localhost, previews
 and the native app never run this (build-www.js strips this whole block from the bundle).
 The Privacy page control ([data-analytics-control]) is rendered from here. -->
@@ -109,7 +110,7 @@ var onPrivacy = /^\/privacy\//.test(location.pathname);
 var c = document.createElement('div');
 c.id = 'consent-card'; c.className = 'consent-card' + (document.querySelector('.player') ? ' consent-card--player' : '');
 c.setAttribute('role', 'region'); c.setAttribute('aria-label', 'Website analytics choice');
-c.innerHTML = '<p><strong>Can we count your visit?</strong> Google Analytics helps us see how many people use this site. It sets two cookies. Your sounds, saved data, and what you type aren’t sent to Google Analytics.</p>'
+c.innerHTML = '<p><strong>Can we count your visit?</strong> Google Analytics helps us see how many people use this site and which features they use. It sets two cookies. Your sounds, saved data, and what you type aren’t sent to Google Analytics.</p>'
 + '<div class="consent-actions"><button type="button" class="btn btn-secondary btn-sm" data-consent="granted">Allow</button>'
 + '<button type="button" class="btn btn-secondary btn-sm" data-consent="denied">No thanks</button>'
 + '<a class="consent-link" href="' + (onPrivacy ? '#analytics' : '/privacy/#analytics') + '">Privacy</a>'

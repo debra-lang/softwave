@@ -17,7 +17,9 @@ const VERIFY = { google: '', bing: '' };        // paste verification tokens her
 const ANALYTICS = (() => {
   const m = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8').match(/[ \t]*<!-- Google tag \(gtag\.js\)[\s\S]*?-->\s*<script>[\s\S]*?<\/script>/);
   if (!m) throw new Error('analytics block missing from index.html');
-  return m[0].replace(/^[ \t]+/gm, '');
+  // the app page's product-engagement section (sound and Find My Sound events) has nothing to observe on info pages
+  if ((m[0].match(/app-events:begin/g) || []).length !== (m[0].match(/app-events:end/g) || []).length) throw new Error('unbalanced app-events markers in index.html');
+  return m[0].replace(/[ \t]*\/\* app-events:begin[\s\S]*?app-events:end \*\/\r?\n/g, '').replace(/^[ \t]+/gm, '');
 })();
 const INDEXNOW_KEY = 'a7c3e9f1b2d4486a9e0c5f7d3b1a6e2c';
 const LASTMOD = REVIEWED;
