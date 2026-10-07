@@ -1807,12 +1807,39 @@ html[data-theme="dark"] #view-sounds .two-tools > .row-title { color: #9fe0bb; }
  @supports not (color: color-mix(in srgb, red, blue)) { :where(html[data-theme="dark"]) #view-find .find-card-ri:hover { box-shadow: 0 0 0 4px rgba(116, 210, 226, 0.3), 0 18px 44px rgba(116, 210, 226, 0.22); } :where(html:not([data-theme="dark"])) #view-find .find-card-ri:hover { box-shadow: 0 0 0 4px rgba(95, 180, 201, 0.3), 0 18px 44px rgba(95, 180, 201, 0.22); } } }
 #view-find .find-card-ri:focus-visible { border-color: var(--accent-2); }
 @media (prefers-reduced-motion: reduce) { #view-find .lab-flagship { transition: none; } #view-find .lab-flagship:hover, #view-find .lab-flagship:focus-visible, #view-find .lab-flagship.is-pressed { transform: none; } }
-/* Experiments: a compact profile shortcut in the intro; experiment tiles respond like cards, in the lab's own accent */
+
+/* Find My Sound identity (v273): the cards that belong to the Find My Sound / personalization family — the
+   Help Me Find My Sound panel, Find My Tinnitus Sound and My Sound Profile — carry the same green frame as the
+   "Four ways to explore" tiles on the Sounds page (rest rgba(62,154,114,.45) / rgba(159,224,187,.45), hover
+   #3e9a72 / #9fe0bb; see .two-tools .two-tool). Only colours change: frame widths, radii, motion, glow sizes and
+   the Sound Response card (.find-card-ri, its own cyan-leaning edge) are untouched. Plain rgba values, so the
+   iOS 15 color-mix() fallbacks above are simply overridden. */
+#view-find .find-card:not(.find-card-ri) { border-color: rgba(62, 154, 114, 0.45); box-shadow: 0 10px 30px rgba(0,0,0,.10), inset 0 0 0 1px rgba(62, 154, 114, 0.14); }
+#view-find .lab-flagship { border-color: rgba(62, 154, 114, 0.45); }
+html[data-theme="dark"] #view-find .find-card:not(.find-card-ri) { border-color: rgba(159, 224, 187, 0.45); box-shadow: 0 10px 30px rgba(0,0,0,.10), inset 0 0 0 1px rgba(159, 224, 187, 0.14); }
+html[data-theme="dark"] #view-find .lab-flagship { border-color: rgba(159, 224, 187, 0.45); }
+@media (hover: hover) {
+  #view-find .find-card:not(.find-card-ri):hover { border-color: #3e9a72; background: #f0f7f4; box-shadow: 0 0 0 4px rgba(62, 154, 114, 0.28), 0 18px 44px rgba(62, 154, 114, 0.24); }
+  #view-find .lab-flagship:hover { border-color: #3e9a72; background-color: #f2f8f5; box-shadow: 0 0 0 4px rgba(62, 154, 114, 0.28), 0 18px 44px rgba(62, 154, 114, 0.24); }
+  html[data-theme="dark"] #view-find .find-card:not(.find-card-ri):hover { border-color: #9fe0bb; background: #1e2a3a; box-shadow: 0 0 0 4px rgba(159, 224, 187, 0.32), 0 18px 44px rgba(159, 224, 187, 0.24); }
+  html[data-theme="dark"] #view-find .lab-flagship:hover { border-color: #9fe0bb; background-color: #1d2839; box-shadow: 0 0 0 4px rgba(159, 224, 187, 0.32), 0 18px 44px rgba(159, 224, 187, 0.24); }
+}
+#view-find .find-card:not(.find-card-ri):focus-visible { border-color: #3e9a72; background: #f0f7f4; box-shadow: 0 0 0 4px rgba(62, 154, 114, 0.28), 0 0 0 7px rgba(62, 154, 114, 0.4), 0 18px 44px rgba(62, 154, 114, 0.24); }
+#view-find .lab-flagship:focus-visible { border-color: #3e9a72; box-shadow: 0 0 0 4px rgba(62, 154, 114, 0.28), 0 0 0 7px rgba(62, 154, 114, 0.4), 0 18px 44px rgba(62, 154, 114, 0.24); }
+html[data-theme="dark"] #view-find .find-card:not(.find-card-ri):focus-visible { border-color: #9fe0bb; background: #1e2a3a; box-shadow: 0 0 0 4px rgba(159, 224, 187, 0.32), 0 0 0 7px rgba(159, 224, 187, 0.4), 0 18px 44px rgba(159, 224, 187, 0.24); }
+html[data-theme="dark"] #view-find .lab-flagship:focus-visible { border-color: #9fe0bb; box-shadow: 0 0 0 4px rgba(159, 224, 187, 0.32), 0 0 0 7px rgba(159, 224, 187, 0.4), 0 18px 44px rgba(159, 224, 187, 0.24); }
+#view-find .find-card:not(.find-card-ri).is-pressed, #view-find .find-card:not(.find-card-ri):active { border-color: #3e9a72; background: #e8f3ee; box-shadow: 0 0 0 4px rgba(62, 154, 114, 0.28); }
+#view-find .lab-flagship.is-pressed { border-color: #3e9a72; box-shadow: 0 0 0 4px rgba(62, 154, 114, 0.28); }
+html[data-theme="dark"] #view-find .find-card:not(.find-card-ri).is-pressed, html[data-theme="dark"] #view-find .find-card:not(.find-card-ri):active { border-color: #9fe0bb; background: #243240; box-shadow: 0 0 0 4px rgba(159, 224, 187, 0.32); }
+html[data-theme="dark"] #view-find .lab-flagship.is-pressed { border-color: #9fe0bb; box-shadow: 0 0 0 4px rgba(159, 224, 187, 0.32); }
+/* Experiments: a compact profile shortcut in the intro; experiment tiles respond like cards. Their resting frame is the
+   neutral 1 px line they had before v253 (.lab-tile above; dark 30 % frame at line ~665); the lab green appears on
+   hover, focus and press only (v273 restores this). */
 .lab-shortcuts { margin: 14px 0 0; }
 .lab-shortcut { display: inline-flex; align-items: center; min-height: 40px; padding: 8px 16px; border-radius: 999px; border: 1.5px solid color-mix(in srgb, var(--lab) 55%, var(--sf-line)); background: var(--sf-glass); color: var(--sf-ink); text-decoration: none; font-weight: 600; font-size: .9rem; transition: transform .2s, border-color .2s, box-shadow .2s; }
 .lab-shortcut:hover, .lab-shortcut:focus-visible { outline: none; border-color: var(--lab); box-shadow: 0 0 0 4px color-mix(in srgb, var(--lab) 28%, transparent); transform: translateY(-1px); }
 .lab-shortcut.is-pressed { transition: none; transform: scale(.97); border-color: var(--lab); }
-#view-lab .lab-tile { border: 1.5px solid color-mix(in srgb, var(--lab) 40%, var(--sf-line)); transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease; }
+#view-lab .lab-tile { transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease; }
 @media (hover: hover) { #view-lab .lab-tile:hover { border-color: var(--lab); box-shadow: 0 0 0 4px color-mix(in srgb, var(--lab) 26%, transparent), 0 16px 40px rgba(0,0,0,.25); transform: translateY(-3px); } }
 #view-lab .lab-tile:focus-visible { outline: none; border-color: var(--lab); box-shadow: 0 0 0 4px color-mix(in srgb, var(--lab) 26%, transparent), 0 0 0 7px color-mix(in srgb, var(--lab) 40%, transparent); transform: translateY(-3px); }
 #view-lab .lab-tile.is-pressed { transition: none; transform: scale(.985); border-color: var(--lab); box-shadow: 0 0 0 4px color-mix(in srgb, var(--lab) 26%, transparent); }
