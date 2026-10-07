@@ -1175,6 +1175,17 @@ html[data-theme="dark"] .row-title { color: rgba(238,240,244,.42); }
 :root[data-theme="dark"] .moments-row .moments-note, :root[data-theme="dark"] .moments-row .row-title { color: #9fe0bb; }
 .journey-chip { position: relative; display: flex; align-items: center; gap: 8px; margin: 4px 0 14px; }   /* anchors its dismiss button (it floated to the view's corner before) */
 .journey-chip .chip strong::before { content: "☀ "; }
+/* Starter card (v274): the Find My Sound family green frame, the same values as the Sounds tiles (.two-tools .two-tool);
+   the extra border width comes out of the padding so the card keeps its size. */
+.journey-chip .chip { border: 2px solid rgba(62, 154, 114, 0.45); padding: 11px 17px; }
+.journey-chip .chip:hover, .journey-chip .chip:focus-visible { border-color: #3e9a72; }
+:root[data-theme="dark"] .journey-chip .chip { border-color: rgba(159, 224, 187, 0.45); }
+:root[data-theme="dark"] .journey-chip .chip:hover, :root[data-theme="dark"] .journey-chip .chip:focus-visible { border-color: #9fe0bb; }
+/* Starter guide demo buttons: pressed = that sound is playing (the app's existing active colours); the step-5 choice box */
+.journey-card [data-j-play][aria-pressed="true"] { background: var(--accent); color: #fff; box-shadow: 0 0 0 4px var(--ring); }
+.journey-choice { margin-top: 14px; padding: 14px 16px; border-radius: 16px; background: var(--accent-soft); text-align: center; }
+.journey-choice p { margin: 0 0 10px; font-size: .95rem; }
+.learn-start { margin: 8px 0 0; }
 .journey-veil .journey-card .btn-row { flex-wrap: wrap; }
 .fa-tuned, .field-actions .fa.fa-tuned, .field-status .fa.fa-tuned { font-size: 1.1rem; opacity: .85; }   /* +2 steps from the 13.4px it rendered at */
 /* a chip whose sound is currently playing — tap again to stop */
