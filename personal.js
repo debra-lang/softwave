@@ -187,8 +187,9 @@
         if (s.discover) { setJ({ step: 4 }); closeJourney(); app.showView('find'); return; }
         if (s.moment) {
           if (profile.params()) { closeJourney(); const q = document.querySelector('#moments .chip'); if (q) q.click(); finishJourney(); return; }
-          // No profile yet, so there is no Moment to try: offer the two honest options instead of completing silently.
-          const box = $('[data-j-choice]', veil); if (box) { box.hidden = false; $('[data-j-find]', box).focus(); }
+          // No profile yet, so there is no Moment to try: offer the two honest options instead of completing silently,
+          // and take the primary button away so nothing suggests a Moment can start. "Continue later" stays.
+          const box = $('[data-j-choice]', veil); if (box) { box.hidden = false; $('[data-j-next]', veil).hidden = true; $('[data-j-find]', box).focus(); }
           return;
         }
         setJ({ step: i + 1 }); openJourney();

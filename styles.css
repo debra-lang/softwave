@@ -1187,6 +1187,9 @@ html[data-theme="dark"] .row-title { color: rgba(238,240,244,.42); }
 .journey-choice p { margin: 0 0 10px; font-size: .95rem; }
 .learn-start { margin: 8px 0 0; }
 .journey-veil .journey-card .btn-row { flex-wrap: wrap; }
+/* Small phones: a step taller than the viewport must scroll from its top, not be centred and clipped (margin: auto still centres
+   it whenever it fits). Scoped to the starter guide. */
+.journey-veil .journey-card { margin: auto; }
 .fa-tuned, .field-actions .fa.fa-tuned, .field-status .fa.fa-tuned { font-size: 1.1rem; opacity: .85; }   /* +2 steps from the 13.4px it rendered at */
 /* a chip whose sound is currently playing — tap again to stop */
 .chip-playing { outline: 2px solid rgba(62, 154, 114, 0.55); outline-offset: -1px; }
