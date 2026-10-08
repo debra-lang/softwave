@@ -11,6 +11,9 @@
     var o = {}; for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k.indexOf("softwave:") === 0) o[k] = localStorage.getItem(k); }
     var t = document.body.innerText;
     L("ui", { version: "1.1 (61)", journey: localStorage.getItem("softwave:journey"), mix: t.indexOf("My rain + brown") >= 0, session: t.indexOf("Ocean evening") >= 0, sound: t.indexOf("Soft hush") >= 0, theme: document.documentElement.dataset.theme, master: window.softwave && softwave.masterVolume });
-    L("dump", o); out("B60SEED done");
+    L("dump", o);
+    // Build 61 already applies the approved 60 % restore cap and has just saved 0.6; store 85 % again so the cap is exercised on the Build 61 -> 62 launch
+    localStorage.setItem("softwave:master", "0.85"); out("B60SEED master re-set to 0.85 after Build 61 capped it");
+    out("B60SEED done");
   }, 6000); });
 })();
