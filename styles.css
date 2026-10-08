@@ -1173,11 +1173,11 @@ html[data-theme="dark"] .row-title { color: rgba(238,240,244,.42); }
 .moments-row .moments-note { margin: -4px 0 10px; color: #3e9a72; }
 .moments-row .row-title { color: #3e9a72; }
 :root[data-theme="dark"] .moments-row .moments-note, :root[data-theme="dark"] .moments-row .row-title { color: #9fe0bb; }
-.journey-chip { position: relative; display: flex; align-items: center; gap: 8px; margin: 4px 0 14px; }   /* anchors its dismiss button (it floated to the view's corner before) */
+.journey-chip { position: relative; display: flex; align-items: center; justify-content: center; gap: 8px; width: fit-content; max-width: 100%; margin: 4px auto 14px; }   /* the row hugs the card and sits centred (auto margins), so the absolutely placed × lands in the card's top-right corner (v275) */
 .journey-chip .chip strong::before { content: "☀ "; }
 /* Starter card (v274): the Find My Sound family green frame, the same values as the Sounds tiles (.two-tools .two-tool);
    the extra border width comes out of the padding so the card keeps its size. */
-.journey-chip .chip { border: 2px solid rgba(62, 154, 114, 0.45); padding: 11px 17px; }
+.journey-chip .chip { border: 2px solid rgba(62, 154, 114, 0.45); padding: 11px 40px 11px 17px; }   /* right padding leaves room for the × inside the card, as .chip-mine does */
 .journey-chip .chip:hover, .journey-chip .chip:focus-visible { border-color: #3e9a72; }
 :root[data-theme="dark"] .journey-chip .chip { border-color: rgba(159, 224, 187, 0.45); }
 :root[data-theme="dark"] .journey-chip .chip:hover, :root[data-theme="dark"] .journey-chip .chip:focus-visible { border-color: #9fe0bb; }
