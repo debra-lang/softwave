@@ -119,6 +119,9 @@
 
     // ================= GETTING COMFORTABLE WITH SOUND =================
     // Optional 5-step starter journey. Educational only; no claims; dismiss forever with one tap.
+    // State: softwave:journey = { step, done, dismissed } (shape unchanged since the feature shipped; step is the
+    // index of the next step to show). The Sounds-page card shows while neither done nor dismissed; Learn → "Getting
+    // started" reopens the guide at any time without bringing the card back.
     const J = () => store.get('journey', { step: 0, done: false, dismissed: false });
     const setJ = (patch) => { store.set('journey', Object.assign(J(), patch)); renderJourneyCard(); };
     const STEPS = [
@@ -126,39 +129,69 @@
       { t: 'Compare two sounds', b: 'Listen to each for a few seconds at the same volume. Notice which one your ears relax into — that reaction is the whole method.', a: 'Next', demo: true },
       { t: 'Find your level', b: 'Using the volume under the big circle, start low and adjust to a comfortable level — one where the sound sits beside your tinnitus rather than fighting it.', a: 'Next' },
       { t: 'Let it learn your preferences', b: 'Find My Sound plays pairs of sounds and learns from your choices — about twelve quick comparisons. “No difference” is a perfectly good answer.', a: 'Start Find My Sound', discover: true },
-      { t: 'Your first Moment', b: 'Your preferences are learned. “Your Moments” now sit at the top of the Sounds page — one tap builds your personal quiet, sleep or focus environment.', a: 'Try Your Quiet', moment: true },
+      { t: 'Your first Moment', b: 'Once Find My Sound has learned your preferences, “Your Moments” sit at the top of the Sounds page — one tap builds your personal quiet, sleep or focus environment. Not run it yet? You can still finish the introduction here.', a: 'Try Your Quiet', moment: true },
     ];
     function renderJourneyCard() {
       const slot = $('#journey-slot'); if (!slot) return;
       const j = J();
       if (j.done || j.dismissed) { slot.innerHTML = ''; return; }
-      if (!slot.firstChild) {
-        slot.innerHTML = `<div class="journey-chip"><button class="chip" id="journey-open"><strong>New here? Get comfortable with sound</strong><span>5 short steps · about 3 minutes · optional</span></button><button class="chip-del" id="journey-x" aria-label="Dismiss the starter guide">×</button></div>`;
-        $('#journey-open', slot).addEventListener('click', openJourney);
-        $('#journey-x', slot).addEventListener('click', () => { setJ({ dismissed: true }); app.toast('Okay — you can always learn more under Learn.'); });
-      }
+      const started = j.step > 0;
+      const title = started ? 'Continue getting comfortable with sound' : 'New here? Get comfortable with sound';
+      const sub = started ? `Step ${Math.min(j.step, STEPS.length - 1) + 1} of ${STEPS.length} · Continue where you left off` : `${STEPS.length} short steps · about 3 minutes · optional`;
+      slot.innerHTML = `<div class="journey-chip"><button class="chip" id="journey-open"><strong>${title}</strong><span>${sub}</span></button><button class="chip-del" id="journey-x" aria-label="Dismiss the starter guide">×</button></div>`;
+      $('#journey-open', slot).addEventListener('click', () => openJourney());
+      $('#journey-x', slot).addEventListener('click', () => { setJ({ dismissed: true }); app.toast('Okay — you can reopen it any time under Learn → Getting started.'); });
     }
     let veil = null;
-    function openJourney() {
-      const j = J(); const i = Math.min(j.step, STEPS.length - 1); const s = STEPS[i];
+    // The demo buttons mirror the audio engine, not their own clicks: pressed = that sound is active AND the engine
+    // is running. Any change (a tap, Stop, an interruption, leaving) re-syncs through the engine's own events.
+    const demoName = id => (engine.def(id) || { name: id }).name;
+    const demoOn = id => engine.isActive(id) && !!engine.isPlaying;
+    function syncDemo() {
+      if (!veil || veil.hidden) return;
+      veil.querySelectorAll('[data-j-play]').forEach(b => { const id = b.dataset.jPlay, on = demoOn(id); b.setAttribute('aria-pressed', on ? 'true' : 'false'); b.textContent = (on ? 'Stop ' : 'Play ') + demoName(id); });
+    }
+    function openJourney(opts = {}) {
+      const j = J();
+      let i = Math.min(j.step, STEPS.length - 1);
+      if (opts.index !== undefined) i = opts.index; else if (opts.fromHelp && j.done) i = 0;   // a finished guide replays from the start
+      const s = STEPS[i];
       if (!veil) {
         veil = document.createElement('div'); veil.className = 'welcome journey-veil'; veil.setAttribute('role', 'dialog'); veil.setAttribute('aria-modal', 'true');
         veil.addEventListener('keydown', e => { if (e.key === 'Escape') closeJourney(); });
         document.body.appendChild(veil);
+        engine.on(type => { if (type === 'sounds' || type === 'state') syncDemo(); });
       }
       veil.hidden = false;
       veil.innerHTML = `<div class="welcome-card journey-card" aria-labelledby="j-title">
         <p class="muted small">Getting comfortable with sound · step ${i + 1} of ${STEPS.length}</p>
         <h2 class="h1" id="j-title">${s.t}</h2>
         <p class="lead">${s.b}</p>
-        ${s.demo ? '<div class="btn-row" style="justify-content:center"><button class="btn btn-secondary" data-j-play="brown">Play Brown Noise</button><button class="btn btn-secondary" data-j-play="rain">Play Rain</button></div>' : ''}
+        ${s.demo ? '<div class="btn-row" style="justify-content:center"><button class="btn btn-secondary" data-j-play="brown" aria-pressed="false">Play Brown Noise</button><button class="btn btn-secondary" data-j-play="rain" aria-pressed="false">Play Rain</button></div>' : ''}
+        ${s.moment ? '<div class="journey-choice" data-j-choice hidden><p>Your Moments appear once Find My Sound has learned your preferences — about twelve quick comparisons. Run it now, or finish the introduction without a profile.</p><div class="btn-row" style="justify-content:center"><button class="btn btn-primary" data-j-find>Run Find My Sound</button><button class="btn btn-ghost" data-j-finish>Finish without a profile</button></div></div>' : ''}
         <div class="btn-row" style="justify-content:center;margin-top:14px"><button class="btn btn-primary btn-xl" data-j-next>${s.a}</button><button class="btn btn-ghost" data-j-later>Continue later</button></div>
+        ${i > 0 && !j.done ? '<p class="small" style="margin:10px 0 0"><button type="button" class="linklike" data-j-restart>Restart from step 1</button></p>' : ''}
         <p class="fineprint">Educational only — nothing here diagnoses or treats tinnitus.</p></div>`;
-      veil.querySelectorAll('[data-j-play]').forEach(b => b.addEventListener('click', async () => { await engine.loadMix([{ id: b.dataset.jPlay, volume: 0.5 }]); }));
+      veil.querySelectorAll('[data-j-play]').forEach(b => b.addEventListener('click', async () => {
+        const id = b.dataset.jPlay;
+        if (demoOn(id)) { engine.stopSound(id); syncDemo(); return; }
+        await engine.loadMix([{ id, volume: 0.5 }]);   // replaces whatever played before: one demo sound at a time
+        syncDemo();
+      }));
+      syncDemo();
       $('[data-j-later]', veil).addEventListener('click', closeJourney);
+      const restart = $('[data-j-restart]', veil); if (restart) restart.addEventListener('click', () => { setJ({ step: 0 }); openJourney({ index: 0 }); });
+      const find = $('[data-j-find]', veil); if (find) find.addEventListener('click', () => { closeJourney(); app.showView('find'); });   // step 5 stays saved; the card still offers it
+      const finish = $('[data-j-finish]', veil); if (finish) finish.addEventListener('click', () => { closeJourney(); finishJourney(); app.toast('Introduction finished. You can replay it any time under Learn → Getting started.', 4200); });
       $('[data-j-next]', veil).addEventListener('click', async () => {
         if (s.discover) { setJ({ step: 4 }); closeJourney(); app.showView('find'); return; }
-        if (s.moment) { closeJourney(); const q = document.querySelector('#moments .chip'); if (q) q.click(); else app.toast('Run Find My Sound first — then Your Moments appear here.'); finishJourney(); return; }
+        if (s.moment) {
+          if (profile.params()) { closeJourney(); const q = document.querySelector('#moments .chip'); if (q) q.click(); finishJourney(); return; }
+          // No profile yet, so there is no Moment to try: offer the two honest options instead of completing silently,
+          // and take the primary button away so nothing suggests a Moment can start. "Continue later" stays.
+          const box = $('[data-j-choice]', veil); if (box) { box.hidden = false; $('[data-j-next]', veil).hidden = true; $('[data-j-find]', box).focus(); }
+          return;
+        }
         setJ({ step: i + 1 }); openJourney();
       });
       const fb = $('[data-j-next]', veil); if (fb) fb.focus();
@@ -174,6 +207,7 @@
         setTimeout(() => { if (!veil || veil.hidden) app.toast('Your Moments are ready — see the top of the Sounds page. ✦', 4600); }, 1200);
       }
     });
+    const reopen = $('#journey-reopen'); if (reopen) reopen.addEventListener('click', () => openJourney({ fromHelp: true }));
 
     renderMoments(); renderJourneyCard();
     // Small public surface for other layers (the assistant): run a Moment by id, list them.

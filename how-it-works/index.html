@@ -37,7 +37,8 @@ localStorage 'softwave:analytics'); No thanks or an active Global Privacy Contro
 keep Google Analytics unloaded. After Allow: one page_view per page load, carrying the
 page's standard title (captured here, before the app retitles the tab with the playing
 sound), its path without app-state query parameters or #hash (utm_* campaign tags kept)
-and a trimmed referrer. No custom events. Signals and ads personalization refused in the
+and a trimmed referrer. Beyond page views: the Sound Response step events (ri.js) and four parameter-free
+product-interaction events (the app-events section below). Signals and ads personalization refused in the
 tag; advertising storage declared denied. Production hostname only: localhost, previews
 and the native app never run this (build-www.js strips this whole block from the bundle).
 The Privacy page control ([data-analytics-control]) is rendered from here. -->
@@ -109,7 +110,7 @@ var onPrivacy = /^\/privacy\//.test(location.pathname);
 var c = document.createElement('div');
 c.id = 'consent-card'; c.className = 'consent-card' + (document.querySelector('.player') ? ' consent-card--player' : '');
 c.setAttribute('role', 'region'); c.setAttribute('aria-label', 'Website analytics choice');
-c.innerHTML = '<p><strong>Can we count your visit?</strong> Google Analytics helps us see how many people use this site. It sets two cookies. Your sounds, saved data, and what you type aren’t sent to Google Analytics.</p>'
+c.innerHTML = '<p><strong>Can we count your visit?</strong> Google Analytics helps us see how many people use this site and which features they use. It sets two cookies. Your sounds, saved data, and what you type aren’t sent to Google Analytics.</p>'
 + '<div class="consent-actions"><button type="button" class="btn btn-secondary btn-sm" data-consent="granted">Allow</button>'
 + '<button type="button" class="btn btn-secondary btn-sm" data-consent="denied">No thanks</button>'
 + '<a class="consent-link" href="' + (onPrivacy ? '#analytics' : '/privacy/#analytics') + '">Privacy</a>'
@@ -143,7 +144,7 @@ if (document.readyState === 'loading') document.addEventListener('DOMContentLoad
 <main id="content" class="site-main">
 <a class="back-link" href="/" onclick="if(history.length>1){history.back();return false}">‹ Back</a>
 <nav class="crumbs" aria-label="Breadcrumb"><ol><li><a href="/">Home</a></li><li><span aria-current="page">How Find My Quiet Sound works</span></li></ol></nav>
-<article class="prose"><header class="page-head"><h1>How Find My Quiet Sound works</h1><p class="muted small">Last reviewed 28 August 2026 · Updated 27 September 2026</p></header>
+<article class="prose"><header class="page-head"><h1>How Find My Quiet Sound works</h1><p class="muted small">Last reviewed 28 August 2026 · Updated 5 October 2026</p></header>
 <h2>Sound generation</h2>
 <p>White noise is random samples; pink and brown noise are white noise passed through filters so that energy falls with frequency. Loops are generated with a pre-roll cross-fade so the last sample flows into the first — no click, no gap. Nature sounds are layers of filtered noise with slow modulation and small random events (rain droplets, fire crackles, bird calls, crickets), so they never repeat exactly.</p>
 <h2>Mixing</h2>
@@ -159,7 +160,7 @@ if (document.readyState === 'loading') document.addEventListener('DOMContentLoad
 <h2>Safety rules</h2>
 <ul><li>Master volume starts at 35% and is never restored above 60%.</li><li>Every sound fades in (about 1.2 s) and out; journeys cross-fade over a minute or more.</li><li>A limiter prevents spikes when layering.</li><li>A warning appears above 75% master.</li><li>No feature raises the volume on its own.</li></ul>
 <h2>Privacy</h2>
-<p>No account is required. Your settings, results and creations — including saved mixes, experiment feedback, your Find My Tinnitus Sound result and your Sound Response sessions and profile — stay in local storage on your device. Website visitors can choose to allow limited Google Analytics, which counts visits and pages and, for Sound Response, which steps of the experiment were reached (opened, safety accepted, session started or completed, profile viewed) — never ratings, responses, sounds, results or anything you enter. The current iPhone app does not use Google Analytics. See <a href="/privacy/">Privacy</a>.</p></article>
+<p>No account is required. Your settings, results and creations — including saved mixes, experiment feedback, your Find My Tinnitus Sound result and your Sound Response sessions and profile — stay in local storage on your device. Website visitors can choose to allow limited Google Analytics, which counts visits and pages, four anonymous product interactions (a sound started, 30 seconds of listening, Help Me Find My Sound started or completed) and, for Sound Response, which steps of the experiment were reached (opened, safety accepted, session started or completed, profile viewed) — never which sound, ratings, responses, results or anything you enter. The current iPhone app does not use Google Analytics. See <a href="/privacy/">Privacy</a>.</p></article>
 </main>
 <footer class="site-footer">
   <div class="site-footer-grid">

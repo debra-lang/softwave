@@ -12,7 +12,8 @@
        keep Google Analytics unloaded. After Allow: one page_view per page load, carrying the
        page's standard title (captured here, before the app retitles the tab with the playing
        sound), its path without app-state query parameters or #hash (utm_* campaign tags kept)
-       and a trimmed referrer. No custom events. Signals and ads personalization refused in the
+       and a trimmed referrer. Beyond page views: the Sound Response step events (ri.js) and four parameter-free
+       product-interaction events (the app-events section below). Signals and ads personalization refused in the
        tag; advertising storage declared denied. Production hostname only: localhost, previews
        and the native app never run this (build-www.js strips this whole block from the bundle).
        The Privacy page control ([data-analytics-control]) is rendered from here. -->
@@ -84,7 +85,7 @@
       var c = document.createElement('div');
       c.id = 'consent-card'; c.className = 'consent-card' + (document.querySelector('.player') ? ' consent-card--player' : '');
       c.setAttribute('role', 'region'); c.setAttribute('aria-label', 'Website analytics choice');
-      c.innerHTML = '<p><strong>Can we count your visit?</strong> Google Analytics helps us see how many people use this site. It sets two cookies. Your sounds, saved data, and what you type aren’t sent to Google Analytics.</p>'
+      c.innerHTML = '<p><strong>Can we count your visit?</strong> Google Analytics helps us see how many people use this site and which features they use. It sets two cookies. Your sounds, saved data, and what you type aren’t sent to Google Analytics.</p>'
         + '<div class="consent-actions"><button type="button" class="btn btn-secondary btn-sm" data-consent="granted">Allow</button>'
         + '<button type="button" class="btn btn-secondary btn-sm" data-consent="denied">No thanks</button>'
         + '<a class="consent-link" href="' + (onPrivacy ? '#analytics' : '/privacy/#analytics') + '">Privacy</a>'
@@ -97,6 +98,78 @@
       });
       document.body.appendChild(c);
     }
+    /* app-events:begin — product-engagement events, app page only (build-site.js leaves this section out of the
+       info pages; build-www.js strips the whole block from the iPhone app). Exactly four events, sent only through
+       the gtag() that load() creates after Allow — never with No thanks or Global Privacy Control, never queued
+       for later, never by any other route:
+         sound_start             a sound newly begins playing within 5 s of a tap/click/key press
+         meaningful_listen       30 s of actual playback accumulated (audio clock), once per tab session
+         find_my_sound_start     the A/B comparison of Help Me Find My Sound actually begins
+         find_my_sound_complete  that comparison is completed (once per started run)
+       All four carry no parameters: which sound plays, and anything typed, saved, measured, matched, rated or
+       answered, is neither read nor sent. The app's own code is not changed: this section only listens to the
+       audio engine's existing notifications. */
+    var wired = false;
+    function appEvents() {
+      var eng = window.softwave;
+      if (wired || !eng || typeof eng.on !== 'function' || typeof eng.activeList !== 'function' || !document.getElementById('view-sounds')) return;
+      wired = true;
+      function on() { return loaded && !gpc && typeof window.gtag === 'function' && window['ga-disable-' + ID] !== true && choice() === 'granted'; }
+      function send(name, params) { if (!on()) return false; try { window.gtag('event', name, params || {}); return true; } catch (e) { return false; } }
+
+      // a real tap, click or key press (never a scripted one) in the last 5 seconds = an intentional start
+      var gesture = 0;
+      ['pointerdown', 'pointerup', 'click', 'touchend', 'keydown'].forEach(function (t) {
+        document.addEventListener(t, function (e) { if (e.isTrusted) gesture = Date.now(); }, true);
+      });
+
+      // ---- sound_start: one event per user action (several sounds started together count as one start)
+      var prev = {}, batch = [], batchTimer = null, last = { key: '', at: 0 }, fmsOpen = false;
+      function flush() {
+        batchTimer = null; var b = batch; batch = []; if (!b.length) return;
+        var key = b.sort().join(','), now = Date.now();                       // stays in this page; nothing about it is sent
+        if (key === last.key && now - last.at < 2000) return;                 // rapid repeat of the same start
+        if (send('sound_start')) last = { key: key, at: now };
+      }
+      function soundsChanged() {
+        var cur = {}; try { eng.activeList().forEach(function (s) { cur[s.id] = 1; }); } catch (e) { return; }
+        var added = []; for (var k in cur) if (!prev[k]) added.push(k);
+        prev = cur;
+        if (!added.length) return;
+        if (added.indexOf('discoA') >= 0) fmsOpen = send('find_my_sound_start');   // the comparison's first sound is on
+        if (cur.discoA || Date.now() - gesture > 5000) return;                    // comparison sounds, restores, timers, scripted starts: not a user start
+        added.forEach(function (id) { if (id !== 'discoA' && id !== 'discoB') batch.push(String(id)); });
+        if (batch.length && !batchTimer) batchTimer = setTimeout(flush, 400);
+      }
+      try { eng.on(function (type) { if (type === 'sounds') { try { soundsChanged(); } catch (e) { } } }); } catch (e) { }
+
+      // ---- find_my_sound_complete: the app already counts a finished comparison locally ('find_my_sound_completed');
+      //      that existing call is observed, passed through unchanged, and reported once per started run
+      var mz = window.softwaveMonetization;
+      if (mz && typeof mz.track === 'function') {
+        var track0 = mz.track;
+        mz.track = function (ev) {
+          try { if (ev === 'find_my_sound_completed' && fmsOpen) { fmsOpen = false; send('find_my_sound_complete'); } } catch (e) { }
+          return track0.apply(this, arguments);
+        };
+      }
+
+      // ---- meaningful_listen: 30 s on the audio clock, which only advances while sound is really running
+      //      (paused or stopped time adds nothing); counted only while analytics is on; once per tab session
+      var LISTENED = 'softwave:ga-listened', heard = 0, mark = null, done = false;
+      try { done = sessionStorage.getItem(LISTENED) === '1'; } catch (e) { }
+      setInterval(function () {
+        if (done) return;
+        var playing = false, t = 0;
+        try { playing = !!(eng.ctx && eng.ctx.state === 'running' && !eng.userPaused && eng.activeList().length > 0); t = eng.ctx ? eng.ctx.currentTime : 0; } catch (e) { }
+        if (!playing || !on()) { mark = null; return; }
+        if (mark !== null && t > mark && t - mark < 65) heard += t - mark;
+        mark = t;
+        if (heard >= 30 && send('meaningful_listen')) { done = true; try { sessionStorage.setItem(LISTENED, '1'); } catch (e) { } }
+      }, 1000);
+    }
+    if (document.readyState === 'complete') appEvents(); else { document.addEventListener('DOMContentLoaded', appEvents); window.addEventListener('load', appEvents); }
+    /* app-events:end */
     var start = choice();
     if (start === 'granted' && !gpc) load(); else stop();
     function ready() {
@@ -132,7 +205,7 @@
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <link rel="stylesheet" href="fonts/manrope.css?v=1">
   <link rel="stylesheet" href="fonts/fraunces.css?v=1">
-  <link rel="stylesheet" href="styles.css?v=169">
+  <link rel="stylesheet" href="styles.css?v=173">
   <script type="application/ld+json">
   {"@context":"https://schema.org","@graph":[
     {"@type":"Organization","@id":"https://findmyquietsound.com/#org","name":"Find My Quiet Sound","url":"https://findmyquietsound.com/","logo":"https://findmyquietsound.com/icons/icon-512.png","sameAs":["https://github.com/debra-lang/softwave"]},
@@ -287,7 +360,7 @@
           <div><h3>Who it is for</h3><p>People with tinnitus who want an easy, free way to add a comfortable background sound — at a desk, in a quiet room or at bedtime. It works with speakers, headphones or a pillow speaker, on phones, tablets and computers.</p></div>
           <div><h3>How to start</h3><p>Tap a sound, keep the level low — just enough to blend with the tinnitus — and try others until one feels comfortable. There is no single sound that works for everyone.</p></div>
         </div>
-        <p class="muted small">Sound masking and relaxation — not a medical treatment. Read <a href="learn/tinnitus-sound-masking/">what tinnitus masking is</a>, compare <a href="learn/white-vs-pink-vs-brown-noise/">white, pink and brown noise</a>, or browse all <a href="learn/">guides</a>. <a href="tinnitus-sound-generator/">About this tinnitus sound generator</a> · <a href="about/">About Find My Quiet Sound</a> · <a href="premium/">Free &amp; Premium</a>. <span class="muted small" id="build-tag">· v271</span></p>
+        <p class="muted small">Sound masking and relaxation — not a medical treatment. Read <a href="learn/tinnitus-sound-masking/">what tinnitus masking is</a>, compare <a href="learn/white-vs-pink-vs-brown-noise/">white, pink and brown noise</a>, or browse all <a href="learn/">guides</a>. <a href="tinnitus-sound-generator/">About this tinnitus sound generator</a> · <a href="about/">About Find My Quiet Sound</a> · <a href="premium/">Free &amp; Premium</a>. <span class="muted small" id="build-tag">· v276</span></p>
         </details>
       </section>
     </section>
@@ -656,6 +729,7 @@
       <div class="hero compact">
         <h2 class="h1" id="learn-title">Listen well</h2>
         <p class="lead">A few simple principles from tinnitus and hearing-health organisations.</p>
+        <p class="learn-start"><button type="button" class="linklike" id="journey-reopen">Getting started — replay the five-step introduction</button></p>
       </div>
       <div class="learn-grid">
         <article class="card">
