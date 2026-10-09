@@ -127,6 +127,9 @@
       // audible again in that window (playAll, a new sound, a tone) clears the token so the
       // pending suspend is abandoned instead of landing on a resumed context.
       this._pauseTok = null;
+      // Output holds taken by playback the engine does not own (Sound Response stimuli build their own
+      // graph into `trim`): while any is held, the routed iPhone output is never released as idle.
+      this._external = 0;
       try { localStorage.removeItem('softwave:diag:audio'); } catch (_) { }   // validation-build log key, no longer written
     }
 
@@ -222,7 +225,7 @@
         if (this.ctx.state !== 'running') this._needsGesture = true;   // the next tap resumes it inside the gesture
       }
       // native iOS: routed output back on after interruptions — whenever sounds are queued, not only once running
-      if (this.mediaOut && (this.isPlaying || this.active.size)) this.mediaOut.play().then(() => { this._needsGesture = false; }).catch(() => { this._needsGesture = true; });
+      if (this.mediaOut && (this.isPlaying || this.active.size || this._external > 0)) this.mediaOut.play().then(() => { this._needsGesture = false; }).catch(() => { this._needsGesture = true; });
     }
     // iOS lets a media element start only inside a user gesture, and a sound tile's start
     // chain (wake the engine, build the graph, resume) can outlast that window — the sound
@@ -237,7 +240,7 @@
         if (this.mediaOut && (this.mediaOut.paused || this._needsGesture)) {
           try { const p = this.mediaOut.play(); if (p && p.then) p.then(() => { this._needsGesture = false; }).catch(() => { }); } catch (_) { }
           clearTimeout(this._disarmT);
-          this._disarmT = setTimeout(() => { if (!this.isPlaying && !this.active.size && !(this._pendingStarts > 0)) this._keepAlive(false); }, 3000);
+          this._disarmT = setTimeout(() => { if (!this.isPlaying && !this.active.size && !(this._pendingStarts > 0) && !(this._external > 0)) this._keepAlive(false); }, 3000);
         }
       };
       document.addEventListener('pointerdown', arm, { capture: true, passive: true });
@@ -295,12 +298,32 @@
       }
       this._releaseT = setTimeout(() => {
         this._releaseT = null;
-        if (this.isPlaying || this._pendingStarts > 0 || (this.tone && this.tone.playing) || (this.active.size > 0 && !this.userPaused)) return;   // something is (about to be) audible again — the last term: a Play/resume is in flight (sounds queued, user not paused), so this release must not interrupt it
+        if (this.isPlaying || this._pendingStarts > 0 || (this.tone && this.tone.playing) || (this.active.size > 0 && !this.userPaused) || (this.mediaOut && this._external > 0)) return;   // something is (about to be) audible again — the last term: a Play/resume is in flight (sounds queued, user not paused), so this release must not interrupt it
         if (this.mediaOut) this.mediaOut.pause();
         if (this.silentEl) this.silentEl.pause();
         if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
       }, FADE_OUT * 1000 + 300);
     }
+
+    // ---------- external playback (Sound Response stimuli) ----------
+    // Sound Response plays its own stimulus graph through `trim`, which the idle-release logic above cannot
+    // see (it knows `active`, the tone and the matcher only). On the iPhone app that logic paused the routed
+    // output a few seconds into every stimulus while the AudioContext — and so the countdown — kept running
+    // (TestFlight 1.1 report, Build 62). A hold keeps the routed output open for as long as the stimulus
+    // plays; releasing the last hold restores the normal idle release. Returns an idempotent release function.
+    // Where there is no routed element (the website) a hold changes nothing.
+    holdOutput() {
+      this._external++;
+      if (this.mediaOut) this._keepAlive(true);
+      let done = false;
+      return () => {
+        if (done) return; done = true;
+        this._external = Math.max(0, this._external - 1);
+        if (!this._external && this.mediaOut && !this.isPlaying && !this.active.size && !(this._pendingStarts > 0)) this._keepAlive(false);
+      };
+    }
+    // true when the routed iPhone output is not running, i.e. nothing the graph produces can be heard
+    get outputLost() { return !!(this.mediaOut && this.mediaOut.paused); }
 
     // ---------- master ----------
     setMasterVolume(v, immediate) {
