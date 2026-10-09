@@ -29,7 +29,8 @@
     if (a.getFloatTimeDomainData) a.getFloatTimeDomainData(rmsBuf); else { var b = new Uint8Array(n); a.getByteTimeDomainData(b); for (var q = 0; q < n; q++) rmsBuf[q] = (b[q] - 128) / 128; }
     var sum = 0; for (var q2 = 0; q2 < n; q2++) sum += rmsBuf[q2] * rmsBuf[q2]; return Math.sqrt(sum / n); } catch (e) { return -1; } };
   var meter = function () { var m = softwave.mediaOut; return { out: m ? (m.paused ? 'PAUSED' : 'playing') : 'none', ct: m ? Math.round(m.currentTime * 10) / 10 : null, rms: Math.round(rms() * 10000) / 10000, ctx: softwave.ctx ? softwave.ctx.state : null, count: (document.getElementById('ri-count') || {}).textContent || null }; };
-  var lastTrial = function () { try { var t = JSON.parse(localStorage.getItem('softwave:ri:trials') || '[]'); return t[t.length - 1] || null; } catch (e) { return null; } };
+  // the trial still in progress (the record is only filed after the follow-up rating), else the last one filed
+  var lastTrial = function () { try { var a = JSON.parse(localStorage.getItem('softwave:ri:active') || 'null'); if (a && a.trial) return a.trial; var t = JSON.parse(localStorage.getItem('softwave:ri:trials') || '[]'); return t[t.length - 1] || null; } catch (e) { return null; } };
   var SIG = 0.002;
   async function sampleTests() {
     var sb = document.querySelector('[data-act="sample"]'); if (!sb) { ok('sample button present on the level screen', false, null); return; }
