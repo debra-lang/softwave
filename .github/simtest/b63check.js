@@ -180,7 +180,7 @@
     out('B61BGRI'); var t; for (t = 0; t < 160 && !document.hidden; t++) await w(250);
     var wentHidden = document.hidden; for (t = 0; t < 240 && document.hidden; t++) await w(250);
     await w(1500); var tr1 = lastTrial();
-    ok('backgrounded during the sound: trial invalidated (backgrounded), shown as interrupted, no output hold left', sc === 'listen' && wentHidden && !document.hidden && tr1 && tr1.trial_valid === false && tr1.trial_invalid_reason === 'backgrounded' && screen() === 'interrupted' && hold() === 0, { screen: screen(), wentHidden: wentHidden, hidden: document.hidden, trial: tr1 && { valid: tr1.trial_valid, reason: tr1.trial_invalid_reason }, hold: hold(), outAtStart: o1 });
+    ok('backgrounded during the sound: trial invalidated (backgrounded, or audio_interrupted where iOS stops the audio first), shown as interrupted, no output hold left', sc === 'listen' && wentHidden && !document.hidden && tr1 && tr1.trial_valid === false && (tr1.trial_invalid_reason === 'backgrounded' || tr1.trial_invalid_reason === 'audio_interrupted') && screen() === 'interrupted' && hold() === 0, { screen: screen(), wentHidden: wentHidden, hidden: document.hidden, trial: tr1 && { valid: tr1.trial_valid, reason: tr1.trial_invalid_reason }, hold: hold(), outAtStart: o1 });
     ok('…and the screen wake lock was released by the interruption', (await kept()) === false, null);
     act('next'); for (i = 0; i < 40 && screen() !== 'trialBaseline'; i++) { var s2 = screen(); if (s2 === 'rest') { for (var j = 0; j < 120; j++) { var nb2 = document.querySelector('#ri-root [data-act="next"]'); if (nb2 && !nb2.disabled) break; await w(500); } act('next'); } else if (s2 !== 'trialBaseline') act('next'); await w(700); }
     ok('after the interruption the session continues to the next sound', screen() === 'trialBaseline', screen());
@@ -196,8 +196,9 @@
     var sum2 = { samples: rows.length, listenSeconds: listenSecs, pausedSamples: pausedRows.length, firstPausedAt_s: firstP < 0 ? null : (firstP + 1) * 0.5, signalSamples: sigRows, elementTimeAdvanced_s: ctMoves ? advance : 'not reported', countAtEnd: rows.length ? rows[rows.length - 1].count : null, every10s: rows.filter(function (_, k) { return k % 20 === 0; }) };
     L('ri-output', sum2);
     if (FIXED()) {
-      ok('complete 60 s sound: routed output playing on every 0.5 s sample and signal present throughout (never paused under the countdown)', rows.length >= 110 && pausedRows.length === 0 && sigRows >= rows.length * 0.93, sum2);
-      ok('complete 60 s sound: the output element\'s own clock advanced about 60 s (or is not reported by this WebKit — see info)', !ctMoves || advance >= 55, { elementTimeAdvanced_s: sum2.elementTimeAdvanced_s });
+      // ≥ 100 samples: an emulated audio clock can run ~10 % fast (iOS 15.0 simulator: 60 s of context time in ~55 s wall time), see listenSeconds
+      ok('complete 60 s sound: routed output playing on every 0.5 s sample and signal present throughout (never paused under the countdown)', rows.length >= 100 && pausedRows.length === 0 && sigRows >= rows.length * 0.93, sum2);
+      ok('complete 60 s sound: the output element\'s own clock advanced about 60 s (or is not reported by this WebKit — see info)', !ctMoves || advance >= Math.min(55, listenSecs - 2), { elementTimeAdvanced_s: sum2.elementTimeAdvanced_s, listenSeconds: listenSecs });
     } else {
       ok('UNFIXED Build 62: routed output paused within 6 s of Start while the countdown ran on to the question (defect reproduced on WKWebView)', pausedRows.length > 0 && firstP >= 0 && (firstP + 1) * 0.5 <= 6 && screen() === 'response', sum2);
     }
