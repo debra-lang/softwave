@@ -252,7 +252,8 @@
     wire(h) {
       const r = $('#ri-level', h), out = $('#ri-level-out', h), sb = $('[data-act="sample"]', h); app.paintRange(r);
       r.addEventListener('input', () => { app.paintRange(r); out.textContent = r.value + '%'; S.session.level = +r.value / 100; if (S.sample) setSampleLevel(); });
-      on(h, 'sample', async () => { if (S.sample) { stopSample(); sb.textContent = '▶ Play sample sound'; sb.setAttribute('aria-pressed', 'false'); return; } const ok = await startSample(); if (ok) { sb.textContent = '■ Stop sample'; sb.setAttribute('aria-pressed', 'true'); } });
+      let starting = false;
+      on(h, 'sample', async () => { if (starting) return; if (S.sample) { stopSample(); sb.textContent = '▶ Play sample sound'; sb.setAttribute('aria-pressed', 'false'); return; } starting = true; const ok = await startSample(); starting = false; if (ok) { sb.textContent = '■ Stop sample'; sb.setAttribute('aria-pressed', 'true'); } });
       on(h, 'next', () => { stopSample(); S.session.level = +r.value / 100; store.set('ri:level', S.session.level); persist(); beginTrials(); });
     }
   });
@@ -497,12 +498,17 @@
   async function startSample() {
     if (!(await ensureAudio())) { app.toast('Sound couldn’t start. Tap again, or check the device volume.'); return false; }
     engine.notchClear(); engine.resetMasterShape();
-    const spec = P.stimulus({ type: 'bbn' }, 1000, engine.ctx.sampleRate); const g = await Stim.gainFor(spec, S.session.level);
-    const node = Stim.graph(engine.ctx, spec, engine.trim); const t = engine.ctx.currentTime; node.src.start(t); node.gain.gain.setTargetAtTime(g, t, 0.15);
-    S.sample = { node, spec }; return true;
+    const hold = engine.holdOutput();   // the iPhone app's routed output stays open while the sample plays (see audio.js)
+    let g; try { const spec = P.stimulus({ type: 'bbn' }, 1000, engine.ctx.sampleRate); g = await Stim.gainFor(spec, S.session.level); S.sampleSpec = spec; } catch (_) { hold(); return false; }
+    if (S.screen !== 'level' || S.sample) { hold(); return false; }   // left the screen, or a second press landed while the level was being prepared
+    const spec = S.sampleSpec; const node = Stim.graph(engine.ctx, spec, engine.trim); const t = engine.ctx.currentTime; node.src.start(t); node.gain.gain.setTargetAtTime(g, t, 0.15);
+    // if the output is lost anyway (an interruption), stop and show the button in its true state instead of a silent "Stop sample"
+    const watch = setInterval(() => { if (S.sample && S.sample.node === node && engine.outputLost) sampleLost(); }, 250);
+    S.sample = { node, spec, hold, watch }; return true;
   }
+  function sampleLost() { stopSample(); const sb = $('[data-act="sample"]', root); if (sb) { sb.textContent = '▶ Play sample sound'; sb.setAttribute('aria-pressed', 'false'); } }
   async function setSampleLevel() { if (!S.sample) return; const g = await Stim.gainFor(S.sample.spec, S.session.level); if (S.sample) S.sample.node.gain.gain.setTargetAtTime(g, engine.ctx.currentTime, 0.08); }
-  function stopSample() { if (!S.sample) return; const s = S.sample; S.sample = null; try { s.node.gain.gain.setTargetAtTime(0, engine.ctx.currentTime, 0.08); } catch (_) { } setTimeout(() => Stim.tearDown(s.node), 400); }
+  function stopSample() { if (!S.sample) return; const s = S.sample; S.sample = null; clearInterval(s.watch); try { s.node.gain.gain.setTargetAtTime(0, engine.ctx.currentTime, 0.08); } catch (_) { } setTimeout(() => { Stim.tearDown(s.node); if (s.hold) s.hold(); }, 400); }
   // playback outside the experiment: the same generator, one fixed length, nothing recorded
   async function playResponseSound(c, onEnd, onTick) {
     stopPlay();
@@ -511,33 +517,38 @@
     const m = knownMatch(); const spec = P.stimulus(c.params, m ? m.hz : 1000, engine.ctx.sampleRate);
     let g; try { g = await Stim.gainFor(spec, store.get('ri:level', 0.3)); } catch (_) { return false; }
     if (S.screen !== 'listenSound') return false;
-    const ctx = engine.ctx; const node = Stim.graph(ctx, spec, engine.trim); const t0 = ctx.currentTime + 0.05;
+    const ctx = engine.ctx; const hold = engine.holdOutput(); const node = Stim.graph(ctx, spec, engine.trim); const t0 = ctx.currentTime + 0.05;
     node.src.start(t0); node.gain.gain.setValueAtTime(0, t0); node.gain.gain.linearRampToValueAtTime(g, t0 + C.fadeSeconds);
-    const P0 = { node, ctx, t0, ending: false }; S.play = P0;
+    const P0 = { node, ctx, t0, ending: false, hold }; S.play = P0;
     S.tick = setInterval(() => {
       if (S.play !== P0) return; const left = C.stimulusSeconds - (ctx.currentTime - t0); onTick(left);
+      if (engine.outputLost) { stopPlay(); onEnd(); app.toast('The sound was interrupted.'); return; }
       if (!P0.ending && left <= C.fadeSeconds) { P0.ending = true; node.gain.gain.cancelScheduledValues(ctx.currentTime); node.gain.gain.setValueAtTime(node.gain.gain.value, ctx.currentTime); node.gain.gain.linearRampToValueAtTime(0, ctx.currentTime + Math.max(0.05, left)); }
       if (left <= 0) { stopPlay(); onEnd(); }
     }, 200);
     return true;
   }
-  function stopPlay() { const p = S.play; S.play = null; if (S.tick) { clearInterval(S.tick); S.tick = null; } if (!p) return; try { p.node.gain.gain.cancelScheduledValues(p.ctx.currentTime); p.node.gain.gain.setTargetAtTime(0, p.ctx.currentTime, 0.03); } catch (_) { } setTimeout(() => Stim.tearDown(p.node), 200); }
+  function stopPlay() { const p = S.play; S.play = null; if (S.tick) { clearInterval(S.tick); S.tick = null; } if (!p) return; try { p.node.gain.gain.cancelScheduledValues(p.ctx.currentTime); p.node.gain.gain.setTargetAtTime(0, p.ctx.currentTime, 0.03); } catch (_) { } setTimeout(() => { Stim.tearDown(p.node); if (p.hold) p.hold(); }, 200); }
   async function startListening() {
     wake.hold();   // inside the tap on "Start the sound"
     show('listen');
     if (!(await ensureAudio())) { invalidateTrial('audio_failed'); endSession('audio_failed', 'audioFailed'); return; }
     engine.notchClear(); engine.resetMasterShape();
-    const t = S.trial; let g; try { g = await Stim.gainFor(t.spec, S.session.level); } catch (_) { invalidateTrial('audio_failed'); endSession('audio_failed', 'audioFailed'); return; }
-    if (S.screen !== 'listen' || !S.trial) return;   // left while the level was being prepared
+    const hold = engine.holdOutput();   // the iPhone app's routed output stays open for the whole stimulus (see audio.js)
+    const t = S.trial; let g; try { g = await Stim.gainFor(t.spec, S.session.level); } catch (_) { hold(); invalidateTrial('audio_failed'); endSession('audio_failed', 'audioFailed'); return; }
+    if (S.screen !== 'listen' || !S.trial) { hold(); return; }   // left while the level was being prepared
     const ctx = engine.ctx; const node = Stim.graph(ctx, t.spec, engine.trim); const t0 = ctx.currentTime + 0.05;
     node.src.start(t0); node.gain.gain.setValueAtTime(0, t0); node.gain.gain.linearRampToValueAtTime(g, t0 + C.fadeSeconds);
     t.stimulus_gain = g; t.sample_rate = ctx.sampleRate; t.available_volume_metadata = { level: S.session.level, gain: Math.round(g * 1000) / 1000, master_volume: engine.masterVolume, note: 'browser gain only; device volume and output level unknown' };
     t.output_device_metadata = { ua: navigator.userAgent.slice(0, 120), touch: 'ontouchstart' in window, platform: navigator.platform || null };
-    S.audio = { node, ctx, t0, g, pausedAt: null, pausedTotal: 0, ending: false };
+    S.audio = { node, ctx, t0, g, pausedAt: null, pausedTotal: 0, ending: false, hold };
     armGuards();
     const el = $('#ri-count');
     S.tick = setInterval(() => {
       const A = S.audio; if (!A) return;
+      // the routed iPhone output stopped under the stimulus (an interruption the context did not report):
+      // nothing is audible, so the trial cannot count — never let the countdown run on in silence
+      if (engine.outputLost) { interrupted('audio_interrupted'); return; }
       const active = A.pausedAt == null ? ctx.currentTime - A.t0 - A.pausedTotal : A.pausedActive;
       const left = C.stimulusSeconds - active; if (el) el.textContent = mmss(Math.ceil(left));
       if (!A.ending && left <= C.fadeSeconds) { A.ending = true; A.node.gain.gain.cancelScheduledValues(ctx.currentTime); A.node.gain.gain.setValueAtTime(A.node.gain.gain.value, ctx.currentTime); A.node.gain.gain.linearRampToValueAtTime(0, ctx.currentTime + Math.max(0.05, left)); }
@@ -546,10 +557,10 @@
   }
   function pauseStim() { const A = S.audio; if (!A || A.pausedAt != null) return; A.pausedAt = A.ctx.currentTime; A.pausedActive = A.ctx.currentTime - A.t0 - A.pausedTotal; A.node.gain.gain.setTargetAtTime(0, A.ctx.currentTime, 0.05); }
   function resumeStim() { const A = S.audio; if (!A || A.pausedAt == null) return; const p = A.ctx.currentTime - A.pausedAt; A.pausedTotal += p; A.pausedAt = null; S.trial.paused_seconds = Math.round(A.pausedTotal); if (A.pausedTotal > C.pauseMaxSeconds) { stopAudio(); invalidateTrial('paused_too_long'); show('interrupted'); return; } A.node.gain.gain.setTargetAtTime(A.g, A.ctx.currentTime, 0.05); }
-  function stopAudio() { disarmGuards(); if (S.tick) { clearInterval(S.tick); S.tick = null; } const A = S.audio; S.audio = null; if (!A) return; try { A.node.gain.gain.cancelScheduledValues(A.ctx.currentTime); A.node.gain.gain.setTargetAtTime(0, A.ctx.currentTime, 0.03); } catch (_) { } setTimeout(() => Stim.tearDown(A.node), 200); }
+  function stopAudio() { disarmGuards(); if (S.tick) { clearInterval(S.tick); S.tick = null; } const A = S.audio; S.audio = null; if (!A) return; try { A.node.gain.gain.cancelScheduledValues(A.ctx.currentTime); A.node.gain.gain.setTargetAtTime(0, A.ctx.currentTime, 0.03); } catch (_) { } setTimeout(() => { Stim.tearDown(A.node); if (A.hold) A.hold(); }, 200); }
   function stimulusEnded() {
     const A = S.audio; if (!A) return; if (S.tick) { clearInterval(S.tick); S.tick = null; }
-    S.audio = null; disarmGuards(); setTimeout(() => Stim.tearDown(A.node), 300);
+    S.audio = null; disarmGuards(); setTimeout(() => { Stim.tearDown(A.node); if (A.hold) A.hold(); }, 300);
     S.trial.stimulus_ended_at = Date.now(); S.trial.stimulus_played_seconds = Math.round((A.ctx.currentTime - A.t0 - A.pausedTotal) * 10) / 10;
     persist(); show('gap'); S.gapGuard = true;
     later(() => { S.gapGuard = false; if (S.trial) show('response'); }, C.quietGapSeconds * 1000);
