@@ -610,7 +610,7 @@ input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.12); }
 .kbd-grid label { font-size: .75rem; color: var(--muted); display: flex; flex-direction: column; }
 .focus-veil { position: absolute; inset: 0; background: #000; opacity: 0; pointer-events: none; transition: opacity 1.5s ease; z-index: 1; }
 .focus-veil.on { opacity: 1; }
-@media (max-width: 560px) { .ab-switch .btn-xl { width: 44%; min-width: 120px; } .lab-run .btn-lg { width: 100%; } }
+@media (max-width: 560px) { .ab-switch .btn-xl { width: 44%; min-width: 120px; } .lab-run .btn-lg { width: 100%; } .lab-run .btn:not(.btn-lg) { padding-left: 16px; padding-right: 16px; } }   /* Finish · Stop · Start Over on one line from 375 px up (heights, font and 44 px targets unchanged) */
 @media (pointer: coarse) { input[type="range"] { height: 44px; } input[type="range"]::-webkit-slider-thumb { width: 30px; height: 30px; margin-top: -11px; } }
 
 /* ===== refinement pass ===== */
