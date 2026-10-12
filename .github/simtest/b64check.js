@@ -126,14 +126,15 @@
     location.hash = '#sounds'; await w(1500);
     var mic = document.getElementById('ask-mic'), input = document.getElementById('ask-input');
     ok('Ask: "Speak your request" microphone button present, idle; Web Speech API exposed by WKWebView', !!mic && mic.getAttribute('aria-label') === 'Speak your request' && mic.getAttribute('aria-pressed') === 'false' && !!window.webkitSpeechRecognition, { mic: !!mic, api: !!window.webkitSpeechRecognition });
-    input.value = 'add a little rain'; input.dispatchEvent(new Event('input', { bubbles: true })); document.getElementById('ask-form').requestSubmit(); await w(2500);
+    input.value = 'add a little rain'; input.dispatchEvent(new Event('input', { bubbles: true })); document.getElementById('ask-form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await w(2500);   // (requestSubmit() does not exist on iOS 15)
     ok('Ask: typing works — Go runs a typed request (rain added)', ids().indexOf('rain') >= 0, ids());
     await shot('ask-mic');
-    mic.click(); await w(600);
-    var listening = mic.getAttribute('aria-pressed') === 'true' && /Listening/.test(input.placeholder);
-    await shot('ask-listening');
-    mic.click(); await w(800);   // second tap cancels
-    ok('Ask: a tap enters "Listening…" and a second tap cancels it (real recognition needs a physical device)', listening && mic.getAttribute('aria-pressed') === 'false', { listening: listening, after: mic.getAttribute('aria-pressed'), out: (document.getElementById('ask-out') || {}).textContent });
+    mic.click();
+    var listening = mic.getAttribute('aria-pressed') === 'true' && /Listening/.test(input.placeholder);   // set synchronously by the tap
+    await w(300); var stillListening = mic.getAttribute('aria-pressed') === 'true'; await shot('ask-listening');
+    var outText = (document.getElementById('ask-out') || {}).textContent || '';
+    if (stillListening) { mic.click(); await w(800); }   // second tap cancels
+    ok('Ask: a tap enters "Listening…"; it then either keeps listening until a second tap cancels, or ends with the app’s own message when the simulator has no microphone (real recognition needs a physical device)', listening && mic.getAttribute('aria-pressed') === 'false' && (stillListening || /didn.t catch that|Microphone access|Voice (didn|isn)/.test(outText)), { listening: listening, stillListening: stillListening, after: mic.getAttribute('aria-pressed'), out: outText.slice(0, 120) });
     if (window.softwaveStopAll) softwaveStopAll(); await w(500);
     // ---- v273–v276: colour identity and the starter guide (Build 62)
     var GREEN = /rgba\((159, 224, 187|62, 154, 114), 0\.45\)/;
