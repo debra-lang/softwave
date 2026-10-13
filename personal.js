@@ -23,8 +23,13 @@
     // and aliveness (people who chose moving sounds get the engine's subtle variation).
     // Never per-sound rewrites — sound identity is untouched; one tap turns it off.
     const tunedOn = () => store.get('tuned:on', true);
-    function applyTuning() {
+    // When nothing was audible before the sound event that triggers tuning, the tone is set at once (the
+    // sound is still at the start of its fade, so the jump is inaudible); while sounds play — a profile or
+    // switch change — the gentle 0.8 s easing is kept.
+    let wasSilent = true;
+    function applyTuning(instant) {
       if (!engine.ctx) return;
+      const tc = instant ? 0.01 : 0.8;
       const pp = profile.params();
       // The frequency generator and tinnitus matcher must always play untouched —
       // personalization never shapes deliberate tones.
@@ -34,7 +39,7 @@
       const moving = pp.moving || 0;  // 0 steady … 1 moving
       // A gentle easing, never a rewrite: the strongest setting only softens the very top —
       // every sound's character (hiss stays hissy, cicadas stay bright) must survive it.
-      engine.setMasterTone(warm < -0.45 ? 11000 : warm < -0.2 ? 14000 : 20000, 0.8);
+      engine.setMasterTone(warm < -0.45 ? 11000 : warm < -0.2 ? 14000 : 20000, tc);
       engine.setVariation(moving > 0.35 ? Math.min(0.25, moving * 0.4) : 0, 9);
       syncChip();
     }
@@ -43,8 +48,10 @@
     // itself should re-check and re-render on every relevant transition (Stop included) —
     // otherwise, if its one boot-time render is ever missed, nothing ever retries it.
     engine.on(type => {
-      if ((type === 'sounds' && engine.activeList().length) || type === 'tone') applyTuning();
+      const n = engine.activeList().length;
+      if ((type === 'sounds' && n) || type === 'tone') applyTuning(type === 'sounds' && wasSilent);
       else if (type === 'sounds' || type === 'state') syncChip();
+      if (type === 'sounds') wasSilent = n === 0;
     });
 
     // The quiet indicator: a small chip beside the field actions, only when tuning is possible.
