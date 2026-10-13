@@ -41,7 +41,13 @@
   ];
 
   const MAX_ACTIVE = 5;
-  const FADE_IN = 1.2;    // seconds
+  // Start fades approach the level along an RC curve (setTargetAtTime): audible within ~50 ms, at −6 dB by
+  // ~200 ms, settled within ~0.4 s, with no corner and no late rise. The former 1.2 s linear amplitude ramp
+  // was perceived as a quick onset followed by a distinct step up around a second later (the last +6 dB
+  // of a linear ramp arrive in its final half). Measured 2026-10-13 against exponential and S-curves.
+  const FADE_TAU = 0.25;     // seconds (time constant of the start approach)
+  const FADE_WINDOW = 1.25;  // seconds (5 τ): a level change inside it continues the same approach
+  const RESUME_TAU = 0.15;   // seconds: master returns from a pause along the same kind of curve
   const FADE_OUT = 0.8;   // seconds
 
   // Per-sound loudness trim so the mixer feels balanced at equal slider values.
@@ -387,8 +393,8 @@
       this._build(id, entry, gain);
       const t = ctx.currentTime;
       gain.gain.setValueAtTime(0, t);
-      gain.gain.linearRampToValueAtTime(this._curve(volume) * entry.trim, t + FADE_IN);
-      entry.fadeUntil = t + FADE_IN;   // a level change during the start fade keeps fading (see setVolume)
+      gain.gain.setTargetAtTime(this._curve(volume) * entry.trim, t, FADE_TAU);
+      entry.fadeUntil = t + FADE_WINDOW;   // a level change during the start approach continues it (see setVolume)
       this._keepAlive(true);
       this.emit('sounds', this.activeList());
       return true;
@@ -420,11 +426,12 @@
       const t = this.ctx.currentTime;
       e.gain.gain.cancelScheduledValues(t);
       e.gain.gain.setValueAtTime(e.gain.gain.value, t);
-      // While the start fade is still running, the new level is reached along the same 1.2 s fade,
-      // so a level applied right after a start (the remembered per-sound level) cannot cut it short.
-      // Afterwards a short 0.1 s glide, as before.
-      const until = e.fadeUntil && t < e.fadeUntil ? e.fadeUntil : t + 0.1;
-      e.gain.gain.linearRampToValueAtTime(this._curve(v) * e.trim, until);
+      // While the start approach is still running, the new level is reached along the same curve from the
+      // current value (an RC approach restarted from where it is has no corner), so a level applied right
+      // after a start (the remembered per-sound level) cannot cut it short. Afterwards a short 0.1 s glide.
+      const target = this._curve(v) * e.trim;
+      if (e.fadeUntil && t < e.fadeUntil) e.gain.gain.setTargetAtTime(target, t, FADE_TAU);
+      else e.gain.gain.linearRampToValueAtTime(target, t + 0.1);
     }
     setBalance(id, b) {
       const e = this.active.get(id); if (!e) return;
@@ -492,7 +499,14 @@
       if (!this.ctx) return;
       this._pauseTok = null; this.userPaused = false;
       await this.resume();
-      this.setMasterVolume(this.masterVolume);
+      // Coming back from the pause fade (master at zero): an RC approach over ~0.4 s instead of a 0.12 s
+      // linear ramp, whose straight edge read as an abrupt onset. A master that is already up (resume
+      // during the pause fade) keeps the usual short re-assertion.
+      if (this.master && this.master.gain.value < 0.001) {
+        const g = this.master.gain, t = this.ctx.currentTime;
+        g.cancelScheduledValues(t); g.setValueAtTime(0, t); g.setTargetAtTime(this._curve(this.masterVolume) * 1.5, t, RESUME_TAU);
+        this.emit('master', this.masterVolume);
+      } else this.setMasterVolume(this.masterVolume);
       if (this.isPlaying) this._keepAlive(true);
       this.emit('state', 'running');
     }
