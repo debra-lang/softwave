@@ -1,0 +1,96 @@
+# TEST-ONLY workflow (branch ios-ct-simtest; delete the branch afterwards). Nothing is signed or uploaded and no
+# secrets are used. Builds simulator apps of Build 65 (178ea17), Build 66 (c7e549a) and the Build 67 candidate
+# (6d49f61), each with the Custom-timer diagnostic injected, and runs the real Sleep → Timer → Custom… → 45 → Set
+# flow on iOS 17 and the current iOS, recording engine state against actual output around the keyboard.
+name: Custom timer diagnostic (simulator)
+
+on:
+  push:
+    branches: [ios-ct-simtest]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Select Xcode 26
+        run: |
+          XC=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1)
+          if [ -n "$XC" ]; then sudo xcode-select -s "$XC"; fi
+          xcodebuild -version
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build the three simulator apps
+        run: |
+          set -eo pipefail
+          SIM=$GITHUB_WORKSPACE/.github/simtest; mkdir -p $GITHUB_WORKSPACE/simapps
+          build() {   # $1 = native dir, $2 = injected script, $3 = output name
+            cd "$1"; npm ci --no-audit --no-fund >/dev/null
+            node build-www.js
+            node $SIM/inject.js www "$2"
+            npx cap sync ios
+            node -e "const f='ios/App/App/capacitor.config.json',c=JSON.parse(require('fs').readFileSync(f));c.loggingBehavior='production';require('fs').writeFileSync(f,JSON.stringify(c,null,1))"
+            xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug -sdk iphonesimulator \
+              -destination 'generic/platform=iOS Simulator' -derivedDataPath dd CODE_SIGNING_ALLOWED=NO ARCHS=arm64 ONLY_ACTIVE_ARCH=NO build | tail -3
+            APP=$(find dd/Build/Products -name App.app -type d | head -1)
+            /usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' -c 'Print CFBundleVersion' "$APP/Info.plist"
+            mkdir -p $GITHUB_WORKSPACE/simapps/$3; cp -R "$APP" $GITHUB_WORKSPACE/simapps/$3/
+          }
+          git worktree add $GITHUB_WORKSPACE/../b65 178ea17; build $GITHUB_WORKSPACE/../b65/native $SIM/custtimer.js b65
+          git worktree add $GITHUB_WORKSPACE/../b66 c7e549a; build $GITHUB_WORKSPACE/../b66/native $SIM/custtimer.js b66
+          git worktree add $GITHUB_WORKSPACE/../b67 6d49f61; build $GITHUB_WORKSPACE/../b67/native $SIM/custtimer.js b67
+          cd $GITHUB_WORKSPACE && tar -czf simapps.tgz simapps
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ctapps
+          path: simapps.tgz
+          retention-days: 7
+
+  test-ios17:
+    needs: build
+    runs-on: macos-14
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: ctapps
+      - name: Run on iOS 17
+        run: |
+          tar -xzf simapps.tgz; S=.github/simtest; chmod +x $S/ctrun.sh
+          RT=$(xcrun simctl list runtimes -j | python3 -c "import json,sys; r=[x for x in json.load(sys.stdin)['runtimes'] if x['platform']=='iOS' and x['version'].startswith('17') and x['isAvailable']]; print(r[-1]['identifier'] if r else '')")
+          echo "runtime $RT"; $S/ctrun.sh ios17 "iPhone 15" "$RT" simapps out b65 b66 b67
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ct-results-ios17
+          path: out/
+
+  test-ios-current:
+    needs: build
+    runs-on: macos-26
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: ctapps
+      - name: Run on the current iOS
+        run: |
+          tar -xzf simapps.tgz; S=.github/simtest; chmod +x $S/ctrun.sh
+          XC=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1); if [ -n "$XC" ]; then sudo xcode-select -s "$XC"; fi
+          RT=$(xcrun simctl list runtimes -j | python3 -c "import json,sys; r=[x for x in json.load(sys.stdin)['runtimes'] if x['platform']=='iOS' and x['isAvailable']]; print(sorted(r,key=lambda x:[int(p) for p in x['version'].split('.')])[-1]['identifier'])")
+          DT=$(xcrun simctl list devicetypes | grep -oE 'iPhone 1[67]( Pro)?' | grep -v Pro | sort -V | tail -1)
+          echo "runtime $RT device $DT"; $S/ctrun.sh ios-current "$DT" "$RT" simapps out b65 b66 b67
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ct-results-ios-current
+          path: out/
