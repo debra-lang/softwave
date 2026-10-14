@@ -136,6 +136,8 @@
       // Output holds taken by playback the engine does not own (Sound Response stimuli build their own
       // graph into `trim`): while any is held, the routed iPhone output is never released as idle.
       this._external = 0;
+      this._masterBusyUntil = 0;   // wall-clock ms until which a master movement (pause fade, resume approach, volume glide) is in flight
+      this._fadeRetryT = null;
       try { localStorage.removeItem('softwave:diag:audio'); } catch (_) { }   // validation-build log key, no longer written
     }
 
@@ -340,6 +342,8 @@
       g.cancelScheduledValues(t);
       g.setValueAtTime(g.value, t);
       g.linearRampToValueAtTime(target, t + (immediate ? 0.05 : 0.12));
+      this._masterBusyUntil = Date.now() + (immediate ? 50 : 120);
+      if (this.timer.endsAt) this._scheduleTimerFade();   // a running timer re-programs its fade once this glide has settled
       this.emit('master', this.masterVolume);
     }
     _curve(v) { return Math.pow(v, 1.45); } // perceptual-ish taper, gentler than v² so sound is audible earlier on the slider
@@ -488,6 +492,7 @@
       // Fade master to zero then suspend for a clean pause.
       const g = this.master.gain; const t = this.ctx.currentTime;
       g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.linearRampToValueAtTime(0, t + 0.4);
+      this._masterBusyUntil = Date.now() + 420;
       const tok = this._pauseTok = {};
       await new Promise(r => setTimeout(r, 420));
       if (this._pauseTok !== tok || !this.userPaused) return;   // resumed (Play / new sound) during the fade
@@ -505,6 +510,8 @@
       if (this.master && this.master.gain.value < 0.001) {
         const g = this.master.gain, t = this.ctx.currentTime;
         g.cancelScheduledValues(t); g.setValueAtTime(0, t); g.setTargetAtTime(this._curve(this.masterVolume) * 1.5, t, RESUME_TAU);
+        this._masterBusyUntil = Date.now() + 5 * RESUME_TAU * 1000;
+        if (this.timer.endsAt) this._scheduleTimerFade();   // likewise after the resume approach
         this.emit('master', this.masterVolume);
       } else this.setMasterVolume(this.masterVolume);
       if (this.isPlaying) this._keepAlive(true);
@@ -1209,7 +1216,19 @@
     }
     _scheduleTimerFade() {
       if (!this.ctx || !this.timer.endsAt || !this.timer.fade) return;
+      // The hold below pins the master at its CURRENT value, so it must not run while the master is moving for
+      // another reason — the 0.4 s pause fade, the resume approach, a volume glide, the restore after a timer
+      // re-set — or it freezes that movement part-way: an abrupt pause (context suspended with sound still up),
+      // a resume or a re-set timer that stays quiet while the engine counts itself as playing (hence two Play
+      // presses), a volume change that falls short (measured 2026-10-14). A pause owns the master until Play
+      // re-asserts it; any other movement is left to settle and the fade is re-asserted right after it, so the
+      // programmed hold-then-ramp is never missing for longer than that movement.
+      if (this.userPaused) return;
+      const busy = this._masterBusyUntil - Date.now();
       const leftS = (this.timer.endsAt - Date.now()) / 1000; if (leftS <= 0) return;
+      // …unless the movement would still be running at the deadline: then the deadline wins and the ramp to
+      // silence is programmed from the current value right away.
+      if (busy > 0 && leftS * 1000 > busy + 100) { clearTimeout(this._fadeRetryT); this._fadeRetryT = setTimeout(() => { this._fadeRetryT = null; this._scheduleTimerFade(); }, busy + 30); return; }
       const g = this.master.gain; const now = this.ctx.currentTime; const tEnd = now + leftS; const tStart = tEnd - this.timer.fadeMs / 1000;
       g.cancelScheduledValues(now); g.setValueAtTime(g.value, now);
       if (tStart > now) g.setValueAtTime(g.value, tStart);   // hold the current level until the window opens…
@@ -1245,10 +1264,22 @@
     }
     clearTimer(silent) {
       if (this._timerId) clearTimeout(this._timerId); this._timerId = null;
-      const wasFading = this.timer.fading; const hadSchedule = !!(this.timer.endsAt && this.timer.fade && this.ctx);
+      clearTimeout(this._fadeRetryT); this._fadeRetryT = null;
+      const hadSchedule = !!(this.timer.endsAt && this.timer.fade && this.ctx);
+      // "fading" is set by the 1 Hz tick, but the programmed ramp runs on the audio clock from the moment the window
+      // opens, so the first second of the window is judged by time — otherwise a clear in that second kept the master
+      // a fraction below the selected level (measured 2026-10-14).
+      const wasFading = this.timer.fading || (hadSchedule && (this.timer.endsAt - Date.now()) <= (this.timer.fadeMs || 0));
       this.timer = { endsAt: null, fade: this.timer.fade, durationMin: null };
-      // Drop the programmed hold/ramp (it may not have started yet), holding the current level.
-      if (hadSchedule) { const g = this.master.gain; const t = this.ctx.currentTime; g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); }
+      // Drop the programmed hold/ramp (it may not have started yet). Holding the current level would freeze a master
+      // movement in flight part-way (measured 2026-10-14: a timer changed during a volume glide fell short of the
+      // slider), so such a movement is instead finished along a straight line to its own destination over the time
+      // it had left — the selected level, or silence while pausing.
+      if (hadSchedule) {
+        const g = this.master.gain; const t = this.ctx.currentTime; const busy = this._masterBusyUntil - Date.now();
+        g.cancelScheduledValues(t); g.setValueAtTime(g.value, t);
+        if (busy > 0) g.linearRampToValueAtTime(this.userPaused ? 0 : this._curve(this.masterVolume) * 1.5, t + busy / 1000);
+      }
       // Restore the master only while something will still be heard (timer cancelled mid-fade).
       // After a Stop the layers are fading out on their own; lifting the master under them
       // would replay the mix at full level for 0.8 s. The next start re-asserts the master.
