@@ -37,6 +37,13 @@
     var uniq = function (k) { return rows.map(function (r) { return r[k]; }).filter(function (v, i, a) { return a.indexOf(v) === i; }); };
     L('sample:' + tag, { n: rows.length, engineSaysPlayingButNoOutput: lost, silentSamples: sil, ctxStates: uniq('ctx'), elStates: uniq('el'), elClockAdvanced: rows[rows.length - 1].elT - rows[0].elT, first: rows[0], last: rows[rows.length - 1], every500ms: rows.filter(function (_, i) { return i % 5 === 0; }) });
     return rows; };
+  var realTap = function (name, action) { return new Promise(function (res) {
+    var ov = document.createElement('button'); ov.setAttribute('data-ct-overlay', ''); ov.setAttribute('aria-label', 'ct-overlay');
+    ov.style.cssText = 'position:fixed;left:0;top:0;width:100vw;height:100vh;z-index:2147483647;background:transparent;border:0;margin:0;padding:0;opacity:0.01;';
+    var done = false; var fin = function (how) { if (done) return; done = true; try { ov.remove(); } catch (e) { } L('tap:' + name, { how: how, s: snap() }); try { action(); } catch (e) { L('tap-action-error', String(e)); } res(how); };
+    ov.addEventListener('click', function () { fin('real'); }, { once: true });
+    document.body.appendChild(ov); out('CTTAP ' + name);
+    setTimeout(function () { fin('fallback-synthetic'); }, 20000); }); };
   async function run() {
     L('env', { ua: navigator.userAgent.slice(0, 140), tag: (document.getElementById('build-tag') || {}).textContent || null, native: !!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform()) });
     location.hash = '#sleep'; await w(1500);
@@ -46,12 +53,12 @@
     hooks(); L('phase', 'baseline'); await sample('baseline', 100, 20);
     L('phase', 'open timer sheet'); document.getElementById('sleep-timer').click(); await sample('sheet-open', 100, 15);
     var chip = [].slice.call(document.querySelectorAll('[data-t-opts] .chip')).filter(function (c) { return /Custom/.test(c.textContent); })[0];
-    L('phase', 'tap Custom'); out('CTSHOT before-custom'); await w(3000); chip.click(); await w(250); out('CTSHOT after-custom'); await sample('custom-open', 100, 40);
+    L('phase', 'tap Custom'); out('CTSHOT before-custom'); await w(2000); await realTap('custom', function () { chip.click(); }); await w(400); out('CTSHOT after-custom'); await sample('custom-open', 100, 40);
     var inp = document.getElementById('custom-timer-min'); L('form', { present: !!inp, focused: document.activeElement === inp, vv: window.visualViewport ? Math.round(visualViewport.height) : null, inner: innerHeight });
     L('phase', 'type 45 and Set');
-    if (inp) { inp.value = '45'; inp.dispatchEvent(new Event('input', { bubbles: true })); await w(300); var sb = document.querySelector('[data-custom-timer] button[type=submit]'); if (sb) sb.click(); else inp.form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); }
+    if (inp) { inp.value = '45'; inp.dispatchEvent(new Event('input', { bubbles: true })); await w(300); await realTap('set', function () { var sb = document.querySelector('[data-custom-timer] button[type=submit]'); if (sb) sb.click(); else inp.form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); }); }
     await w(250); out('CTSHOT after-set'); await sample('after-set', 100, 50);
-    L('phase', 'synthetic pointerdown + touchend on document (what a real touch triggers in the app)'); document.dispatchEvent(new Event('pointerdown', { bubbles: true })); document.dispatchEvent(new Event('touchend', { bubbles: true })); await sample('after-touch', 100, 20);
+    L('phase', 'one real touch anywhere (what the user does to restore playback)'); await realTap('touch', function () { }); await sample('after-touch', 100, 25);
     L('phase', 'blur any focused input'); if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); await sample('after-blur', 100, 20);
     L('summary', { timer: softwave.timer.durationMin, s: snap() }); out('CT done');
   }
