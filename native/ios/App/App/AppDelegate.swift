@@ -10,8 +10,15 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Sound-therapy app: audio must play with the silent switch on, keep playing in
         // the background (UIBackgroundModes audio), and duck nothing — it IS the content.
+        // The sound itself is rendered by WebKit in its own process and audio session; this host-process
+        // session plays nothing. It is MIXABLE so that its activations — UIKit's keyboard machinery at
+        // keyboard show/hide, the re-activations below — never interrupt WebKit's session: with a
+        // non-mixable host session, opening the on-screen keyboard (Sleep timer "Custom…") stopped the
+        // sound until the next touch, and every Pause re-activation produced clicks (TestFlight 1.1
+        // Builds 66–68 diagnostics, October 2026). Other apps' audio is still silenced by WebKit's own
+        // non-mixable playback session, so the listening behaviour is unchanged.
         do {
-            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [])
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [.mixWithOthers])
             try AVAudioSession.sharedInstance().setActive(true)
         } catch {
             print("AVAudioSession setup failed: \(error)")
