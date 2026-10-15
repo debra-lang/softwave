@@ -79,13 +79,19 @@
   ['pointerdown', 'touchend'].forEach(function (ev) { document.addEventListener(ev, function () { var before = snap(); setTimeout(function () { var after = snap(); if (before.ctx !== after.ctx || before.el !== after.el || before.gest !== after.gest) log('gesture:' + ev, { before: before, after: after }, false); }, 150); }, { capture: true, passive: true }); });
 
   // ---- automatic failure capture (no user action needed): every 250 ms, is the engine playing while nothing reaches the output?
-  var lostRun = 0, okRun = 0, lost = false, lastBeat = 0, sampleN = 0;
+  // Two classes: the context not running or the element paused (what a touch would restore) count after 0.75 s;
+  // a silent analyser alone (the graph itself producing nothing while the engine expects sound) only after 5 s,
+  // because sparse generative sounds such as Ambient Drift legitimately fall silent for a second or two.
+  var hardRun = 0, silentRun = 0, okRun = 0, lost = false, lastBeat = 0, sampleN = 0;
   setInterval(function () {
     if (!E || !E.ctx) return; var s = snap(); sampleN++;
     var expectsSound = s.act > 0 && !s.up && s.master !== null && s.master > 0.01;
-    var noOutput = s.ctx !== 'running' || s.el === 'PAUSED' || (s.rms !== null && s.rms < 0.0015);
-    if (expectsSound && noOutput) { lostRun++; okRun = 0; } else { okRun++; lostRun = 0; }
-    if (!lost && lostRun >= 3) { lost = true; log('AUTO:output-lost', { why: [s.ctx !== 'running' ? 'context ' + s.ctx : null, s.el === 'PAUSED' ? 'element paused' : null, (s.rms !== null && s.rms < 0.0015) ? 'silent signal' : null].filter(Boolean) }); }
+    var hard = s.ctx !== 'running' || s.el === 'PAUSED';
+    var silent = s.ctx === 'running' && s.el !== 'PAUSED' && s.rms !== null && s.rms < 0.0005;
+    if (expectsSound && hard) { hardRun++; okRun = 0; } else hardRun = 0;
+    if (expectsSound && silent) { silentRun++; okRun = 0; } else silentRun = 0;
+    if (!(expectsSound && (hard || silent))) okRun++;
+    if (!lost && (hardRun >= 3 || silentRun >= 20)) { lost = true; log('AUTO:output-lost', { why: [s.ctx !== 'running' ? 'context ' + s.ctx : null, s.el === 'PAUSED' ? 'element paused' : null, silentRun >= 20 ? 'silent signal for 5 s' : null].filter(Boolean) }); }
     else if (lost && okRun >= 2) { lost = false; log('AUTO:output-restored'); }
     if (lost && Date.now() - lastBeat > 2000) { lastBeat = Date.now(); log('AUTO:still-lost'); }
     if (sampleN % 40 === 0) log('sample'); // a plain snapshot every 10 s while nothing is wrong
