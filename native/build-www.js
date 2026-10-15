@@ -50,6 +50,16 @@ for (const d of DIRS) {
   fs.writeFileSync(ip, after);
 }
 
+// ---- DIAGNOSTIC BUILD 67 (branch ios-66-diag only): the observation-only audio diagnostic loads before every other
+// script, so it can see the engine being created and every state change from the first moment.
+{
+  fs.cpSync(path.join(__dirname, 'diag', 'diag.js'), path.join(OUT, 'diag.js'));
+  const ip = path.join(OUT, 'index.html'); const h = fs.readFileSync(ip, 'utf8');
+  if (!/<head>/.test(h)) { console.error('FATAL: no <head> for the diagnostic script'); process.exit(1); }
+  fs.writeFileSync(ip, h.replace('<head>', '<head>\n<script src="diag.js"></script>'));
+  console.log('diagnostic build: diag.js injected as the first script');
+}
+
 // The native shell's local asset server does not serve query-string URLs, so every
 // `styles.css?v=NN`-style reference loads NOTHING on the device — the app renders
 // completely unstyled. Cache-busting queries only matter on the web; strip them here:
