@@ -95,9 +95,9 @@
   function text() { return buf.map(function (o) { return o.t + ' ' + o.tag + (o.d !== undefined ? ' ' + JSON.stringify(o.d) : '') + (o.s ? ' ' + JSON.stringify(o.s) : ''); }).join('\n'); }
   function ui() {
     var btn = document.createElement('button'); btn.type = 'button'; btn.textContent = 'Diag'; btn.setAttribute('aria-label', 'Open the audio diagnostic log');
-    btn.style.cssText = 'position:fixed;left:6px;top:calc(env(safe-area-inset-top, 0px) + 6px);z-index:2147483000;font:600 11px system-ui;padding:4px 7px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:rgba(20,24,40,.75);color:#dfe6ff;opacity:.75;';
-    var panel = document.createElement('div'); panel.hidden = true;
-    panel.style.cssText = 'position:fixed;inset:0;z-index:2147483001;background:rgba(8,10,20,.96);color:#e8ecff;font:12px/1.35 ui-monospace,Menlo,monospace;display:flex;flex-direction:column;padding:calc(env(safe-area-inset-top,0px) + 8px) 10px 10px;';
+    btn.style.cssText = 'position:fixed;right:0;top:42%;z-index:2147483000;font:600 10px system-ui;padding:6px 5px;border-radius:8px 0 0 8px;border:1px solid rgba(255,255,255,.3);border-right:0;background:rgba(20,24,40,.7);color:#dfe6ff;opacity:.7;';
+    var panel = document.createElement('div');
+    panel.style.cssText = 'position:fixed;left:0;top:0;width:100%;height:100%;z-index:2147483001;background:rgba(8,10,20,.96);color:#e8ecff;font:12px/1.35 ui-monospace,Menlo,monospace;display:none;flex-direction:column;box-sizing:border-box;padding:calc(env(safe-area-inset-top,0px) + 8px) 10px calc(env(safe-area-inset-bottom,0px) + 10px);';
     var bar = document.createElement('div'); bar.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;';
     var ta = document.createElement('textarea'); ta.readOnly = true; ta.setAttribute('aria-label', 'Diagnostic log'); ta.style.cssText = 'flex:1;width:100%;background:#0b0f1e;color:#cfd6ff;border:1px solid #334;border-radius:8px;padding:8px;font:11px/1.3 ui-monospace,Menlo,monospace;white-space:pre;';
     var status = document.createElement('div'); status.style.cssText = 'margin-top:6px;font:12px system-ui;color:#9fb0d8;min-height:1.2em;';
@@ -110,9 +110,9 @@
     if (navigator.share) mk('Share…', function () { persist(); navigator.share({ title: 'Find My Quiet Sound audio diagnostic', text: text() }).then(function () { status.textContent = 'Shared.'; }, function () { status.textContent = 'Share cancelled.'; }); });
     mk('Mark', function () { marks++; log('MARK ' + marks); refresh(); status.textContent = 'Marker ' + marks + ' added.'; });
     mk('Clear', function () { buf = []; dirty = true; persist(); log('diag:cleared', undefined, false); refresh(); });
-    mk('Close', function () { panel.hidden = true; });
+    mk('Close', function () { panel.style.display = 'none'; });
     panel.appendChild(bar); panel.appendChild(ta); panel.appendChild(status);
-    btn.addEventListener('click', function () { log('ui:diag-open', undefined, false); refresh(); panel.hidden = false; });
+    btn.addEventListener('click', function () { log('ui:diag-open', undefined, false); refresh(); panel.style.display = 'flex'; });
     document.body.appendChild(btn); document.body.appendChild(panel);
   }
   if (document.body) ui(); else addEventListener('DOMContentLoaded', ui);
