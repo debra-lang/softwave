@@ -194,6 +194,7 @@
     // header Back did nothing). One tap must close an open experiment; a running one stops first, then closes.
     var nb = function () { return document.getElementById('nav-back'); }, det = function () { return document.getElementById('lab-detail'); };
     var listShown = function () { var l = document.getElementById('lab-list'); return !!(l && l.offsetHeight > 0); };
+    await w(1500);   // let the hash change's view switch land first (a tap cannot precede it); the tiles were already rendered at #find
     var tileM = document.querySelector('.lab-tile[data-id="morph"]'); if (tileM) tileM.click(); await w(900);
     ok('Experiments Back: Sound Morph opens from the list after a Find My Sound arrival; header Back shown; tile and panel carry the Premium launch tag', !!tileM && det() && !det().hidden && nb() && !nb().hidden && /Premium · free during launch/.test(det().innerText) && /Premium · free during launch/.test(tileM.innerText), { backHidden: nb() && nb().hidden, head: det() && det().innerText.slice(0, 80) });
     await shot('exp-back-open');
