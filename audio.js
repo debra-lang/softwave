@@ -496,6 +496,12 @@
       const tok = this._pauseTok = {};
       await new Promise(r => setTimeout(r, 420));
       if (this._pauseTok !== tok || !this.userPaused) return;   // resumed (Play / new sound) during the fade
+      // Release the routed output BEFORE the graph stops. Left playing a stream that no longer receives samples,
+      // the element clicks repeatedly on iOS until the deferred idle release pauses it 1.1 s later (Build 66 iPhone
+      // test: several clicks over ~2 s on Pause; Stop, which never suspends the graph, is clean). Nothing is audible
+      // any more here (master at zero), so there is nothing to cut short. An output hold (Sound Response stimulus)
+      // or a sound start in flight keeps it open, exactly as the idle release would.
+      if (this.mediaOut && !(this._external > 0) && !(this._pendingStarts > 0)) { this.mediaOut.pause(); if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused'; }
       await this.ctx.suspend();
       this._keepAlive(false);
       this.emit('state', 'suspended');
