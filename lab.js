@@ -1324,6 +1324,7 @@
     feedbackOwed = false;
     if (!opts.keepOrigin) { origins[id] = opts.from || { kind: 'list' }; const a = opts.opener || document.activeElement; openers[id] = a && a !== document.body && !a.closest('#lab-detail') ? a : null; }
     const exp = byId[id]; if (!exp) return; const ctx = ctxFor(exp); const panel = $('#lab-detail'); panel.hidden = false;
+    panel.dataset.origin = (origins[id] || { kind: 'list' }).kind;   // the header Back (app.js) reads where this panel was opened from
     // Re-opening the experiment that is running (its tab tapped again, Back then Forward) must not
     // rebuild the panel under it: the fresh controls would come up disabled with no round to enable them.
     if (running && running.exp === exp && panel.querySelector('.lab-detail-inner')) { setFocusedExp(true); return; }

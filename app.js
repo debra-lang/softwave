@@ -1252,8 +1252,11 @@
       const br = d.querySelector('[data-back-result]');
       if (br) { br.click(); setTimeout(updateBackBtn, 120); return; }
       if (lab && lab.isRunning()) { lab.stop('Experiment stopped'); if (lab.revealPanel) lab.revealPanel(); setTimeout(updateBackBtn, 120); return; }
-      // Opened from the Find My Sound section, the placard IS the page: Back returns to the section (step 4).
-      if (location.hash !== '#find' && !(labEntry && labEntry.view === 'find')) {
+      // Opened from the Find My Sound section (its own entry, with the step that arrival pushed still to
+      // undo), the placard IS the page: Back returns to the section (step 4). Any other panel — including
+      // one opened from the list after arriving by the Experiments tab, where no step exists — closes here;
+      // deferring to step 4 with nothing to undo left the button dead.
+      if (location.hash !== '#find' && !(labEntry && labEntry.view === 'find' && d.dataset.origin === 'entry' && navDepth > labEntry.depth)) {
         const c = d.querySelector('[data-close]');
         if (c) { c.click(); setTimeout(updateBackBtn, 120); return; }
         d.hidden = true; d.innerHTML = ''; setTimeout(updateBackBtn, 120); return;
