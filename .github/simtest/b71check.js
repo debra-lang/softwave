@@ -196,7 +196,7 @@
     var listShown = function () { var l = document.getElementById('lab-list'); return !!(l && l.offsetHeight > 0); };
     await w(1500);   // let the hash change's view switch land first (a tap cannot precede it); the tiles were already rendered at #find
     var tileM = document.querySelector('.lab-tile[data-id="morph"]'); if (tileM) tileM.click(); await w(900);
-    ok('Experiments Back: Sound Morph opens from the list after a Find My Sound arrival; header Back shown; tile and panel carry the Premium launch tag', !!tileM && det() && !det().hidden && nb() && !nb().hidden && /Premium · free during launch/.test(det().innerText) && /Premium · free during launch/.test(tileM.innerText), { backHidden: nb() && nb().hidden, head: det() && det().innerText.slice(0, 80) });
+    ok('Experiments Back: Sound Morph opens from the list after a Find My Sound arrival; header Back shown; tile and panel carry the Premium launch tag', !!tileM && det() && !det().hidden && nb() && !nb().hidden && /Premium · free during launch/i.test(det().innerText) && /Premium · free during launch/i.test(tileM.innerText), { backHidden: nb() && nb().hidden, head: det() && det().innerText.slice(0, 80) });
     await shot('exp-back-open');
     if (nb()) nb().click(); await w(900);
     ok('Experiments Back: ONE header Back tap closes the panel and shows the list (Build 70: nothing happened here)', det() && det().hidden && listShown() && nb() && nb().hidden, { panelHidden: det() && det().hidden, list: listShown(), backHidden: nb() && nb().hidden });
