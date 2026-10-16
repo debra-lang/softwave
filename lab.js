@@ -512,7 +512,7 @@
       stop() { engine.setVariation(0); }, keepsSound: true,
     },
     {
-      id: 'morph', name: 'Sound Morph', cat: 'Explore', evidence: 'exploratory', from: 'Synthesiser design',
+      id: 'morph', name: 'Sound Morph', cat: 'Explore', premium: true, evidence: 'exploratory', from: 'Synthesiser design',
       what: 'One control that glides through a continuum — Brown → Brown/Pink → Pink → Pink/Rain → Rain. Stop anywhere.',
       why: 'Sometimes the comfortable spot is between two sounds.',
       how: 'Press Start, drag slowly, stop where it feels best, then Save.',
@@ -618,7 +618,7 @@
       stop() { engine.resetMasterShape(); }, keepsSound: true,
     },
     {
-      id: 'session', name: 'Build My Session', cat: 'Sessions', evidence: 'exploratory', from: 'Product design',
+      id: 'session', name: 'Build My Session', cat: 'Sessions', premium: true, evidence: 'exploratory', from: 'Product design',
       what: 'Four quick questions — what you are doing, what sound you prefer, visuals or not, how much variation — and a session is built for you.',
       why: 'When you are tired or busy you should not have to design anything.',
       how: 'Answer and press Start. Everything can be changed afterwards. This is a suggestion, not a recommendation about your health.',
