@@ -84,11 +84,12 @@
     var Real = window[name]; if (typeof Real !== 'function') return;
     var Wrapped = function () {
       var r = new Real();
-      ['start', 'audiostart', 'soundstart', 'speechstart', 'speechend', 'soundend', 'audioend', 'result', 'nomatch', 'error', 'end'].forEach(function (ev) {
-        r.addEventListener(ev, function (e) { log('sr:' + ev, ev === 'error' ? { error: e && e.error } : (ev === 'result' ? { results: e && e.results ? e.results.length : 0 } : undefined)); });
+      var canListen = r && typeof r.addEventListener === 'function';   // (a test double without EventTarget is left alone)
+      if (canListen) ['start', 'audiostart', 'soundstart', 'speechstart', 'speechend', 'soundend', 'audioend', 'result', 'nomatch', 'error', 'end'].forEach(function (ev) {
+        try { r.addEventListener(ev, function (e) { log('sr:' + ev, ev === 'error' ? { error: e && e.error } : (ev === 'result' ? { results: e && e.results ? e.results.length : 0 } : undefined)); }); } catch (e) { }
       });
       ['start', 'stop', 'abort'].forEach(function (m) { var o = r[m]; if (typeof o === 'function') r[m] = function () { log('sr:call:' + m); return o.apply(r, arguments); }; });
-      log('sr:created');
+      log('sr:created', { events: canListen });
       return r;
     };
     Wrapped.prototype = Real.prototype;
