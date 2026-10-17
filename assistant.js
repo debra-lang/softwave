@@ -120,7 +120,8 @@
         if (T.includes('rich') || T.includes('full')) base.rich = Math.max(base.rich, 0.6);
         engine.setSculpt(base, 'sculpt');
         await engine.loadMix([{ id: 'sculpt', volume: 0.55, balance: 0, params: base }]);
-        ok.push('Playing a ' + T.join(', ') + ' sound' + ((profile && profile.params()) ? ' shaped from your preferences' : '') + ' — say “warmer”, “softer” or “more movement” to adjust');
+        if (app.noteAskBed) app.noteAskBed();   // a sound chosen on the Sounds page replaces this bed instead of layering on it
+        ok.push('Playing My Sound — a ' + T.join(', ') + ' noise blend' + ((profile && profile.params()) ? ', shaped from your preferences' : '') + '. You can stop it anytime using Stop, or say “warmer”, “softer” or “more movement” to adjust');
       },
       async something_different() {
         // With a profile: keep the user's learned sound, swap the texture to one they haven't
