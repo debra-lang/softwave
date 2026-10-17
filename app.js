@@ -455,6 +455,9 @@
         if (window.SoftwaveField) { const pv = new SoftwaveField.Preview($('.tile-canvas', card), d.id); tilePreviews.set(card, pv); }
         btn.addEventListener('click', async () => {
           const wasActive = engine.isActive(d.id);
+          // A My Sound bed that Ask started has no card here: a sound chosen on this page replaces it
+          // rather than playing over it. Sounds the user layered themselves are left alone.
+          if (!wasActive && askBedActive()) engine.stopSound('sculpt');
           const ok = await engine.toggleSound(d.id, (+$('input', card).value) / 100);
           // Stay on the grid — no jump to the player — so more sounds can be added;
           // ~4s of quiet later the full-screen sound view opens on its own.
@@ -1343,6 +1346,16 @@
     e.preventDefault(); x.click();
   });
   window.softwaveApp = { afterDone, escapeFree, leaveLab, syncRiCards, syncProfileCards, leaveTool, markMatchReturn: (exp) => { if (matchOrigin) matchOrigin.exp = exp; }, customTimerForm, layerPush, layersClose, layerReplace, topLayerIs, afterLayerClose, updateBackBtn, armIntent, cancelIntent, cancelIntents, pendingIntents, renderPresetsRemount, loadPreset, saveCurrentMix, restoreMix, openSaveSheet, openManageMenu, openMixMenu, savedSessions, soundVol, SAVED_ICO, setMaster, togglePlay, toast, store, PRESETS, paintRange, showView, scheduleAutoAdvance, renderPresets: renderPresetsRemount };
+
+  // ---------- Ask's synthesized bed ----------
+  // Ask's character requests ("something relaxing") play the engine's "My Sound" noise blend, a Lab sound with no
+  // card on the Sounds page. assistant.js marks it when it starts one; the mark clears the moment that layer stops
+  // for any reason (Stop, Undo, a named Ask request, Immerse Off), so a My Sound started by Sound Sculptor, a saved
+  // sound or a Moment is never treated as Ask's. While an experiment runs, the layer is the experiment's, not Ask's.
+  let askBed = false;
+  function askBedActive() { return askBed && engine.isActive('sculpt') && !(window.softwaveLab && softwaveLab.isRunning()); }
+  engine.on(type => { if (type === 'sounds' && askBed && !engine.isActive('sculpt')) askBed = false; });
+  window.softwaveApp.noteAskBed = () => { askBed = true; };
 
   // ---------- init ----------
   renderSounds(); renderPresets(); renderMixer([]); updatePlayer(); renderProfileHooks(); if (window.SoftwaveField) syncField();
