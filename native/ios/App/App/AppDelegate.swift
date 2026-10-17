@@ -66,9 +66,14 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         diagQueue.append(js); diagFlush()
     }
     private func diagFlush() {
+        // Lines are delivered in order and kept until the page confirms it has the receiver (diag.js defines it as
+        // the first script), so lines from before the page loaded — the launch line, an early interruption — are not lost.
         guard let wv = diagWebView(), !diagQueue.isEmpty else { return }
-        let lines = diagQueue; diagQueue.removeAll()
-        for js in lines { wv.evaluateJavaScript("window.__swDiagNative && window.__swDiagNative(" + js + ")", completionHandler: nil) }
+        let js = diagQueue[0]
+        wv.evaluateJavaScript("(function(){ if (!window.__swDiagNative) return false; window.__swDiagNative(" + js + "); return true; })()") { [weak self] result, _ in
+            guard let self = self else { return }
+            if let ok = result as? Bool, ok, !self.diagQueue.isEmpty, self.diagQueue[0] == js { self.diagQueue.removeFirst(); if self.diagQueue.count > 400 { self.diagQueue.removeFirst(self.diagQueue.count - 400) }; self.diagFlush() }
+        }
     }
     private func diagStart() {
         let nc = NotificationCenter.default, q = OperationQueue.main
