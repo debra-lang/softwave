@@ -38,7 +38,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     // ---- DIAGNOSTIC BUILD 73 (branch ios-72-diag only). Observation only: forwards audio-session interruptions, route
     // changes, media-services resets, secondary-audio hints, keyboard notifications and a 2 s session snapshot (category,
-    // mode, options, sample rate, buffer, latencies, route ports and names, input availability, record permission) to
+    // mode, options, sample rate, buffer, latencies, route port types, input availability, record permission) to
     // the page (window.__swDiagNative), where diag.js records them next to the web-layer events. Never calls setCategory,
     // setActive or anything that changes playback or recording. The existing session handling above is unchanged.
     private var diagQueue: [String] = []
@@ -54,7 +54,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         let s = AVAudioSession.sharedInstance()
         return ["category": s.category.rawValue, "mode": s.mode.rawValue, "options": s.categoryOptions.rawValue,
                 "otherAudio": s.isOtherAudioPlaying, "secondaryHint": s.secondaryAudioShouldBeSilencedHint,
-                "outputs": s.currentRoute.outputs.map { $0.portType.rawValue }, "outNames": s.currentRoute.outputs.map { $0.portName },
+                "outputs": s.currentRoute.outputs.map { $0.portType.rawValue },   // port TYPES only (Speaker, Receiver, BluetoothA2DP…): a port name could be a personal device name
                 "inputs": s.currentRoute.inputs.map { $0.portType.rawValue }, "inputAvailable": s.isInputAvailable,
                 "recordPermission": s.recordPermission.rawValue, "volume": Double(s.outputVolume), "sampleRate": s.sampleRate,
                 "prefSampleRate": s.preferredSampleRate, "ioBuffer": s.ioBufferDuration, "outLatency": s.outputLatency, "inLatency": s.inputLatency]
