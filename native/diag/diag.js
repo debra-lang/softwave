@@ -85,8 +85,17 @@
     var Wrapped = function () {
       var r = new Real();
       var canListen = r && typeof r.addEventListener === 'function';   // (a test double without EventTarget is left alone)
+      // WebKit can deliver result events continuously while listening (tens of thousands on a simulator without a
+      // microphone): results are counted and reported at most once per 2 s and at the end of the session, so a
+      // recogniser that keeps running after the app stopped listening stays visible without flooding the log.
+      var resTotal = 0, resSince = 0, resLogAt = 0;
+      var flushRes = function (why) { if (!resSince) return; log('sr:result', { since: resSince, total: resTotal, at: why }); resSince = 0; resLogAt = Date.now(); };
       if (canListen) ['start', 'audiostart', 'soundstart', 'speechstart', 'speechend', 'soundend', 'audioend', 'result', 'nomatch', 'error', 'end'].forEach(function (ev) {
-        try { r.addEventListener(ev, function (e) { log('sr:' + ev, ev === 'error' ? { error: e && e.error } : (ev === 'result' ? { results: e && e.results ? e.results.length : 0 } : undefined)); }); } catch (e) { }
+        try { r.addEventListener(ev, function (e) {
+          if (ev === 'result') { resTotal++; resSince++; if (Date.now() - resLogAt > 2000) flushRes('stream'); return; }
+          if (ev === 'end' || ev === 'error') flushRes(ev);
+          log('sr:' + ev, ev === 'error' ? { error: e && e.error, results: resTotal } : (ev === 'end' ? { results: resTotal } : undefined));
+        }); } catch (e) { }
       });
       ['start', 'stop', 'abort'].forEach(function (m) { var o = r[m]; if (typeof o === 'function') r[m] = function () { log('sr:call:' + m); return o.apply(r, arguments); }; });
       log('sr:created', { events: canListen });
