@@ -123,6 +123,32 @@
     var stop = document.getElementById('player-stop'); if (stop) stop.click(); await w(1500);
     ok('Stop silences drift (cleanup)', ids() === '', ids());
     // ---- Build 66: the Ask microphone button is back in the app; it acts only on a tap
+    // ---- Ask "My Sound" bed (fix): a sound chosen on the Sounds page replaces the bed Ask started; everything else layers as before
+    // (runs before the microphone test: a speech-recognition session left open on the simulator can deliver a late
+    // result that re-runs Ask with noise and overwrites the reply under test)
+    location.hash = '#sounds'; await w(1200);
+    var askI = document.getElementById('ask-input'), askF = document.getElementById('ask-form');
+    var askRun = async function (t) { askI.value = t; if (askF.requestSubmit) askF.requestSubmit(); else askF.dispatchEvent(new Event('submit', { cancelable: true })); await w(2500); };
+    var actIds = function () { return softwave.activeList().map(function (s) { return s.id; }).sort().join(','); };
+    var askOut = function () { return (document.getElementById('ask-out') || {}).innerText || ''; };
+    var ptitle = function () { return document.getElementById('player-title').textContent; };
+    await askRun('play something relaxing');
+    ok('Ask "play something relaxing": My Sound alone, player bar visible with the title "My Sound", reply names My Sound and Stop', actIds() === 'sculpt' && ptitle() === 'My Sound' && !document.getElementById('player').classList.contains('player-hidden') && /Playing My Sound — a soft, steady noise blend\. You can stop it anytime using Stop/.test(askOut()), { active: actIds(), title: ptitle(), out: askOut().slice(0, 90) });
+    await shot('ask-mysound');
+    var nowEl = document.getElementById('now'); if (nowEl && !nowEl.hidden) { var nc = nowEl.querySelector('[data-now="close"], #now-close, .now-close, button[aria-label="Close"]'); if (nc) nc.click(); else nowEl.hidden = true; await w(400); }
+    var rainBtn = document.querySelector('#view-sounds .sound-card[data-id="rain"] .card-btn'); if (rainBtn) rainBtn.click(); await w(2500);
+    ok('Rain tapped on the Sounds page replaces the Ask bed: only Rain active, title "Rain" (before the fix: "My Sound + Rain")', actIds() === 'rain' && ptitle() === 'Rain', { active: actIds(), title: ptitle() });
+    await shot('ask-rain-replaced');
+    nowEl = document.getElementById('now'); if (nowEl && !nowEl.hidden) { var nc2 = nowEl.querySelector('[data-now="close"], #now-close, .now-close, button[aria-label="Close"]'); if (nc2) nc2.click(); else nowEl.hidden = true; await w(400); }
+    var oceanBtn = document.querySelector('#view-sounds .sound-card[data-id="ocean"] .card-btn'); if (oceanBtn) oceanBtn.click(); await w(1500);
+    ok('a second Sounds-page sound layers normally (Ocean + Rain); My Sound does not return', actIds() === 'ocean,rain', actIds());
+    await askRun('play rain'); ok('Ask "play rain" still replaces the whole mix', actIds() === 'rain', actIds());
+    softwave.setSculpt({ colour: 0.3 }, 'sculpt'); await softwave.loadMix([{ id: 'sculpt', volume: 0.5, balance: 0 }]); await w(1200);
+    nowEl = document.getElementById('now'); if (nowEl && !nowEl.hidden) { var nc3 = nowEl.querySelector('[data-now="close"], #now-close, .now-close, button[aria-label="Close"]'); if (nc3) nc3.click(); else nowEl.hidden = true; await w(400); }
+    rainBtn = document.querySelector('#view-sounds .sound-card[data-id="rain"] .card-btn'); if (rainBtn) rainBtn.click(); await w(1500);
+    ok('a My Sound started outside Ask is NOT replaced by a Sounds-page tap (Rain layers on it)', actIds() === 'rain,sculpt', actIds());
+    if (window.softwaveStopAll) softwaveStopAll(); else softwave.stopAll(); await w(1200);
+    ok('Stop clears everything (no hidden layer left)', actIds() === '', actIds());
     location.hash = '#sounds'; await w(1500);
     var mic = document.getElementById('ask-mic'), input = document.getElementById('ask-input');
     ok('Ask: "Speak your request" microphone button present, idle; Web Speech API exposed by WKWebView', !!mic && mic.getAttribute('aria-label') === 'Speak your request' && mic.getAttribute('aria-pressed') === 'false' && !!window.webkitSpeechRecognition, { mic: !!mic, api: !!window.webkitSpeechRecognition });
@@ -219,30 +245,6 @@
     ok('premium/ page in the app bundle: comparison table (Mixer 3 / 5 sounds at once, Sound Morph No / Yes), no "Free today" list', /<td>Mixer<\/td><td>3 sounds at once<\/td><td>5 sounds at once<\/td>/.test(ph) && /<td>Sound Morph<\/td><td>No<\/td><td>Yes<\/td>/.test(ph) && !/Free today/.test(ph) && !/Sound Morph and Build My Session/.test(ph), ph.length);
     var MZ = window.softwaveMonetization;
     ok('monetization unchanged: launch all-access, every experiment usable, 5 mixer layers, unlimited saves, no paywall element', !!MZ && MZ.FLAGS.MONETIZATION_ENABLED === false && MZ.FLAGS.LAUNCH_ALL_ACCESS === true && MZ.FLAGS.SHOW_PRICING === false && MZ.subscriptionState() === 'launch_all_access' && MZ.activeLayerLimit() === 5 && MZ.canCreateSavedItem(99) && ['experiment:morph', 'experiment:session', 'experiment:sculptor', 'experiment:paint', 'experiment:discovery', 'mixer_layers'].every(function (k) { return MZ.canUse(k); }) && !document.getElementById('premium-veil'), MZ && { state: MZ.subscriptionState(), layers: MZ.activeLayerLimit() });
-    // ---- Ask "My Sound" bed (fix): a sound chosen on the Sounds page replaces the bed Ask started; everything else layers as before
-    location.hash = '#sounds'; await w(1200);
-    var askI = document.getElementById('ask-input'), askF = document.getElementById('ask-form');
-    var askRun = async function (t) { askI.value = t; if (askF.requestSubmit) askF.requestSubmit(); else askF.dispatchEvent(new Event('submit', { cancelable: true })); await w(2500); };
-    var actIds = function () { return softwave.activeList().map(function (s) { return s.id; }).sort().join(','); };
-    var askOut = function () { return (document.getElementById('ask-out') || {}).innerText || ''; };
-    var ptitle = function () { return document.getElementById('player-title').textContent; };
-    await askRun('play something relaxing');
-    ok('Ask "play something relaxing": My Sound alone, player bar visible with the title "My Sound", reply names My Sound and Stop', actIds() === 'sculpt' && ptitle() === 'My Sound' && !document.getElementById('player').classList.contains('player-hidden') && /Playing My Sound — a soft, steady noise blend\. You can stop it anytime using Stop/.test(askOut()), { active: actIds(), title: ptitle(), out: askOut().slice(0, 90) });
-    await shot('ask-mysound');
-    var nowEl = document.getElementById('now'); if (nowEl && !nowEl.hidden) { var nc = nowEl.querySelector('[data-now="close"], #now-close, .now-close, button[aria-label="Close"]'); if (nc) nc.click(); else nowEl.hidden = true; await w(400); }
-    var rainBtn = document.querySelector('#view-sounds .sound-card[data-id="rain"] .card-btn'); if (rainBtn) rainBtn.click(); await w(2500);
-    ok('Rain tapped on the Sounds page replaces the Ask bed: only Rain active, title "Rain" (before the fix: "My Sound + Rain")', actIds() === 'rain' && ptitle() === 'Rain', { active: actIds(), title: ptitle() });
-    await shot('ask-rain-replaced');
-    nowEl = document.getElementById('now'); if (nowEl && !nowEl.hidden) { var nc2 = nowEl.querySelector('[data-now="close"], #now-close, .now-close, button[aria-label="Close"]'); if (nc2) nc2.click(); else nowEl.hidden = true; await w(400); }
-    var oceanBtn = document.querySelector('#view-sounds .sound-card[data-id="ocean"] .card-btn'); if (oceanBtn) oceanBtn.click(); await w(1500);
-    ok('a second Sounds-page sound layers normally (Ocean + Rain); My Sound does not return', actIds() === 'ocean,rain', actIds());
-    await askRun('play rain'); ok('Ask "play rain" still replaces the whole mix', actIds() === 'rain', actIds());
-    softwave.setSculpt({ colour: 0.3 }, 'sculpt'); await softwave.loadMix([{ id: 'sculpt', volume: 0.5, balance: 0 }]); await w(1200);
-    nowEl = document.getElementById('now'); if (nowEl && !nowEl.hidden) { var nc3 = nowEl.querySelector('[data-now="close"], #now-close, .now-close, button[aria-label="Close"]'); if (nc3) nc3.click(); else nowEl.hidden = true; await w(400); }
-    rainBtn = document.querySelector('#view-sounds .sound-card[data-id="rain"] .card-btn'); if (rainBtn) rainBtn.click(); await w(1500);
-    ok('a My Sound started outside Ask is NOT replaced by a Sounds-page tap (Rain layers on it)', actIds() === 'rain,sculpt', actIds());
-    if (window.softwaveStopAll) softwaveStopAll(); else softwave.stopAll(); await w(1200);
-    ok('Stop clears everything (no hidden layer left)', actIds() === '', actIds());
     location.hash = '#sounds'; await w(1500);
     var card = document.getElementById('journey-open');
     ok('starter card for a new user: "New here?…" with the green frame', !!card && /New here\?/.test(card.innerText) && GREEN.test(getComputedStyle(card).borderTopColor), card && card.innerText.slice(0, 60));
