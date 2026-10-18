@@ -305,7 +305,19 @@
     // the app declares the microphone and speech-recognition usage descriptions (Info.plist), so iOS
     // asks for both permissions on the first tap. Nothing starts until the microphone is tapped.
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (SR) {
+    // MIC_MODE — iPhone app: 'native' (Apple speech recognition through the app's own plugin, which restores the audio
+    // session to playback-only after every session), 'webkit' (the browser recogniser, which leaves the microphone in
+    // the route — Build 73/74 diagnostics) or 'hidden' (no microphone button; typing stays). Website: always 'webkit'.
+    const IS_SHELL = !!(window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform() === 'ios');
+    const MIC_MODE = IS_SHELL ? 'native' : 'webkit';
+    const nativeSR = () => (IS_SHELL && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.SoftwaveSpeech) || null;
+    const useNative = MIC_MODE === 'native' && !!nativeSR();      // 'native' without the plugin (an older shell) hides the button
+    const useWebkit = MIC_MODE === 'webkit' && !!SR;
+    const diagNative = (phase, extra) => { try { if (window.__swDiagNative) window.__swDiagNative(Object.assign({ type: 'speechNative', phase: phase }, extra || {})); } catch (_) { } };
+    // the plugin reports every session end with the restored session's category and route — the line that proves
+    // the microphone left the route on a device (visible only in the diagnostic build's log)
+    try { const P0 = useNative && nativeSR(); if (P0 && P0.addListener) P0.addListener('listeningState', e => diagNative('state', e)); } catch (_) { }
+    if (useNative || useWebkit) {
       const mic = document.createElement('button');
       mic.type = 'button'; mic.id = 'ask-mic'; mic.className = 'btn btn-ghost btn-sm ask-mic';
       mic.setAttribute('aria-label', 'Speak your request'); mic.setAttribute('aria-pressed', 'false');
@@ -349,7 +361,7 @@
         if (on) out.innerHTML = '<div class="ask-line">Listening…' + (wasDucked ? ' (sound paused while you speak)' : '') + '</div>'; else if (out.textContent.trim().indexOf('Listening…') === 0) out.innerHTML = '';
         clearTimeout(listenGuard);
         if (on) listenGuard = setTimeout(() => {   // hard guarantee: "Listening…" can never get stuck
-          try { rec && rec.abort(); } catch (_) { }
+          try { if (useNative) { const P = nativeSR(); if (P) P.stop(); } else if (rec) rec.abort(); } catch (_) { }
           setListening(false);
           confirmLines(['I didn’t hear anything. Tap the microphone and try again, or type your request.'], false);
         }, 10000);
@@ -385,7 +397,41 @@
         };
         return rec;
       }
+      // iPhone app: one native session per tap; the plugin stops capture and restores the playback-only session on
+      // every ending (result, error, cancel, its 12 s guard, a new tap), and the promise settles exactly once.
+      async function nativeTap() {
+        const P = nativeSR();
+        if (listening) { try { await P.stop(); } catch (_) { } setListening(false); return; }   // tap again = cancel (the pending start rejects as 'aborted')
+        track('voice_opened');
+        if (firstUse) { firstUse = false; app.toast('Voice recognition may be processed by your browser or device provider. Find My Quiet Sound does not store your voice and does not send your Sound Profile or tinnitus information with the request.', 5600); }
+        sessionHadOutcome = false;
+        const wasPlaying = engine.isPlaying;
+        setListening(true);   // ducks the sound first…
+        await new Promise(r => setTimeout(r, wasPlaying ? 350 : 0));
+        if (!listening) return;   // cancelled during the quiet-down
+        diagNative('start');
+        let res = null, failure = null;
+        try { res = await P.start({ language: document.documentElement.lang || 'en' }); } catch (e) { failure = (e && (e.code || e.message)) || 'unknown'; }
+        sessionHadOutcome = true;
+        setListening(false);   // …and restores it once the session has ended
+        if (failure !== null) {
+          diagNative('error', { code: failure });
+          if (failure === 'not-allowed') { track('voice_permission_denied'); confirmLines(['Microphone access isn’t available. You can still type your request.'], false); }
+          else if (failure === 'aborted') { /* user cancelled or superseded — quiet */ }
+          else if (failure === 'no-speech') { track('voice_command_failed'); confirmLines(['I didn’t catch that. Try again or type your request.'], false); }
+          else { track('voice_command_failed'); confirmLines(['Voice didn’t work just now (' + failure + '). You can still type your request.'], false); }
+          return;
+        }
+        const text = (res && typeof res.text === 'string' ? res.text : '').trim();
+        diagNative('result', { chars: text.length });   // length only — never the words
+        if (!text) { track('voice_command_failed'); confirmLines(['I didn’t catch that. Try again or type your request.'], false); return; }
+        input.value = text;                       // transparency: show exactly what was heard
+        track('voice_command_completed');
+        await run(text);
+        input.value = '';
+      }
       mic.addEventListener('click', () => {
+        if (useNative) { nativeTap(); return; }
         if (listening) { try { rec && rec.abort(); } catch (_) { } setListening(false); return; }   // tap again = cancel
         track('voice_opened');
         if (firstUse) { firstUse = false; app.toast('Voice recognition may be processed by your browser or device provider. Find My Quiet Sound does not store your voice and does not send your Sound Profile or tinnitus information with the request.', 5600); }
