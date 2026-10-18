@@ -315,6 +315,19 @@
       // ONE persistent recognition instance, reused across taps — recreating per tap can wedge
       // Chrome's speech service so the second session never returns. Handlers attach once.
       let rec = null, listening = false, firstUse = true, listenGuard = null, sessionHadOutcome = false, duckPrev = null, duckRestoreVal = null, duckRestoreAt = 0;
+      // iPhone app: WebKit keeps the microphone in the audio route after a recognition session has ended, for as long
+      // as the recogniser object lives (Build 73 diagnostic, 18 Oct 2026: the route held the built-in microphone from
+      // the tap to the end of the run, and the speaker then played through the voice-processing path — hiss, a level
+      // that drifted on its own, breaks on volume changes). There, every finished session releases its recogniser:
+      // handlers detached, abort() called, reference dropped, so the next tap builds a fresh one. The website keeps
+      // its single persistent instance above (recreating per tap can wedge Chrome's speech service).
+      const SHELL = !!(window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform() === 'ios');
+      function releaseRec() {
+        if (!SHELL || !rec) return;
+        const r = rec; rec = null;
+        r.onresult = r.onerror = r.onend = null;   // nothing more from this instance reaches the UI
+        try { r.abort(); } catch (_) { }
+      }
       const setListening = (on) => {
         listening = on;
         mic.classList.toggle('listening', on);
@@ -368,6 +381,7 @@
           const silent = listening && !sessionHadOutcome;
           setListening(false);
           if (silent) { track('voice_command_failed'); confirmLines(['I didn’t catch that. Tap the microphone and try again, or type your request.'], false); }
+          releaseRec();   // iPhone app only: let WebKit release the microphone (see above)
         };
         return rec;
       }
