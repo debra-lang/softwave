@@ -55,10 +55,11 @@ public class SoftwaveSpeechPlugin: CAPPlugin, CAPBridgedPlugin {
         default: return "prompt"
         }
     }
-    @objc func checkPermissions(_ call: CAPPluginCall) {
+    // CAPPlugin declares these two: overriding them keeps Capacitor's permission plumbing in one place
+    @objc override public func checkPermissions(_ call: CAPPluginCall) {
         call.resolve(["speechRecognition": speechStatus(), "microphone": micStatus()])
     }
-    @objc func requestPermissions(_ call: CAPPluginCall) {
+    @objc override public func requestPermissions(_ call: CAPPluginCall) {
         SFSpeechRecognizer.requestAuthorization { _ in
             AVAudioSession.sharedInstance().requestRecordPermission { _ in
                 DispatchQueue.main.async { call.resolve(["speechRecognition": self.speechStatus(), "microphone": self.micStatus()]) }
