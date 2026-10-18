@@ -364,7 +364,7 @@
           try { if (useNative) { const P = nativeSR(); if (P) P.stop(); } else if (rec) rec.abort(); } catch (_) { }
           setListening(false);
           confirmLines(['I didn’t hear anything. Tap the microphone and try again, or type your request.'], false);
-        }, 10000);
+        }, useNative ? 14000 : 10000);   // iPhone app: the plugin's own 12 s guard acts first and keeps the text heard so far
       };
       function ensureRec() {
         if (rec) return rec;
@@ -414,6 +414,10 @@
         try { res = await P.start({ language: document.documentElement.lang || 'en' }); } catch (e) { failure = (e && (e.code || e.message)) || 'unknown'; }
         sessionHadOutcome = true;
         setListening(false);   // …and restores it once the session has ended
+        // Switching the shared hardware session for capture interrupts WebKit's audio context; it comes back only on a
+        // touch. The session has fully ended here (the promise settles after the plugin's restore), so the engine's own
+        // resume() is called — but only when sound is meant to be playing: a mix the user paused or stopped stays silent.
+        if (engine.ctx && engine.ctx.state !== 'running' && engine.active && engine.active.size > 0 && !engine.userPaused) { try { diagNative('resume'); engine.resume(); } catch (_) { } }
         if (failure !== null) {
           diagNative('error', { code: failure });
           if (failure === 'not-allowed') { track('voice_permission_denied'); confirmLines(['Microphone access isn’t available. You can still type your request.'], false); }
