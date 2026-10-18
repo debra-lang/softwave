@@ -371,7 +371,7 @@
     L('post', { keys: Object.keys(post).length, data: post });
     ok('every saved 1.0 key is still present after the upgrade', lost.length === 0, lost);
     // master: approved 60 % restore rule. rasterMs/rasterSlow: graphics-speed measurement the app (1.0 and 1.1 alike, field.js) re-takes on every launch.
-    var EXEMPT = ['softwave:master', 'softwave:rasterMs', 'softwave:rasterSlow'];
+    var EXEMPT = ['softwave:master', 'softwave:rasterMs', 'softwave:rasterSlow', 'softwave:diag:log'];   // diag:log: the diagnostic's own log, which grows between the seed and the upgrade run
     ok('saved values unchanged (only the volume restore rule and the per-launch graphics measurement differ)', changed.filter(function (k) { return EXEMPT.indexOf(k) < 0; }).length === 0, changed);
     var m = JSON.parse(post['softwave:master'] || 'null'), m0 = JSON.parse(PRE['softwave:master'] || 'null');
     ok('master volume above 60 % reopens at 60 % (approved restore cap)', m0 > 0.6 && Math.abs(m - 0.6) < 1e-9 && Math.abs(window.softwave.masterVolume - 0.6) < 0.01, { before: m0, after: m, engine: window.softwave.masterVolume });
