@@ -43,6 +43,7 @@ public class SoftwaveSpeechPlugin: CAPPlugin, CAPBridgedPlugin {
     private var watchTimer: Timer?
     private var active = false
     private var sessionId = 0
+    private var sessionConfigured = false   // true once begin() has switched the session to capture; finish() restores only then
 
     // transcript progress and finalisation
     private var lastText = ""
@@ -106,7 +107,7 @@ public class SoftwaveSpeechPlugin: CAPPlugin, CAPBridgedPlugin {
             self.pending = call
             self.active = true
             self.sessionId += 1
-            self.lastText = ""; self.audioEnded = false; self.startedAt = Date(); self.lastChangeAt = Date()
+            self.lastText = ""; self.audioEnded = false; self.startedAt = Date(); self.lastChangeAt = Date(); self.sessionConfigured = false
             self.buffers = 0; self.voicedBuffers = 0; self.peakRms = 0; self.lastLevelReportAt = Date(); self.inputFormatDesc = ""
             self.emit("starting", [:])
             self.authorize { ok in
@@ -151,6 +152,7 @@ public class SoftwaveSpeechPlugin: CAPPlugin, CAPBridgedPlugin {
         do {
             // capture configuration: mixable (never interrupts WebKit's playback session), speaker kept as the output
             try session.setCategory(.playAndRecord, mode: .default, options: [.mixWithOthers, .defaultToSpeaker, .allowBluetooth])
+            sessionConfigured = true
             try session.setActive(true)
         } catch {
             finish(reason: "audio-capture", text: nil); return
@@ -243,6 +245,7 @@ public class SoftwaveSpeechPlugin: CAPPlugin, CAPBridgedPlugin {
     private func finish(reason: String, text: String?, detail: [String: Any] = [:]) {
         guard active else { return }
         active = false
+        let sessionConfiguredBefore = sessionConfigured
         guardTimer?.invalidate(); guardTimer = nil
         watchTimer?.invalidate(); watchTimer = nil
         if let engine = engine {
@@ -254,11 +257,16 @@ public class SoftwaveSpeechPlugin: CAPPlugin, CAPBridgedPlugin {
         engine = nil; request = nil; task = nil; recognizer = nil
         let session = AVAudioSession.sharedInstance()
         var restored = true
-        do {
-            try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
-            try session.setActive(true)
-        } catch { restored = false }
-        var d: [String: Any] = ["reason": reason, "restored": restored, "category": session.category.rawValue,
+        // A session that never reached capture (permission prompt still up, recognizer unavailable) left the audio session
+        // untouched: touching it here would be an activation WebKit's playback does not need.
+        if sessionConfigured {
+            do {
+                try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
+                try session.setActive(true)
+            } catch { restored = false }
+            sessionConfigured = false
+        }
+        var d: [String: Any] = ["reason": reason, "restored": restored, "configured": sessionConfiguredBefore, "category": session.category.rawValue,
                                 "inputs": session.currentRoute.inputs.map { $0.portType.rawValue },
                                 "outputs": session.currentRoute.outputs.map { $0.portType.rawValue }]
         for (k, v) in detail { d[k] = v }
