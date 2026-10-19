@@ -22,13 +22,15 @@ p("different word counts: \"play\" / \"play pink\" → kept", best: "play", alts
 p("short sound name (fan, 3 letters) never swapped in: \"play fun\" / \"play fan\" → kept (4-letter minimum)", best: "play fun", alts: ["play fan"], "play fun", false)
 p("no alternatives → kept", best: "play P!nk", alts: [], "play P!nk", false)
 p("alternatives identical to the best → kept", best: "play P!nk", alts: ["play P!nk", "Play P!nk"], "play P!nk", false)
-p("empty sound list → kept", best: "play P!nk", alts: ["play pink"], "play P!nk", false)
+let emptyList = SoftwaveSpeechPlugin.pickTranscript(best: "play P!nk", alternatives: ["play pink"], sounds: [])
+let eok = emptyList.text == "play P!nk" && emptyList.alternative == false
+print((eok ? "PASS  " : "FAIL  ") + "empty sound list → kept (best \"play P!nk\" → \"\(emptyList.text)\" alt \(emptyList.alternative))"); if !eok { fails += 1 }
 p("single word: \"P!nk\" / \"pink\" → the alternative", best: "P!nk", alts: ["pink"], "pink", true)
 p("single word, unrelated: \"okay\" / \"rain\" (distance 4) → kept", best: "okay", alts: ["rain"], "okay", false)
 p("first matching alternative wins in Apple's order: \"play P!nk\" / [\"play pine\", \"play pink\"] → pine is not a sound, pink is", best: "play P!nk", alts: ["play pine", "play pink"], "play pink", true)
 // the helper functions
 let lo = SoftwaveSpeechPlugin.lettersOnly("P!nk,") == "Pnk"; print((lo ? "PASS  " : "FAIL  ") + "lettersOnly strips punctuation"); if !lo { fails += 1 }
-let ed = SoftwaveSpeechPlugin.editDistance("pnk", "pink") == 1 && SoftwaveSpeechPlugin.editDistance("music", "rain") == 5 && SoftwaveSpeechPlugin.editDistance("", "ab") == 2 && SoftwaveSpeechPlugin.editDistance("pink", "pink") == 0
-print((ed ? "PASS  " : "FAIL  ") + "editDistance: pnk→pink 1, music→rain 5, empty→ab 2, same 0"); if !ed { fails += 1 }
+let ed = SoftwaveSpeechPlugin.editDistance("pnk", "pink") == 1 && SoftwaveSpeechPlugin.editDistance("music", "rain") == 4 && SoftwaveSpeechPlugin.editDistance("", "ab") == 2 && SoftwaveSpeechPlugin.editDistance("pink", "pink") == 0
+print((ed ? "PASS  " : "FAIL  ") + "editDistance: pnk→pink 1, music→rain 4, empty→ab 2, same 0"); if !ed { fails += 1 }
 print(fails == 0 ? "ALL RULE CASES PASS" : "\(fails) RULE CASE(S) FAILED")
 exit(fails == 0 ? 0 : 1)
