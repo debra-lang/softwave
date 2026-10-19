@@ -321,6 +321,12 @@
     // Contextual strings for Apple's recognizer (iPhone app): every sound name and alias plus the command words the
     // parser understands, so "pink" is favoured over "ping". Words only — nothing about the user.
     const NATIVE_VOCAB = useNative ? Array.from(new Set(LEX.reduce((a, e) => a.concat(e.slice(1)), []).concat(['play', 'stop', 'pause', 'resume', 'add', 'remove', 'louder', 'softer', 'quieter', 'warmer', 'brighter', 'more movement', 'steadier', 'my sound', 'sleep timer', 'timer', 'undo', 'save']))) : null;
+    // Build 78: the single-word sound names, for the plugin's alternative-transcript rule (a candidate transcript is used only
+    // when it is the same utterance with one word swapped for one of these)
+    const NATIVE_SOUNDS = useNative ? NATIVE_VOCAB.filter(w => w.indexOf(' ') < 0 && LEX.some(e => e.slice(1).indexOf(w) >= 0)) : null;
+    // Build 78: Apple's music vocabulary writes the artist "P!nk" for "pink" (Build 77 device log, 19 Oct 2026)
+    const normaliseHeard = (t) => t.replace(/\bP!nk\b/gi, 'pink');
+    const escapeHtml = (t) => t.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
     if (useNative || useWebkit) {
       const mic = document.createElement('button');
       mic.type = 'button'; mic.id = 'ask-mic'; mic.className = 'btn btn-ghost btn-sm ask-mic';
@@ -450,7 +456,7 @@
         if (!listening) return;   // cancelled during the quiet-down
         diagNative('start', { vocabulary: NATIVE_VOCAB.length });
         let res = null, failure = null;
-        try { res = await P.start({ language: document.documentElement.lang || 'en', vocabulary: NATIVE_VOCAB }); } catch (e) { failure = (e && (e.code || e.message)) || 'unknown'; }
+        try { res = await P.start({ language: document.documentElement.lang || 'en', vocabulary: NATIVE_VOCAB, sounds: NATIVE_SOUNDS }); } catch (e) { failure = (e && (e.code || e.message)) || 'unknown'; }
         sessionHadOutcome = true;
         setListening(false);   // …and restores it once the session has ended
         // Switching the shared hardware session for capture interrupts WebKit's audio context; it comes back only on a
@@ -465,13 +471,17 @@
           else { track('voice_command_failed'); confirmLines(['Voice didn’t work just now (' + failure + '). You can still type your request.'], false); }
           return;
         }
-        const text = (res && typeof res.text === 'string' ? res.text : '').trim();
+        const heard = (res && typeof res.text === 'string' ? res.text : '').trim();
+        const text = normaliseHeard(heard);
         diagNative('result', { chars: text.length });   // length only — never the words
         if (!text) { track('voice_command_failed'); confirmLines(['I didn’t catch that. Try again or type your request.'], false); return; }
         input.value = text;                       // transparency: show exactly what was heard
         track('voice_command_completed');
         await run(text);
         input.value = '';
+        // Build 78: when Ask could not act on the words, show them — on screen only; the diagnostic log and analytics never
+        // receive the transcript (the analytics events above carry no text)
+        if (/I don’t recognise that sound|I didn’t catch that/.test(out.textContent)) { const d = document.createElement('div'); d.className = 'ask-line ask-heard'; d.innerHTML = 'Heard “' + escapeHtml(heard) + '”'; out.appendChild(d); }
       }
       mic.addEventListener('click', () => {
         if (useNative) { nativeTap(); return; }

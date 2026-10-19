@@ -25,8 +25,13 @@ import Capacitor
 // speech level for `quietSeconds` — a word still being spoken, even one Apple has not yet reported, keeps the session
 // open; a noisy room (level never quiet) falls back to a longer transcript-only rule. The page passes the sound names
 // and command words as contextual strings so the recognizer favours them ("pink" over "ping").
+// Build 78 (Build 77 device log: "play pink" was captured and finalised correctly, but the best transcript named no
+// sound — Apple's music vocabulary writes the artist "P!nk"). Apple returns several candidate transcriptions; when the
+// best one names no known sound, an alternative is used only under a strict rule (`pickTranscript`): the same number
+// of words, exactly one word different, that word a known single-word sound name, and the replaced word's letters
+// within two edits of it. Unrelated speech is never promoted to a request.
 // Privacy: the audio goes only to Apple's recogniser; the page receives the text; events carry counts and levels,
-// never words (the vocabulary count is reported, not the words).
+// never words (the vocabulary count is reported, not the words; "alternative" says whether the rule fired).
 @objc(SoftwaveSpeechPlugin)
 public class SoftwaveSpeechPlugin: CAPPlugin, CAPBridgedPlugin {
     public let identifier = "SoftwaveSpeechPlugin"
@@ -49,6 +54,8 @@ public class SoftwaveSpeechPlugin: CAPPlugin, CAPBridgedPlugin {
     private var active = false
     private var sessionId = 0
     private var sessionConfigured = false   // true once begin() has switched the session to capture; finish() restores only then
+    private var sounds: [String] = []       // single-word sound names from the page (Build 78: alternative-transcript rule)
+    private var alternativeUsed = false     // an alternative transcript was chosen in this session (reported as a flag only)
 
     // transcript progress and finalisation
     private var lastText = ""
@@ -114,6 +121,8 @@ public class SoftwaveSpeechPlugin: CAPPlugin, CAPBridgedPlugin {
             let language = call.getString("language") ?? "en"
             // contextual strings: the page's sound names and command words (short phrases only, at most 100)
             let vocabulary = Array(((call.getArray("vocabulary", String.self) ?? []).filter { !$0.isEmpty && $0.count <= 40 }).prefix(100))
+            self.sounds = Array(((call.getArray("sounds", String.self) ?? []).map { $0.lowercased() }.filter { !$0.isEmpty && $0.count <= 40 && !$0.contains(" ") }).prefix(100))
+            self.alternativeUsed = false
             call.keepAlive = true
             self.pending = call
             self.active = true
@@ -185,7 +194,9 @@ public class SoftwaveSpeechPlugin: CAPPlugin, CAPBridgedPlugin {
             DispatchQueue.main.async {
                 guard let self = self, self.active, self.sessionId == mySession else { return }
                 if let r = result {
-                    let text = r.bestTranscription.formattedString
+                    let pick = SoftwaveSpeechPlugin.pickTranscript(best: r.bestTranscription.formattedString, alternatives: r.transcriptions.map { $0.formattedString }, sounds: self.sounds)
+                    let text = pick.text
+                    if pick.alternative { self.alternativeUsed = true }
                     if r.isFinal { self.finish(reason: "result", text: text.isEmpty ? self.lastText : text); return }
                     if text != self.lastText { self.lastText = text; self.lastChangeAt = Date(); self.emit("partial", [:]) }
                     return
@@ -251,6 +262,41 @@ public class SoftwaveSpeechPlugin: CAPPlugin, CAPBridgedPlugin {
         }
     }
 
+    // Build 78: choose between Apple's candidate transcriptions. Pure, so it can be tested on its own. The best transcript
+    // stands whenever it already names a sound, or when no alternative is the same utterance with exactly one word
+    // different, that word a known single-word sound name of 4+ letters, and the replaced word's letters within two edits
+    // of it ("play P!nk" → "play pink"; "call mum" never becomes "play rain").
+    static func pickTranscript(best: String, alternatives: [String], sounds: [String]) -> (text: String, alternative: Bool) {
+        guard !sounds.isEmpty, !best.isEmpty else { return (best, false) }
+        let soundSet = Set(sounds.map { $0.lowercased() })
+        let bestWords = best.lowercased().split(separator: " ").map(String.init)
+        if bestWords.contains(where: { soundSet.contains(lettersOnly($0)) }) { return (best, false) }
+        for alt in alternatives where alt.lowercased() != best.lowercased() {
+            let words = alt.lowercased().split(separator: " ").map(String.init)
+            guard words.count == bestWords.count else { continue }
+            var differing: [Int] = []
+            for i in 0..<words.count where words[i] != bestWords[i] { differing.append(i) }
+            guard differing.count == 1 else { continue }
+            let i = differing[0]
+            let altWord = lettersOnly(words[i]), bestWord = lettersOnly(bestWords[i])
+            guard altWord == words[i], altWord.count >= 4, soundSet.contains(altWord), editDistance(bestWord, altWord) <= 2 else { continue }
+            return (alt, true)
+        }
+        return (best, false)
+    }
+    static func lettersOnly(_ s: String) -> String { return String(s.unicodeScalars.filter { CharacterSet.letters.contains($0) }) }
+    static func editDistance(_ a: String, _ b: String) -> Int {
+        let x = Array(a), y = Array(b)
+        if x.isEmpty { return y.count }; if y.isEmpty { return x.count }
+        var prev = Array(0...y.count), cur = [Int](repeating: 0, count: y.count + 1)
+        for i in 1...x.count {
+            cur[0] = i
+            for j in 1...y.count { cur[j] = min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (x[i - 1] == y[j - 1] ? 0 : 1)) }
+            swap(&prev, &cur)
+        }
+        return prev[y.count]
+    }
+
     // The finalisation rule, kept pure so it can be tested on its own: "pause" when the transcript has been stable for
     // `pause` seconds and the microphone quiet for `quietFor` seconds; "noisy" when the transcript has been stable for
     // `hard` seconds whatever the microphone says; nil = keep listening.
@@ -292,7 +338,7 @@ public class SoftwaveSpeechPlugin: CAPPlugin, CAPBridgedPlugin {
             } catch { restored = false }
             sessionConfigured = false
         }
-        var d: [String: Any] = ["reason": reason, "restored": restored, "configured": sessionConfiguredBefore, "category": session.category.rawValue,
+        var d: [String: Any] = ["reason": reason, "restored": restored, "configured": sessionConfiguredBefore, "alternative": alternativeUsed, "category": session.category.rawValue,
                                 "inputs": session.currentRoute.inputs.map { $0.portType.rawValue },
                                 "outputs": session.currentRoute.outputs.map { $0.portType.rawValue }]
         for (k, v) in detail { d[k] = v }
