@@ -2,6 +2,7 @@ import Foundation
 import AVFoundation
 import Speech
 import Capacitor
+import UIKit
 
 // Ask microphone, iPhone app: Apple speech recognition run by the host process, so the audio session is OURS to restore.
 // WebKit's own recogniser leaves the microphone in the audio route for the life of the process once it has been used
@@ -230,6 +231,11 @@ public class SoftwaveSpeechPlugin: CAPPlugin, CAPBridgedPlugin {
         do { try engine.start() } catch { finish(reason: "audio-capture", text: nil); return }
         startedAt = Date(); lastChangeAt = Date()
         emit("started", ["engineRunning": engine.isRunning, "vocabulary": vocabulary.count])
+        // Build 79: a short haptic tap at the moment capture actually starts — the same moment the page's button begins
+        // to pulse — so the ready moment is felt as well as seen (a word spoken before this moment is lost). No-op on
+        // devices without a haptic engine (and on the simulator).
+        let haptic = UIImpactFeedbackGenerator(style: .medium)
+        haptic.prepare(); haptic.impactOccurred()
         guardTimer?.invalidate()
         guardTimer = Timer.scheduledTimer(withTimeInterval: guardSeconds, repeats: false) { [weak self] _ in
             DispatchQueue.main.async {

@@ -326,6 +326,20 @@
     const NATIVE_SOUNDS = useNative ? NATIVE_VOCAB.filter(w => w.indexOf(' ') < 0 && LEX.some(e => e.slice(1).indexOf(w) >= 0)) : null;
     // Build 78: Apple's music vocabulary writes the artist "P!nk" for "pink" (Build 77 device log, 19 Oct 2026)
     const normaliseHeard = (t) => t.replace(/\bP!nk\b/gi, 'pink');
+    // Build 79: "add" is a one-syllable first word and comes back as "and", "ad", "had", "an" or "at" (Build 78 device log:
+    // "and some rain" replaced the mix instead of adding to it). While something is playing, a result that begins with one
+    // of these and is followed by a known sound name is read as "add …". Conservative: "and", "ad" and "had" may carry
+    // the parser's own qualifiers ("a little", "some", "the", …); "at" and "an" only directly before a sound name. Nothing
+    // else about the text changes, and a request with a real verb ("play", "with", "stop", …) is never touched.
+    const SOUND_ALIASES = useNative ? LEX.reduce((a, e) => a.concat(e.slice(1)), []).map(w => w.replace(/ /g, '\\s+')).sort((a, b) => b.length - a.length) : null;
+    const normaliseAdd = (t) => {
+      if (!useNative || !(engine.active && engine.active.size > 0)) return t;
+      const names = '(?:' + SOUND_ALIASES.join('|') + ')\\b';
+      const loose = new RegExp('^(and|ad|had)\\s+((?:a little |a bit of |some |a touch of |light |the |an |a )?' + names + ')', 'i');
+      const strict = new RegExp('^(at|an)\\s+(' + names + ')', 'i');
+      const m = loose.exec(t) || strict.exec(t);
+      return m ? 'add ' + t.slice(m[0].length - m[2].length) : t;
+    };
     const escapeHtml = (t) => t.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
     if (useNative || useWebkit) {
       const mic = document.createElement('button');
@@ -472,7 +486,7 @@
           return;
         }
         const heard = (res && typeof res.text === 'string' ? res.text : '').trim();
-        const text = normaliseHeard(heard);
+        const text = normaliseAdd(normaliseHeard(heard));
         diagNative('result', { chars: text.length });   // length only — never the words
         if (!text) { track('voice_command_failed'); confirmLines(['I didn’t catch that. Try again or type your request.'], false); return; }
         input.value = text;                       // transparency: show exactly what was heard
