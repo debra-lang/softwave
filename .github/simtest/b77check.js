@@ -166,8 +166,12 @@
     var claimsListening = mic.classList.contains('listening') || /^Listening/.test(input.placeholder);
     ok('Native speech stage 3: the button never claims "Listening" before the plugin reports that capture started (300 ms after the tap: ' + (startedSeen ? 'started seen, listening look' : 'not started, still getting ready') + ')', stillListening && (claimsListening === startedSeen), { startedSeen: startedSeen, cls: mic.className, ph: input.placeholder, out: (document.getElementById('ask-out') || {}).textContent });
     var outText = (document.getElementById('ask-out') || {}).textContent || '';
-    if (stillListening) { mic.click(); await w(800); }   // second tap cancels
-    ok('Ask: a tap enters "Listening…"; it then either keeps listening until a second tap cancels, or ends with the app’s own message when the simulator has no microphone (real recognition needs a physical device)', listening && mic.getAttribute('aria-pressed') === 'false' && (stillListening || /didn.t catch that|Microphone access|Voice (didn|isn)/.test(outText)), { listening: listening, stillListening: stillListening, after: mic.getAttribute('aria-pressed'), out: outText.slice(0, 120) });
+    // second tap cancels; the wait is measured, up to 8 s: on a simulator the first speech permission alert can stall the app's
+    // main thread for several seconds (stage 3 run 39196328010, iOS 18.7: 3.5 s), which delays every bridge call including stop
+    var cancelMs = null;
+    if (stillListening) { var tC = Date.now(); mic.click(); for (var kC = 0; kC < 40 && mic.getAttribute('aria-pressed') === 'true'; kC++) await w(200); cancelMs = Date.now() - tC; }
+    ok('Ask: a tap enters "Listening…"; it then either keeps listening until a second tap cancels, or ends with the app’s own message when the simulator has no microphone (real recognition needs a physical device)', listening && mic.getAttribute('aria-pressed') === 'false' && (stillListening || /didn.t catch that|Microphone access|Voice (didn|isn)/.test(outText)), { listening: listening, stillListening: stillListening, after: mic.getAttribute('aria-pressed'), cancelMs: cancelMs, out: outText.slice(0, 120) });
+    ok('Native speech: the cancel tap ended the session' + (cancelMs === null ? ' (no cancel needed: the session had already ended)' : ' in ' + cancelMs + ' ms (simulator permission alert included)'), cancelMs === null || mic.getAttribute('aria-pressed') === 'false', { cancelMs: cancelMs, pressed: mic.getAttribute('aria-pressed') });
     if (window.softwaveStopAll) softwaveStopAll(); await w(500);
     // ---- Build 66: the Sleep timer's per-second gain re-assertion no longer interrupts pause, resume, volume and
     // timer changes (web v281). Measured on the real Sleep screen with the engine's master gain.
