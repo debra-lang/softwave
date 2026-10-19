@@ -20,8 +20,13 @@ import Capacitor
 // finalises; a natural pause mid-sentence resumes the clock as soon as the next word arrives. The guard returns the
 // text heard so far rather than failing. Every buffer's level is measured (RMS, "voiced" frames) and reported with
 // the session's state events, so the log shows whether speech actually reached the recognizer.
+// Stage 3 (Build 76 device log: recognition works, but a two-word request can lose its first or second word). The
+// audio is ended only when the transcript has been stable for `pauseSeconds` AND the microphone has been below the
+// speech level for `quietSeconds` — a word still being spoken, even one Apple has not yet reported, keeps the session
+// open; a noisy room (level never quiet) falls back to a longer transcript-only rule. The page passes the sound names
+// and command words as contextual strings so the recognizer favours them ("pink" over "ping").
 // Privacy: the audio goes only to Apple's recogniser; the page receives the text; events carry counts and levels,
-// never words.
+// never words (the vocabulary count is reported, not the words).
 @objc(SoftwaveSpeechPlugin)
 public class SoftwaveSpeechPlugin: CAPPlugin, CAPBridgedPlugin {
     public let identifier = "SoftwaveSpeechPlugin"
@@ -62,7 +67,11 @@ public class SoftwaveSpeechPlugin: CAPPlugin, CAPBridgedPlugin {
     private var peakRms: Float = 0
     private var lastLevelReportAt = Date()
     private var inputFormatDesc = ""
-    private let voicedRms: Float = 0.01
+    private let voicedRms: Float = 0.015              // speech level: Build 76 device log floors were 0.002–0.0073 with the ducked sound, speech 0.12–0.24
+    // finalisation also waits for the microphone to go quiet
+    private var lastVoicedAt: Date? = nil
+    private let quietSeconds: TimeInterval = 0.8      // microphone below the speech level this long (after a stable transcript) before the audio is ended
+    private let hardStableSeconds: TimeInterval = 3.4 // transcript unchanged this long → end the audio even if the room never goes quiet
 
     // ---- availability and permissions ----
     @objc func available(_ call: CAPPluginCall) {
@@ -103,16 +112,18 @@ public class SoftwaveSpeechPlugin: CAPPlugin, CAPBridgedPlugin {
             // a tap while a session is still winding down: that session ends as "aborted" first
             if self.active { self.finish(reason: "aborted", text: nil) }
             let language = call.getString("language") ?? "en"
+            // contextual strings: the page's sound names and command words (short phrases only, at most 100)
+            let vocabulary = Array(((call.getArray("vocabulary", String.self) ?? []).filter { !$0.isEmpty && $0.count <= 40 }).prefix(100))
             call.keepAlive = true
             self.pending = call
             self.active = true
             self.sessionId += 1
             self.lastText = ""; self.audioEnded = false; self.startedAt = Date(); self.lastChangeAt = Date(); self.sessionConfigured = false
-            self.buffers = 0; self.voicedBuffers = 0; self.peakRms = 0; self.lastLevelReportAt = Date(); self.inputFormatDesc = ""
+            self.buffers = 0; self.voicedBuffers = 0; self.peakRms = 0; self.lastLevelReportAt = Date(); self.inputFormatDesc = ""; self.lastVoicedAt = nil
             self.emit("starting", [:])
             self.authorize { ok in
                 guard ok else { self.finish(reason: "not-allowed", text: nil); return }
-                self.begin(language: language)
+                self.begin(language: language, vocabulary: vocabulary)
             }
         }
     }
@@ -134,7 +145,8 @@ public class SoftwaveSpeechPlugin: CAPPlugin, CAPBridgedPlugin {
 
     private func audioInfo() -> [String: Any] {
         return ["buffers": buffers, "voiced": voicedBuffers, "peakRms": Double(round(peakRms * 10000) / 10000), "format": inputFormatDesc,
-                "chars": lastText.count, "seconds": Double(round(Date().timeIntervalSince(startedAt) * 10) / 10)]
+                "chars": lastText.count, "seconds": Double(round(Date().timeIntervalSince(startedAt) * 10) / 10),
+                "quiet": lastVoicedAt.map { Double(round(Date().timeIntervalSince($0) * 10) / 10) } ?? -1]   // seconds since the last speech-level buffer; -1 = none yet
     }
     private func emit(_ status: String, _ extra: [String: Any]) {
         var d: [String: Any] = ["status": status]
@@ -143,7 +155,7 @@ public class SoftwaveSpeechPlugin: CAPPlugin, CAPBridgedPlugin {
         notifyListeners("listeningState", data: d)
     }
 
-    private func begin(language: String) {
+    private func begin(language: String, vocabulary: [String]) {
         guard active else { return }
         let rec = SFSpeechRecognizer(locale: Locale(identifier: language)) ?? SFSpeechRecognizer()
         guard let recognizer = rec, recognizer.isAvailable else { finish(reason: "unavailable", text: nil); return }
@@ -165,6 +177,7 @@ public class SoftwaveSpeechPlugin: CAPPlugin, CAPBridgedPlugin {
         let request = SFSpeechAudioBufferRecognitionRequest()
         request.shouldReportPartialResults = true
         if #available(iOS 16.0, *) { request.addsPunctuation = false }
+        if !vocabulary.isEmpty { request.contextualStrings = vocabulary }
         self.engine = engine
         self.request = request
         let mySession = sessionId
@@ -198,14 +211,14 @@ public class SoftwaveSpeechPlugin: CAPPlugin, CAPBridgedPlugin {
             }
             DispatchQueue.main.async {
                 guard let self = self, self.active, self.sessionId == mySession else { return }
-                self.buffers += 1; if rms > self.voicedRms { self.voicedBuffers += 1 }; if rms > self.peakRms { self.peakRms = rms }
+                self.buffers += 1; if rms > self.voicedRms { self.voicedBuffers += 1; self.lastVoicedAt = Date() }; if rms > self.peakRms { self.peakRms = rms }
                 if Date().timeIntervalSince(self.lastLevelReportAt) >= 1.0 { self.lastLevelReportAt = Date(); self.emit("level", ["rms": Double(round(rms * 10000) / 10000)]) }
             }
         }
         engine.prepare()
         do { try engine.start() } catch { finish(reason: "audio-capture", text: nil); return }
         startedAt = Date(); lastChangeAt = Date()
-        emit("started", ["engineRunning": engine.isRunning])
+        emit("started", ["engineRunning": engine.isRunning, "vocabulary": vocabulary.count])
         guardTimer?.invalidate()
         guardTimer = Timer.scheduledTimer(withTimeInterval: guardSeconds, repeats: false) { [weak self] _ in
             DispatchQueue.main.async {
@@ -225,13 +238,26 @@ public class SoftwaveSpeechPlugin: CAPPlugin, CAPBridgedPlugin {
                     if now.timeIntervalSince(self.audioEndedAt) >= self.finalWaitSeconds { self.finish(reason: "result", text: self.lastText, detail: ["by": "finalWait"]) }
                     return
                 }
-                if !self.lastText.isEmpty, now.timeIntervalSince(self.startedAt) >= self.minSpeechSeconds, now.timeIntervalSince(self.lastChangeAt) >= self.pauseSeconds {
-                    self.audioEnded = true; self.audioEndedAt = now
-                    self.request?.endAudio()
-                    self.emit("ending", [:])
+                if !self.lastText.isEmpty, now.timeIntervalSince(self.startedAt) >= self.minSpeechSeconds {
+                    let stable = now.timeIntervalSince(self.lastChangeAt)
+                    let quiet = self.lastVoicedAt.map { now.timeIntervalSince($0) } ?? stable   // no speech-level buffer at all: the transcript rule alone
+                    if let by = SoftwaveSpeechPlugin.endRule(stable: stable, quiet: quiet, pause: self.pauseSeconds, quietFor: self.quietSeconds, hard: self.hardStableSeconds) {
+                        self.audioEnded = true; self.audioEndedAt = now
+                        self.request?.endAudio()
+                        self.emit("ending", ["by": by, "stable": Double(round(stable * 10) / 10), "quietFor": Double(round(quiet * 10) / 10)])
+                    }
                 }
             }
         }
+    }
+
+    // The finalisation rule, kept pure so it can be tested on its own: "pause" when the transcript has been stable for
+    // `pause` seconds and the microphone quiet for `quietFor` seconds; "noisy" when the transcript has been stable for
+    // `hard` seconds whatever the microphone says; nil = keep listening.
+    static func endRule(stable: TimeInterval, quiet: TimeInterval, pause: TimeInterval, quietFor: TimeInterval, hard: TimeInterval) -> String? {
+        if stable >= pause && quiet >= quietFor { return "pause" }
+        if stable >= hard { return "noisy" }
+        return nil
     }
 
     @objc func stop(_ call: CAPPluginCall) {
