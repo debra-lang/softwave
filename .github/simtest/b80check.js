@@ -22,7 +22,7 @@
   var ids = function () { return window.softwave.activeList().map(function (s) { return s.id; }).sort().join(','); };
   var KA = function () { var c = window.Capacitor; return (c && c.Plugins && c.Plugins.KeepAwake) || null; };
   var FIXED = function () { return !!(window.softwave && typeof window.softwave.holdOutput === 'function'); };
-  var DIAG = !!window.__swDiag;   // diagnostic bundle (observer + self-test) or release bundle
+  var DIAG = false;   // diagnostic bundle (observer + self-test) or release bundle — decided when the checks start (this script loads before diag.js)
   var skips = [], skip = function (name, why) { skips.push(name); L('SKIP', { name: name, why: why }); };
   var okOrDevice = function (name, blocked, pass, info) { if (blocked) skip(name, 'device-only: the simulator left the session at the permission prompt'); else ok(name, pass, info); };
   var IPAD = /iPad/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) || Math.min(screen.width, screen.height) >= 700;
@@ -63,6 +63,7 @@
   }
 
   async function run() {
+    DIAG = !!window.__swDiag;
     var ua = navigator.userAgent, ios = (ua.match(/OS (\d+)_(\d+)/) || []).slice(1).join('.');
     L('env', { ios: ios, ua: ua.slice(0, 140), has: CSS.supports('selector(:has(*))'), colorMix: CSS.supports('color', 'color-mix(in srgb, red, blue)'), mode: upgrade ? 'upgrade' : 'fresh' });
     // first launch of the app: the opening film ("Tap to begin", ~29 s, then the app). Let it play through like a user.
