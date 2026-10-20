@@ -218,6 +218,8 @@
       this._ready = Promise.race([ready, fallback]).then(() => { if (!this.buffers.white) { const b = generateInline(ctx); if (b) Object.assign(this.buffers, b); } });
 
       ctx.onstatechange = () => {
+        // the lock screen follows the real state: an interruption (a call, Siri) must not keep showing "Playing"
+        if ('mediaSession' in navigator) { try { navigator.mediaSession.playbackState = ctx.state === 'running' && this.active.size ? 'playing' : 'paused'; } catch (_) { } }
         this.emit('state', ctx.state);
       };
       this._setupBackground();
@@ -244,7 +246,9 @@
     _installGestureArm() {
       if (this._gestureArmed) return; this._gestureArmed = true;
       const arm = () => {
-        if (this.ctx && this.ctx.state !== 'running') { try { const p = this.ctx.resume(); if (p && p.catch) p.catch(() => { }); } catch (_) { } }
+        // A pause the user asked for stays a pause: no touch brings the graph or the routed output back until Play.
+        if (this.userPaused) return;
+        if (this.ctx && this.ctx.state !== 'running') { this._gestureResumedAt = Date.now(); try { const p = this.ctx.resume(); if (p && p.catch) p.catch(() => { }); } catch (_) { } }
         if (this.mediaOut && (this.mediaOut.paused || this._needsGesture)) {
           try { const p = this.mediaOut.play(); if (p && p.then) p.then(() => { this._needsGesture = false; }).catch(() => { }); } catch (_) { }
           clearTimeout(this._disarmT);
@@ -337,6 +341,7 @@
     setMasterVolume(v, immediate) {
       this.masterVolume = Math.max(0, Math.min(1, v));
       if (!this.ctx) return;
+      if (this.userPaused) { this.emit('master', this.masterVolume); return; }   // remembered now, applied by Play (playAll re-asserts the master)
       const target = this._curve(this.masterVolume) * 1.5;   // makeup gain; the limiter guards peaks
       const g = this.master.gain; const t = this.ctx.currentTime;
       g.cancelScheduledValues(t);

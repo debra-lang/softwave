@@ -50,14 +50,21 @@ for (const d of DIRS) {
   fs.writeFileSync(ip, after);
 }
 
-// ---- DIAGNOSTIC BUILD 73 (branch ios-72-diag only): the observation-only audio diagnostic loads before every other
-// script, so it can see the engine being created and every state change from the first moment.
-{
+// ---- DIAGNOSTIC bundle (SOFTWAVE_DIAG=1 only; Build 73 onwards): the observation-only audio diagnostic loads before
+// every other script, so it can see the engine being created and every state change from the first moment. A release
+// bundle (the default) carries neither the script nor the Diag button; the workflow asserts whichever mode it asked for.
+const DIAG_BUNDLE = process.env.SOFTWAVE_DIAG === '1';
+if (DIAG_BUNDLE) {
   fs.cpSync(path.join(__dirname, 'diag', 'diag.js'), path.join(OUT, 'diag.js'));
   const ip = path.join(OUT, 'index.html'); const h = fs.readFileSync(ip, 'utf8');
   if (!/<head>/.test(h)) { console.error('FATAL: no <head> for the diagnostic script'); process.exit(1); }
-  fs.writeFileSync(ip, h.replace('<head>', '<head>\n<script src="diag.js"></script>'));
-  console.log('diagnostic build: diag.js injected as the first script');
+  fs.cpSync(path.join(__dirname, 'diag', 'selftest.js'), path.join(OUT, 'selftest.js'));   // the guided device check rides with the observer
+  fs.writeFileSync(ip, h.replace('<head>', '<head>\n<script src="diag.js"></script>').replace('</body>', '<script src="selftest.js"></script>\n</body>'));
+  console.log('DIAGNOSTIC bundle: diag.js injected as the first script, selftest.js as the last');
+} else {
+  for (const f of ['diag.js', 'selftest.js']) { const fp = path.join(OUT, f); if (fs.existsSync(fp)) fs.rmSync(fp); }
+  if (/diag\.js|selftest\.js/.test(fs.readFileSync(path.join(OUT, 'index.html'), 'utf8'))) { console.error('FATAL: release bundle references a diagnostic script'); process.exit(1); }
+  console.log('RELEASE bundle: no diagnostic script');
 }
 
 // The native shell's local asset server does not serve query-string URLs, so every

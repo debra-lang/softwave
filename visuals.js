@@ -4,6 +4,12 @@
    prefers-reduced-motion and pauses when the tab is hidden.
 */
 (function (global) {
+  // CanvasRenderingContext2D.roundRect arrived with iOS 16; iOS 15 draws the same shape with arcs.
+  function rrect(ctx, x, y, w, h, r) {
+    if (ctx.roundRect) { ctx.roundRect(x, y, w, h, r); return; }
+    const rr = Math.max(0, Math.min(r, Math.abs(w) / 2, Math.abs(h) / 2));
+    ctx.moveTo(x + rr, y); ctx.arcTo(x + w, y, x + w, y + h, rr); ctx.arcTo(x + w, y + h, x, y + h, rr); ctx.arcTo(x, y + h, x, y, rr); ctx.arcTo(x, y, x + w, y, rr); ctx.closePath();
+  }
   'use strict';
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -162,7 +168,7 @@
         const bw = w / n;
         ctx.globalAlpha = 0.35 + v * 0.65;
         ctx.fillStyle = grad;
-        ctx.beginPath(); ctx.roundRect(i * bw + 2, h - bh - 6, bw - 4, bh, 4); ctx.fill();
+        ctx.beginPath(); rrect(ctx, i * bw + 2, h - bh - 6, bw - 4, bh, 4); ctx.fill();
       }
       ctx.globalAlpha = 1;
       // marker line

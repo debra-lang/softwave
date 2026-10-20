@@ -6,6 +6,12 @@
    paused at any time. Nothing flashes; everything eases.
 */
 (function () {
+  // CanvasRenderingContext2D.roundRect arrived with iOS 16; iOS 15 draws the same shape with arcs.
+  function rrect(ctx, x, y, w, h, r) {
+    if (ctx.roundRect) { ctx.roundRect(x, y, w, h, r); return; }
+    const rr = Math.max(0, Math.min(r, Math.abs(w) / 2, Math.abs(h) / 2));
+    ctx.moveTo(x + rr, y); ctx.arcTo(x + w, y, x + w, y + h, rr); ctx.arcTo(x + w, y + h, x, y + h, rr); ctx.arcTo(x, y + h, x, y, rr); ctx.arcTo(x, y, x + w, y, rr); ctx.closePath();
+  }
   'use strict';
   const engine = window.softwave;
   const app = window.softwaveApp;
@@ -75,7 +81,7 @@
       // glow on the room
       glow(ctx, w * 0.5, base - h * 0.1, w * 0.5, 'rgba(255,120,40,A)', 0.25 + e.level * 0.15 + Math.sin(t * 3) * 0.02);
       // logs (behind the flames), rounded with a glowing underside
-      for (const [lx, ly, lw, a] of [[0.37, 0.775, 0.26, -0.07], [0.39, 0.75, 0.24, 0.09]]) { ctx.save(); ctx.translate(w * lx + w * lw / 2, h * ly); ctx.rotate(a); const lg = ctx.createLinearGradient(0, -h * 0.02, 0, h * 0.02); lg.addColorStop(0, '#3a1d0c'); lg.addColorStop(1, '#6a2c0a'); ctx.fillStyle = lg; ctx.beginPath(); ctx.roundRect(-w * lw / 2, -h * 0.02, w * lw, h * 0.04, h * 0.02); ctx.fill(); ctx.restore(); }
+      for (const [lx, ly, lw, a] of [[0.37, 0.775, 0.26, -0.07], [0.39, 0.75, 0.24, 0.09]]) { ctx.save(); ctx.translate(w * lx + w * lw / 2, h * ly); ctx.rotate(a); const lg = ctx.createLinearGradient(0, -h * 0.02, 0, h * 0.02); lg.addColorStop(0, '#3a1d0c'); lg.addColorStop(1, '#6a2c0a'); ctx.fillStyle = lg; ctx.beginPath(); rrect(ctx, -w * lw / 2, -h * 0.02, w * lw, h * 0.04, h * 0.02); ctx.fill(); ctx.restore(); }
       glow(ctx, w * 0.5, base - h * 0.03, w * 0.22, 'rgba(255,140,40,A)', 0.7 + Math.sin(t * 2.1) * 0.1);
       // flames: noise-driven, rising; white-hot core → yellow → orange → transparent
       tex.render((u, v) => { const x = (u - 0.5) * 2; const vv = 1 - v; const n = fbm(u * 4 + Math.sin(t) * 0.2, v * 6 + t * 2.4, t * 0.5, 4); const n2 = fbm(u * 9 + 3, v * 12 + t * 3.5, t, 2); const shape = Math.max(0, 1 - Math.abs(x) * (1.0 + vv * 1.8)) * Math.pow(1 - vv, 0.6); const f = shape * (0.45 + n * 1.2 + (n2 - 0.5) * 0.5) - vv * 0.35; const i = Math.max(0, Math.min(1, f * 1.5)); const core = Math.max(0, i - 0.88) * 8; return [255, 40 + 150 * i + 40 * core, 10 + 25 * i * i + 120 * core, Math.pow(i, 1.3) * 255]; }, 1);
@@ -213,7 +219,7 @@
 
   add({ id: 'spectrum', name: 'Audio Spectrum', cat: 'Sound Reactive', reactive: true, desc: 'A soft spectrum of whatever is playing.', make() {
     let t = 0; const n = 48, vals = new Float32Array(n); return { draw(ctx, w, h, e) { t += e.dt * e.speed; bands(e, n, vals); sky(ctx, w, h, isDark() ? '#0a0e1f' : '#f4f6fc', isDark() ? '#0f1430' : '#e6eaf7'); const bw = w / n, mid = h * 0.5;
-      for (let i = 0; i < n; i++) { const v = Math.max(0.02, vals[i] * 1.4 + Math.sin(t * 0.8 + i * 0.4) * 0.015); const bh = v * h * 0.42; const x = i * bw + bw * 0.2; ctx.fillStyle = `hsla(${200 + i * 2.5},75%,${isDark() ? 65 : 55}%,0.75)`; ctx.beginPath(); ctx.roundRect(x, mid - bh, bw * 0.6, bh * 2, bw * 0.3); ctx.fill(); }
+      for (let i = 0; i < n; i++) { const v = Math.max(0.02, vals[i] * 1.4 + Math.sin(t * 0.8 + i * 0.4) * 0.015); const bh = v * h * 0.42; const x = i * bw + bw * 0.2; ctx.fillStyle = `hsla(${200 + i * 2.5},75%,${isDark() ? 65 : 55}%,0.75)`; ctx.beginPath(); rrect(ctx, x, mid - bh, bw * 0.6, bh * 2, bw * 0.3); ctx.fill(); }
     } }; } });
 
   add({ id: 'waveform', name: 'Moving Waveform', cat: 'Sound Reactive', reactive: true, desc: 'The sound itself, drawn as a slow line.', make() {

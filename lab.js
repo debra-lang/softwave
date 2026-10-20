@@ -139,6 +139,9 @@
   function settleClock(r) { if (!r || r.active == null) return; const now = Date.now(); if (r.since) { r.active += now - r.since; r.since = 0; } if (listening()) r.since = now; }
   const activeMs = (r) => (r && r.active != null) ? r.active + (r.since ? Date.now() - r.since : 0) : 0;
   engine.on(t => { if ((t === 'state' || t === 'sounds') && running) settleClock(running); });
+  // the engine timer's end (Sleep timer, Build My Session's 60 min) ends whatever experiment is running, so the player
+  // bar never keeps "Experiment: …" over silence (Notched had its own hook; this covers every experiment)
+  engine.on(t => { if (t === 'timerDone' && running) stopRunning('Session complete — rest well.', true); });
   const later = (fn, ms) => { const t = setTimeout(() => { timers.delete(t); fn(); }, ms); timers.add(t); return t; };
   const every = (fn, ms) => { const t = setInterval(fn, ms); timers.add(t); return t; };
   const clearTimers = () => { timers.forEach(t => { clearTimeout(t); clearInterval(t); }); timers.clear(); };
@@ -821,7 +824,7 @@
         window.scrollTo({ top: scrollY + sec.getBoundingClientRect().top - off, behavior: 'smooth' });
       });
       try { new IntersectionObserver((es) => { vizVisible = es[0].isIntersecting; }, { threshold: 0.05 }).observe(el.viz); } catch (_) { vizVisible = true; }
-      if (!timerHooked) { timerHooked = true; engine.on(type => { if (type === 'timerDone' && runningThis()) stopRunning('Session complete — rest well.', true); }); }
+      timerHooked = true;   // the timer's end is handled for every experiment by the module-level hook
       if (N.hz) setHz(N.hz); else updateAdv();
       renderProfiles(ctx); renderHistory(ctx);
     }

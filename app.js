@@ -466,7 +466,7 @@
         });
         const slider = $('input', card);
         slider.addEventListener('input', () => { engine.setVolume(d.id, +slider.value / 100); rememberVol(d.id, +slider.value / 100); $('output', card).textContent = slider.value + '%'; });
-        $('.vol-pause', card).addEventListener('click', async () => { if (engine.ctx && !engine.userPaused) await engine.pauseAll(); else await engine.playAll(); });
+        $('.vol-pause', card).addEventListener('click', pauseOrPlay);
         $('.vol-stop', card).addEventListener('click', () => engine.stopSound(d.id));
         grid.appendChild(card);
       });
@@ -677,14 +677,18 @@
       setTimeout(() => toast('Quiet? Raise the volume slider here — and check your phone’s own volume buttons. Both work together.', 5200), 1400);
     }
   });
-  async function togglePlay() {
+  // Every play/pause control goes through here. iOS also has a non-standard "interrupted" context state (a call, Siri,
+  // an alarm): anything that is not playing with sounds queued means "resume". The tap that reaches the control may
+  // itself have just resumed the context (the engine's gesture handler runs on pointerdown), so "playing" is judged as
+  // it was before this gesture — otherwise the first press after a call paused what the tap had just brought back.
+  async function pauseOrPlay() {
     if (!engine.ctx) { if (!engine.activeList().length) return toast('Choose a sound to begin'); }
-    // iOS also has a non-standard "interrupted" state — anything that isn't running
-    // with sounds queued means "resume", or the first press does nothing.
-    if (!engine.userPaused && engine.isPlaying) await engine.pauseAll();
-    else if (engine.userPaused && engine.active.size) await engine.playAll();
+    const resumedByThisTap = engine._gestureResumedAt && (Date.now() - engine._gestureResumedAt) < 700;
+    if (engine.isPlaying && !resumedByThisTap) await engine.pauseAll();
+    else if (engine.active.size || (engine.tone && engine.tone.playing)) await engine.playAll();
     else toast('Choose a sound to begin');
   }
+  const togglePlay = pauseOrPlay;
   $('#player-toggle').addEventListener('click', togglePlay);
   function stopEverything() { if (window.softwaveLab && softwaveLab.isRunning()) softwaveLab.stop(); engine.stopAll(); cancelIntents({ stop: true }); }
   window.softwaveStopAll = stopEverything;
@@ -712,7 +716,7 @@
     if (type === 'sounds') { syncCards(data); renderMixer(data); updatePlayer(); const now = new Set(data.map(s => s.id)); const pc = store.get('playcounts', {}); now.forEach(id => { if (!lastIds.has(id)) pc[id] = (pc[id] || 0) + 1; }); store.set('playcounts', pc); lastIds = now; }
     if (type === 'state' || type === 'tone') updatePlayer();
     if (type === 'timer') renderTimer(data);
-    if (type === 'timerDone') { toast('Sleep timer finished. Rest well.'); }
+    if (type === 'timerDone') { toast('Sleep timer finished. Rest well.'); if (wake) { wake.release().catch(() => { }); wake = null; } }   // the display may sleep once the sound has stopped
     if (type === 'limit') toast(`You can layer up to ${data} sounds at once.`);
   });
 
@@ -975,7 +979,7 @@
 
   // ---------- sleep ----------
   const sleep = { minutes: 0, fade: true };
-  $$('.timer-seg [data-min]').forEach(b => b.addEventListener('click', () => { $$('.timer-seg [data-min]').forEach(x => x.setAttribute('aria-checked', x === b)); sleep.minutes = +b.dataset.min; engine.setTimer(sleep.minutes, sleep.fade); if (sleep.minutes) toast(`Timer set: ${sleep.minutes} minutes${sleep.fade ? ' with gentle fade-out' : ''}`); }));
+  $$('#view-sleep .timer-seg [data-min]').forEach(b => b.addEventListener('click', () => { $$('#view-sleep .timer-seg [data-min]').forEach(x => x.setAttribute('aria-checked', x === b)); sleep.minutes = +b.dataset.min; engine.setTimer(sleep.minutes, sleep.fade); if (sleep.minutes) toast(`Timer set: ${sleep.minutes} minutes${sleep.fade ? ' with gentle fade-out' : ''}`); }));
   $('#sleep-fade').addEventListener('change', e => { sleep.fade = e.target.checked; if (engine.timer.endsAt) engine.timer.fade = sleep.fade; });
   const screen = $('#sleep-screen');
   let wake = null, sleepEntering = false;
@@ -1148,7 +1152,7 @@
   window.softwaveTransition = { to: transitionTo, back: transitionBack, clear: clearTransit, get active() { return transit.active; } };
   $('#field-core').addEventListener('click', async e => { const b = e.currentTarget; b.classList.add('pressed'); setTimeout(() => b.classList.remove('pressed'), 450); if (!engine.activeList().length) { $('#sound-groups').scrollIntoView({ behavior: 'smooth', block: 'start' }); return; } await togglePlay(); syncField(); });
   $('#field-vol').addEventListener('input', e => setMaster(+e.target.value / 100, true));
-  $('#field-pause').addEventListener('click', async () => { if (engine.ctx && !engine.userPaused) await engine.pauseAll(); else await engine.playAll(); });
+  $('#field-pause').addEventListener('click', pauseOrPlay);
   $('#field-stop').addEventListener('click', () => { stopEverything(); toast('All sounds stopped'); });
   // Timer: a small picker instead of cycling values on each press.
   // Inline "custom minutes" form used by every timer picker instead of window.prompt(). Starts empty,
@@ -1222,7 +1226,7 @@
   $('#now-close').addEventListener('click', closeNow);
   $('#now').addEventListener('keydown', e => { if (e.key === 'Escape') closeNow(); });
   // Immerse controller: same functions as the Sounds player, wired for a full-screen layer
-  $('#now-pause').addEventListener('click', async () => { if (engine.ctx && !engine.userPaused) await engine.pauseAll(); else await engine.playAll(); });
+  $('#now-pause').addEventListener('click', pauseOrPlay);
   $('#now-stop').addEventListener('click', () => { stopEverything(); toast('All sounds stopped'); });
   $('#now-timer').addEventListener('click', () => openTimerSheet());
   const leaveNow = (then) => { closeNow(); afterLayerClose(then); };
@@ -1314,7 +1318,7 @@
   // ---------- keyboard shortcuts ----------
   document.addEventListener('keydown', e => {
     if (e.target.matches('input, select, textarea')) return;
-    if (e.key === ' ') { e.preventDefault(); togglePlay(); }
+    if (e.key === ' ' && !e.target.closest('button, a, [role="button"], [tabindex], summary, label')) { e.preventDefault(); togglePlay(); }
     if (e.key === 'Escape' && !screen.hidden) exitSleep();
   });
 

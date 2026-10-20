@@ -560,10 +560,10 @@
   function stopAudio() { disarmGuards(); if (S.tick) { clearInterval(S.tick); S.tick = null; } const A = S.audio; S.audio = null; if (!A) return; try { A.node.gain.gain.cancelScheduledValues(A.ctx.currentTime); A.node.gain.gain.setTargetAtTime(0, A.ctx.currentTime, 0.03); } catch (_) { } setTimeout(() => { Stim.tearDown(A.node); if (A.hold) A.hold(); }, 200); }
   function stimulusEnded() {
     const A = S.audio; if (!A) return; if (S.tick) { clearInterval(S.tick); S.tick = null; }
-    S.audio = null; disarmGuards(); setTimeout(() => { Stim.tearDown(A.node); if (A.hold) A.hold(); }, 300);
+    S.audio = null; setTimeout(() => { Stim.tearDown(A.node); if (A.hold) A.hold(); }, 300);   // the guards stay armed through the quiet gap
     S.trial.stimulus_ended_at = Date.now(); S.trial.stimulus_played_seconds = Math.round((A.ctx.currentTime - A.t0 - A.pausedTotal) * 10) / 10;
     persist(); show('gap'); S.gapGuard = true;
-    later(() => { S.gapGuard = false; if (S.trial) show('response'); }, C.quietGapSeconds * 1000);
+    later(() => { S.gapGuard = false; disarmGuards(); if (S.trial) show('response'); }, C.quietGapSeconds * 1000);
   }
   // interruptions: anything that means the sound was not heard as intended invalidates the trial
   function armGuards() {
@@ -575,7 +575,7 @@
     S.guards = () => { document.removeEventListener('visibilitychange', vis); if (engine.ctx) engine.ctx.removeEventListener('statechange', st); off(); };
   }
   function disarmGuards() { if (S.guards) { S.guards(); S.guards = null; } }
-  function interrupted(reason) { wake.release(); stopAudio(); S.gapGuard = false; clearTimers(); invalidateTrial(reason); show('interrupted'); }
+  function interrupted(reason) { wake.release(); stopAudio(); S.gapGuard = false; disarmGuards(); clearTimers(); invalidateTrial(reason); show('interrupted'); }
   function invalidateTrial(reason) { if (!S.trial) return; S.trial.trial_valid = false; S.trial.trial_invalid_reason = reason; finishTrial(); }
 
   // ---------- responses → records ----------

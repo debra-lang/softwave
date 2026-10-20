@@ -35,6 +35,8 @@
   function persist() { if (!dirty) return; dirty = false; try { localStorage.setItem(KEY, JSON.stringify(buf)); } catch (e) { } }
   setInterval(persist, 5000); addEventListener('pagehide', persist); document.addEventListener('visibilitychange', function () { if (document.hidden) persist(); });
   window.__swDiagNative = function (o) { try { log('native:' + (o && o.type), o, true); } catch (e) { } };
+  // the guided self-test (selftest.js, diagnostic bundles only) logs its steps here and reads the latest native lines
+  window.__swDiag = { log: function (tag, data) { log(tag, data); }, find: function (pred) { for (var i = buf.length - 1; i >= 0; i--) { try { if (pred(buf[i])) return buf[i]; } catch (e) { } } return null; }, snap: snap, persist: persist };
   log('diag:start', { ua: navigator.userAgent.slice(0, 160), native: !!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform()), when: new Date().toISOString() }, false);
 
   // ---- engine hooks: pass-through wrappers (log, then call the original with the same this/arguments)
