@@ -65,12 +65,12 @@
       location.hash = '#sounds'; await wait(900); closeNow(); e.stopAll(); await wait(1200);
       // 1. Rain
       progress = 'Step 1 of 8 · Rain'; show('Starting Rain…', 'none');
-      click('#view-sounds .sound-card[data-id="rain"] .card-btn'); await wait(3000); closeNow();
+      click('#view-sounds .sound-card[data-id="rain"] .card-btn'); await until(function () { var r = rms(); return r !== null && r > 0.002; }, 8000, 200); await wait(1200); closeNow();   // a cold start can take a few seconds; measured once signal is present, or after 8 s
       var s1 = state(); var ok1 = s1.active.join() === 'rain' && s1.ctx === 'running' && s1.el !== 'PAUSED' && s1.rms !== null && s1.rms > 0.002;
       record('rain-start', s1, ok1, await ask('Can you hear Rain?'));
       // 2. Pink added
       progress = 'Step 2 of 8 · add Pink Noise'; show('Adding Pink Noise…', 'none');
-      click('#view-sounds .sound-card[data-id="pink"] .card-btn'); await wait(3000); closeNow();
+      click('#view-sounds .sound-card[data-id="pink"] .card-btn'); await until(function () { return state().active.length === 2; }, 8000, 200); await wait(2000); closeNow();
       var s2 = state(); var ok2 = s2.active.slice().sort().join() === 'pink,rain' && s2.ctx === 'running' && s2.rms > 0.002;
       record('pink-add', s2, ok2, await ask('Can you hear both Rain and Pink Noise?'));
       // 3. Pause, then stray taps
@@ -83,7 +83,7 @@
       record('pause-holds', { atPause: s3a, afterTaps: s3 }, ok3, await ask('Is it completely silent now?'));
       // 4. Play
       progress = 'Step 4 of 8 · Play'; show('Resuming…', 'none');
-      click('#player-toggle'); await wait(2500);
+      click('#player-toggle'); await until(function () { var r = rms(); return r !== null && r > 0.002; }, 8000, 200); await wait(1200);
       var s4 = state(); var ok4 = !s4.paused && s4.playing && s4.ctx === 'running' && s4.el !== 'PAUSED' && s4.rms > 0.002;
       record('play-resumes', s4, ok4, await ask('Is the sound back, at the same level as before?'));
       // 5. Short timer
