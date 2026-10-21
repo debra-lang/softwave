@@ -285,12 +285,18 @@
       if ('mediaSession' in navigator) {
         try {
           navigator.mediaSession.metadata = new MediaMetadata({ title: 'Find My Quiet Sound', artist: 'Sound for tinnitus comfort', album: 'Find My Quiet Sound' });
-          navigator.mediaSession.setActionHandler('play', () => this.playAll());
-          navigator.mediaSession.setActionHandler('pause', () => this.pauseAll());
+          // lock-screen Play/Pause — except the ones iOS sends by itself while Ask's microphone holds the session (holdRemote)
+          navigator.mediaSession.setActionHandler('play', () => { if (!this._remoteHeld()) this.playAll(); });
+          navigator.mediaSession.setActionHandler('pause', () => { if (!this._remoteHeld()) this.pauseAll(); });
           navigator.mediaSession.setActionHandler('stop', () => (global.softwaveStopAll ? global.softwaveStopAll() : this.stopAll()));
         } catch (e) { }
       }
     }
+    // Ask's native capture switches the shared audio session, and iOS then sends the lock-screen pause/play commands
+    // although nobody pressed them (seen once the app has left the foreground). While a capture runs, and for 1 s after
+    // it ends, those two commands are ignored; the capture's own interruption is resumed by Ask as before.
+    holdRemote(on) { this._remoteHoldUntil = on ? Infinity : performance.now() + 1000; }
+    _remoteHeld() { return (this._remoteHoldUntil || 0) > performance.now(); }
     _keepAlive(on) {
       // The routed output must be playing whenever sound plays — and must be RELEASED
       // when nothing plays: a media element held open against a silent graph keeps the

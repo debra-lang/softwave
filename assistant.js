@@ -470,7 +470,9 @@
         if (!listening) return;   // cancelled during the quiet-down
         diagNative('start', { vocabulary: NATIVE_VOCAB.length });
         let res = null, failure = null;
+        if (engine.holdRemote) engine.holdRemote(true);   // iOS's own lock-screen pause/play during capture are not the user's
         try { res = await P.start({ language: document.documentElement.lang || 'en', vocabulary: NATIVE_VOCAB, sounds: NATIVE_SOUNDS }); } catch (e) { failure = (e && (e.code || e.message)) || 'unknown'; }
+        if (engine.holdRemote) engine.holdRemote(false);
         sessionHadOutcome = true;
         setListening(false);   // …and restores it once the session has ended
         // Switching the shared hardware session for capture interrupts WebKit's audio context; it comes back only on a
