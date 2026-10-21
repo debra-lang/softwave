@@ -246,6 +246,8 @@
     _installGestureArm() {
       if (this._gestureArmed) return; this._gestureArmed = true;
       const arm = () => {
+        // where the clock stood at this touch, for the frozen-clock check of a start it leads to (_unstickClock)
+        this._clockMark = this.ctx && this.ctx.state === 'running' ? { ct: this.ctx.currentTime, at: performance.now() } : null;
         // A pause the user asked for stays a pause: no touch brings the graph or the routed output back until Play.
         if (this.userPaused) return;
         if (this.ctx && this.ctx.state !== 'running') { this._gestureResumedAt = Date.now(); try { const p = this.ctx.resume(); if (p && p.catch) p.catch(() => { }); } catch (_) { } }
@@ -297,6 +299,22 @@
     // it ends, those two commands are ignored; the capture's own interruption is resumed by Ask as before.
     holdRemote(on) { this._remoteHoldUntil = on ? Infinity : performance.now() + 1000; }
     _remoteHeld() { return (this._remoteHoldUntil || 0) > performance.now(); }
+    // iOS can leave the context reporting "running" while its clock has stopped (seen on device once the routed output
+    // had been released while idle): every sound started into it stays silent until a suspend/resume cycle. A start on
+    // a running context checks that the clock moves — since the touch that led to it, or over a short probe — and runs
+    // that cycle only when it does not. A clock seen moving is trusted for 1.5 s, so a mix's later starts skip the check.
+    async _unstickClock() {
+      const ctx = this.ctx, now = performance.now();
+      if (!ctx || ctx.state !== 'running' || now - (this._clockOkAt || 0) < 1500) return false;
+      let m = this._clockMark;
+      if (!m || now - m.at < 40 || now - m.at > 2000) { m = { ct: ctx.currentTime, at: now }; await new Promise(r => setTimeout(r, 80)); }
+      if (ctx.state !== 'running') return false;
+      if (ctx.currentTime > m.ct) { this._clockOkAt = performance.now(); return false; }
+      try { await ctx.suspend(); } catch (_) { }
+      try { await Promise.race([ctx.resume(), new Promise(r => setTimeout(r, 1500))]); } catch (_) { }
+      this.emit('clock', 'restarted');
+      return true;
+    }
     _keepAlive(on) {
       // The routed output must be playing whenever sound plays — and must be RELEASED
       // when nothing plays: a media element held open against a silent graph keeps the
@@ -384,6 +402,7 @@
       // the context whenever it idles, and a sound added to a sleeping context is
       // silent — the one-tap-to-play contract broke exactly there.
       if (this.ctx.state !== 'running') await this.resume();
+      else if (hadCtx) await this._unstickClock();
       if (this._gen !== gen) return false;   // superseded by Stop / a new preset while initialising
       this._pauseTok = null; this.userPaused = false;   // a chosen sound is a deliberate resume
       // A pause/resume cycle can leave the master bus behind even once the context
