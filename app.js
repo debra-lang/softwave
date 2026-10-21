@@ -712,11 +712,13 @@
     $$('[data-act="add"]').forEach(b => b.classList.toggle('fa-cta', !list.length));
   }
   let lastIds = new Set();
+  let timerEnded = false;   // the Sleep page shows "Timer finished" (not "Continuous") until a sound or a timer starts again
   engine.on((type, data) => {
+    if (type === 'sounds' && data.length && timerEnded) { timerEnded = false; renderTimer(engine.timer); }
     if (type === 'sounds') { syncCards(data); renderMixer(data); updatePlayer(); const now = new Set(data.map(s => s.id)); const pc = store.get('playcounts', {}); now.forEach(id => { if (!lastIds.has(id)) pc[id] = (pc[id] || 0) + 1; }); store.set('playcounts', pc); lastIds = now; }
     if (type === 'state' || type === 'tone') updatePlayer();
     if (type === 'timer') renderTimer(data);
-    if (type === 'timerDone') { toast('Sleep timer finished. Rest well.'); if (wake) { wake.release().catch(() => { }); wake = null; } }   // the display may sleep once the sound has stopped
+    if (type === 'timerDone') { timerEnded = true; renderTimer(engine.timer); toast('Sleep timer finished. Rest well.'); if (wake) { wake.release().catch(() => { }); wake = null; } }   // the display may sleep once the sound has stopped
     if (type === 'limit') toast(`You can layer up to ${data} sounds at once.`);
   });
 
@@ -1015,7 +1017,8 @@
     // every timer button label follows the engine, no matter where the timer was set
     const nb = $('[data-now="timer"]'); if (nb) nb.textContent = t.durationMin ? `Timer · ${t.durationMin} min` : 'Timer';
     const el = $('#player-timer'), rem = $('#sleep-remaining');
-    if (!t.endsAt) { el.hidden = true; rem.textContent = 'Continuous'; if (!t.durationMin) $$('.timer-seg [data-min]').forEach(x => x.setAttribute('aria-checked', x.dataset.min === '0')); return; }
+    if (t.endsAt) timerEnded = false;
+    if (!t.endsAt) { el.hidden = true; rem.textContent = timerEnded ? 'Timer finished' : 'Continuous'; if (!t.durationMin) $$('.timer-seg [data-min]').forEach(x => x.setAttribute('aria-checked', x.dataset.min === '0')); return; }
     const left = Math.max(0, t.endsAt - Date.now()); const m = Math.floor(left / 60000), s = Math.floor((left % 60000) / 1000);
     const txt = `${m}:${String(s).padStart(2, '0')}`;
     el.hidden = false; el.textContent = (t.fading ? 'Fading · ' : '⏾ ') + txt; rem.textContent = (t.fading ? 'Fading out · ' : 'Sound stops in ') + txt;

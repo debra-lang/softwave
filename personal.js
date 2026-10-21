@@ -27,20 +27,33 @@
     // sound is still at the start of its fade, so the jump is inaudible); while sounds play — a profile or
     // switch change — the gentle 0.8 s easing is kept.
     let wasSilent = true;
-    function applyTuning(instant) {
+    // What tuning itself last set ({ hz, amt }; null = not known). Tuning re-applies only when its own target
+    // changes, from silence, or from the chip — so adding or removing a sound never undoes an Ask adjustment
+    // ("warmer", "more movement") or cuts a fade in progress (a Journey crossfade).
+    let applied = null;
+    function applyTuning(instant, force) {
       if (!engine.ctx) return;
+      // Experiments own tone and movement while they run (Find My Sound's A/B must stay isolated, a
+      // Journey's crossfades must keep their length); tuning applies again on the first change after.
+      if (window.softwaveLab && softwaveLab.isRunning()) { applied = null; syncChip(); return; }
       const tc = instant ? 0.01 : 0.8;
       const pp = profile.params();
       // The frequency generator and tinnitus matcher must always play untouched —
       // personalization never shapes deliberate tones.
       const toneActive = (engine.tone && engine.tone.playing) || (engine.matcher && engine.matcher.playing);
-      if (!pp || !confident() || !tunedOn() || toneActive || !gateQuiet('sound_profile')) { engine.setMasterTone(20000, 0.6); engine.setVariation(0); syncChip(); return; }
-      const warm = pp.warm || 0;      // -1 warmer … +1 brighter (from A/B choices)
-      const moving = pp.moving || 0;  // 0 steady … 1 moving
+      const neutral = !pp || !confident() || !tunedOn() || toneActive || !gateQuiet('sound_profile');
+      const warm = neutral ? 0 : pp.warm || 0;      // -1 warmer … +1 brighter (from A/B choices)
+      const moving = neutral ? 0 : pp.moving || 0;  // 0 steady … 1 moving
       // A gentle easing, never a rewrite: the strongest setting only softens the very top —
       // every sound's character (hiss stays hissy, cicadas stay bright) must survive it.
-      engine.setMasterTone(warm < -0.45 ? 11000 : warm < -0.2 ? 14000 : 20000, tc);
-      engine.setVariation(moving > 0.35 ? Math.min(0.25, moving * 0.4) : 0, 9);
+      const hz = warm < -0.45 ? 11000 : warm < -0.2 ? 14000 : 20000;
+      const amt = moving > 0.35 ? Math.min(0.25, moving * 0.4) : 0;
+      if (force || instant || toneActive || !applied || applied.hz !== hz || applied.amt !== amt) {
+        engine.setMasterTone(hz, neutral ? 0.6 : tc);
+        // setVariation(0) re-asserts every layer's level (ending any fade in progress), so it runs only to stop movement that is running
+        if (amt || engine.variation.amount) engine.setVariation(amt, 9);
+        applied = { hz, amt };
+      }
       syncChip();
     }
     const gateQuiet = (key) => !M() || M().canUse(key);   // tuning silently pauses if the profile ever becomes premium-gated
@@ -62,7 +75,7 @@
       const toggle = () => {
         const now = !tunedOn(); store.set('tuned:on', now);
         if (M()) M().track(now ? 'tuning_on' : 'tuning_off');
-        applyTuning(); syncChip();
+        applyTuning(false, true); syncChip();
         app.toast(now ? 'Tuned to you: your learned preferences gently shape what plays.' : 'Tuned to you is off — sounds play exactly as designed.', 3600);
       };
       slots.forEach(slot => {
