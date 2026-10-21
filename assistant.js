@@ -480,12 +480,13 @@
         // resume() is called — but only when sound is meant to be playing: a mix the user paused or stopped stays silent.
         if (engine.ctx && engine.ctx.state !== 'running' && engine.active && engine.active.size > 0 && !engine.userPaused) { try { diagNative('resume'); engine.resume(); } catch (_) { } }
         // iOS can also interrupt the audio a moment AFTER the session has ended (seen on device, Build 82): for 2.5 s an
-        // interruption of sound that is meant to be playing is resumed the same way. A pause or Stop ends the watch.
+        // interruption of sound that is meant to be playing is resumed the same way. A pause, Stop or a new capture
+        // (whose own interruption must stand while it listens) ends the watch.
         if (engine.active && engine.active.size > 0 && !engine.userPaused) {
           const until = Date.now() + 2500;
           const off = engine.on(type => {
             if (type !== 'state') return;
-            if (Date.now() > until || engine.userPaused || !engine.active.size) { off(); return; }
+            if (Date.now() > until || listening || engine.userPaused || !engine.active.size) { off(); return; }
             if (engine.ctx && engine.ctx.state !== 'running') { try { diagNative('resume-late'); engine.resume(); } catch (_) { } }
           });
           setTimeout(off, 2600);
