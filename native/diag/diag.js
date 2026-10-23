@@ -6,7 +6,9 @@
    It never calls play, pause, resume, suspend, setTimer, start/stop recognition or any gain; every wrapper is a
    synchronous pass-through and the glitch detector only reads the analyser (no node is added to the audio graph).
    Privacy: no typed text, no input values, no microphone audio, no speech transcripts, no identifiers. The log stays in
-   this device's localStorage until the user copies or shares it from the Diag panel. */
+   this device's localStorage until the user copies or shares it from the Diag panel.
+   Build 86 adds one test switch, "Pause limit": it only stores a value that the engine reads to shorten how long a pause
+   stays ready for the lock screen (10 min → 2 min) — nothing else in this file changes what the app does. */
 (function () {
   'use strict';
   var KEY = 'softwave:diag:log', MAX = 3000, T0 = Date.now();
@@ -23,7 +25,8 @@
       gest: !!E._needsGesture, hold: E._external || 0, timer: t.durationMin || null, left: t.endsAt ? Math.round((t.endsAt - Date.now()) / 1000) : null, fading: !!t.fading,
       sr: c ? c.sampleRate : null, bl: c && typeof c.baseLatency === 'number' ? Math.round(c.baseLatency * 1000) : null, ol: c && typeof c.outputLatency === 'number' ? Math.round(c.outputLatency * 1000) : null,
       ms: ('mediaSession' in navigator) ? navigator.mediaSession.playbackState : null, focus: document.activeElement ? (document.activeElement.id || document.activeElement.tagName) : null,
-      vv: window.visualViewport ? Math.round(window.visualViewport.height) : null, hidden: document.hidden };
+      vv: window.visualViewport ? Math.round(window.visualViewport.height) : null, hidden: document.hidden,
+      held: !!E._softPaused, det: !!E._outDetached };
   }
   function log(tag, extra, withSnap) {
     var o = { t: Date.now() - T0, tag: tag };
@@ -187,13 +190,22 @@
     var ta = document.createElement('textarea'); ta.readOnly = true; ta.setAttribute('aria-label', 'Diagnostic log'); ta.style.cssText = 'flex:1;width:100%;background:#0b0f1e;color:#cfd6ff;border:1px solid #334;border-radius:8px;padding:8px;font:11px/1.3 ui-monospace,Menlo,monospace;white-space:pre;';
     var status = document.createElement('div'); status.style.cssText = 'margin-top:6px;font:12px system-ui;color:#9fb0d8;min-height:1.2em;';
     var mk = function (label, fn) { var b = document.createElement('button'); b.type = 'button'; b.textContent = label; b.style.cssText = 'font:600 13px system-ui;padding:8px 12px;border-radius:9px;border:1px solid #556;background:#1a2140;color:#eef;'; b.addEventListener('click', fn); bar.appendChild(b); return b; };
-    var refresh = function () { var lines = text().split('\n'); ta.value = lines.slice(-600).join('\n'); ta.scrollTop = ta.scrollHeight; status.textContent = buf.length + ' entries · ' + Math.round(text().length / 1024) + ' KB'; };
+    // Build 86 test switch (the only control here that changes the app): how long a pause stays ready for the lock screen
+    var plSaved = function () { try { return +JSON.parse(localStorage.getItem('softwave:diag:pauseLimit') || '0') || 0; } catch (e) { return 0; } };
+    var plName = function (s) { return s === 120 ? '2 min (test)' : '10 min'; };
+    var refresh = function () { var lines = text().split('\n'); ta.value = lines.slice(-600).join('\n'); ta.scrollTop = ta.scrollHeight; status.textContent = buf.length + ' entries · ' + Math.round(text().length / 1024) + ' KB · Pause limit: ' + plName(plSaved()); };
     mk('Copy log', function () { persist(); var all = text();
       var done = function (how) { status.textContent = 'Copied (' + how + '): ' + all.length + ' characters, ' + buf.length + ' entries.'; };
       if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(all).then(function () { done('clipboard'); }, function () { ta.focus(); ta.select(); try { document.execCommand('copy'); done('selection'); } catch (e) { status.textContent = 'Copy failed — use Share.'; } });
       else { ta.focus(); ta.select(); try { document.execCommand('copy'); done('selection'); } catch (e) { status.textContent = 'Copy failed — use Share.'; } } });
     if (navigator.share) mk('Share…', function () { persist(); navigator.share({ title: 'Find My Quiet Sound audio diagnostic', text: text() }).then(function () { status.textContent = 'Shared.'; }, function () { status.textContent = 'Share cancelled.'; }); });
     mk('Mark', function () { marks++; log('MARK ' + marks); refresh(); status.textContent = 'Marker ' + marks + ' added.'; });
+    var plBtn = mk('Pause limit: ' + plName(plSaved()), function () {
+      var next = plSaved() === 120 ? 0 : 120;
+      try { if (next) localStorage.setItem('softwave:diag:pauseLimit', JSON.stringify(next)); else localStorage.removeItem('softwave:diag:pauseLimit'); } catch (e) { }
+      plBtn.textContent = 'Pause limit: ' + plName(next); log('ui:pause-limit', { limit: plName(next) }, false);
+      status.textContent = 'Pause limit ' + plName(next) + ': applies from the next pause, no restart needed.';
+    });
     mk('Clear', function () { buf = []; dirty = true; persist(); log('diag:cleared', undefined, false); refresh(); });
     mk('Close', function () { panel.style.display = 'none'; });
     panel.appendChild(bar); panel.appendChild(ta); panel.appendChild(status);

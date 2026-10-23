@@ -49,6 +49,7 @@
   const FADE_WINDOW = 1.25;  // seconds (5 τ): a level change inside it continues the same approach
   const RESUME_TAU = 0.15;   // seconds: master returns from a pause along the same kind of curve
   const FADE_OUT = 0.8;   // seconds
+  const SOFT_PAUSE_MS = 10 * 60000;   // iPhone app: how long a pause keeps the output ready for an instant resume (see pauseAll)
 
   // Per-sound loudness trim so the mixer feels balanced at equal slider values.
   // Level-matched 2026-09-05 by A-weighted measurement at equal settings (build v151):
@@ -138,6 +139,9 @@
       this._external = 0;
       this._masterBusyUntil = 0;   // wall-clock ms until which a master movement (pause fade, resume approach, volume glide) is in flight
       this._fadeRetryT = null;
+      // iPhone app pause (see pauseAll): the output is kept running at zero level while paused (_softPaused), and once
+      // that period ends it is detached together with the lock-screen controls (_outDetached) until the next Play.
+      this._softPaused = false; this._softT = null; this._outDetached = false;
       try { localStorage.removeItem('softwave:diag:audio'); } catch (_) { }   // validation-build log key, no longer written
     }
 
@@ -145,7 +149,8 @@
     emit(type, data) { this.listeners.forEach(fn => fn(type, data)); }
 
     get ready() { return !!this.ctx; }
-    get isPlaying() { return this.ctx && this.ctx.state === 'running' && (this.active.size > 0 || (this.tone && this.tone.playing) || (this.matcher && this.matcher.playing)); }
+    // A held pause keeps the context running at zero level; it is still a pause, never "playing".
+    get isPlaying() { return this.ctx && this.ctx.state === 'running' && !this._softPaused && (this.active.size > 0 || (this.tone && this.tone.playing) || (this.matcher && this.matcher.playing)); }
 
     async init() {
       if (this.ctx) { await this.resume(); await this._ready; return; }
@@ -218,10 +223,12 @@
       this._ready = Promise.race([ready, fallback]).then(() => { if (!this.buffers.white) { const b = generateInline(ctx); if (b) Object.assign(this.buffers, b); } });
 
       ctx.onstatechange = () => {
-        // the lock screen follows the real state: an interruption (a call, Siri) must not keep showing "Playing"
-        if ('mediaSession' in navigator) { try { navigator.mediaSession.playbackState = ctx.state === 'running' && this.active.size ? 'playing' : 'paused'; } catch (_) { } }
+        // the lock screen follows the real state: an interruption (a call, Siri) must not keep showing "Playing",
+        // and a held pause (context still running, see pauseAll) must not show "Playing" when an interruption ends
+        this._ms(ctx.state === 'running' && this.active.size && !this.userPaused ? 'playing' : 'paused');
         this.emit('state', ctx.state);
       };
+      if (nativeIOS) document.addEventListener('visibilitychange', () => { if (!document.hidden) setTimeout(() => this._checkClock(), 250); });
       this._setupBackground();
       await this.resume();
       this.setMasterVolume(this.masterVolume, true);
@@ -230,12 +237,13 @@
 
     async resume() {
       if (!this.ctx) return;
+      if (!this.userPaused) this._restoreControls();   // output detached after a long pause: reattach before it is started below
       if (this.ctx.state !== 'running') {
         try { await Promise.race([this.ctx.resume(), new Promise(r => setTimeout(r, 1500))]); } catch (e) { /* needs gesture */ }
         if (this.ctx.state !== 'running') this._needsGesture = true;   // the next tap resumes it inside the gesture
       }
       // native iOS: routed output back on after interruptions — whenever sounds are queued, not only once running
-      if (this.mediaOut && (this.isPlaying || this.active.size || this._external > 0)) this.mediaOut.play().then(() => { this._needsGesture = false; }).catch(() => { this._needsGesture = true; });
+      if (this.mediaOut && !this._outDetached && (this.isPlaying || this.active.size || this._external > 0)) this.mediaOut.play().then(() => { this._needsGesture = false; }).catch(() => { this._needsGesture = true; });
     }
     // iOS lets a media element start only inside a user gesture, and a sound tile's start
     // chain (wake the engine, build the graph, resume) can outlast that window — the sound
@@ -250,7 +258,9 @@
         this._clockMark = this.ctx && this.ctx.state === 'running' ? { ct: this.ctx.currentTime, at: performance.now() } : null;
         // A pause the user asked for stays a pause: no touch brings the graph or the routed output back until Play.
         if (this.userPaused) return;
-        if (this.ctx && this.ctx.state !== 'running') { this._gestureResumedAt = Date.now(); try { const p = this.ctx.resume(); if (p && p.catch) p.catch(() => { }); } catch (_) { } }
+        // a context this touch wakes gets the clock check too (it can come back "running" with its clock stopped)
+        if (this.ctx && this.ctx.state !== 'running') { this._gestureResumedAt = Date.now(); try { const p = this.ctx.resume(); if (p && p.then) p.then(() => this._checkClock(), () => { }); } catch (_) { } }
+        this._restoreControls();
         if (this.mediaOut && (this.mediaOut.paused || this._needsGesture)) {
           try { const p = this.mediaOut.play(); if (p && p.then) p.then(() => { this._needsGesture = false; }).catch(() => { }); } catch (_) { }
           clearTimeout(this._disarmT);
@@ -284,16 +294,21 @@
         this.silentEl = el;
         }
       } catch (e) { }
-      if ('mediaSession' in navigator) {
-        try {
-          navigator.mediaSession.metadata = new MediaMetadata({ title: 'Find My Quiet Sound', artist: 'Sound for tinnitus comfort', album: 'Find My Quiet Sound' });
-          // lock-screen Play/Pause — except the ones iOS sends by itself while Ask's microphone holds the session (holdRemote)
-          navigator.mediaSession.setActionHandler('play', () => { if (!this._remoteHeld()) this.playAll(); });
-          navigator.mediaSession.setActionHandler('pause', () => { if (!this._remoteHeld()) this.pauseAll(); });
-          navigator.mediaSession.setActionHandler('stop', () => (global.softwaveStopAll ? global.softwaveStopAll() : this.stopAll()));
-        } catch (e) { }
-      }
+      this._setSession();
     }
+    _setSession() {
+      if (!('mediaSession' in navigator)) return;
+      try {
+        navigator.mediaSession.metadata = new MediaMetadata({ title: 'Find My Quiet Sound', artist: 'Sound for tinnitus comfort', album: 'Find My Quiet Sound' });
+        // lock-screen Play/Pause — except the ones iOS sends by itself while Ask's microphone holds the session (holdRemote)
+        navigator.mediaSession.setActionHandler('play', () => { if (!this._remoteHeld()) this.playAll(); });
+        navigator.mediaSession.setActionHandler('pause', () => { if (!this._remoteHeld()) this.pauseAll(); });
+        navigator.mediaSession.setActionHandler('stop', () => (global.softwaveStopAll ? global.softwaveStopAll() : this.stopAll()));
+      } catch (e) { }
+    }
+    // Lock-screen state; nothing is published while the controls are withdrawn (_withdrawControls), so no later
+    // state change can bring back a Play button that would have nothing to resume.
+    _ms(state) { if (this._outDetached || !('mediaSession' in navigator)) return; try { navigator.mediaSession.playbackState = state; } catch (_) { } }
     // Ask's native capture switches the shared audio session, and iOS then sends the lock-screen pause/play commands
     // although nobody pressed them (seen once the app has left the foreground). While a capture runs, and for 1 s after
     // it ends, those two commands are ignored; the capture's own interruption is resumed by Ask as before.
@@ -315,6 +330,57 @@
       this.emit('clock', 'restarted');
       return true;
     }
+    // The same freeze can follow a Play sent from the lock screen while the app's web process was being suspended (Build 85
+    // device log: on returning, the app showed Pause while nothing played, and only Pause + Play brought the sound back).
+    // So a playing mix is checked again when the app becomes visible and when a touch wakes its context, and the master
+    // is re-asserted after a restart (its approach was scheduled on the stopped clock).
+    async _checkClock() {
+      if (!this.ctx || this.userPaused || this._softPaused || !this.active.size || this.ctx.state !== 'running') return;
+      if (await this._unstickClock() && !this.userPaused) this.setMasterVolume(this.masterVolume);
+    }
+
+    // ---------- iPhone pause ----------
+    // How long a pause holds the output (pauseAll). Diagnostic bundles can shorten it from the Diag panel for testing.
+    _softPauseMs() {
+      if (global.__swDiag) { try { const s = +JSON.parse(localStorage.getItem('softwave:diag:pauseLimit') || '0'); if (s > 0) return s * 1000; } catch (_) { } }
+      return SOFT_PAUSE_MS;
+    }
+    _endSoft() { if (!this._softPaused) return false; this._softPaused = false; clearTimeout(this._softT); this._softT = null; return true; }
+    // The held pause has lasted its full period: release everything as an ordinary pause does, then withdraw the
+    // lock-screen controls with it. A released output cannot be restarted from the lock screen once iOS suspends the
+    // app (the original bug), so Play stays available only inside the app, which reattaches everything (resume).
+    async _releaseSoft(tok) {
+      this._softT = null;
+      if (!this._softPaused || this._pauseTok !== tok || !this.userPaused) return;
+      this._softPaused = false;
+      if (this.mediaOut && !(this._external > 0)) this.mediaOut.pause();   // output first, then the graph (as pauseAll: no clicks)
+      try { await this.ctx.suspend(); } catch (_) { }
+      if (!this.userPaused) return;   // Play arrived meanwhile: it owns the engine now
+      this._keepAlive(false);
+      this._withdrawControls();
+      this.emit('softpause', 'released');
+      this.emit('state', 'suspended');
+    }
+    // Detaching the stream leaves WebKit no media to present as Now Playing, and the session is cleared too, so iOS has
+    // nothing to show on the lock screen (whether it then removes the controls is the device check of Build 86).
+    _withdrawControls() {
+      if (!this.mediaOut || this._outDetached) return;
+      this._ms('none');
+      this._outDetached = true;
+      try { this.mediaOut.srcObject = null; } catch (_) { }
+      if ('mediaSession' in navigator) {
+        try { navigator.mediaSession.metadata = null; } catch (_) { }
+        ['play', 'pause', 'stop'].forEach(a => { try { navigator.mediaSession.setActionHandler(a, null); } catch (_) { } });
+      }
+      this.emit('softpause', 'controls-withdrawn');
+    }
+    _restoreControls() {
+      if (!this._outDetached) return;
+      this._outDetached = false;
+      try { this.mediaOut.srcObject = this.streamDest.stream; } catch (_) { }
+      this._setSession();
+      this.emit('softpause', 'controls-restored');
+    }
     _keepAlive(on) {
       // The routed output must be playing whenever sound plays — and must be RELEASED
       // when nothing plays: a media element held open against a silent graph keeps the
@@ -327,17 +393,20 @@
       // window (a new sound, Play, a tone) calls _keepAlive(true) and cancels the release.
       clearTimeout(this._releaseT); this._releaseT = null;
       if (on) {
+        this._restoreControls();
         if (this.mediaOut) { const p = this.mediaOut.play(); if (p && p.then) p.then(() => { this._needsGesture = false; }).catch(() => { this._needsGesture = true; }); }
         if (this.silentEl) this.silentEl.play().catch(() => { });
-        if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
+        this._ms('playing');
         return;
       }
       this._releaseT = setTimeout(() => {
         this._releaseT = null;
         if (this.isPlaying || this._pendingStarts > 0 || (this.tone && this.tone.playing) || (this.active.size > 0 && !this.userPaused) || (this.mediaOut && this._external > 0)) return;   // something is (about to be) audible again — the last term: a Play/resume is in flight (sounds queued, user not paused), so this release must not interrupt it
+        // A held pause owns the output until it ends (pauseAll); it ends here only if nothing is left to resume.
+        if (this._softPaused) { if (this.active.size > 0) return; this._endSoft(); }
         if (this.mediaOut) this.mediaOut.pause();
         if (this.silentEl) this.silentEl.pause();
-        if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
+        this._ms('paused');
       }, FADE_OUT * 1000 + 300);
     }
 
@@ -404,7 +473,7 @@
       if (this.ctx.state !== 'running') await this.resume();
       else if (hadCtx) await this._unstickClock();
       if (this._gen !== gen) return false;   // superseded by Stop / a new preset while initialising
-      this._pauseTok = null; this.userPaused = false;   // a chosen sound is a deliberate resume
+      this._pauseTok = null; this.userPaused = false; this._endSoft();   // a chosen sound is a deliberate resume
       // A pause/resume cycle can leave the master bus behind even once the context
       // itself is running again (only playAll() used to re-assert it), so a start on
       // an existing context re-confirms master gain too. Skip this on a brand-new
@@ -508,7 +577,7 @@
 
     stopAll() {
       this._gen++; this._pauseTok = null;
-      this.userPaused = false;
+      this.userPaused = false; this._endSoft();
       if (this.variation.timer) this.setVariation(0);
       if (this.ctx) this.resetMasterShape();
       [...this.active.keys()].forEach(id => this.stopSound(id));
@@ -526,12 +595,30 @@
       const tok = this._pauseTok = {};
       await new Promise(r => setTimeout(r, 420));
       if (this._pauseTok !== tok || !this.userPaused) return;   // resumed (Play / new sound) during the fade
+      this._endSoft();
+      // iPhone app: hold the pause instead of releasing it. Released, the output lets iOS suspend the app's web process
+      // within ~10–20 s once the screen is locked, and a lock-screen or AirPods Play then wakes it only for an instant —
+      // the context stays suspended and nothing plays (Build 85 device tests, after 30 s and 66 s). Held — graph running,
+      // output playing, master at zero — the process stays awake and Play resumes at once (Build 85 variant C: pauses of
+      // 3 s to 5½ min, every one resumed within ~1 s). The graph keeps feeding the stream, so the element does not click
+      // as it does when left playing a suspended graph (below). After _softPauseMs the hold becomes the ordinary release
+      // and the lock-screen controls are withdrawn (_releaseSoft). Not for Sound Response stimuli (an output hold): their
+      // countdown runs on the audio clock and must stop with the pause. An interrupted context takes the ordinary path.
+      if (this.mediaOut && !(this._external > 0) && this.ctx.state === 'running' && !this.mediaOut.paused) {
+        this._softPaused = true;
+        this._ms('paused');
+        const ms = this._softPauseMs();
+        this._softT = setTimeout(() => this._releaseSoft(tok), ms);
+        this.emit('softpause', 'held ' + Math.round(ms / 1000) + ' s');
+        this.emit('state', 'suspended');
+        return;
+      }
       // Release the routed output BEFORE the graph stops. Left playing a stream that no longer receives samples,
       // the element clicks repeatedly on iOS until the deferred idle release pauses it 1.1 s later (Build 66 iPhone
       // test: several clicks over ~2 s on Pause; Stop, which never suspends the graph, is clean). Nothing is audible
       // any more here (master at zero), so there is nothing to cut short. An output hold (Sound Response stimulus)
       // or a sound start in flight keeps it open, exactly as the idle release would.
-      if (this.mediaOut && !(this._external > 0) && !(this._pendingStarts > 0)) { this.mediaOut.pause(); if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused'; }
+      if (this.mediaOut && !(this._external > 0) && !(this._pendingStarts > 0)) { this.mediaOut.pause(); this._ms('paused'); }
       await this.ctx.suspend();
       this._keepAlive(false);
       this.emit('state', 'suspended');
@@ -539,7 +626,12 @@
     async playAll() {
       if (!this.ctx) return;
       this._pauseTok = null; this.userPaused = false;
+      const held = this._endSoft();
+      if (held) this.emit('softpause', 'play');
       await this.resume();
+      // A context that was suspended or interrupted can come back "running" with its clock stopped (see _unstickClock);
+      // checked before the master returns, so a restart happens while everything is still silent (~80 ms when it moves).
+      if (this.mediaOut && this.ctx.state === 'running' && !this.userPaused) await this._unstickClock();   // iPhone app only
       // Coming back from the pause fade (master at zero): an RC approach over ~0.4 s instead of a 0.12 s
       // linear ramp, whose straight edge read as an abrupt onset. A master that is already up (resume
       // during the pause fade) keeps the usual short re-assertion.
@@ -1162,7 +1254,7 @@
       await this.init();
       if (this._gen !== gen) return;   // stopped while initialising
       if (this.tone && this.tone.playing) { this.toneUpdate(opts); return; }
-      this._pauseTok = null; this.userPaused = false;
+      this._pauseTok = null; this.userPaused = false; this._endSoft();
       const ctx = this.ctx;
       const t = { playing: true, freq: opts.freq, type: opts.type || 'sine', volume: opts.volume ?? 0.3, balance: opts.balance ?? 0, am: opts.am || 0 };
       t.gain = ctx.createGain(); t.gain.gain.value = 0;
