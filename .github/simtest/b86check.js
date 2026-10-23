@@ -193,7 +193,10 @@
     E.ctx.removeEventListener('statechange', hS); E.mediaOut.removeEventListener('pause', hP);
     var iP = order.findIndex(function (x) { return x.indexOf('element') === 0; }), iS = order.findIndex(function (x) { return x.indexOf('ctx') === 0; });
     var msOk = !('mediaSession' in navigator) || navigator.mediaSession.playbackState === 'paused';
-    ok('Build 70: Pause pauses the routed element before the context suspends; the element never plays against a suspended graph (2 s sampled); Media Session paused', iP >= 0 && iS >= 0 && iP <= iS && stalled === 0 && E.userPaused && meter().out === 'PAUSED' && meter().ctx === 'suspended' && msOk, { order: order, stalled: stalled, end: meter() });
+    // Build 86: on the iPhone app the pause is held (graph and element running at level 0) — the element still never
+    // plays against a suspended graph; otherwise the ordinary release order applies
+    var held70 = !!E._softPaused, m70 = meter();
+    ok('Build 70/86: Pause holds (element and graph running, silent) or releases the element before the context suspends; the element never plays against a suspended graph (2 s sampled); Media Session paused', stalled === 0 && E.userPaused && msOk && (held70 ? (m70.out === 'playing' && m70.ctx === 'running' && m70.rms < 0.0008) : (iP >= 0 && iS >= 0 && iP <= iS && m70.out === 'PAUSED' && m70.ctx === 'suspended')), { held: held70, order: order, stalled: stalled, end: m70 });
     await shot('sleep-paused-67');
     document.getElementById('sleep-pause').click(); await w(1500); var mR = meter();
     ok('Build 70: Play after the pause restarts the routed element and sound returns', mR.out === 'playing' && mR.ctx === 'running' && mR.rms > SIG && !E.userPaused, mR);
@@ -201,7 +204,7 @@
     for (var gi = 0; gi < gaps.length; gi++) { var gap = gaps[gi], st = 0, lateSus = 0; var hS2 = function () { if (E.ctx.state === 'suspended' && !E.userPaused) lateSus++; }; E.ctx.addEventListener('statechange', hS2);
       for (var i2 = 0; i2 < 6; i2++) { document.getElementById('sleep-pause').click(); var tt = Date.now(); while (Date.now() - tt < gap) { await w(25); var m2 = meter(); if (m2.ctx === 'suspended' && m2.out === 'playing') st++; } }
       for (var i3 = 0; i3 < 60; i3++) { await w(25); var m3 = meter(); if (m3.ctx === 'suspended' && m3.out === 'playing') st++; }
-      E.ctx.removeEventListener('statechange', hS2); var me = meter(); var consistent = E.userPaused ? (me.ctx === 'suspended' && me.out === 'PAUSED') : (me.ctx === 'running' && me.out === 'playing' && me.rms > SIG);
+      E.ctx.removeEventListener('statechange', hS2); var me = meter(); var consistent = E.userPaused ? (E._softPaused ? (me.ctx === 'running' && me.out === 'playing' && me.rms < 0.0008) : (me.ctx === 'suspended' && me.out === 'PAUSED')) : (me.ctx === 'running' && me.out === 'playing' && me.rms > SIG);
       cyc.push({ gap: gap, stalled: st, lateSuspensions: lateSus, consistent: consistent, paused: E.userPaused, end: me });
       if (E.userPaused) { document.getElementById('sleep-pause').click(); await w(1500); } }
     ok('Build 70: 6 Pause/Play presses at 150, 300, 700 and 1500 ms: element never stalled, no suspension after a Play, consistent end state, Play restores output', cyc.every(function (c) { return c.stalled === 0 && c.lateSuspensions === 0 && c.consistent; }) && meter().out === 'playing' && meter().rms > SIG, cyc);
@@ -214,7 +217,8 @@
     await onTick(); await w(800);
     var atSus = null; var hSus = function () { if (E.ctx.state === 'suspended' && atSus === null) atSus = mg(); }; E.ctx.addEventListener('statechange', hSus);
     document.getElementById('sleep-pause').click(); await w(1300); E.ctx.removeEventListener('statechange', hSus);
-    ok('Build 66: pausing 800 ms after a timer tick fades to silence before the context suspends (Build 66 cut the sound at −6 dB)', atSus !== null && atSus < 0.002 && E.userPaused, { masterAtSuspend: atSus, ctx: E.ctx.state });
+    var held66 = !!E._softPaused, mg66 = mg();
+    ok('Build 66: pausing 800 ms after a timer tick fades to silence before the context suspends — or, held (Build 86), fades to silence', E.userPaused && (held66 ? mg66 < 0.002 : (atSus !== null && atSus < 0.002)), { held: held66, masterAtSuspend: atSus, master: mg66, ctx: E.ctx.state });
     await shot('sleep-paused');
     await onTick(); await w(880); document.getElementById('sleep-pause').click(); await w(2200);
     ok('Build 66: one Play press 880 ms after a tick resumes at the selected level (Build 66 held the master low)', !E.userPaused && !!E.isPlaying && Math.abs(mg() - tgt()) < 0.003 && meter().out === 'playing' && meter().rms > SIG, { master: mg(), target: tgt(), m: meter() });
@@ -307,7 +311,7 @@
     tg.click(); await w(1200); var b2p = st80(); ok('Build 80 B2: the next press pauses normally', b2p.paused && b2p.master < 0.001, b2p);
     try { document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); } catch (e) { } document.body.dispatchEvent(new Event('touchend', { bubbles: true }));
     var nav = document.querySelector('.nav a[href="#sleep"]'); if (nav) nav.click(); await w(800); nav = document.querySelector('.nav a[href="#sounds"]'); if (nav) nav.click(); await w(800);
-    var b3 = st80(); ok('Build 80 B3: taps and navigation while paused keep the pause (context not running, master 0, player says Paused)', b3.ctx !== 'running' && b3.paused && b3.master < 0.001 && /Paused/.test(b3.sub), b3);
+    var b3 = st80(); ok('Build 80 B3: taps and navigation while paused keep the pause (context not running, or held — Build 86; master 0, player says Paused)', (b3.ctx !== 'running' || !!E80._softPaused) && b3.paused && b3.master < 0.001 && /Paused/.test(b3.sub), b3);
     var mv = document.getElementById('mix-vol'); if (mv) { mv.value = 55; mv.dispatchEvent(new Event('input', { bubbles: true })); } await w(600);
     var b3v = st80(); ok('Build 80 B3: moving the master slider while paused stays silent; the level is remembered', b3v.master < 0.001 && b3v.paused && Math.abs(E80.masterVolume - 0.55) < 0.02, b3v);
     tg.click(); await w(2000); var b3r = st80(); ok('Build 80 B3: Play restores sound at the remembered level', !b3r.paused && b3r.playing && b3r.master > 0.3 && b3r.rms > SIG, b3r);
@@ -428,9 +432,9 @@
       if (DIAG) {
         localStorage.setItem('softwave:diag:pauseLimit', '4');
         await E86.pauseAll(); await w(6500); var x86 = st86();
-        ok('Build 86: after its limit (4 s here) the held pause is released and the lock-screen controls withdrawn', !x86.held && x86.det && x86.paused && x86.ctx === 'suspended' && x86.out === 'PAUSED' && !x86.src && x86.ms === 'none' && !x86.meta, x86);
+        ok('Build 86: after its limit (4 s here) the held pause is released and the lock-screen controls withdrawn', !x86.held && x86.det && x86.paused && x86.ctx === 'suspended' && x86.out === 'PAUSED' && !x86.src && !x86.meta, x86);   // playbackState: WebKit relabels it "paused" itself when the element pauses (MediaSession::willPausePlayback); the controls stayed hidden on device (A3)
         await w(2500); var y86 = st86();
-        ok('Build 86: the withdrawn controls stay withdrawn', y86.ms === 'none' && !y86.meta && y86.det, y86);
+        ok('Build 86: the withdrawn controls stay withdrawn (no metadata, stream detached)', !y86.meta && y86.det && !y86.src, y86);
         await E86.playAll(); await w(2500); var z86 = st86();
         ok('Build 86: one Play after the release reattaches the output and the controls, and the sound plays', !z86.det && z86.src && z86.meta && z86.playing && z86.out === 'playing' && z86.rms > SIG && z86.ms === 'playing', z86);
         localStorage.removeItem('softwave:diag:pauseLimit');
