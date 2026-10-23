@@ -145,7 +145,7 @@
     emit(type, data) { this.listeners.forEach(fn => fn(type, data)); }
 
     get ready() { return !!this.ctx; }
-    get isPlaying() { return this.ctx && this.ctx.state === 'running' && (this.active.size > 0 || (this.tone && this.tone.playing) || (this.matcher && this.matcher.playing)); }
+    get isPlaying() { return this.ctx && this.ctx.state === 'running' && !this._softPaused && (this.active.size > 0 || (this.tone && this.tone.playing) || (this.matcher && this.matcher.playing)); }
 
     async init() {
       if (this.ctx) { await this.resume(); await this._ready; return; }
@@ -155,6 +155,15 @@
     // Warm up early (e.g. on the first touch) so the first sound starts instantly.
     prepare() { if (!this.ctx && !this._initPromise) { this._initPromise = this._init(); } }
     async _init() {
+      // DIAGNOSTIC BUILD 85 ONLY (lock-screen resume experiment): the variant chosen in the Diag panel, read once per
+      // launch. Without the diagnostic observer it is ignored, so every other build behaves exactly as Build 84.
+      //   'A'  the document's audio session is declared 'playback' (navigator.audioSession, iOS 17+)
+      //   'AB' as A, and a Play restarts the routed output before the context
+      //   'C'  a Pause made while the app is hidden keeps the graph and routed output running at zero level (released after 10 min)
+      this._lockVariant = '';
+      if (global.__swDiag) { try { this._lockVariant = JSON.parse(localStorage.getItem('softwave:diag:lockVariant') || '""') || ''; } catch (_) { } }
+      if (this._lockVariant === 'A' || this._lockVariant === 'AB') { try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (_) { } }
+      this.emit('lockdiag', 'variant=' + (this._lockVariant || 'off') + ' audioSession=' + (navigator.audioSession ? navigator.audioSession.type : 'unsupported'));
       const AC = global.AudioContext || global.webkitAudioContext;
       this.ctx = new AC({ latencyHint: 'playback' });
       const ctx = this.ctx;
@@ -509,6 +518,7 @@
     stopAll() {
       this._gen++; this._pauseTok = null;
       this.userPaused = false;
+      if (this._softPaused) { this._softPaused = false; clearTimeout(this._softT); this._softT = null; }
       if (this.variation.timer) this.setVariation(0);
       if (this.ctx) this.resetMasterShape();
       [...this.active.keys()].forEach(id => this.stopSound(id));
@@ -526,6 +536,21 @@
       const tok = this._pauseTok = {};
       await new Promise(r => setTimeout(r, 420));
       if (this._pauseTok !== tok || !this.userPaused) return;   // resumed (Play / new sound) during the fade
+      if (this._lockVariant === 'C' && this.nativeIOS && document.hidden) {   // DIAGNOSTIC BUILD 85, variant C: soft pause
+        this._softPaused = true;
+        if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
+        this.emit('lockdiag', 'softpause');
+        clearTimeout(this._softT);
+        this._softT = setTimeout(() => {
+          this._softT = null;
+          if (!this._softPaused || this._pauseTok !== tok || !this.userPaused) return;
+          this._softPaused = false; this.emit('lockdiag', 'softpause-release');
+          if (this.mediaOut && !(this._external > 0)) this.mediaOut.pause();
+          this.ctx.suspend().then(() => { this._keepAlive(false); this.emit('state', 'suspended'); });
+        }, 600000);
+        this.emit('state', 'suspended');
+        return;
+      }
       // Release the routed output BEFORE the graph stops. Left playing a stream that no longer receives samples,
       // the element clicks repeatedly on iOS until the deferred idle release pauses it 1.1 s later (Build 66 iPhone
       // test: several clicks over ~2 s on Pause; Stop, which never suspends the graph, is clean). Nothing is audible
@@ -539,6 +564,8 @@
     async playAll() {
       if (!this.ctx) return;
       this._pauseTok = null; this.userPaused = false;
+      if (this._softPaused) { this._softPaused = false; clearTimeout(this._softT); this._softT = null; this.emit('lockdiag', 'softpause-play'); }
+      if (this._lockVariant === 'AB' && this.mediaOut && this.mediaOut.paused) { try { const p = this.mediaOut.play(); if (p && p.catch) p.catch(() => { }); } catch (_) { } this.emit('lockdiag', 'output-first'); }   // DIAGNOSTIC BUILD 85, variant AB
       await this.resume();
       // Coming back from the pause fade (master at zero): an RC approach over ~0.4 s instead of a 0.12 s
       // linear ramp, whose straight edge read as an abrupt onset. A master that is already up (resume

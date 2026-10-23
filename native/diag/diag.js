@@ -194,6 +194,15 @@
       else { ta.focus(); ta.select(); try { document.execCommand('copy'); done('selection'); } catch (e) { status.textContent = 'Copy failed — use Share.'; } } });
     if (navigator.share) mk('Share…', function () { persist(); navigator.share({ title: 'Find My Quiet Sound audio diagnostic', text: text() }).then(function () { status.textContent = 'Shared.'; }, function () { status.textContent = 'Share cancelled.'; }); });
     mk('Mark', function () { marks++; log('MARK ' + marks); refresh(); status.textContent = 'Marker ' + marks + ' added.'; });
+    var LV = ['', 'A', 'AB', 'C'], lvName = function (v) { return v === 'AB' ? 'A+B' : (v || 'Off'); };
+    var lvSaved = function () { try { return JSON.parse(localStorage.getItem('softwave:diag:lockVariant') || '""') || ''; } catch (e) { return ''; } };
+    var lvBtn = mk('Lock test: ' + lvName(lvSaved()), function () {
+      var next = LV[(LV.indexOf(lvSaved()) + 1) % LV.length];
+      try { localStorage.setItem('softwave:diag:lockVariant', JSON.stringify(next)); } catch (e) { }
+      lvBtn.textContent = 'Lock test: ' + lvName(next); log('ui:lock-variant-saved', { variant: lvName(next) }, false);
+      var running = (window.softwave && window.softwave._lockVariant) || '';
+      status.textContent = next === running ? 'Lock test ' + lvName(next) + ' is active.' : 'Saved "' + lvName(next) + '". Fully close the app (swipe it away) and reopen it to apply. Active now: ' + lvName(running) + '.';
+    });
     mk('Clear', function () { buf = []; dirty = true; persist(); log('diag:cleared', undefined, false); refresh(); });
     mk('Close', function () { panel.style.display = 'none'; });
     panel.appendChild(bar); panel.appendChild(ta); panel.appendChild(status);
