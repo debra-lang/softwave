@@ -302,7 +302,7 @@
         navigator.mediaSession.metadata = new MediaMetadata({ title: 'Find My Quiet Sound', artist: 'Sound for tinnitus comfort', album: 'Find My Quiet Sound' });
         // lock-screen Play/Pause — except the ones iOS sends by itself while Ask's microphone holds the session (holdRemote)
         navigator.mediaSession.setActionHandler('play', () => { if (!this._remoteHeld()) this.playAll(); });
-        navigator.mediaSession.setActionHandler('pause', () => { if (!this._remoteHeld()) this.pauseAll(); });
+        navigator.mediaSession.setActionHandler('pause', () => { if (this._remoteHeld()) return; if (this._softPaused) this._pauseWhileHeld(); else this.pauseAll(); });
         navigator.mediaSession.setActionHandler('stop', () => (global.softwaveStopAll ? global.softwaveStopAll() : this.stopAll()));
       } catch (e) { }
     }
@@ -344,6 +344,20 @@
     _softPauseMs() {
       if (global.__swDiag) { try { const s = +JSON.parse(localStorage.getItem('softwave:diag:pauseLimit') || '0'); if (s > 0) return s * 1000; } catch (_) { } }
       return SOFT_PAUSE_MS;
+    }
+    // A headset's single play/pause button sends a toggle, and WebKit turns a toggle into "pause" whenever the output
+    // element is playing (MediaElementSession: element paused ? Play : Pause) — which it is throughout a held pause. So the
+    // press meant to resume arrived as another "pause" and nothing ever resumed (Build 86, Shokz OpenRun Pro: three
+    // presses, three "pause"). A "pause" arriving while already held is that toggle: Play. Not when the system has paused
+    // the element itself — a call or Siri starting also sends "pause", with the element already paused (Build 85 log).
+    _pauseWhileHeld() {
+      const tok = this._pauseTok;
+      setTimeout(() => {
+        if (!this._softPaused || this._pauseTok !== tok || !this.userPaused) return;
+        if (!this.mediaOut || this.mediaOut.paused || this.ctx.state !== 'running') return;
+        this.emit('softpause', 'toggle-play');
+        this.playAll();
+      }, 300);
     }
     _endSoft() { if (!this._softPaused) return false; this._softPaused = false; clearTimeout(this._softT); this._softT = null; return true; }
     // The held pause has lasted its full period: release everything as an ordinary pause does, then withdraw the
