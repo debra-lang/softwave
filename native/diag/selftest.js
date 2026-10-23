@@ -81,7 +81,11 @@
       var s3a = state();
       try { document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); document.body.dispatchEvent(new Event('touchend', { bubbles: true })); } catch (x) { }
       var navSleep = $('.nav a[href="#sleep"]'); if (navSleep) navSleep.click(); await wait(900); var navSounds = $('.nav a[href="#sounds"]'); if (navSounds) navSounds.click(); await wait(900);
-      var s3 = state(); var ok3 = s3a.paused && s3a.master !== null && s3a.master < 0.001 && s3.paused && s3.master < 0.001 && s3.ctx !== 'running' && s3.el === 'PAUSED';
+      // Build 86: on the iPhone app a pause is held (graph and output running at zero level) for up to 10 minutes —
+      // silent and still paused, but the context stays running; otherwise it is the ordinary suspended pause
+      var held3 = !!(e && e._softPaused);
+      var s3 = state(); var ok3 = s3a.paused && s3a.master !== null && s3a.master < 0.001 && s3.paused && s3.master < 0.001 &&
+        (held3 ? (s3.ctx === 'running' && s3.el !== 'PAUSED' && (s3.rms === null || s3.rms < 0.0008)) : (s3.ctx !== 'running' && s3.el === 'PAUSED'));
       record('pause-holds', { atPause: s3a, afterTaps: s3 }, ok3, await ask('Is it completely silent now?'));
       // 4. Play
       progress = 'Step 4 of 8 · Play'; show('Resuming…', 'none');
