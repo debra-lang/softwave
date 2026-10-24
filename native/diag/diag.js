@@ -128,7 +128,9 @@
   var hardRun = 0, silentRun = 0, okRun = 0, lost = false, lastBeat = 0, sampleN = 0;
   setInterval(function () {
     if (!E || !E.ctx) return; var s = snap(); sampleN++;
-    var expectsSound = s.act > 0 && !s.up && s.master !== null && s.master > 0.01;
+    // not while Ask's microphone ducks the output to near silence (trim ~0.005; Build 86 device log: false "silent signal")
+    var ducked = !!(E.trim && E.trim.gain && E.trim.gain.value < 0.05);
+    var expectsSound = s.act > 0 && !s.up && s.master !== null && s.master > 0.01 && !ducked;
     var hard = s.ctx !== 'running' || s.el === 'PAUSED';
     var silent = s.ctx === 'running' && s.el !== 'PAUSED' && s.rms !== null && s.rms < 0.0005;
     if (expectsSound && hard) { hardRun++; okRun = 0; } else hardRun = 0;

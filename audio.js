@@ -228,7 +228,8 @@
         this._ms(ctx.state === 'running' && this.active.size && !this.userPaused ? 'playing' : 'paused');
         this.emit('state', ctx.state);
       };
-      if (nativeIOS) document.addEventListener('visibilitychange', () => { if (!document.hidden) setTimeout(() => this._checkClock(), 250); });
+      if (nativeIOS) document.addEventListener('visibilitychange', () => { if (!document.hidden) setTimeout(() => this._checkClock(), 250); else this._checkHold(); });
+      if (this.mediaOut) this.mediaOut.addEventListener('pause', () => this._checkHold());
       this._setupBackground();
       await this.resume();
       this.setMasterVolume(this.masterVolume, true);
@@ -359,6 +360,21 @@
         this.playAll();
       }, 300);
     }
+    // A held pause works only while the output element keeps playing. iOS can stop it — a call, Siri, a Bluetooth drop —
+    // and with the app in the background it then lets the output restart for a moment only: Play gave ~2 s of sound,
+    // then silence, again and again (Build 87 device log: Siri/call during a locked pause). In the foreground WebKit
+    // restarts the element itself when the interruption ends and one Play works (same device test, unlocked). So a
+    // hold whose element iOS has stopped while the app is hidden is ended as after its full period: released, lock-screen
+    // controls withdrawn, Play inside the app restores everything. Our own code never pauses the element during a hold.
+    _checkHold() {
+      if (!this._softPaused || !this.mediaOut || !this.mediaOut.paused || !document.hidden) return;
+      this._softPaused = false; clearTimeout(this._softT); this._softT = null;
+      this.emit('softpause', 'broken');
+      Promise.resolve(this.ctx.state === 'running' ? this.ctx.suspend() : null).catch(() => { }).then(() => {
+        if (!this.userPaused) return;   // Play arrived meanwhile
+        this._keepAlive(false); this._withdrawControls(); this.emit('state', 'suspended');
+      });
+    }
     _endSoft() { if (!this._softPaused) return false; this._softPaused = false; clearTimeout(this._softT); this._softT = null; return true; }
     // The held pause has lasted its full period: release everything as an ordinary pause does, then withdraw the
     // lock-screen controls with it. A released output cannot be restarted from the lock screen once iOS suspends the
@@ -421,6 +437,10 @@
         if (this.mediaOut) this.mediaOut.pause();
         if (this.silentEl) this.silentEl.pause();
         this._ms('paused');
+        // Nothing left to resume (Stop, the Sleep timer's end, the last sound removed): the lock-screen Play would do
+        // nothing (Build 86 device test after the Sleep timer), so the controls are withdrawn as after a long pause.
+        // Choosing a sound restores them (_keepAlive(true), or the touch that starts it).
+        if (this.mediaOut && !this.active.size && !(this.tone && this.tone.playing) && !(this.matcher && this.matcher.playing)) this._withdrawControls();
       }, FADE_OUT * 1000 + 300);
     }
 
