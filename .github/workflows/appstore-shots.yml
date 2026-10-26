@@ -1,0 +1,56 @@
+# TEST-ONLY workflow (branch appstore-shots-89; kept, never merged). Nothing is signed or uploaded and no secrets are used.
+# Builds a simulator copy of the Build 89 RELEASE bundle (code identical to faacd9b) with .github/simtest/shots.js injected,
+# then captures the App Store screenshot set on a 6.9" iPhone and a 13" iPad simulator (dark appearance, clean status bar).
+name: App Store screenshots (Build 89)
+
+on:
+  push:
+    branches: [appstore-shots-89]
+
+permissions:
+  contents: read
+
+jobs:
+  shots:
+    runs-on: macos-26
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode 26
+        run: |
+          XC=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1)
+          if [ -n "$XC" ]; then sudo xcode-select -s "$XC"; fi
+          xcodebuild -version
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build the release app for the simulator (shots.js injected)
+        run: |
+          set -eo pipefail
+          cd native; npm ci --no-audit --no-fund >/dev/null
+          SOFTWAVE_DIAG=0 node build-www.js
+          test ! -f www/diag.js && test ! -f www/selftest.js
+          node ../.github/simtest/inject.js www ../.github/simtest/shots.js
+          npx cap sync ios
+          node -e "const f='ios/App/App/capacitor.config.json',c=JSON.parse(require('fs').readFileSync(f));c.loggingBehavior='production';require('fs').writeFileSync(f,JSON.stringify(c,null,1))"
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' -derivedDataPath dd CODE_SIGNING_ALLOWED=NO ARCHS=arm64 ONLY_ACTIVE_ARCH=NO build | tail -3
+          APP=$(find dd/Build/Products -name App.app -type d | head -1)
+          /usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' -c 'Print CFBundleVersion' "$APP/Info.plist"
+          mkdir -p $GITHUB_WORKSPACE/simapp; cp -R "$APP" $GITHUB_WORKSPACE/simapp/
+      - name: Capture on the 6.9-inch iPhone and the 13-inch iPad
+        run: |
+          S=.github/simtest; chmod +x $S/shots.sh
+          RT=$(xcrun simctl list runtimes -j | python3 -c "import json,sys; r=[x for x in json.load(sys.stdin)['runtimes'] if x['platform']=='iOS' and x['isAvailable']]; print(sorted(r,key=lambda x:[int(p) for p in x['version'].split('.')])[-1]['identifier'])")
+          PH=$(xcrun simctl list devicetypes | grep -oE 'iPhone 1[67] Pro Max' | sort -V | tail -1)
+          PD=$(xcrun simctl list devicetypes | grep -oE 'iPad Pro 13-inch \(M[0-9]+\)' | sort -V | tail -1)
+          echo "runtime $RT | iPhone: $PH | iPad: $PD"
+          $S/shots.sh iphone "$PH" "$RT" simapp/App.app out
+          $S/shots.sh ipad "$PD" "$RT" simapp/App.app out
+          for f in out/*.png; do echo "$f $(sips -g pixelWidth -g pixelHeight "$f" | awk '/pixel/{printf "%s ", $2}')"; done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: appstore-screenshots
+          path: out/
+          retention-days: 30
