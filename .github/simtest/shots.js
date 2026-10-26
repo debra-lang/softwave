@@ -1,12 +1,11 @@
 // TEST-ONLY (App Store screenshots, branch appstore-shots-89; never shipped). Injected into a simulator build of the
-// Build 89 release bundle. Walks the app to ten screens; after each one it prints "B89SHOT <name>" and waits while
-// shots.sh takes the simulator screenshot. Draws nothing itself: the screenshots show only the app's own UI.
+// Build 89 release bundle. Walks the app to ten screens; after each one it prints "B89SHOT <name>" and holds the screen
+// until shots.sh has saved the simulator screenshot (asked through the sink: GET /taken?n=<name>). Draws nothing itself: the screenshots show only the app's own UI.
 (function () {
   const STEPS = [
     ['01-sounds', 'sounds'], ['02-find-my-sound-ab', 'find'], ['03-visual-focus', 'focus'], ['04-sleep', 'sleep'],
     ['05-mixer-three-sounds', 'mixer'], ['06-experiments', 'lab'], ['07-frequency-painting', 'lab'],
     ['08-visual-focus-fullscreen', 'focus'], ['09-more-visuals', 'focus'], ['10-ask', 'sounds']];
-  const HOLD = 6000;
   const say = (m) => { try { console.log(m); } catch (_) { } try { fetch('http://127.0.0.1:8799/', { method: 'POST', body: m }).catch(() => { }); } catch (_) { } };
   const sleep = (ms) => new Promise(r => setTimeout(r, ms));
   const $ = (s) => document.querySelector(s);
@@ -40,7 +39,11 @@
     const i = +at; if (i >= STEPS.length) { say('B89SHOT done'); return; }
     const [name] = STEPS[i];
     try { window.scrollTo(0, 0); if (ACT[name]) await ACT[name](); } catch (e) { say('B89NOTE error ' + name + ' ' + (e && e.message)); }
-    say('B89SHOT ' + name); await sleep(HOLD);
+    say('B89SHOT ' + name); await sleep(1500);
+    let ok = false;
+    for (let k = 0; k < 90 && !ok; k++) { try { ok = (await (await fetch('http://127.0.0.1:8799/taken?n=' + name)).text()) === '1'; } catch (_) { if (k === 0) say('B89NOTE no ack channel'); } if (!ok) await sleep(1000); }
+    if (!ok) say('B89NOTE no screenshot confirmed for ' + name);
+    await sleep(500);
     try { window.softwave && window.softwave.stopAll && window.softwave.stopAll(); } catch (_) { }
     go(i + 1);
   });
