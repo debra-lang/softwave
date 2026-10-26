@@ -17,6 +17,9 @@
     localStorage.setItem('softwave:journey', JSON.stringify({ step: 5, done: true, dismissed: true }));
   };
   const go = (i) => { sessionStorage.setItem('b89shot', String(i)); prime(); location.hash = '#' + (STEPS[i] ? STEPS[i][1] : 'sounds'); location.reload(); };
+  // while a screen waits for its screenshot: the full-screen visual hides its controls when idle, so keep "moving"
+  // over it the way a hand would (the app's own pointermove handler shows them)
+  const KEEP = { '08-visual-focus-fullscreen': () => { const f = $('#focus-screen'); if (f) f.dispatchEvent(new PointerEvent('pointermove', { bubbles: true })); } };
   const ACT = {
     '02-find-my-sound-ab': async () => { clickText('Help Me Find My Sound'); await sleep(1500); click('[data-exp-start]'); await sleep(2500);
       const e = [...document.querySelectorAll('#lab-detail *')].find(x => x.children.length === 0 && /Round 1 of/.test(x.textContent));
@@ -39,9 +42,10 @@
     const i = +at; if (i >= STEPS.length) { say('B89SHOT done'); return; }
     const [name] = STEPS[i];
     try { window.scrollTo(0, 0); if (ACT[name]) await ACT[name](); } catch (e) { say('B89NOTE error ' + name + ' ' + (e && e.message)); }
+    if (KEEP[name]) KEEP[name]();
     say('B89SHOT ' + name); await sleep(1500);
     let ok = false;
-    for (let k = 0; k < 90 && !ok; k++) { try { ok = (await (await fetch('http://127.0.0.1:8799/taken?n=' + name)).text()) === '1'; } catch (_) { if (k === 0) say('B89NOTE no ack channel'); } if (!ok) await sleep(1000); }
+    for (let k = 0; k < 300 && !ok; k++) { if (KEEP[name]) KEEP[name](); try { ok = (await (await fetch('http://127.0.0.1:8799/taken?n=' + name)).text()) === '1'; } catch (_) { if (k === 0) say('B89NOTE no ack channel'); } if (!ok) await sleep(1000); }
     if (!ok) say('B89NOTE no screenshot confirmed for ' + name);
     await sleep(500);
     try { window.softwave && window.softwave.stopAll && window.softwave.stopAll(); } catch (_) { }

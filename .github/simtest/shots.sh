@@ -17,14 +17,14 @@ xcrun simctl install "$U" "$APP"
 log="$OUT/$L.log"; : > "$OUT/.events-$L"
 script -q -F "$log" xcrun simctl launch --console-pty --terminate-running-process "$U" "$APPID" >/dev/null 2>&1 &
 pid=$!; t=0
-while [ $t -lt 600 ]; do
+while [ $t -lt 1500 ]; do
   sleep 1; t=$((t + 1))
   for name in $(cat "$OUT/.events-$L" "$log" 2>/dev/null | grep -ao 'B89SHOT [a-z0-9-]*' | awk '{print $2}' | grep -v '^done$' | sort -u); do
-    if [ ! -f "$OUT/$L-$name.png" ]; then bar; xcrun simctl io "$U" screenshot "$OUT/.tmp-$L.png" >/dev/null 2>&1 && mv "$OUT/.tmp-$L.png" "$OUT/$L-$name.png" && echo "$L: $name"; fi
+    if [ ! -f "$OUT/$L-$name.png" ]; then s0=$SECONDS; bar; s1=$SECONDS; xcrun simctl io "$U" screenshot "$OUT/.tmp-$L.png" >/dev/null 2>&1 && mv "$OUT/.tmp-$L.png" "$OUT/$L-$name.png" && echo "$L: $name (seen at loop ${t}s; bar $((s1-s0))s, shot $((SECONDS-s1))s)"; fi
   done
   cat "$OUT/.events-$L" "$log" 2>/dev/null | grep -aq 'B89SHOT done' && break
 done
-[ $t -ge 600 ] && echo "$L: TIMEOUT"
+[ $t -ge 1500 ] && echo "$L: TIMEOUT"
 cat "$OUT/.events-$L" "$log" 2>/dev/null | grep -a 'B89NOTE' | sort -u
 kill "$pid" 2>/dev/null; xcrun simctl shutdown "$U"; xcrun simctl delete "$U"
 echo "RESULT $L $(ls "$OUT"/$L-*.png 2>/dev/null | wc -l | tr -d ' ') screenshots"
