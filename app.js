@@ -185,7 +185,7 @@
   function ensureLab() {
     if (window.softwaveLab) return Promise.resolve();
     if (labPromise) return labPromise;
-    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=106'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
+    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=107'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
     return labPromise;
   }
   window.softwaveEnsureLab = ensureLab;
@@ -195,7 +195,7 @@
     if (window.softwaveRI) return Promise.resolve();
     if (riPromise) return riPromise;
     const load = src => new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = src; s.defer = true; s.onload = resolve; s.onerror = () => reject(new Error('load ' + src)); document.head.appendChild(s); });
-    riPromise = load('ri-protocol.js?v=2').then(() => load('ri.js?v=10')).catch(e => { riPromise = null; throw e; });
+    riPromise = load('ri-protocol.js?v=2').then(() => load('ri.js?v=11')).catch(e => { riPromise = null; throw e; });
     return riPromise;
   }
   // the home and Experiments cards reflect the profile summary the lab keeps in storage
