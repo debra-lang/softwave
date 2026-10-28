@@ -120,8 +120,7 @@
         if (T.includes('rich') || T.includes('full')) base.rich = Math.max(base.rich, 0.6);
         engine.setSculpt(base, 'sculpt');
         await engine.loadMix([{ id: 'sculpt', volume: 0.55, balance: 0, params: base }]);
-        if (app.noteAskBed) app.noteAskBed();   // a sound chosen on the Sounds page replaces this bed instead of layering on it
-        ok.push('Playing My Sound — a ' + T.join(', ') + ' noise blend' + ((profile && profile.params()) ? ', shaped from your preferences' : '') + '. You can stop it anytime using Stop, or say “warmer”, “softer” or “more movement” to adjust');
+        ok.push('Playing a ' + T.join(', ') + ' sound' + ((profile && profile.params()) ? ' shaped from your preferences' : '') + ' — say “warmer”, “softer” or “more movement” to adjust');
       },
       async something_different() {
         // With a profile: keep the user's learned sound, swap the texture to one they haven't
@@ -305,70 +304,16 @@
     // the app declares the microphone and speech-recognition usage descriptions (Info.plist), so iOS
     // asks for both permissions on the first tap. Nothing starts until the microphone is tapped.
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    // MIC_MODE — iPhone app: 'native' (Apple speech recognition through the app's own plugin, which restores the audio
-    // session to playback-only after every session), 'webkit' (the browser recogniser, which leaves the microphone in
-    // the route — Build 73/74 diagnostics) or 'hidden' (no microphone button; typing stays). Website: always 'webkit'.
-    const IS_SHELL = !!(window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform() === 'ios');
-    const MIC_MODE = IS_SHELL ? 'native' : 'webkit';
-    const nativeSR = () => (IS_SHELL && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.SoftwaveSpeech) || null;
-    const useNative = MIC_MODE === 'native' && !!nativeSR();      // 'native' without the plugin (an older shell) hides the button
-    const useWebkit = MIC_MODE === 'webkit' && !!SR;
-    const diagNative = (phase, extra) => { try { if (window.__swDiagNative) window.__swDiagNative(Object.assign({ type: 'speechNative', phase: phase }, extra || {})); } catch (_) { } };
-    // the plugin reports every session end with the restored session's category and route — the line that proves
-    // the microphone left the route on a device (visible only in the diagnostic build's log)
-    let nativeStateHook = null;   // set below: the page's "getting ready" → "Listening" → "I can hear you" indication follows these events
-    try { const P0 = useNative && nativeSR(); if (P0 && P0.addListener) P0.addListener('listeningState', e => { diagNative('state', e); try { if (nativeStateHook) nativeStateHook(e); } catch (_) { } }); } catch (_) { }
-    // Contextual strings for Apple's recognizer (iPhone app): every sound name and alias plus the command words the
-    // parser understands, so "pink" is favoured over "ping". Words only — nothing about the user.
-    const NATIVE_VOCAB = useNative ? Array.from(new Set(LEX.reduce((a, e) => a.concat(e.slice(1)), []).concat(['play', 'stop', 'pause', 'resume', 'add', 'remove', 'louder', 'softer', 'quieter', 'warmer', 'brighter', 'more movement', 'steadier', 'my sound', 'sleep timer', 'timer', 'undo', 'save']))) : null;
-    // Build 78: the single-word sound names, for the plugin's alternative-transcript rule (a candidate transcript is used only
-    // when it is the same utterance with one word swapped for one of these)
-    const NATIVE_SOUNDS = useNative ? NATIVE_VOCAB.filter(w => w.indexOf(' ') < 0 && LEX.some(e => e.slice(1).indexOf(w) >= 0)) : null;
-    // Build 78: Apple's music vocabulary writes the artist "P!nk" for "pink" (Build 77 device log, 19 Oct 2026)
-    const normaliseHeard = (t) => t.replace(/\bP!nk\b/gi, 'pink');
-    // Build 79: "add" is a one-syllable first word and comes back as "and", "ad", "had", "an" or "at" (Build 78 device log:
-    // "and some rain" replaced the mix instead of adding to it). While something is playing, a result that begins with one
-    // of these and is followed by a known sound name is read as "add …". Conservative: "and", "ad" and "had" may carry
-    // the parser's own qualifiers ("a little", "some", "the", …); "at" and "an" only directly before a sound name. Nothing
-    // else about the text changes, and a request with a real verb ("play", "with", "stop", …) is never touched.
-    const SOUND_ALIASES = useNative ? LEX.reduce((a, e) => a.concat(e.slice(1)), []).map(w => w.replace(/ /g, '\\s+')).sort((a, b) => b.length - a.length) : null;
-    const normaliseAdd = (t) => {
-      if (!useNative || !(engine.active && engine.active.size > 0)) return t;
-      const names = '(?:' + SOUND_ALIASES.join('|') + ')\\b';
-      const loose = new RegExp('^(and|ad|had)\\s+((?:a little |a bit of |some |a touch of |light |the |an |a )?' + names + ')', 'i');
-      const strict = new RegExp('^(at|an)\\s+(' + names + ')', 'i');
-      const m = loose.exec(t) || strict.exec(t);
-      return m ? 'add ' + t.slice(m[0].length - m[2].length) : t;
-    };
-    const escapeHtml = (t) => t.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
-    if (useNative || useWebkit) {
+    if (SR) {
       const mic = document.createElement('button');
       mic.type = 'button'; mic.id = 'ask-mic'; mic.className = 'btn btn-ghost btn-sm ask-mic';
       mic.setAttribute('aria-label', 'Speak your request'); mic.setAttribute('aria-pressed', 'false');
       mic.title = 'Speak your request — voice recognition may be processed by your browser or device provider';
       mic.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3z" fill="currentColor"/><path d="M18 11a6 6 0 0 1-12 0M12 17v3.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
       form.appendChild(mic);
-      if (useNative) {   // iPhone app only: the "getting ready" look (dimmed, steady ring) and the "hearing you" ring
-        const st = document.createElement('style');
-        st.textContent = '.ask-mic.preparing{color:var(--muted);opacity:.65;box-shadow:0 0 0 2px var(--ring)}.ask-mic.listening.hearing{box-shadow:0 0 0 4px var(--accent);animation:none}';
-        document.head.appendChild(st);
-      }
       // ONE persistent recognition instance, reused across taps — recreating per tap can wedge
       // Chrome's speech service so the second session never returns. Handlers attach once.
       let rec = null, listening = false, firstUse = true, listenGuard = null, sessionHadOutcome = false, duckPrev = null, duckRestoreVal = null, duckRestoreAt = 0;
-      // iPhone app: WebKit keeps the microphone in the audio route after a recognition session has ended, for as long
-      // as the recogniser object lives (Build 73 diagnostic, 18 Oct 2026: the route held the built-in microphone from
-      // the tap to the end of the run, and the speaker then played through the voice-processing path — hiss, a level
-      // that drifted on its own, breaks on volume changes). There, every finished session releases its recogniser:
-      // handlers detached, abort() called, reference dropped, so the next tap builds a fresh one. The website keeps
-      // its single persistent instance above (recreating per tap can wedge Chrome's speech service).
-      const SHELL = !!(window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform() === 'ios');
-      function releaseRec() {
-        if (!SHELL || !rec) return;
-        const r = rec; rec = null;
-        r.onresult = r.onerror = r.onend = null;   // nothing more from this instance reaches the UI
-        try { r.abort(); } catch (_) { }
-      }
       const setListening = (on) => {
         listening = on;
         mic.classList.toggle('listening', on);
@@ -387,43 +332,14 @@
         }
         else if (!on && duckPrev != null) { engine.setMasterTrim(duckPrev, 0.3); duckRestoreVal = duckPrev; duckRestoreAt = performance.now() + 1800; duckPrev = null; }
         const wasDucked = on && duckPrev != null;
-        if (useNative) { mic.classList.remove('preparing', 'hearing'); mic.removeAttribute('aria-busy'); nativeDucked = wasDucked; }
-        if (on) out.innerHTML = '<div class="ask-line">Listening…' + (wasDucked ? ' (sound paused while you speak)' : '') + '</div>'; else if (out.textContent.trim().indexOf('Listening…') === 0 || (useNative && out.querySelector('.ask-mic-state'))) out.innerHTML = '';
-        // iPhone app: 30 s from the tap covers the permission prompts and the hardware switch; the guard is re-armed to
-        // 14 s when capture starts (the plugin's own 12 s guard then acts first and keeps the text heard so far)
-        armGuard(on, useNative ? 30000 : 10000);
-      };
-      let nativeDucked = false;
-      function armGuard(on, ms) {
+        if (on) out.innerHTML = '<div class="ask-line">Listening…' + (wasDucked ? ' (sound paused while you speak)' : '') + '</div>'; else if (out.textContent.trim().indexOf('Listening…') === 0) out.innerHTML = '';
         clearTimeout(listenGuard);
         if (on) listenGuard = setTimeout(() => {   // hard guarantee: "Listening…" can never get stuck
-          try { if (useNative) { const P = nativeSR(); if (P) P.stop(); } else if (rec) rec.abort(); } catch (_) { }
+          try { rec && rec.abort(); } catch (_) { }
           setListening(false);
           confirmLines(['I didn’t hear anything. Tap the microphone and try again, or type your request.'], false);
-        }, ms);
-      }
-      // iPhone app: what the button and the line under it say follows the plugin's own events — "getting ready" from
-      // the tap (the sound is already quietened; the hardware switch and engine start take ~1.7 s on a device, and a word
-      // spoken then is lost), "Listening… speak now" only once capture has actually started, "I can hear you" on the
-      // first partial result. The website keeps its immediate "Listening…" (WebKit starts at once).
-      function nativePhase(phase) {
-        if (!useNative || !listening) return;
-        if (phase === 'preparing') {
-          mic.classList.remove('listening', 'hearing'); mic.classList.add('preparing'); mic.setAttribute('aria-busy', 'true');
-          input.placeholder = 'Getting the microphone ready… tap again to cancel';
-          out.innerHTML = '<div class="ask-line ask-mic-state">Getting the microphone ready… speak when the button pulses</div>';
-        } else if (phase === 'listening') {
-          mic.classList.remove('preparing'); mic.classList.add('listening'); mic.removeAttribute('aria-busy');
-          input.placeholder = 'Listening… tap again to cancel';
-          out.innerHTML = '<div class="ask-line ask-mic-state">Listening… speak now' + (nativeDucked ? ' (sound paused while you speak)' : '') + '</div>';
-          armGuard(true, 14000);
-        } else if (phase === 'hearing') {
-          if (!mic.classList.contains('listening')) return;
-          mic.classList.add('hearing');
-          out.innerHTML = '<div class="ask-line ask-mic-state">Listening… I can hear you</div>';
-        }
-      }
-      if (useNative) nativeStateHook = (e) => { if (!e) return; if (e.status === 'started') nativePhase('listening'); else if (e.status === 'partial') nativePhase('hearing'); };
+        }, 10000);
+      };
       function ensureRec() {
         if (rec) return rec;
         rec = new SR();
@@ -451,68 +367,10 @@
           const silent = listening && !sessionHadOutcome;
           setListening(false);
           if (silent) { track('voice_command_failed'); confirmLines(['I didn’t catch that. Tap the microphone and try again, or type your request.'], false); }
-          releaseRec();   // iPhone app only: let WebKit release the microphone (see above)
         };
         return rec;
       }
-      // iPhone app: one native session per tap; the plugin stops capture and restores the playback-only session on
-      // every ending (result, error, cancel, its 12 s guard, a new tap), and the promise settles exactly once.
-      async function nativeTap() {
-        const P = nativeSR();
-        if (listening) { try { await P.stop(); } catch (_) { } setListening(false); return; }   // tap again = cancel (the pending start rejects as 'aborted')
-        track('voice_opened');
-        if (firstUse) { firstUse = false; app.toast('Voice recognition may be processed by your browser or device provider. Find My Quiet Sound does not store your voice and does not send your Sound Profile or tinnitus information with the request.', 5600); }
-        sessionHadOutcome = false;
-        const wasPlaying = engine.isPlaying;
-        setListening(true);   // ducks the sound first…
-        nativePhase('preparing');   // …and says so: "Listening" waits for the plugin's started event
-        await new Promise(r => setTimeout(r, wasPlaying ? 350 : 0));
-        if (!listening) return;   // cancelled during the quiet-down
-        diagNative('start', { vocabulary: NATIVE_VOCAB.length });
-        let res = null, failure = null;
-        if (engine.holdRemote) engine.holdRemote(true);   // iOS's own lock-screen pause/play during capture are not the user's
-        try { res = await P.start({ language: document.documentElement.lang || 'en', vocabulary: NATIVE_VOCAB, sounds: NATIVE_SOUNDS }); } catch (e) { failure = (e && (e.code || e.message)) || 'unknown'; }
-        if (engine.holdRemote) engine.holdRemote(false);
-        sessionHadOutcome = true;
-        setListening(false);   // …and restores it once the session has ended
-        // Switching the shared hardware session for capture interrupts WebKit's audio context; it comes back only on a
-        // touch. The session has fully ended here (the promise settles after the plugin's restore), so the engine's own
-        // resume() is called — but only when sound is meant to be playing: a mix the user paused or stopped stays silent.
-        if (engine.ctx && engine.ctx.state !== 'running' && engine.active && engine.active.size > 0 && !engine.userPaused) { try { diagNative('resume'); engine.resume(); } catch (_) { } }
-        // iOS can also interrupt the audio a moment AFTER the session has ended (seen on device, Build 82): for 2.5 s an
-        // interruption of sound that is meant to be playing is resumed the same way. A pause, Stop or a new capture
-        // (whose own interruption must stand while it listens) ends the watch.
-        if (engine.active && engine.active.size > 0 && !engine.userPaused) {
-          const until = Date.now() + 2500;
-          const off = engine.on(type => {
-            if (type !== 'state') return;
-            if (Date.now() > until || listening || engine.userPaused || !engine.active.size) { off(); return; }
-            if (engine.ctx && engine.ctx.state !== 'running') { try { diagNative('resume-late'); engine.resume(); } catch (_) { } }
-          });
-          setTimeout(off, 2600);
-        }
-        if (failure !== null) {
-          diagNative('error', { code: failure });
-          if (failure === 'not-allowed') { track('voice_permission_denied'); confirmLines(['Microphone access isn’t available. You can still type your request.'], false); }
-          else if (failure === 'aborted') { /* user cancelled or superseded — quiet */ }
-          else if (failure === 'no-speech') { track('voice_command_failed'); confirmLines(['I didn’t catch that. Try again or type your request.'], false); }
-          else { track('voice_command_failed'); confirmLines(['Voice didn’t work just now (' + failure + '). You can still type your request.'], false); }
-          return;
-        }
-        const heard = (res && typeof res.text === 'string' ? res.text : '').trim();
-        const text = normaliseAdd(normaliseHeard(heard));
-        diagNative('result', { chars: text.length });   // length only — never the words
-        if (!text) { track('voice_command_failed'); confirmLines(['I didn’t catch that. Try again or type your request.'], false); return; }
-        input.value = text;                       // transparency: show exactly what was heard
-        track('voice_command_completed');
-        await run(text);
-        input.value = '';
-        // Build 78: when Ask could not act on the words, show them — on screen only; the diagnostic log and analytics never
-        // receive the transcript (the analytics events above carry no text)
-        if (/I don’t recognise that sound|I didn’t catch that/.test(out.textContent)) { const d = document.createElement('div'); d.className = 'ask-line ask-heard'; d.innerHTML = 'Heard “' + escapeHtml(heard) + '”'; out.appendChild(d); }
-      }
       mic.addEventListener('click', () => {
-        if (useNative) { nativeTap(); return; }
         if (listening) { try { rec && rec.abort(); } catch (_) { } setListening(false); return; }   // tap again = cancel
         track('voice_opened');
         if (firstUse) { firstUse = false; app.toast('Voice recognition may be processed by your browser or device provider. Find My Quiet Sound does not store your voice and does not send your Sound Profile or tinnitus information with the request.', 5600); }

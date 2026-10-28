@@ -185,7 +185,7 @@
   function ensureLab() {
     if (window.softwaveLab) return Promise.resolve();
     if (labPromise) return labPromise;
-    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=107'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
+    labPromise = new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = 'lab.js?v=106'; s.defer = true; s.onload = () => resolve(); s.onerror = () => { labPromise = null; reject(new Error('Could not load experiments')); }; document.body.appendChild(s); });
     return labPromise;
   }
   window.softwaveEnsureLab = ensureLab;
@@ -195,7 +195,7 @@
     if (window.softwaveRI) return Promise.resolve();
     if (riPromise) return riPromise;
     const load = src => new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = src; s.defer = true; s.onload = resolve; s.onerror = () => reject(new Error('load ' + src)); document.head.appendChild(s); });
-    riPromise = load('ri-protocol.js?v=2').then(() => load('ri.js?v=11')).catch(e => { riPromise = null; throw e; });
+    riPromise = load('ri-protocol.js?v=2').then(() => load('ri.js?v=10')).catch(e => { riPromise = null; throw e; });
     return riPromise;
   }
   // the home and Experiments cards reflect the profile summary the lab keeps in storage
@@ -455,9 +455,6 @@
         if (window.SoftwaveField) { const pv = new SoftwaveField.Preview($('.tile-canvas', card), d.id); tilePreviews.set(card, pv); }
         btn.addEventListener('click', async () => {
           const wasActive = engine.isActive(d.id);
-          // A My Sound bed that Ask started has no card here: a sound chosen on this page replaces it
-          // rather than playing over it. Sounds the user layered themselves are left alone.
-          if (!wasActive && askBedActive()) engine.stopSound('sculpt');
           const ok = await engine.toggleSound(d.id, (+$('input', card).value) / 100);
           // Stay on the grid — no jump to the player — so more sounds can be added;
           // ~4s of quiet later the full-screen sound view opens on its own.
@@ -466,7 +463,7 @@
         });
         const slider = $('input', card);
         slider.addEventListener('input', () => { engine.setVolume(d.id, +slider.value / 100); rememberVol(d.id, +slider.value / 100); $('output', card).textContent = slider.value + '%'; });
-        $('.vol-pause', card).addEventListener('click', pauseOrPlay);
+        $('.vol-pause', card).addEventListener('click', async () => { if (engine.ctx && !engine.userPaused) await engine.pauseAll(); else await engine.playAll(); });
         $('.vol-stop', card).addEventListener('click', () => engine.stopSound(d.id));
         grid.appendChild(card);
       });
@@ -677,18 +674,14 @@
       setTimeout(() => toast('Quiet? Raise the volume slider here — and check your phone’s own volume buttons. Both work together.', 5200), 1400);
     }
   });
-  // Every play/pause control goes through here. iOS also has a non-standard "interrupted" context state (a call, Siri,
-  // an alarm): anything that is not playing with sounds queued means "resume". The tap that reaches the control may
-  // itself have just resumed the context (the engine's gesture handler runs on pointerdown), so "playing" is judged as
-  // it was before this gesture — otherwise the first press after a call paused what the tap had just brought back.
-  async function pauseOrPlay() {
+  async function togglePlay() {
     if (!engine.ctx) { if (!engine.activeList().length) return toast('Choose a sound to begin'); }
-    const resumedByThisTap = engine._gestureResumedAt && (Date.now() - engine._gestureResumedAt) < 700;
-    if (engine.isPlaying && !resumedByThisTap) await engine.pauseAll();
-    else if (engine.active.size || (engine.tone && engine.tone.playing)) await engine.playAll();
+    // iOS also has a non-standard "interrupted" state — anything that isn't running
+    // with sounds queued means "resume", or the first press does nothing.
+    if (!engine.userPaused && engine.isPlaying) await engine.pauseAll();
+    else if (engine.userPaused && engine.active.size) await engine.playAll();
     else toast('Choose a sound to begin');
   }
-  const togglePlay = pauseOrPlay;
   $('#player-toggle').addEventListener('click', togglePlay);
   function stopEverything() { if (window.softwaveLab && softwaveLab.isRunning()) softwaveLab.stop(); engine.stopAll(); cancelIntents({ stop: true }); }
   window.softwaveStopAll = stopEverything;
@@ -712,13 +705,11 @@
     $$('[data-act="add"]').forEach(b => b.classList.toggle('fa-cta', !list.length));
   }
   let lastIds = new Set();
-  let timerEnded = false;   // the Sleep page shows "Timer finished" (not "Continuous") until a sound or a timer starts again
   engine.on((type, data) => {
-    if (type === 'sounds' && data.length && timerEnded) { timerEnded = false; renderTimer(engine.timer); }
     if (type === 'sounds') { syncCards(data); renderMixer(data); updatePlayer(); const now = new Set(data.map(s => s.id)); const pc = store.get('playcounts', {}); now.forEach(id => { if (!lastIds.has(id)) pc[id] = (pc[id] || 0) + 1; }); store.set('playcounts', pc); lastIds = now; }
     if (type === 'state' || type === 'tone') updatePlayer();
     if (type === 'timer') renderTimer(data);
-    if (type === 'timerDone') { timerEnded = true; renderTimer(engine.timer); toast('Sleep timer finished. Rest well.'); if (wake) { wake.release().catch(() => { }); wake = null; } }   // the display may sleep once the sound has stopped
+    if (type === 'timerDone') { toast('Sleep timer finished. Rest well.'); }
     if (type === 'limit') toast(`You can layer up to ${data} sounds at once.`);
   });
 
@@ -981,7 +972,7 @@
 
   // ---------- sleep ----------
   const sleep = { minutes: 0, fade: true };
-  $$('#view-sleep .timer-seg [data-min]').forEach(b => b.addEventListener('click', () => { $$('#view-sleep .timer-seg [data-min]').forEach(x => x.setAttribute('aria-checked', x === b)); sleep.minutes = +b.dataset.min; engine.setTimer(sleep.minutes, sleep.fade); if (sleep.minutes) toast(`Timer set: ${sleep.minutes} minutes${sleep.fade ? ' with gentle fade-out' : ''}`); }));
+  $$('.timer-seg [data-min]').forEach(b => b.addEventListener('click', () => { $$('.timer-seg [data-min]').forEach(x => x.setAttribute('aria-checked', x === b)); sleep.minutes = +b.dataset.min; engine.setTimer(sleep.minutes, sleep.fade); if (sleep.minutes) toast(`Timer set: ${sleep.minutes} minutes${sleep.fade ? ' with gentle fade-out' : ''}`); }));
   $('#sleep-fade').addEventListener('change', e => { sleep.fade = e.target.checked; if (engine.timer.endsAt) engine.timer.fade = sleep.fade; });
   const screen = $('#sleep-screen');
   let wake = null, sleepEntering = false;
@@ -1017,8 +1008,7 @@
     // every timer button label follows the engine, no matter where the timer was set
     const nb = $('[data-now="timer"]'); if (nb) nb.textContent = t.durationMin ? `Timer · ${t.durationMin} min` : 'Timer';
     const el = $('#player-timer'), rem = $('#sleep-remaining');
-    if (t.endsAt) timerEnded = false;
-    if (!t.endsAt) { el.hidden = true; rem.textContent = timerEnded ? 'Timer finished' : 'Continuous'; if (!t.durationMin) $$('.timer-seg [data-min]').forEach(x => x.setAttribute('aria-checked', x.dataset.min === '0')); return; }
+    if (!t.endsAt) { el.hidden = true; rem.textContent = 'Continuous'; if (!t.durationMin) $$('.timer-seg [data-min]').forEach(x => x.setAttribute('aria-checked', x.dataset.min === '0')); return; }
     const left = Math.max(0, t.endsAt - Date.now()); const m = Math.floor(left / 60000), s = Math.floor((left % 60000) / 1000);
     const txt = `${m}:${String(s).padStart(2, '0')}`;
     el.hidden = false; el.textContent = (t.fading ? 'Fading · ' : '⏾ ') + txt; rem.textContent = (t.fading ? 'Fading out · ' : 'Sound stops in ') + txt;
@@ -1155,7 +1145,7 @@
   window.softwaveTransition = { to: transitionTo, back: transitionBack, clear: clearTransit, get active() { return transit.active; } };
   $('#field-core').addEventListener('click', async e => { const b = e.currentTarget; b.classList.add('pressed'); setTimeout(() => b.classList.remove('pressed'), 450); if (!engine.activeList().length) { $('#sound-groups').scrollIntoView({ behavior: 'smooth', block: 'start' }); return; } await togglePlay(); syncField(); });
   $('#field-vol').addEventListener('input', e => setMaster(+e.target.value / 100, true));
-  $('#field-pause').addEventListener('click', pauseOrPlay);
+  $('#field-pause').addEventListener('click', async () => { if (engine.ctx && !engine.userPaused) await engine.pauseAll(); else await engine.playAll(); });
   $('#field-stop').addEventListener('click', () => { stopEverything(); toast('All sounds stopped'); });
   // Timer: a small picker instead of cycling values on each press.
   // Inline "custom minutes" form used by every timer picker instead of window.prompt(). Starts empty,
@@ -1229,7 +1219,7 @@
   $('#now-close').addEventListener('click', closeNow);
   $('#now').addEventListener('keydown', e => { if (e.key === 'Escape') closeNow(); });
   // Immerse controller: same functions as the Sounds player, wired for a full-screen layer
-  $('#now-pause').addEventListener('click', pauseOrPlay);
+  $('#now-pause').addEventListener('click', async () => { if (engine.ctx && !engine.userPaused) await engine.pauseAll(); else await engine.playAll(); });
   $('#now-stop').addEventListener('click', () => { stopEverything(); toast('All sounds stopped'); });
   $('#now-timer').addEventListener('click', () => openTimerSheet());
   const leaveNow = (then) => { closeNow(); afterLayerClose(then); };
@@ -1262,11 +1252,8 @@
       const br = d.querySelector('[data-back-result]');
       if (br) { br.click(); setTimeout(updateBackBtn, 120); return; }
       if (lab && lab.isRunning()) { lab.stop('Experiment stopped'); if (lab.revealPanel) lab.revealPanel(); setTimeout(updateBackBtn, 120); return; }
-      // Opened from the Find My Sound section (its own entry, with the step that arrival pushed still to
-      // undo), the placard IS the page: Back returns to the section (step 4). Any other panel — including
-      // one opened from the list after arriving by the Experiments tab, where no step exists — closes here;
-      // deferring to step 4 with nothing to undo left the button dead.
-      if (location.hash !== '#find' && !(labEntry && labEntry.view === 'find' && d.dataset.origin === 'entry' && navDepth > labEntry.depth)) {
+      // Opened from the Find My Sound section, the placard IS the page: Back returns to the section (step 4).
+      if (location.hash !== '#find' && !(labEntry && labEntry.view === 'find')) {
         const c = d.querySelector('[data-close]');
         if (c) { c.click(); setTimeout(updateBackBtn, 120); return; }
         d.hidden = true; d.innerHTML = ''; setTimeout(updateBackBtn, 120); return;
@@ -1321,7 +1308,7 @@
   // ---------- keyboard shortcuts ----------
   document.addEventListener('keydown', e => {
     if (e.target.matches('input, select, textarea')) return;
-    if (e.key === ' ' && !e.target.closest('button, a, [role="button"], [tabindex], summary, label')) { e.preventDefault(); togglePlay(); }
+    if (e.key === ' ') { e.preventDefault(); togglePlay(); }
     if (e.key === 'Escape' && !screen.hidden) exitSleep();
   });
 
@@ -1353,16 +1340,6 @@
     e.preventDefault(); x.click();
   });
   window.softwaveApp = { afterDone, escapeFree, leaveLab, syncRiCards, syncProfileCards, leaveTool, markMatchReturn: (exp) => { if (matchOrigin) matchOrigin.exp = exp; }, customTimerForm, layerPush, layersClose, layerReplace, topLayerIs, afterLayerClose, updateBackBtn, armIntent, cancelIntent, cancelIntents, pendingIntents, renderPresetsRemount, loadPreset, saveCurrentMix, restoreMix, openSaveSheet, openManageMenu, openMixMenu, savedSessions, soundVol, SAVED_ICO, setMaster, togglePlay, toast, store, PRESETS, paintRange, showView, scheduleAutoAdvance, renderPresets: renderPresetsRemount };
-
-  // ---------- Ask's synthesized bed ----------
-  // Ask's character requests ("something relaxing") play the engine's "My Sound" noise blend, a Lab sound with no
-  // card on the Sounds page. assistant.js marks it when it starts one; the mark clears the moment that layer stops
-  // for any reason (Stop, Undo, a named Ask request, Immerse Off), so a My Sound started by Sound Sculptor, a saved
-  // sound or a Moment is never treated as Ask's. While an experiment runs, the layer is the experiment's, not Ask's.
-  let askBed = false;
-  function askBedActive() { return askBed && engine.isActive('sculpt') && !(window.softwaveLab && softwaveLab.isRunning()); }
-  engine.on(type => { if (type === 'sounds' && askBed && !engine.isActive('sculpt')) askBed = false; });
-  window.softwaveApp.noteAskBed = () => { askBed = true; };
 
   // ---------- init ----------
   renderSounds(); renderPresets(); renderMixer([]); updatePlayer(); renderProfileHooks(); if (window.SoftwaveField) syncField();

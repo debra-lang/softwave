@@ -359,8 +359,6 @@ input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.12); }
 /* ---- focus screen ---- */
 .focus-screen { position: fixed; inset: 0; z-index: 55; background: #05070f; overflow: hidden; touch-action: none; }
 .focus-screen[hidden] { display: none; }
-/* the visible screen, not the layout viewport: a page wider than the phone (or Safari's toolbars) must not push the controls off-screen */
-@supports (height: 100dvh) { .focus-screen { right: auto; bottom: auto; width: 100dvw; height: 100dvh; } }
 #focus-canvas { position: absolute; inset: 0; display: block; }
 .focus-ui { position: absolute; left: 0; right: 0; transition: opacity .6s ease, transform .6s ease; z-index: 2; }
 .focus-screen.idle .focus-ui { opacity: 0; pointer-events: none; }
@@ -458,8 +456,6 @@ input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.12); }
 .lab-card.running { border-style: solid; border-color: var(--lab); box-shadow: 0 14px 36px color-mix(in srgb, var(--lab) 30%, transparent); }
 .lab-card.running::before { content: "Running"; position: absolute; top: -10px; right: 14px; background: var(--lab); color: #fff; font-size: .7rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; padding: 3px 10px; border-radius: 999px; }
 .lab-card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
-/* phones: in the open experiment a long evidence badge drops below the title instead of widening the page */
-@media (max-width: 520px) { #lab-detail .lab-card-head { flex-wrap: wrap; } #lab-detail .lab-card-head .ev { max-width: 100%; white-space: normal; } }
 .lab-card h3, .lab-detail h2 { margin: 2px 0 0; font-size: 1.1rem; }
 .lab-detail h2 { font-size: 1.5rem; }
 .lab-cat { font-size: .72rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--lab); }
@@ -1271,9 +1267,6 @@ html[data-theme="dark"] .row-title { color: rgba(238,240,244,.42); }
 .focus-screen .focus-names { transition: opacity 1.4s ease; }
 .focus-screen.idle .focus-top-actions { opacity: .38; pointer-events: auto; transition: opacity 1.4s ease; }
 .focus-screen .focus-top-actions { transition: opacity 1.4s ease; }
-/* Close never fades out with the other controls: there is always a visible way out */
-.focus-screen .focus-close { position: absolute; top: max(14px, env(safe-area-inset-top)); left: 16px; z-index: 4; transition: opacity 1.4s ease; }
-.focus-screen.idle .focus-close { opacity: .72; }
 .now.idle .immerse-top { opacity: .38; pointer-events: auto; }
 
 /* focus bar: one quiet pill, the blue core replaced by the glass core */

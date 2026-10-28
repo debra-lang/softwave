@@ -17,10 +17,6 @@ on:
         description: "Signed build (requires Apple secrets — see IOS-APP.md)"
         type: boolean
         default: false
-      diag:
-        description: "Diagnostic bundle (observer + Diag button). Leave off for a release candidate."
-        type: boolean
-        default: false
 
 jobs:
   build:
@@ -45,21 +41,7 @@ jobs:
         run: npm ci
 
       - name: Build web bundle and sync Capacitor
-        env:
-          SOFTWAVE_DIAG: ${{ inputs.diag && '1' || '0' }}
         run: npm run sync
-
-      - name: Assert the bundle mode (release = no diagnostic script; diagnostic = script present)
-        run: |
-          set -e
-          if [ "${{ inputs.diag }}" = "true" ]; then
-            test -f www/diag.js && grep -q 'src="diag.js"' www/index.html || { echo "FATAL: diagnostic bundle requested but diag.js is missing"; exit 1; }
-            echo "### DIAGNOSTIC bundle (observer + Diag button)" >> "$GITHUB_STEP_SUMMARY"
-          else
-            if [ -f www/diag.js ] || [ -f www/selftest.js ] || grep -qE 'diag.js|selftest.js' www/index.html; then echo "FATAL: release bundle contains a diagnostic script"; exit 1; fi
-            echo "### RELEASE bundle (no diagnostic script)" >> "$GITHUB_STEP_SUMMARY"
-          fi
-          echo "Build $(/usr/libexec/PlistBuddy -c 'Print CFBundleVersion' ios/App/App/Info.plist 2>/dev/null || grep -m1 CURRENT_PROJECT_VERSION ios/App/App.xcodeproj/project.pbxproj) · commit ${GITHUB_SHA::7}" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Build (unsigned)
         if: ${{ !inputs.signed }}

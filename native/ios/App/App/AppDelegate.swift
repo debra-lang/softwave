@@ -1,6 +1,5 @@
 import UIKit
 import AVFoundation
-import WebKit
 import Capacitor
 
 @UIApplicationMain
@@ -11,15 +10,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Sound-therapy app: audio must play with the silent switch on, keep playing in
         // the background (UIBackgroundModes audio), and duck nothing — it IS the content.
-        // The sound itself is rendered by WebKit in its own process and audio session; this host-process
-        // session plays nothing. It is MIXABLE so that its activations — UIKit's keyboard machinery at
-        // keyboard show/hide, the re-activations below — never interrupt WebKit's session: with a
-        // non-mixable host session, opening the on-screen keyboard (Sleep timer "Custom…") stopped the
-        // sound until the next touch, and every Pause re-activation produced clicks (TestFlight 1.1
-        // Builds 66–68 diagnostics, October 2026). Other apps' audio is still silenced by WebKit's own
-        // non-mixable playback session, so the listening behaviour is unchanged.
         do {
-            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [.mixWithOthers])
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [])
             try AVAudioSession.sharedInstance().setActive(true)
         } catch {
             print("AVAudioSession setup failed: \(error)")
@@ -32,83 +24,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
                   let type = AVAudioSession.InterruptionType(rawValue: typeRaw), type == .ended else { return }
             try? AVAudioSession.sharedInstance().setActive(true)
         }
-        diagStart()   // DIAGNOSTIC BUILD 73: observation only (see below)
         return true
-    }
-
-    // ---- DIAGNOSTIC BUILD 73 (branch ios-72-diag only). Observation only: forwards audio-session interruptions, route
-    // changes, media-services resets, secondary-audio hints, keyboard notifications and a 2 s session snapshot (category,
-    // mode, options, sample rate, buffer, latencies, route port types, input availability, record permission) to
-    // the page (window.__swDiagNative), where diag.js records them next to the web-layer events. Never calls setCategory,
-    // setActive or anything that changes playback or recording. The existing session handling above is unchanged.
-    private var diagQueue: [String] = []
-    private var diagTimer: Timer?
-    private func diagWebView() -> WKWebView? {
-        for scene in UIApplication.shared.connectedScenes {
-            guard let ws = scene as? UIWindowScene else { continue }
-            for w in ws.windows { if let v = (w.rootViewController as? CAPBridgeViewController)?.webView { return v } }
-        }
-        return nil
-    }
-    private func diagSessionState() -> [String: Any] {
-        let s = AVAudioSession.sharedInstance()
-        return ["category": s.category.rawValue, "mode": s.mode.rawValue, "options": s.categoryOptions.rawValue,
-                "otherAudio": s.isOtherAudioPlaying, "secondaryHint": s.secondaryAudioShouldBeSilencedHint,
-                "outputs": s.currentRoute.outputs.map { $0.portType.rawValue },   // port TYPES only (Speaker, Receiver, BluetoothA2DP…): a port name could be a personal device name
-                "inputs": s.currentRoute.inputs.map { $0.portType.rawValue }, "inputAvailable": s.isInputAvailable,
-                "recordPermission": s.recordPermission.rawValue, "volume": Double(s.outputVolume), "sampleRate": s.sampleRate,
-                "prefSampleRate": s.preferredSampleRate, "ioBuffer": s.ioBufferDuration, "outLatency": s.outputLatency, "inLatency": s.inputLatency]
-    }
-    private func diagLog(_ type: String, _ extra: [String: Any] = [:]) {
-        var o = diagSessionState(); for (k, v) in extra { o[k] = v }
-        o["type"] = type; o["t"] = Int(Date().timeIntervalSince1970 * 1000)
-        guard let d = try? JSONSerialization.data(withJSONObject: o), let js = String(data: d, encoding: .utf8) else { return }
-        diagQueue.append(js); diagFlush()
-    }
-    private func diagFlush() {
-        // Lines are delivered in order and kept until the page confirms it has the receiver (diag.js defines it as
-        // the first script), so lines from before the page loaded — the launch line, an early interruption — are not lost.
-        guard let wv = diagWebView(), !diagQueue.isEmpty else { return }
-        let js = diagQueue[0]
-        wv.evaluateJavaScript("(function(){ if (!window.__swDiagNative) return false; window.__swDiagNative(" + js + "); return true; })()") { [weak self] result, _ in
-            guard let self = self else { return }
-            if let ok = result as? Bool, ok, !self.diagQueue.isEmpty, self.diagQueue[0] == js { self.diagQueue.removeFirst(); if self.diagQueue.count > 400 { self.diagQueue.removeFirst(self.diagQueue.count - 400) }; self.diagFlush() }
-        }
-    }
-    private func diagStart() {
-        let nc = NotificationCenter.default, q = OperationQueue.main
-        nc.addObserver(forName: AVAudioSession.interruptionNotification, object: nil, queue: q) { [weak self] n in
-            var e: [String: Any] = [:]
-            if let v = n.userInfo?[AVAudioSessionInterruptionTypeKey] as? NSNumber { e["interruptionType"] = v.intValue == 1 ? "began" : "ended" }
-            if let v = n.userInfo?[AVAudioSessionInterruptionOptionKey] as? NSNumber { e["shouldResume"] = (v.uintValue & AVAudioSession.InterruptionOptions.shouldResume.rawValue) != 0 }
-            if let v = n.userInfo?[AVAudioSessionInterruptionReasonKey] as? NSNumber { e["interruptionReason"] = v.intValue }
-            self?.diagLog("interruption", e)
-        }
-        nc.addObserver(forName: AVAudioSession.routeChangeNotification, object: nil, queue: q) { [weak self] n in
-            var e: [String: Any] = [:]
-            if let v = n.userInfo?[AVAudioSessionRouteChangeReasonKey] as? NSNumber { e["routeChangeReason"] = v.intValue }
-            if let prev = n.userInfo?[AVAudioSessionRouteChangePreviousRouteKey] as? AVAudioSessionRouteDescription { e["previousOutputs"] = prev.outputs.map { $0.portType.rawValue }; e["previousInputs"] = prev.inputs.map { $0.portType.rawValue } }
-            self?.diagLog("routeChange", e)
-        }
-        nc.addObserver(forName: AVAudioSession.mediaServicesWereResetNotification, object: nil, queue: q) { [weak self] _ in self?.diagLog("mediaServicesReset") }
-        nc.addObserver(forName: AVAudioSession.silenceSecondaryAudioHintNotification, object: nil, queue: q) { [weak self] n in
-            var e: [String: Any] = [:]
-            if let v = n.userInfo?[AVAudioSessionSilenceSecondaryAudioHintTypeKey] as? NSNumber { e["hintType"] = v.intValue == 1 ? "begin" : "end" }
-            self?.diagLog("silenceSecondaryAudioHint", e)
-        }
-        let kb: [(Notification.Name, String)] = [(UIResponder.keyboardWillShowNotification, "keyboardWillShow"), (UIResponder.keyboardDidShowNotification, "keyboardDidShow"),
-                                                 (UIResponder.keyboardWillHideNotification, "keyboardWillHide"), (UIResponder.keyboardDidHideNotification, "keyboardDidHide")]
-        for (name, label) in kb {
-            nc.addObserver(forName: name, object: nil, queue: q) { [weak self] n in
-                var e: [String: Any] = [:]
-                if let f = (n.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue)?.cgRectValue { e["keyboardHeight"] = Double(f.height) }
-                self?.diagLog(label, e)
-            }
-        }
-        nc.addObserver(forName: UIApplication.willResignActiveNotification, object: nil, queue: q) { [weak self] _ in self?.diagLog("appWillResignActive") }
-        nc.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: q) { [weak self] _ in self?.diagLog("appDidBecomeActive") }
-        diagTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in self?.diagLog("snapshot") }
-        diagLog("diagStart")
     }
 
     func applicationWillResignActive(_ application: UIApplication) {

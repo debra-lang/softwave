@@ -13,11 +13,10 @@ const FILES = [
   'app.js', 'audio.js', 'field.js', 'visuals.js', 'focus.js', 'lab.js',
   'monetization.js', 'premium.js', 'personal.js', 'controller.js', 'assistant.js', 'intro.js',
   'cloud.js', 'cloud-config.js',
-  'hero.js', 'hero-wave.avif', 'hero-wave.webp', 'ri.js', 'ri-protocol.js',
   'manifest.webmanifest', '404.html', 'og-image.png',
 ];
 const DIRS = [
-  'icons', 'fonts', 'learn', 'about', 'contact', 'privacy', 'terms', 'medical-disclaimer',
+  'icons', 'learn', 'about', 'contact', 'privacy', 'terms', 'medical-disclaimer',
   'safe-listening', 'research-and-sources', 'how-it-works', 'premium',
   'brown-noise-for-tinnitus', 'pink-noise-for-tinnitus', 'white-noise-for-tinnitus',
   'tinnitus-frequency-generator', 'tinnitus-masking-sounds', 'tinnitus-sleep-sounds',
@@ -38,82 +37,21 @@ for (const d of DIRS) {
   if (!fs.existsSync(src)) { console.warn('missing dir (skipped):', d); continue; }
   fs.cpSync(src, path.join(OUT, d), { recursive: true }); copied++;
 }
-// Website-only elements stay out of the app: the App Store download line (badge + caption) and the
-// Smart App Banner meta exist for website visitors only. (The website also hides the line inside the
-// app shell with CSS; removing it here means the app never even references the badge file.)
-{
-  const ip = path.join(OUT, 'index.html');
-  const before = fs.readFileSync(ip, 'utf8');
-  const after = before.replace(/[ \t]*<meta name="apple-itunes-app"[^>]*>\r?\n?/g, '')
-                      .replace(/[ \t]*<div class="appstore-line" id="appstore-line">[\s\S]*?<\/div>\r?\n?/g, '');
-  if (/apple-itunes-app|id="appstore-line"|appstore-badge|apps\.apple\.com/.test(after)) { console.error('FATAL: website-only App Store element left in the app bundle'); process.exit(1); }
-  fs.writeFileSync(ip, after);
-}
-
-// ---- DIAGNOSTIC bundle (SOFTWAVE_DIAG=1 only; Build 73 onwards): the observation-only audio diagnostic loads before
-// every other script, so it can see the engine being created and every state change from the first moment. A release
-// bundle (the default) carries neither the script nor the Diag button; the workflow asserts whichever mode it asked for.
-const DIAG_BUNDLE = process.env.SOFTWAVE_DIAG === '1';
-if (DIAG_BUNDLE) {
-  fs.cpSync(path.join(__dirname, 'diag', 'diag.js'), path.join(OUT, 'diag.js'));
-  const ip = path.join(OUT, 'index.html'); const h = fs.readFileSync(ip, 'utf8');
-  if (!/<head>/.test(h)) { console.error('FATAL: no <head> for the diagnostic script'); process.exit(1); }
-  fs.cpSync(path.join(__dirname, 'diag', 'selftest.js'), path.join(OUT, 'selftest.js'));   // the guided device check rides with the observer
-  fs.writeFileSync(ip, h.replace('<head>', '<head>\n<script src="diag.js"></script>').replace('</body>', '<script src="selftest.js"></script>\n</body>'));
-  console.log('DIAGNOSTIC bundle: diag.js injected as the first script, selftest.js as the last');
-} else {
-  for (const f of ['diag.js', 'selftest.js']) { const fp = path.join(OUT, f); if (fs.existsSync(fp)) fs.rmSync(fp); }
-  if (/diag\.js|selftest\.js/.test(fs.readFileSync(path.join(OUT, 'index.html'), 'utf8'))) { console.error('FATAL: release bundle references a diagnostic script'); process.exit(1); }
-  console.log('RELEASE bundle: no diagnostic script');
-}
-
 // The native shell's local asset server does not serve query-string URLs, so every
 // `styles.css?v=NN`-style reference loads NOTHING on the device — the app renders
-// completely unstyled. Cache-busting queries only matter on the web; strip them here:
-// in href/src/srcset attributes (stylesheets, scripts, images, fonts) and in the JS string
-// literals that lazy-load scripts (lab.js, ri-protocol.js, ri.js). Then refuse to build if any survive.
-const ASSET = String.raw`[a-z0-9./-]+\.(?:css|js|avif|webp|png|svg|jpg|woff2)`;
+// completely unstyled. Cache-busting queries only matter on the web; strip them here.
 function stripQueries(dir) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const p = path.join(dir, entry.name);
     if (entry.isDirectory()) { stripQueries(p); continue; }
     if (!/\.(html|js)$/.test(entry.name)) continue;
     const before = fs.readFileSync(p, 'utf8');
-    const after = before.replace(new RegExp(String.raw`((?:href|src|srcset)=")(\/?` + ASSET + String.raw`)\?v=\d+(")`, 'g'), '$1$2$3')
-                        .replace(/'([a-z0-9./-]+\.(?:js|css))\?v=\d+'/g, "'$1'");
+    const after = before.replace(/((?:href|src)=")(\/?[a-z0-9./-]+\.(?:css|js))\?v=\d+(")/g, '$1$2$3')
+                        .replace(/'(lab\.js)\?v=\d+'/g, "'$1'");
     if (after !== before) fs.writeFileSync(p, after);
   }
 }
 stripQueries(OUT);
-const queriesLeft = [];
-(function scan(dir) {
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    const p = path.join(dir, entry.name);
-    if (entry.isDirectory()) { scan(p); continue; }
-    if (!/\.(html|js)$/.test(entry.name)) continue;
-    const m = fs.readFileSync(p, 'utf8').match(new RegExp(ASSET + String.raw`\?v=\d`, 'g'));
-    if (m) queriesLeft.push(path.relative(OUT, p) + ' (' + m.slice(0, 3).join(', ') + ')');
-  }
-})(OUT);
-if (queriesLeft.length) { console.error('FATAL: query-string asset URLs left (they load nothing in the app):', queriesLeft.join('; ')); process.exit(1); }
-
-// Guide pages carry platform-specific sentences from one source (site-content.js): website-only text in
-// <!--web-->…<!--/web-->, the iPhone wording hidden in <!--app:…:app-->. The app gets the iPhone wording.
-// Unbalanced or leftover markers would show the wrong text, so they stop the build.
-function resolveDocBlocks(dir) {
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    const p = path.join(dir, entry.name);
-    if (entry.isDirectory()) { resolveDocBlocks(p); continue; }
-    if (!entry.name.endsWith('.html')) continue;
-    const before = fs.readFileSync(p, 'utf8');
-    const n = re => (before.match(re) || []).length;
-    if (n(/<!--web-->/g) !== n(/<!--\/web-->/g) || n(/<!--app:/g) !== n(/:app-->/g)) { console.error('FATAL: unbalanced web/app markers in', path.relative(OUT, p)); process.exit(1); }
-    const after = before.replace(/<!--web-->[\s\S]*?<!--\/web-->/g, '').replace(/<!--app:([\s\S]*?):app-->/g, '$1');
-    if (/<!--\/?web-->|<!--app:|:app-->/.test(after)) { console.error('FATAL: web/app marker left in', path.relative(OUT, p)); process.exit(1); }
-    if (after !== before) fs.writeFileSync(p, after);
-  }
-}
-resolveDocBlocks(OUT);
 
 // Belt and braces for the native shell: embed the stylesheets directly into every page.
 // A <link> can fail for scheme/MIME/policy reasons that differ per iOS version; inline
@@ -140,14 +78,14 @@ inlineCss(OUT);
 
 // The native scheme does not resolve directory URLs ("learn/x/" -> index.html) the way a
 // web server does: such navigations fail and Capacitor falls back to the start page.
-// Point every internal folder-style link at its index.html file explicitly (keeping any #section, e.g. /privacy/#analytics).
+// Point every internal folder-style link at its index.html file explicitly.
 function fixDirLinks(dir) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const p = path.join(dir, entry.name);
     if (entry.isDirectory()) { fixDirLinks(p); continue; }
     if (!/\.(html|js)$/.test(entry.name)) continue;
     const before = fs.readFileSync(p, 'utf8');
-    const after = before.replace(/(href=")(?!https?:)([^"#]*?\/)(#[^"]*)?(")/g, (m, a, u, h, c) => u === '/' ? m : a + u + 'index.html' + (h || '') + c);
+    const after = before.replace(/(href=")(?!https?:)([^"#]*?\/)(")/g, (m, a, u, c) => u === '/' ? m : a + u + 'index.html' + c);
     if (after !== before) fs.writeFileSync(p, after);
   }
 }
@@ -167,23 +105,6 @@ function stripAnalytics(dir) {
   }
 }
 stripAnalytics(OUT);
-// Scripts mark their website-only analytics with /* bundle:web-analytics:begin */ … /* bundle:web-analytics:end */;
-// the app gets an empty track() in its place (removed before the unchanged gate below runs).
-function stripAnalyticsBlocks(dir) {
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    const p = path.join(dir, entry.name);
-    if (entry.isDirectory()) { stripAnalyticsBlocks(p); continue; }
-    if (!entry.name.endsWith('.js')) continue;
-    const before = fs.readFileSync(p, 'utf8');
-    const begins = (before.match(/bundle:web-analytics:begin/g) || []).length, ends = (before.match(/bundle:web-analytics:end/g) || []).length;
-    if (begins !== ends) { console.error('FATAL: unbalanced bundle:web-analytics markers in', path.relative(OUT, p)); process.exit(1); }
-    if (!begins) continue;
-    const after = before.replace(/\/\* bundle:web-analytics:begin[\s\S]*?\/\* bundle:web-analytics:end \*\//g, 'function track() { }');
-    if (/bundle:web-analytics/.test(after)) { console.error('FATAL: bundle:web-analytics marker left in', path.relative(OUT, p)); process.exit(1); }
-    fs.writeFileSync(p, after);
-  }
-}
-stripAnalyticsBlocks(OUT);
 const gaLeft = [];
 (function scan(dir) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -199,35 +120,8 @@ if (gaLeft.length) { console.error('FATAL: Google Analytics code left in the app
 // silently degraded app (this is how the entire personalization layer once went missing).
 const idx = fs.readFileSync(path.join(OUT, 'index.html'), 'utf8');
 const refs = [...idx.matchAll(/src="([a-z0-9./-]+\.js)"/g)].map(m => m[1]).filter(s => !s.startsWith('http'));
-// Lazy-loaded scripts: every script app.js loads on demand (lab.js, ri-protocol.js, ri.js) must be bundled.
-const appJs = fs.readFileSync(path.join(OUT, 'app.js'), 'utf8');
-const lazy = [...appJs.matchAll(/\.src = '([a-z0-9./-]+\.js)'/g), ...appJs.matchAll(/load\('([a-z0-9./-]+\.js)'\)/g)].map(m => m[1]);
-if (!['lab.js', 'ri-protocol.js', 'ri.js'].every(f => lazy.includes(f))) { console.error('FATAL: lazy-loaded scripts not found in app.js:', lazy.join(', ')); process.exit(1); }
-refs.push(...lazy);
+refs.push('lab.js');   // lazy-loaded from app.js
 let missing = false;
 for (const r of refs) if (!fs.existsSync(path.join(OUT, r))) { console.error('FATAL: index.html needs missing file:', r); missing = true; }
-// Picture sources and images on the app page (hero artwork: AVIF source + WebP fallback).
-const imgs = [...idx.matchAll(/(?:<img[^>]*\ssrc|<source[^>]*\ssrcset)="([^"]+)"/g)].map(m => m[1]).filter(s => !/^(https?:|data:)/.test(s));
-for (const r of imgs) if (!fs.existsSync(path.join(OUT, r.replace(/^\//, '')))) { console.error('FATAL: index.html image/picture source missing:', r); missing = true; }
-// Self-hosted fonts: every page's font stylesheet and every font file those stylesheets name.
-const fontCss = new Set();
-(function scan(dir) {
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    const p = path.join(dir, entry.name);
-    if (entry.isDirectory()) { scan(p); continue; }
-    if (!entry.name.endsWith('.html')) continue;
-    for (const m of fs.readFileSync(p, 'utf8').matchAll(/href="(\/?(?:\.\.\/)*fonts\/[a-z0-9.-]+\.css)"/g)) {
-      const target = m[1].startsWith('/') ? path.join(OUT, m[1].slice(1)) : path.resolve(path.dirname(p), m[1]);
-      if (!fs.existsSync(target)) { console.error('FATAL: font stylesheet missing for', path.relative(OUT, p) + ':', m[1]); missing = true; }
-      else fontCss.add(target);
-    }
-  }
-})(OUT);
-if (!fontCss.size) { console.error('FATAL: no page links the self-hosted fonts'); missing = true; }
-let fontFiles = 0;
-for (const css of fontCss) for (const m of fs.readFileSync(css, 'utf8').matchAll(/url\(([^)]+)\)/g)) {
-  fontFiles++;
-  if (!fs.existsSync(path.join(path.dirname(css), m[1].replace(/['"]/g, '')))) { console.error('FATAL: font file missing:', m[1], 'named in', path.relative(OUT, css)); missing = true; }
-}
 if (missing) process.exit(1);
-console.log('www built:', copied, 'entries copied to', OUT, '(web-only App Store elements removed, queries stripped, guide blocks resolved, CSS inlined, dir links resolved, analytics removed; all', refs.length, 'scripts,', imgs.length, 'images,', fontCss.size, 'font stylesheets and', fontFiles, 'font files verified present)');
+console.log('www built:', copied, 'entries copied to', OUT, '(queries stripped, CSS inlined, dir links resolved, analytics removed, all', refs.length, 'scripts verified present)');

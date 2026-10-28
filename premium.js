@@ -159,14 +159,14 @@
         <div class="prem-plan">
           <h3>Free</h3>
           <p class="prem-price">$0 <span>forever</span></p>
-          <ul><li>All 20 sounds</li><li>Mixer — 3 sounds at once, each with its own volume</li><li>Limited saved mixes (5 per category)</li><li>Find My Sound — one complete discovery</li><li>Find My Tinnitus Sound</li><li>Basic sound customisation</li><li>Visual Focus core collection</li><li>Basic sleep timer</li><li>Selected Experiments</li></ul>
+          <ul><li>Core sound library — all 20 sounds</li><li>Find My Tinnitus Sound</li><li>Basic Find My Sound</li><li>Mixer (3 layers)</li><li>Visual Focus core collection</li><li>Sleep with timer</li><li>Selected Experiments</li><li>5 saves per category</li></ul>
         </div>
         <div class="prem-plan prem-plan-best">
           <p class="prem-badge">${P.annualBadge}</p>
           <h3>Premium</h3>
           <p class="prem-price">${money(P.annualPrice)}<span>/year · ${P.annualSavingsText}</span></p>
           <p class="prem-trial-note">${P.trialDays} days free</p>
-          <ul><li>Everything in Free</li><li>Mixer — up to 5 sounds at once, with advanced controls</li><li>Unlimited saved mixes</li><li>Find My Sound — unlimited, with your Sound Profile</li><li>Sound Morph</li><li>Sound Sculptor</li><li>Frequency Painting</li><li>Build My Session and the advanced Experiments</li><li>Full sound customisation</li><li>Full Visual Focus collection</li><li>Cloud backup &amp; sync — coming with account sync</li></ul>
+          <ul><li>Everything in Free</li><li>Full Find My Sound + Sound Profile</li><li>Frequency Painting</li><li>Sound Sculptor</li><li>Advanced Experiments</li><li>Mixer up to 5 layers</li><li>Full Visual Focus collection</li><li>Unlimited saves</li><li>Cloud backup &amp; sync — coming with account sync</li></ul>
           <p class="prem-alt">or ${money(P.monthlyPrice)}/month, no annual commitment</p>
         </div>
       </div>

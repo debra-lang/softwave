@@ -9,6 +9,8 @@
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
   const store = app.store;
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  // Inside the iPhone app (Capacitor shell). Used only to leave Ambient Drift out of the app for now (website unchanged).
+  const NATIVE_SHELL = !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform());
   const NAME = id => (engine.def(id) || { name: id }).name;
   const LIB = engine.defs().map(d => d.id);
   const VISUALS = focus.visuals;
@@ -79,7 +81,7 @@
   // then saving the profile, repeated discoveries and premium experiments ask for Premium. Nothing already saved is ever removed.
   // Access control lives in monetization.js (entitlements). During launch all-access, everything passes.
   const M = () => window.softwaveMonetization;
-  const PREMIUM_TAG = () => (M() && M().LABELS.premiumTag) || 'Planned Premium · free now';
+  const PREMIUM_TAG = () => (M() && M().LABELS.premiumTag) || 'Premium · free during launch';
   function gate(exp) {
     if (!M()) return true;
     if (M().canUse('experiment:' + exp.id)) return true;
@@ -139,9 +141,6 @@
   function settleClock(r) { if (!r || r.active == null) return; const now = Date.now(); if (r.since) { r.active += now - r.since; r.since = 0; } if (listening()) r.since = now; }
   const activeMs = (r) => (r && r.active != null) ? r.active + (r.since ? Date.now() - r.since : 0) : 0;
   engine.on(t => { if ((t === 'state' || t === 'sounds') && running) settleClock(running); });
-  // the engine timer's end (Sleep timer, Build My Session's 60 min) ends whatever experiment is running, so the player
-  // bar never keeps "Experiment: …" over silence (Notched had its own hook; this covers every experiment)
-  engine.on(t => { if (t === 'timerDone' && running) stopRunning('Session complete — rest well.', true); });
   const later = (fn, ms) => { const t = setTimeout(() => { timers.delete(t); fn(); }, ms); timers.add(t); return t; };
   const every = (fn, ms) => { const t = setInterval(fn, ms); timers.add(t); return t; };
   const clearTimers = () => { timers.forEach(t => { clearTimeout(t); clearInterval(t); }); timers.clear(); };
@@ -504,18 +503,19 @@
     },
     {
       id: 'generative', name: 'Generative Sound', cat: 'Explore', premium: true, evidence: 'exploratory', from: 'Generative audio / procedural sound design',
-      what: 'Sounds that subtly evolve instead of repeating — rain, ocean, wind, forest, an abstract ambience, Ambient Drift (slowly evolving music that never plays exactly the same way twice) or broadband noise — with one Stable ↔ Organic control.',
+      what: NATIVE_SHELL ? 'Sounds that subtly evolve instead of repeating — rain, ocean, wind, forest, an abstract ambience or broadband noise — with one Stable ↔ Organic control.'
+        : 'Sounds that subtly evolve instead of repeating — rain, ocean, wind, forest, an abstract ambience, Ambient Drift (slowly evolving music that never plays exactly the same way twice) or broadband noise — with one Stable ↔ Organic control.',
       why: 'Real rain never sounds the same twice. Small variation feels more natural and may be easier to stop noticing over a long session.',
       how: 'Pick a base, press Start, then set how alive you want it. Changes are always subtle.',
       whyTest: 'Sound-therapy research mostly tests steady sound. We are learning where on the stable ↔ organic scale people with tinnitus feel most at ease. Evidence comes from ambient sound design, not clinical trials.',
-      settings: [{ key: 'base', label: 'Base', type: 'buttons', options: [['rain', 'Rain'], ['ocean', 'Ocean'], ['wind', 'Wind'], ['forest', 'Forest'], ['abstract', 'Abstract ambience'], ['drift', 'Ambient Drift'], ['noise', 'Broadband noise']] }, { key: 'organic', label: 'Stable ↔ Organic', type: 'range', min: 0, max: 100, scale: ['Stable', 'Gently alive', 'Organic'], fmt: v => v < 15 ? 'Stable' : v < 50 ? 'Gently alive' : 'Organic' }],
+      settings: [{ key: 'base', label: 'Base', type: 'buttons', options: [['rain', 'Rain'], ['ocean', 'Ocean'], ['wind', 'Wind'], ['forest', 'Forest'], ['abstract', 'Abstract ambience'], ['drift', 'Ambient Drift'], ['noise', 'Broadband noise']].filter(o => !(NATIVE_SHELL && o[0] === 'drift')) }, { key: 'organic', label: 'Stable ↔ Organic', type: 'range', min: 0, max: 100, scale: ['Stable', 'Gently alive', 'Organic'], fmt: v => v < 15 ? 'Stable' : v < 50 ? 'Gently alive' : 'Organic' }],
       defaults: { base: 'rain', organic: 35 },
-      async start(ctx) { safeMaster(); const b = ctx.s.base; const mix = b === 'abstract' ? [{ id: 'chimes', volume: 0.45 }, { id: 'brown', volume: 0.35 }] : b === 'drift' ? [{ id: 'drift', volume: 0.5 }] : b === 'noise' ? [{ id: 'sculpt', volume: 0.55, params: Object.assign(DEF(), { colour: 0.4, moving: 0.4, mod: 0.3 }) }] : [{ id: b, volume: 0.5 }, { id: 'brown', volume: 0.2 }]; await engine.loadMix(mix); engine.setVariation(ctx.s.organic / 100, 8 - ctx.s.organic / 25); },
+      async start(ctx) { safeMaster(); if (NATIVE_SHELL && ctx.s.base === 'drift') ctx.s.base = 'rain'; const b = ctx.s.base; const mix = b === 'abstract' ? [{ id: 'chimes', volume: 0.45 }, { id: 'brown', volume: 0.35 }] : b === 'drift' ? [{ id: 'drift', volume: 0.5 }] : b === 'noise' ? [{ id: 'sculpt', volume: 0.55, params: Object.assign(DEF(), { colour: 0.4, moving: 0.4, mod: 0.3 }) }] : [{ id: b, volume: 0.5 }, { id: 'brown', volume: 0.2 }]; await engine.loadMix(mix); engine.setVariation(ctx.s.organic / 100, 8 - ctx.s.organic / 25); },
       onSetting(ctx, key) { if (!running || running.exp.id !== 'generative') return; if (key === 'base') { this.start(ctx); return; } engine.setVariation(ctx.s.organic / 100, 8 - ctx.s.organic / 25); },
       stop() { engine.setVariation(0); }, keepsSound: true,
     },
     {
-      id: 'morph', name: 'Sound Morph', cat: 'Explore', premium: true, evidence: 'exploratory', from: 'Synthesiser design',
+      id: 'morph', name: 'Sound Morph', cat: 'Explore', evidence: 'exploratory', from: 'Synthesiser design',
       what: 'One control that glides through a continuum — Brown → Brown/Pink → Pink → Pink/Rain → Rain. Stop anywhere.',
       why: 'Sometimes the comfortable spot is between two sounds.',
       how: 'Press Start, drag slowly, stop where it feels best, then Save.',
@@ -621,7 +621,7 @@
       stop() { engine.resetMasterShape(); }, keepsSound: true,
     },
     {
-      id: 'session', name: 'Build My Session', cat: 'Sessions', premium: true, evidence: 'exploratory', from: 'Product design',
+      id: 'session', name: 'Build My Session', cat: 'Sessions', evidence: 'exploratory', from: 'Product design',
       what: 'Four quick questions — what you are doing, what sound you prefer, visuals or not, how much variation — and a session is built for you.',
       why: 'When you are tired or busy you should not have to design anything.',
       how: 'Answer and press Start. Everything can be changed afterwards. This is a suggestion, not a recommendation about your health.',
@@ -824,7 +824,7 @@
         window.scrollTo({ top: scrollY + sec.getBoundingClientRect().top - off, behavior: 'smooth' });
       });
       try { new IntersectionObserver((es) => { vizVisible = es[0].isIntersecting; }, { threshold: 0.05 }).observe(el.viz); } catch (_) { vizVisible = true; }
-      timerHooked = true;   // the timer's end is handled for every experiment by the module-level hook
+      if (!timerHooked) { timerHooked = true; engine.on(type => { if (type === 'timerDone' && runningThis()) stopRunning('Session complete — rest well.', true); }); }
       if (N.hz) setHz(N.hz); else updateAdv();
       renderProfiles(ctx); renderHistory(ctx);
     }
@@ -1109,12 +1109,12 @@
     if (!x || !(app.escapeFree ? app.escapeFree(e) : true)) return;
     e.preventDefault(); x.click();
   });
-  function ctxFor(exp) { if (ctxs[exp.id]) return ctxs[exp.id]; const d = typeof exp.defaults === 'function' ? exp.defaults() : Object.assign({}, exp.defaults); const saved = store.get('lab:settings:' + exp.id); if (saved) Object.assign(d, saved); ctxs[exp.id] = { s: d, host: null }; return ctxs[exp.id]; }
+  function ctxFor(exp) { if (ctxs[exp.id]) return ctxs[exp.id]; const d = typeof exp.defaults === 'function' ? exp.defaults() : Object.assign({}, exp.defaults); const saved = store.get('lab:settings:' + exp.id); if (saved) Object.assign(d, saved); if (NATIVE_SHELL && exp.id === 'generative' && d.base === 'drift') d.base = 'rain'; ctxs[exp.id] = { s: d, host: null }; return ctxs[exp.id]; }
   const TINT = { discovery: [200, 175, 140], paint: [185, 170, 205], sculptor: [200, 165, 125], generative: [225, 200, 150], morph: [180, 175, 200], space: [150, 185, 200], attention: [225, 210, 180], svjourney: [140, 175, 200], journey: [170, 185, 200], session: [190, 180, 170] };
   const LIGHT_TINT = { discovery: [125, 90, 60], paint: [110, 90, 140], sculptor: [125, 90, 60], generative: [150, 120, 60], morph: [100, 95, 130], space: [60, 110, 140], attention: [150, 125, 70], svjourney: [60, 105, 140], journey: [90, 110, 135], session: [110, 100, 90] };
   function card(exp) {
     const f = fb()[exp.id] || {}; const el = document.createElement('button'); el.type = 'button'; el.className = 'lab-tile' + (exp.featured ? ' big' : '') + ((running && running.exp.id === exp.id) ? ' running' : ''); el.dataset.id = exp.id; el.setAttribute('aria-label', exp.name + ': ' + exp.what);
-    el.innerHTML = `<span class="lab-pv"><canvas aria-hidden="true"></canvas></span><span class="lab-tile-body"><span class="lab-cat">${exp.cat}${exp.premium ? ' · ' + PREMIUM_TAG() : ''}${favs().includes(exp.id) ? ' · ★' : ''}</span><span class="lab-tile-name">${exp.name}</span><span class="lab-tile-what">${exp.what.replace(/\.\s[\s\S]*$/, '.')}</span>${f.rating ? `<span class="lab-tile-you">You said: ${f.rating === 'helpful' ? 'helpful' : f.rating === 'not' ? 'not for me' : 'neutral'}</span>` : ''}</span>`;
+    el.innerHTML = `<span class="lab-pv"><canvas aria-hidden="true"></canvas></span><span class="lab-tile-body"><span class="lab-cat">${exp.cat}${exp.premium ? ' · ' + PREMIUM_TAG() : ''}${favs().includes(exp.id) ? ' · ★' : ''}</span><span class="lab-tile-name">${exp.name}</span><span class="lab-tile-what">${exp.what.split(/(?<=\.)\s/)[0]}</span>${f.rating ? `<span class="lab-tile-you">You said: ${f.rating === 'helpful' ? 'helpful' : f.rating === 'not' ? 'not for me' : 'neutral'}</span>` : ''}</span>`;
     liveShape($('.lab-pv canvas', el), () => ({ preview: exp.id, tint: isDark() ? TINT[exp.id] : LIGHT_TINT[exp.id] }));
     el.addEventListener('click', () => openExperiment(exp.id)); return el;
   }
@@ -1327,7 +1327,6 @@
     feedbackOwed = false;
     if (!opts.keepOrigin) { origins[id] = opts.from || { kind: 'list' }; const a = opts.opener || document.activeElement; openers[id] = a && a !== document.body && !a.closest('#lab-detail') ? a : null; }
     const exp = byId[id]; if (!exp) return; const ctx = ctxFor(exp); const panel = $('#lab-detail'); panel.hidden = false;
-    panel.dataset.origin = (origins[id] || { kind: 'list' }).kind;   // the header Back (app.js) reads where this panel was opened from
     // Re-opening the experiment that is running (its tab tapped again, Back then Forward) must not
     // rebuild the panel under it: the fresh controls would come up disabled with no round to enable them.
     if (running && running.exp === exp && panel.querySelector('.lab-detail-inner')) { setFocusedExp(true); return; }

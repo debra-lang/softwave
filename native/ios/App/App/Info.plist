@@ -24,10 +24,6 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>The microphone is used only while you speak a request in Ask, after you tap the microphone button. Find My Quiet Sound never records, keeps or sends your voice; it receives only the recognised text.</string>
-	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>Apple speech recognition turns your spoken request in Ask into text, which may send that audio to Apple. Find My Quiet Sound receives only the text, never your Sound Profile or tinnitus information. Typing always works without this.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

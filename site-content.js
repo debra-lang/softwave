@@ -571,7 +571,7 @@ learn({
 });
 
 learn({
-  slug: 'experiments-explained', updated: '2026-10-16',
+  slug: 'experiments-explained', updated: '2026-09-27',
   title: 'The Experiments in Find My Quiet Sound, Explained',
   description: 'What each Experiment in Find My Quiet Sound does, where the idea comes from, how strong the evidence is, and the safety rules they all share — Frequency Painting, Sound Sculptor, Generative Sound, Sound Space, Attention Focus, journeys and more.',
   h1: 'The Experiments, explained',
@@ -587,7 +587,7 @@ learn({
 <h3>Sound Sculptor</h3><p><em>Experimental — research is limited.</em> Shape a sound with words instead of controls: Warm ↔ Bright, Deep ↔ Airy, Smooth ↔ Textured, Soft ↔ Crisp, Centred ↔ Wide, Still ↔ Moving, Simple ↔ Rich. An interface experiment — you should not need to know what a filter is to make a sound that suits you.</p>
 <h3>Personalized Notched Sound</h3><p><em>Experimental — evidence is mixed.</em> Broadband sound (or your own audio) with a gap around your matched tinnitus pitch — one octave wide as standard, narrower or wider if you choose — switchable between normal and notched. Early studies were positive, a large trial found no advantage over placebo, and reviews rate the evidence as low quality. Full guide: <a href="/learn/notched-sound-for-tinnitus/">Notched sound for tinnitus</a>.</p>
 <h2>Explore — sounds that move and blend</h2>
-<h3>Generative Sound</h3><p><em>Experimental — research is limited.</em> Rain, ocean, wind, forest, an abstract ambience, broadband noise, or <strong>Ambient Drift</strong> — slowly evolving music that never plays exactly the same way twice — with one Stable ↔ Organic control. Real rain never repeats; small variation feels natural and may be easier to stop noticing over a long session. Sound-therapy research mostly tests steady sound, so this comes from ambient sound design, not trials.</p>
+<h3>Generative Sound</h3><p><em>Experimental — research is limited.</em> <!--web-->Rain, ocean, wind, forest, an abstract ambience, broadband noise, or <strong>Ambient Drift</strong> — slowly evolving music that never plays exactly the same way twice — with one Stable ↔ Organic control.<!--/web--><!--app:Rain, ocean, wind, forest, an abstract ambience or broadband noise, with one Stable ↔ Organic control.:app--> Real rain never repeats; small variation feels natural and may be easier to stop noticing over a long session. Sound-therapy research mostly tests steady sound, so this comes from ambient sound design, not trials.</p>
 <h3>Sound Morph</h3><p><em>Experimental — research is limited.</em> One slider that glides from brown noise through pink to rain. Sometimes the comfortable spot is between two sounds; this asks whether one dimension finds it faster than a mixer.</p>
 <h3>Sound Space</h3><p><em>Experimental — research is limited.</em> Place sounds around you on a simple map — rain to the left, ocean in front, wind far right — stationary by default, with optional very slow movement (about nine minutes per circle). Moving a sound changes where it sits and how distant it feels in tone; it does not change its level. Space gives each sound its own place so a mix feels less crowded. Slow movement is offered as something to try, not as a proven benefit.</p>
 <h2>Focus — somewhere for attention to rest</h2>
@@ -599,7 +599,7 @@ learn({
 <h2>Where Sound Response fits</h2>
 <p><strong>Sound Response</strong> — Discover What Changes Your Tinnitus — lives in the Find My Sound section rather than in Experiments, because it follows a fixed protocol and records observations over several sessions. It has its own guide: <a href="/learn/how-sound-response-works/">How Sound Response works</a>.</p>
 <h2>Free and Premium</h2>
-<p>All features are currently available free, with no payment required. The experiments marked <em>Planned Premium · free now</em> are the ones we’re planning to offer as optional Premium features in the future; the details, pricing, and availability are still being decided, any change will be announced clearly first, and introducing Premium won’t delete anything you’ve saved. See <a href="/premium/">Free and Premium</a>.</p>
+<p>Everything is free to use today. The experiments marked <em>Premium · free during launch</em> are the personalisation layer that may become an optional Premium plan later; any change will be announced clearly first and nothing you have saved will be deleted. See <a href="/premium/">Free and Premium</a>.</p>
 <p><a href="/#lab">Open Experiments →</a></p>`,
   sources: ['cochrane', 'okamoto', 'stein', 'vr', 'bbn', 'ata'],
 });
@@ -658,7 +658,7 @@ learn({
   intro: 'Find My Quiet Sound is built so that the first tap does something useful: pick a sound, and it starts low and fades in. Everything else — personal Moments, presets, saved mixes, sleep timers, the finder tools and the experiments — is there when you want it. This page walks through the app once, so you know what each part is for and where to find it.',
   body: `
 <h2>The Sounds page</h2>
-<p>The library is grouped so you can browse by character rather than by name: <strong>Noise</strong> (white, pink, brown, gentle static, soft hiss), <strong>Water</strong> (rain, rain on a window, ocean, lapping water, flowing water, waterfall), <strong>Nature</strong> (forest, rustling leaves, wind, crickets, cicadas, night sounds, summer night), and <strong>Environment</strong> (fan, fireplace). A few sounds live only inside the experiments: Generative Sound offers Ambient Drift, slowly evolving music that never plays exactly the same way twice, and Gentle Chimes; the sounds you make in Frequency Painting or Sound Sculptor appear under <em>My Saved Sounds</em> once you save them. <!--web-->Every sound is generated live in the browser,<!--/web--><!--app:Every sound is generated live on your device,:app--> so nothing loops with a click and nothing has to download; read <a href="/learn/how-tinnitus-sound-generators-work/">how the sounds are made</a>.</p>
+<p>The library is grouped so you can browse by character rather than by name: <strong>Noise</strong> (white, pink, brown, gentle static, soft hiss), <strong>Water</strong> (rain, rain on a window, ocean, lapping water, flowing water, waterfall), <strong>Nature</strong> (forest, rustling leaves, wind, crickets, cicadas, night sounds, summer night), and <strong>Environment</strong> (fan, fireplace). A few sounds live only inside the experiments: <!--web-->Generative Sound offers Ambient Drift, slowly evolving music that never plays exactly the same way twice, and Gentle Chimes;<!--/web--><!--app:Generative Sound offers Gentle Chimes;:app--> the sounds you make in Frequency Painting or Sound Sculptor appear under <em>My Saved Sounds</em> once you save them. <!--web-->Every sound is generated live in the browser,<!--/web--><!--app:Every sound is generated live on your device,:app--> so nothing loops with a click and nothing has to download; read <a href="/learn/how-tinnitus-sound-generators-work/">how the sounds are made</a>.</p>
 <h2>The circle and its controls</h2>
 <p>Tap any sound and the big circle starts it, quietly. Under it sit <strong>Volume</strong>, <strong>Pause</strong> and <strong>Stop all sounds</strong>, plus <strong>Add sound</strong>, <strong>Timer</strong>, <strong>Add Visual</strong>, <strong>Mixer</strong> and <strong>Save</strong>, and on the Sounds page <strong>Immerse</strong>, which opens a full-screen player with nothing else on screen. The same volume control appears on every screen that plays sound, with a smaller set of actions that fits the place. The volume starts at 35% on first use and remembers your last level, never above 60% when you come back; every sound fades in and out; a warning appears if you go above 75% on any volume slider; and no feature ever raises the volume on its own. If you would rather talk than tap, <a href="/learn/ask-find-my-quiet-sound/">Ask Find My Quiet Sound</a> takes plain requests such as “something gentle for sleep”.</p>
 <h2>Your Moments</h2>
@@ -847,17 +847,16 @@ trust({
 });
 
 trust({
-  path: 'premium/', updated: '2026-10-28', title: 'Free and Premium — Find My Quiet Sound',
-  description: 'All features of Find My Quiet Sound are currently free, with no payment required. Optional Premium features are planned for the future; the details, pricing, and availability are still being decided.',
+  path: 'premium/', updated: '2026-09-27', title: 'Find My Quiet Sound Premium — Personal Sound Discovery',
+  description: 'Find My Quiet Sound is currently free to use. What the optional Premium plan is expected to include: Help Me Find My Sound, My Sound Profile, Frequency Painting, Sound Sculptor, generative sound, Sound Space and journeys.',
   h1: 'Free and Premium',
   body: `
-<p><strong>All features are currently available free, with no payment required.</strong> Nothing is locked and there are no limits.</p>
-<h2>Free today: everything</h2>
-<ul><li>All 20 sounds, generated live: noise colours, water, nature, wind, fan, fireplace and night sounds</li><li>The mixer with up to five sounds at once, each with its own volume and balance, and saved mixes</li><li>Find My Sound and your Sound Profile</li><li>Every experiment, including Sound Morph, Sound Sculptor, Frequency Painting and Build My Session</li><li>Sleep Mode with timers and gentle fade-out, Visual Focus, and Ask</li></ul>
-<h2>Looking ahead</h2>
-<p>We’re planning optional Premium features for the future. The details, pricing, and availability are still being decided. The experiments marked <em>Planned Premium · free now</em> are the ones we’re planning to offer as Premium features.</p>
-<h2>Our commitments</h2>
-<ul><li>We’ll announce any change to pricing or access clearly, before it takes effect.</li><li>Introducing Premium won’t delete anything you’ve saved.</li></ul>
+<p><strong>Find My Quiet Sound is currently free to use.</strong> As the app evolves, some features may become part of an optional Premium plan. Any pricing or access changes will be communicated clearly before they take effect. This page explains what the personalisation layer — Find My Quiet Sound Premium — is expected to include.</p>
+<h2>Free today</h2>
+<ul><li>White, pink and brown noise, gentle static and soft hiss</li><li>Rain, ocean, flowing water, waterfall, forest, wind, fan, fireplace and night sounds</li><li>The mixer (up to five layers, balance, saved mixes)</li><li>The frequency generator and Find My Tinnitus Sound</li><li>Visual Focus, the breathing circle, Attention Focus</li><li>Sleep Mode with timers and fade-out</li><li>Sound Morph and Build My Session</li><li>Works offline, no account, no tracking of your hearing</li></ul>
+<h2>Find My Quiet Sound Premium — discover and build your personal sound experience</h2>
+<ul><li><strong>Help Me Find My Sound</strong> — the guided A/B journey to your preferred sound, and the My Sound Profile it builds</li><li><strong>Sound Sculptor</strong> and <strong>Frequency Painting</strong> — shape your own sounds and keep them</li><li><strong>Generative Sound</strong> — sounds that never quite repeat</li><li><strong>Sound Space</strong> — place sounds around you</li><li><strong>Adaptive Sound Journeys</strong> and <strong>Sound + Visual Journeys</strong></li><li>Unlimited saved sounds and experiences, and recommendations built from your own preferences</li></ul>
+<p>Premium is about personalisation, not "more noise". Nothing you save will be deleted.</p>
 <h2>Accounts</h2>
 <p>You do not need an account to use Find My Quiet Sound; everything is kept on your device. An optional free account to keep your sounds across devices is planned; it will never ask for hearing or health information.</p>`,
 });
