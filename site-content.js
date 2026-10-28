@@ -599,7 +599,7 @@ learn({
 <h2>Where Sound Response fits</h2>
 <p><strong>Sound Response</strong> — Discover What Changes Your Tinnitus — lives in the Find My Sound section rather than in Experiments, because it follows a fixed protocol and records observations over several sessions. It has its own guide: <a href="/learn/how-sound-response-works/">How Sound Response works</a>.</p>
 <h2>Free and Premium</h2>
-<p>Everything is free to use today, during the launch period. The experiments marked <em>Premium · free during launch</em> are the personalisation layer that may become an optional Premium plan later; any change will be announced clearly first and nothing you have saved will be deleted. See <a href="/premium/">Free and Premium</a> for how the planned Free and Premium plans compare.</p>
+<p>All features are currently available free, with no payment required. The experiments marked <em>Planned Premium · free now</em> are the ones we’re planning to offer as optional Premium features in the future; the details, pricing, and availability are still being decided, any change will be announced clearly first, and introducing Premium won’t delete anything you’ve saved. See <a href="/premium/">Free and Premium</a>.</p>
 <p><a href="/#lab">Open Experiments →</a></p>`,
   sources: ['cochrane', 'okamoto', 'stein', 'vr', 'bbn', 'ata'],
 });
@@ -847,19 +847,17 @@ trust({
 });
 
 trust({
-  path: 'premium/', updated: '2026-10-16', title: 'Find My Quiet Sound Premium — Personal Sound Discovery',
-  description: 'Find My Quiet Sound is free for everyone during its launch period. How the planned Free and Premium plans compare: sounds, mixer layers, saved mixes, Find My Sound, Sound Morph, Sound Sculptor, Frequency Painting, Build My Session and more.',
+  path: 'premium/', updated: '2026-10-28', title: 'Free and Premium — Find My Quiet Sound',
+  description: 'All features of Find My Quiet Sound are currently free, with no payment required. Optional Premium features are planned for the future; the details, pricing, and availability are still being decided.',
   h1: 'Free and Premium',
   body: `
-<p><strong>Find My Quiet Sound is currently free to use.</strong> During our launch period every feature — including everything listed under Premium below — is open to everyone, and no payment is set up. As the app evolves, some features may become part of an optional Premium plan. Any pricing or access changes will be communicated clearly before they take effect. This page explains how the two plans are intended to compare.</p>
-<h2>How the plans compare</h2>
-<table><thead><tr><th>Feature</th><th>Free</th><th>Premium</th></tr></thead>
-<tbody><tr><td>All 20 sounds</td><td>Yes</td><td>Yes</td></tr><tr><td>Mixer</td><td>3 sounds at once</td><td>5 sounds at once</td></tr><tr><td>Individual sound volume</td><td>Yes</td><td>Yes</td></tr><tr><td>Saved mixes</td><td>Limited</td><td>Unlimited</td></tr><tr><td>Find My Sound</td><td>One complete discovery</td><td>Unlimited</td></tr><tr><td>Sound Morph</td><td>No</td><td>Yes</td></tr><tr><td>Sound Sculptor</td><td>No</td><td>Yes</td></tr><tr><td>Frequency Painting</td><td>No</td><td>Yes</td></tr><tr><td>Advanced sound customisation</td><td>Limited</td><td>Full</td></tr><tr><td>Basic sleep timer</td><td>Yes</td><td>Yes</td></tr></tbody></table>
-<h2>Free plan</h2>
-<ul><li>All 20 sounds: white, pink and brown noise, gentle static, soft hiss, rain, ocean, flowing water, waterfall, forest, wind, fan, fireplace and night sounds</li><li>The mixer with up to three sounds at once, each with its own volume and left/right balance, and a limited number of saved mixes</li><li>The frequency generator and Find My Tinnitus Sound</li><li>One complete Find My Sound discovery</li><li>Visual Focus, the breathing circle, Attention Focus</li><li>Sleep Mode with the basic sleep timer and fade-out</li><li>Basic sound customisation</li><li>Works offline, no account, no tracking of your hearing</li></ul>
-<h2>Find My Quiet Sound Premium — discover and build your personal sound experience</h2>
-<ul><li><strong>The five-layer mixer</strong> — up to five sounds at once, with advanced controls</li><li><strong>Help Me Find My Sound</strong> — unlimited discoveries, and the My Sound Profile they build</li><li><strong>Sound Sculptor</strong> and <strong>Frequency Painting</strong> — shape your own sounds and keep them</li><li><strong>Sound Morph</strong> — drift between two sounds and stop where it feels best</li><li><strong>Build My Session</strong> — multi-step listening sessions around what works for you</li><li><strong>Generative Sound</strong> — sounds that never quite repeat</li><li><strong>Sound Space</strong> — place sounds around you</li><li><strong>Adaptive Sound Journeys</strong> and <strong>Sound + Visual Journeys</strong></li><li>Full sound customisation, unlimited saved mixes, sounds and experiences, and recommendations built from your own preferences</li></ul>
-<p>Premium is about personalisation, not "more noise". Nothing you save will be deleted.</p>
+<p><strong>All features are currently available free, with no payment required.</strong> Nothing is locked and there are no limits.</p>
+<h2>Free today: everything</h2>
+<ul><li>All 20 sounds, generated live: noise colours, water, nature, wind, fan, fireplace and night sounds</li><li>The mixer with up to five sounds at once, each with its own volume and balance, and saved mixes</li><li>Find My Sound and your Sound Profile</li><li>Every experiment, including Sound Morph, Sound Sculptor, Frequency Painting and Build My Session</li><li>Sleep Mode with timers and gentle fade-out, Visual Focus, and Ask</li></ul>
+<h2>Looking ahead</h2>
+<p>We’re planning optional Premium features for the future. The details, pricing, and availability are still being decided. The experiments marked <em>Planned Premium · free now</em> are the ones we’re planning to offer as Premium features.</p>
+<h2>Our commitments</h2>
+<ul><li>We’ll announce any change to pricing or access clearly, before it takes effect.</li><li>Introducing Premium won’t delete anything you’ve saved.</li></ul>
 <h2>Accounts</h2>
 <p>You do not need an account to use Find My Quiet Sound; everything is kept on your device. An optional free account to keep your sounds across devices is planned; it will never ask for hearing or health information.</p>`,
 });

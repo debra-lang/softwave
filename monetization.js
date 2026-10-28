@@ -15,7 +15,7 @@
     MONETIZATION_ENABLED: false,   // master switch — false = nothing is ever gated or sold
     LAUNCH_ALL_ACCESS: true,       // true = everyone receives Premium entitlements
     SHOW_PRICING: false,           // future pricing UI stays hidden until true
-    SHOW_PREMIUM_LABELS: true,     // subtle "Premium · free during launch" tags
+    SHOW_PREMIUM_LABELS: true,     // subtle "Planned Premium · free now" tags
     TRIALS_ENABLED: false,
     LIFETIME_ENABLED: false,
     PREVIEWS_ENABLED: false,       // future: let Free users preview Premium features
@@ -182,7 +182,7 @@
 
   // ---------------- labels (UI copy comes from here, not scattered strings) ----------------
   const LABELS = {
-    premiumTag: FLAGS.MONETIZATION_ENABLED && !FLAGS.LAUNCH_ALL_ACCESS ? 'Premium' : 'Premium · free during launch',
+    premiumTag: FLAGS.MONETIZATION_ENABLED && !FLAGS.LAUNCH_ALL_ACCESS ? 'Premium' : 'Planned Premium · free now',
     launchNotice: 'All features are free during our launch period.',
   };
 

@@ -79,7 +79,7 @@
   // then saving the profile, repeated discoveries and premium experiments ask for Premium. Nothing already saved is ever removed.
   // Access control lives in monetization.js (entitlements). During launch all-access, everything passes.
   const M = () => window.softwaveMonetization;
-  const PREMIUM_TAG = () => (M() && M().LABELS.premiumTag) || 'Premium · free during launch';
+  const PREMIUM_TAG = () => (M() && M().LABELS.premiumTag) || 'Planned Premium · free now';
   function gate(exp) {
     if (!M()) return true;
     if (M().canUse('experiment:' + exp.id)) return true;
