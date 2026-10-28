@@ -605,7 +605,8 @@
   const screen = $('#focus-screen'), canvas = $('#focus-canvas'), ctx = canvas.getContext('2d', { alpha: false });   // opaque: every visual paints its own background; far cheaper to composite
   const focus = { inst: null, visualId: null, last: 0, hideT: null, raf: null, pointer: { x: 0.5, y: 0.5, on: false, down: false }, taps: [], tapId: 0, wake: null,
     load(id) { this.visualId = id; this.inst = byId[id].make(); this.taps = []; $('#focus-visual-name').textContent = byId[id].name; $('#focus-breath-row').hidden = id !== 'breathing'; } };
-  function resize() { const w = innerWidth, h = innerHeight; const SFg = window.SoftwaveField; const cap = SFg && SFg.LOW ? 1.2e6 : 2.4e6; let dpr = Math.min(devicePixelRatio || 1, SFg && SFg.LOW ? 1 : 1.5); if (w * h * dpr * dpr > cap) dpr = Math.min(dpr, Math.max(0.75, Math.sqrt(cap / (w * h)))); canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr); canvas.style.width = w + 'px'; canvas.style.height = h + 'px'; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); focus.w = w; focus.h = h; }
+  // drawn at the screen's own size: the screen is fitted to the visible area, which can be smaller than the window
+  function resize() { const w = screen.clientWidth || innerWidth, h = screen.clientHeight || innerHeight; const SFg = window.SoftwaveField; const cap = SFg && SFg.LOW ? 1.2e6 : 2.4e6; let dpr = Math.min(devicePixelRatio || 1, SFg && SFg.LOW ? 1 : 1.5); if (w * h * dpr * dpr > cap) dpr = Math.min(dpr, Math.max(0.75, Math.sqrt(cap / (w * h)))); canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr); canvas.style.width = w + 'px'; canvas.style.height = h + 'px'; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); focus.w = w; focus.h = h; }
   addEventListener('resize', () => { if (!screen.hidden) resize(); });
   function loop(now) {
     if (screen.hidden) return; focus.raf = requestAnimationFrame(loop);
@@ -689,6 +690,8 @@
       if (dest === 'sounds') setTimeout(() => { const f = document.getElementById('field-wrap'); if (f) f.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 300);
     });
   });
+  // Close (always visible, top left): exactly Stop visual, so the sound keeps playing
+  $('#focus-close').addEventListener('click', () => $('#focus-stopvisual').click());
   // Save on the full-screen controller: listen first, then keep it as a session
   $('#focus-save').addEventListener('click', () => { if (app.openSaveSheet) app.openSaveSheet({ visual: S.visual, motion: S.motion, source: 'focus' }); });
   $('#focus-stopall').addEventListener('click', () => {
