@@ -224,8 +224,9 @@
 
       ctx.onstatechange = () => {
         // the lock screen follows the real state: an interruption (a call, Siri) must not keep showing "Playing",
-        // and a held pause (context still running, see pauseAll) must not show "Playing" when an interruption ends
-        this._ms(ctx.state === 'running' && this.active.size && !this.userPaused ? 'playing' : 'paused');
+        // and a held pause (context still running, see pauseAll) must not show "Playing" when an interruption ends.
+        // iPhone app only: in Safari a "paused" written while locked stopped the sound at unlock (v282 device test, 27 Oct)
+        if (this.mediaOut) this._ms(ctx.state === 'running' && this.active.size && !this.userPaused ? 'playing' : 'paused');
         this.emit('state', ctx.state);
       };
       if (nativeIOS) document.addEventListener('visibilitychange', () => { if (!document.hidden) setTimeout(() => this._checkClock(), 250); else this._checkHold(); });
@@ -319,7 +320,9 @@
     // had been released while idle): every sound started into it stays silent until a suspend/resume cycle. A start on
     // a running context checks that the clock moves — since the touch that led to it, or over a short probe — and runs
     // that cycle only when it does not. A clock seen moving is trusted for 1.5 s, so a mix's later starts skip the check.
+    // iPhone app only (the routed output): the website starts and resumes exactly as v281 did.
     async _unstickClock() {
+      if (!this.mediaOut) return false;
       const ctx = this.ctx, now = performance.now();
       if (!ctx || ctx.state !== 'running' || now - (this._clockOkAt || 0) < 1500) return false;
       let m = this._clockMark;
