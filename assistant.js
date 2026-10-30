@@ -23,29 +23,17 @@
 
     // ---------- sound lexicon (ids must exist in the engine) ----------
     const LEX = [
-      ['white', 'white noise', 'white', 'whitenoise'], ['pink', 'pink noise', 'pink', 'pinknoise'], ['brown', 'brown noise', 'brown', 'brownnoise', 'brownian noise', 'brownian'],
-      ['static', 'gentle static', 'static', 'staticky'], ['hiss', 'soft hiss', 'hiss', 'hissing'],
+      ['white', 'white noise', 'white'], ['pink', 'pink noise', 'pink'], ['brown', 'brown noise', 'brown'],
+      ['static', 'gentle static', 'static'], ['hiss', 'soft hiss', 'hiss'],
       ['glassrain', 'rain on window', 'rain on the window', 'window rain', 'rain on glass'],
-      ['rain', 'rain', 'storm', 'rainstorm', 'drizzle', 'rainy', 'raining', 'rainfall', 'thunderstorm', 'stormy', 'raindrop', 'rainwater', 'rainforest'],
-      ['ocean', 'ocean', 'waves', 'sea', 'beach', 'seaside', 'oceanic', 'oceanside', 'oceanfront', 'beachfront', 'seashore', 'seashell', 'seagull', 'seawater'],
-      ['lapping', 'lapping water', 'lapping', 'lake', 'shore', 'lakeside', 'lakeshore', 'shoreline'],
-      ['stream', 'flowing water', 'stream', 'river', 'creek', 'brook', 'running water', 'riverside', 'riverbank'], ['waterfall', 'waterfall'],
-      ['forest', 'forest', 'woods', 'birds', 'jungle', 'birdsong', 'songbird', 'bluebird', 'blackbird', 'woodsy'], ['leaves', 'rustling leaves', 'leaves', 'leaf', 'leafy'],
+      ['rain', 'rain', 'storm', 'rainstorm', 'drizzle'], ['ocean', 'ocean', 'waves', 'sea', 'beach', 'seaside'], ['lapping', 'lapping water', 'lapping', 'lake', 'shore'],
+      ['stream', 'flowing water', 'stream', 'river', 'creek', 'brook', 'running water'], ['waterfall', 'waterfall'],
+      ['forest', 'forest', 'woods', 'birds', 'jungle'], ['leaves', 'rustling leaves', 'leaves', 'leaf'],
       ['crickets', 'crickets', 'cricket', 'insects', 'bugs'], ['cicadas', 'cicadas', 'cicada'],
       ['summernight', 'summer night', 'summer evening'], ['night', 'night sounds', 'night', 'nighttime'],
-      ['wind', 'wind', 'breeze', 'windy', 'windchime'], ['fan', 'fan', 'air conditioner', 'air con'], ['fire', 'fireplace', 'fire', 'campfire', 'bonfire', 'fireside'],
+      ['wind', 'wind', 'breeze'], ['fan', 'fan', 'air conditioner', 'air con'], ['fire', 'fireplace', 'fire', 'campfire', 'bonfire'],
     ];
-    // whole words only (a plural "s"/"es" allowed), so a sound name inside another word ("blackpink", "drain", "tonight")
-    // is not taken for the sound; the real sound words v282 understood by matching inside words ("rainy", "windy",
-    // "birdsong", "pinknoise", "seashore") are listed above as names of their own (owner approval, 30 Oct 2026)
-    const SOUND_RES = LEX.map(([id, ...names]) => [id, names.map(n => new RegExp('\\b' + n.replace(/ /g, '\\s+') + '(?:e?s)?\\b'))]);
-    const findSound = (t) => { for (const [id, res] of SOUND_RES) for (const re of res) if (re.test(t)) return { id, name: engine.def(id).name }; return null; };
-    // for lists of sounds ("play rain and ocean"): every name, longest first, as one alternation; each name's id
-    const NAME_IDS = LEX.reduce((a, [id, ...ns]) => a.concat(ns.map(n => [n, id])), []).sort((a, b) => b[0].length - a[0].length);
-    const NAME_ALT = NAME_IDS.map(([n]) => n.replace(/ /g, '\\s+')).join('|');
-    const nameId = (s) => { const n = s.replace(/\s+/g, ' '); const e = NAME_IDS.find(x => x[0] === n); return e && e[1]; };
-    const QUAL = '(?:a little |a bit of |some |a touch of |light |the |an |a )?';
-    const LIGHT_Q = /(a little|a bit of|some|a touch of|light)\s/;
+    const findSound = (t) => { for (const [id, ...names] of LEX) for (const n of names) if (t.includes(n)) return { id, name: engine.def(id).name }; return null; };
 
     // ---------- warmth ladder (shared with Tuned to You's range; always reversible) ----------
     const TONES = [20000, 14000, 11000, 8500];
@@ -161,12 +149,9 @@
     const NUMWORDS = [['forty five', '45'], ['forty-five', '45'], ['an hour and a half', '90 minutes'], ['half an hour', '30 minutes'], ['one', '1'], ['five', '5'], ['ten', '10'], ['fifteen', '15'], ['twenty', '20'], ['thirty', '30'], ['forty', '40'], ['fifty', '50'], ['sixty', '60'], ['ninety', '90']];
     function normalizeNumbers(t) { for (const [w, d] of NUMWORDS) t = t.replace(new RegExp('\\b' + w + '\\b', 'g'), d); return t; }
     function parse(raw) {
-      // Common typos and speech-to-text slips: "ply/plying" for "play/playing". iPhone keyboard dictation writes "pink"
-      // as the artist "P!nk", and "play pink" as the band "BLACKPINK" (owner K-3 log, 29 Oct 2026). "P!nk" as a whole
-      // word, before punctuation is removed (its "!" would otherwise split it); "BLACKPINK" only as the request's first
-      // word, where "play pink" was said — anywhere else it is left alone and is not taken for pink.
-      const t = normalizeNumbers(' ' + raw.toLowerCase().replace(/(^|[\s,])p!nk(?=$|[\s.,!?;:'’])/g, '$1pink').replace(/^\s*blackpink\b/, 'play pink').replace(/[.,!?;]/g, ' ').replace(/\bplying\b/g, 'playing').replace(/\bply\b/g, 'play').replace(/\s+/g, ' ').trim() + ' ');
-      if (/^\s*(undo( that| it| last)?( please)?|go back|put it back)\s*$/.test(t.trim())) return { undo: true };
+      // Common typos and speech-to-text slips: "ply/plying" for "play/playing".
+      const t = normalizeNumbers(' ' + raw.toLowerCase().replace(/[.,!?;]/g, ' ').replace(/\bplying\b/g, 'playing').replace(/\bply\b/g, 'play').replace(/\s+/g, ' ').trim() + ' ');
+      if (/^\s*(undo( that| it| last)?|go back|put it back)\s*$/.test(t.trim())) return { undo: true };
       if (/^\s*(help|what can (i say|you do)|show examples|examples)\s*\??\s*$/.test(t.trim())) return { help: true };
       if (MEDICAL.test(t)) return { medical: true };
       const acts = [];
@@ -203,29 +188,18 @@
         }
         if (lessM || moreM) break;
       }
-      // play / add / remove take a list of sounds: "play rain and ocean", "add rain, crickets", "remove rain and ocean"
-      const remL = soundList(t, /(?:remove|without|take out|take away|drop|no more|stop(?:\s+playing)?|turn off|don'?t want|do not want|get rid of|enough with)\s+(?:the\s+)?/);
-      const addL = soundList(t, /(?:add|with|include|put in|layer)\s+(?:a little |a bit of |some |a touch of |light |the |an |a )?/);
-      const playL = soundList(t, /(?:play|start|put on|give me|i want|hear|listen to|have)\s+(?:the sound of a |the sound of |a little |the |some |an |a )?/);
+      const remM = matchSound(t, /(?:remove|without|take out|take away|drop|no more|stop(?:\s+playing)?|turn off|don'?t want|do not want|get rid of|enough with)\s+(?:the\s+)?/);
+      const addM = matchSound(t, /(?:add|with|include|put in|layer)\s+(?:a little |a bit of |some |a touch of |light |the |an |a )?/);
+      const playM = matchSound(t, /(?:play|start|put on|give me|i want|hear|listen to|have)\s+(?:the sound of a |the sound of |a little |the |some |an |a )?/);
       if (lessM) acts.push(['layer_volume', { id: lessM.id, delta: -0.15 }]);
       else if (moreM) acts.push(['layer_volume', { id: moreM.id, delta: 0.15 }]);
-      // a sound named for removal or lowering is never also started; a sound that "add"/"with" names is added, not played
-      const blocked = new Set(remL.map(x => x.id).concat(lessM ? [lessM.id] : [])), addIds = new Set(addL.map(x => x.id)), started = new Set();
-      const levelOf = (x, list) => (x.light || (list.length === 1 && light)) ? 0.25 : 0.35;
-      const playItems = playL.filter(x => !blocked.has(x.id) && !addIds.has(x.id));
-      playItems.forEach((x, i) => {
-        started.add(x.id);
-        if (i === 0 && !acts.some(a => a[0] === 'start_moment')) acts.push(['play_sound', { id: x.id }]);
-        else acts.push(['add_layer', { id: x.id, level: levelOf(x, playItems) }]);
-      });
-      for (const x of addL) if (!blocked.has(x.id) && !started.has(x.id)) { started.add(x.id); acts.push(['add_layer', { id: x.id, level: levelOf(x, addL) }]); }
-      for (const x of remL) acts.push(['remove_layer', { id: x.id }]);
-      let m;
-      if (!acts.length) {
-        // bare list with no verb: "rain and ocean" (the whole request is sound names) plays the first and adds the rest
-        const bare = soundList(t, /^\s*/, true);
-        if (bare.length > 1) bare.forEach((x, i) => acts.push(i === 0 ? ['play_sound', { id: x.id }] : ['add_layer', { id: x.id, level: levelOf(x, bare) }]));
+      if (playM && (!addM || addM.id !== playM.id) && (!remM || remM.id !== playM.id) && (!lessM || lessM.id !== playM.id)) {
+        if (!acts.some(a => a[0] === 'start_moment')) acts.push(['play_sound', { id: playM.id }]);
+        else acts.push(['add_layer', { id: playM.id, level: light ? 0.25 : 0.35 }]);
       }
+      if (addM && (!remM || remM.id !== addM.id) && (!lessM || lessM.id !== addM.id)) acts.push(['add_layer', { id: addM.id, level: light ? 0.25 : 0.35 }]);
+      if (remM) acts.push(['remove_layer', { id: remM.id }]);
+      let m;
       if (!acts.length && (m = findSound(t)) && t.trim().split(' ').length <= 4 && !/(louder|softer|quieter|warmer|brighter|steadier|too )/.test(t)) acts.push(['play_sound', { id: m.id }]);   // bare "rain on window"
       // character
       if (/(warmer|more warm|less bright|too bright|less sharp|too sharp|softer sound|mellow|more bass|\bdeeper\b|more deep|too thin)/.test(t)) acts.push(['warmer', {}]);
@@ -272,22 +246,6 @@
           if (w.length >= 3) for (const [id, ...names] of LEX) for (const n of names) { if (n.includes(' ') || n.length < 4) continue; if (ed1(w, n)) return { id }; }
         }
         return null;
-      }
-      // The sounds named after a verb, in order: the first right after the verb, then each further name joined by "and",
-      // "plus", "&", "with", "along with", "together with", "as well as", "in" (keyboard dictation hears "rain and
-      // ocean" as "rain in ocean") or just a space (commas are already spaces here). Longest names first, so "rain on
-      // window" stays one sound and "pink and brown noise" is two. Duplicates dropped; at most 4. Each item notes its own
-      // "a little / some / a touch of / light". With whole=true the list must be the entire request. No list: the
-      // single-sound match (with its one-typo tolerance), exactly as before.
-      function soundList(text, verbRe, whole) {
-        const first = new RegExp(verbRe.source + '(' + QUAL + ')(' + NAME_ALT + ')\\b').exec(text);
-        if (!first) { if (whole) return []; const one = matchSound(text, verbRe); return one ? [{ id: one.id, light: false }] : []; }
-        const items = [{ id: nameId(first[2]), light: LIGHT_Q.test(first[0]) }];
-        const next = new RegExp('(?:\\s+(?:and|plus|&|with|along with|together with|as well as|in))?\\s+(' + QUAL + ')(' + NAME_ALT + ')\\b', 'y');
-        let end = next.lastIndex = first.index + first[0].length, mm;
-        while (items.length < 4 && (mm = next.exec(text))) { end = next.lastIndex; const id = nameId(mm[2]); if (!items.some(x => x.id === id)) items.push({ id, light: LIGHT_Q.test(mm[1]) }); }
-        if (whole && text.slice(end).replace(/\b(sounds?|noises?|please)\b/g, '').trim()) return [];
-        return items;
       }
       function ed1(a, b) {
         if (a === b) return true; const la = a.length, lb = b.length; if (Math.abs(la - lb) > 1) return false;
@@ -354,13 +312,7 @@
     const MIC_MODE = IS_SHELL ? 'native' : 'webkit';
     const nativeSR = () => (IS_SHELL && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.SoftwaveSpeech) || null;
     const useNative = MIC_MODE === 'native' && !!nativeSR();      // 'native' without the plugin (an older shell) hides the button
-    // iPhone and iPad browsers (all of them run Safari's engine): the page never opens the microphone. While a page
-    // captures audio, iOS plays the sound through its call-mode path — static and a changed level that the page cannot
-    // undo without restarting its audio, and that restart leaves the page's microphone silent until a reload (K-3 lab,
-    // 29 Oct 2026). Here the button opens the keyboard on the text field instead; the keyboard's own dictation runs outside
-    // the page and leaves the sound untouched (owner iPhone check, 29 Oct 2026). The iPhone app keeps its native voice.
-    const IOS_WEB = !IS_SHELL && (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
-    const useWebkit = MIC_MODE === 'webkit' && !!SR && !IOS_WEB;
+    const useWebkit = MIC_MODE === 'webkit' && !!SR;
     const diagNative = (phase, extra) => { try { if (window.__swDiagNative) window.__swDiagNative(Object.assign({ type: 'speechNative', phase: phase }, extra || {})); } catch (_) { } };
     // the plugin reports every session end with the restored session's category and route — the line that proves
     // the microphone left the route on a device (visible only in the diagnostic build's log)
@@ -389,35 +341,7 @@
       return m ? 'add ' + t.slice(m[0].length - m[2].length) : t;
     };
     const escapeHtml = (t) => t.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
-    if (IOS_WEB) {
-      const mic = document.createElement('button');
-      mic.type = 'button'; mic.id = 'ask-mic'; mic.className = 'btn btn-ghost btn-sm ask-mic';
-      mic.setAttribute('aria-label', 'Use your keyboard microphone to speak'); mic.title = 'Use your keyboard microphone to speak';
-      // keyboard (two rows of keys and a space bar) with a microphone badge (the keyboard's own dictation key does the listening);
-      // 24 px with 2 px lines so it stays recognisable on an iPhone screen (owner check, 29 Oct 2026)
-      mic.innerHTML = '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><defs><mask id="ask-kbd-mic-cut"><rect width="24" height="24" fill="#fff"/><circle cx="18.5" cy="14.6" r="6.3" fill="#000"/></mask></defs><g mask="url(#ask-kbd-mic-cut)" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1.2" y="4.2" width="17.6" height="13.4" rx="2.6"/><path d="M4.9 7.9h.01M8.3 7.9h.01M11.7 7.9h.01M15.1 7.9h.01M4.9 11h.01M8.3 11h.01M11.7 11h.01" stroke-width="2.1"/><path d="M6.3 14.3h5.6"/></g><rect x="16" y="8.6" width="5" height="8.4" rx="2.5" fill="currentColor"/><path d="M13.7 14.8a4.8 4.8 0 0 0 9.6 0M18.5 19.6v2.9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
-      form.appendChild(mic);
-      const st = document.createElement('style');
-      st.textContent = '.ask-app-note{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-top:6px}.ask-app-note img{display:block}';
-      document.head.appendChild(st);
-      // the note about the app is shown with the hint until it is dismissed (remembered on this device only). Its App Store
-      // link is the page's own badge (#appstore-line), copied, so this file carries no App Store reference into the app bundle.
-      const NOTE_KEY = 'softwave:askAppNoteDismissed';
-      let noteGone = false; try { noteGone = localStorage.getItem(NOTE_KEY) === '1'; } catch (_) { }
-      mic.addEventListener('click', () => {   // no analytics event: opening the keyboard is not a voice request
-        input.focus();   // within the tap, so iOS opens the keyboard
-        clearTimeout(confirmLines._t);   // an earlier confirmation's clear-out must not wipe the hint
-        out.innerHTML = '<div class="ask-line ask-kbd-hint">Use your keyboard microphone to speak.</div>';
-        if (noteGone) return;
-        const note = document.createElement('div'); note.className = 'ask-line ask-app-note';
-        note.innerHTML = '<span>For hands-free voice, use the Find My Quiet Sound iPhone app.</span>';
-        const badge = document.querySelector('#appstore-line .appstore-badge');
-        if (badge) { const b = badge.cloneNode(true); b.removeAttribute('id'); const img = b.querySelector('img'); if (img) { img.width = 108; img.height = 36; } note.appendChild(b); }
-        const x = document.createElement('button'); x.type = 'button'; x.className = 'linklike ask-app-note-x'; x.textContent = 'Dismiss';
-        x.addEventListener('click', () => { noteGone = true; try { localStorage.setItem(NOTE_KEY, '1'); } catch (_) { } note.remove(); input.focus(); });
-        note.appendChild(x); out.appendChild(note);
-      });
-    } else if (useNative || useWebkit) {
+    if (useNative || useWebkit) {
       const mic = document.createElement('button');
       mic.type = 'button'; mic.id = 'ask-mic'; mic.className = 'btn btn-ghost btn-sm ask-mic';
       mic.setAttribute('aria-label', 'Speak your request'); mic.setAttribute('aria-pressed', 'false');
