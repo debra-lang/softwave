@@ -8,7 +8,9 @@
    Privacy: no typed text, no input values, no microphone audio, no speech transcripts, no identifiers. The log stays in
    this device's localStorage until the user copies or shares it from the Diag panel.
    Build 86 adds one test switch, "Pause limit": it only stores a value that the engine reads to shorten how long a pause
-   stays ready for the lock screen (10 min → 2 min) — nothing else in this file changes what the app does. */
+   stays ready for the lock screen (10 min → 2 min). Build 90 adds "Ask voice": it only stores which voice Ask's
+   microphone button uses (the keyboard's dictation, the default, or the app's own voice for comparison) and reloads the
+   page — nothing else in this file changes what the app does. */
 (function () {
   'use strict';
   var KEY = 'softwave:diag:log', MAX = 3000, T0 = Date.now();
@@ -207,6 +209,16 @@
       try { if (next) localStorage.setItem('softwave:diag:pauseLimit', JSON.stringify(next)); else localStorage.removeItem('softwave:diag:pauseLimit'); } catch (e) { }
       plBtn.textContent = 'Pause limit: ' + plName(next); log('ui:pause-limit', { limit: plName(next) }, false);
       status.textContent = 'Pause limit ' + plName(next) + ': applies from the next pause, no restart needed.';
+    });
+    // Build 90 test switch: which Ask voice the microphone button uses — the keyboard's dictation (the default) or the
+    // app's own voice (kept for comparison). Ask reads it once at start, so the page reloads to apply it.
+    var avApp = function () { try { return localStorage.getItem('softwave:diag:askVoice') === 'app'; } catch (e) { return false; } };
+    mk('Ask voice: ' + (avApp() ? 'App voice' : 'Keyboard'), function () {
+      var next = !avApp();
+      try { if (next) localStorage.setItem('softwave:diag:askVoice', 'app'); else localStorage.removeItem('softwave:diag:askVoice'); } catch (e) { }
+      log('ui:ask-voice', { voice: next ? 'app' : 'keyboard' }, false); persist();
+      status.textContent = 'Ask voice: ' + (next ? 'App voice' : 'Keyboard') + '. Reloading to apply…';
+      setTimeout(function () { location.reload(); }, 600);
     });
     mk('Clear', function () { buf = []; dirty = true; persist(); log('diag:cleared', undefined, false); refresh(); });
     mk('Close', function () { panel.style.display = 'none'; });

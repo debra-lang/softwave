@@ -306,7 +306,7 @@
       const req = raw.trim(); if (!req) return;
       const parsed = parse(req);
       if (parsed.undo) { await undo(); return; }
-      if (parsed.help) { confirmLines(['You can ask for sounds (“play rain”, “add a little ocean”), character (“something warm and steady”), purpose (“something for sleep”), changes (“softer”, “more movement”, “less rain”), timers (“for 30 minutes”), plus “save this”, “stop” and “undo”.'], false); return; }
+      if (parsed.help) { confirmLines(['You can ask for sounds (“play rain”, “add a little ocean”), character (“something warm and steady”), purpose (“something for sleep”), changes (“softer”, “more movement”, “less rain”), timers (“for 30 minutes”), plus “save this”, “stop” and “undo”.'].concat(KBD_VOICE ? ['To speak, tap the microphone, then your keyboard’s microphone key. No microphone key? Turn on Dictation in Settings › General › Keyboard. To undo by voice, say “Go back”.'] : []), false); return; }
       if (parsed.medical) { confirmLines(['I can adjust sounds and settings, but I can’t give medical advice. The Learn section covers sound and tinnitus carefully — and for symptoms, a doctor or audiologist is the right person.'], false); return; }
       if (parsed.clarify) { confirmLines(['Try being specific: “warmer”, “softer”, “more movement”, or “something different”.'], false); return; }
       if (parsed.unknownSound) { track('ai_command_failed'); confirmLines(['I don’t recognise that sound. The library has: rain, rain on window, ocean, lapping water, flowing water, waterfall, white/pink/brown noise, static, hiss, forest, leaves, crickets, cicadas, summer night, night sounds, wind, fan and fireplace.'], false); return; }
@@ -347,28 +347,41 @@
     // the app declares the microphone and speech-recognition usage descriptions (Info.plist), so iOS
     // asks for both permissions on the first tap. Nothing starts until the microphone is tapped.
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    // MIC_MODE — iPhone app: 'native' (Apple speech recognition through the app's own plugin, which restores the audio
-    // session to playback-only after every session), 'webkit' (the browser recogniser, which leaves the microphone in
-    // the route — Build 73/74 diagnostics) or 'hidden' (no microphone button; typing stays). Website: always 'webkit'.
+    // MIC_MODE — iPhone app: 'keyboard' (the default: the button opens the keyboard and its own dictation key does the
+    // listening, as in iPhone browsers below; the app never opens the microphone or switches its audio session — owner
+    // check in the Build 89 app, 30 Oct 2026), 'native' (Apple speech recognition through the app's own plugin, which
+    // restores the audio session to playback-only after every session; kept for comparison and chosen only by the
+    // diagnostic build's "Ask voice" switch — a release bundle has no Diag panel, so it is always 'keyboard'), 'webkit'
+    // (the browser recogniser, which leaves the microphone in the route — Build 73/74 diagnostics) or 'hidden' (no
+    // microphone button; typing stays). Website: always 'webkit'.
     const IS_SHELL = !!(window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform() === 'ios');
-    const MIC_MODE = IS_SHELL ? 'native' : 'webkit';
+    let askVoiceApp = false; if (IS_SHELL && window.__swDiag) { try { askVoiceApp = localStorage.getItem('softwave:diag:askVoice') === 'app'; } catch (_) { } }
+    const MIC_MODE = IS_SHELL ? (askVoiceApp ? 'native' : 'keyboard') : 'webkit';
     const nativeSR = () => (IS_SHELL && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.SoftwaveSpeech) || null;
     const useNative = MIC_MODE === 'native' && !!nativeSR();      // 'native' without the plugin (an older shell) hides the button
     // iPhone and iPad browsers (all of them run Safari's engine): the page never opens the microphone. While a page
     // captures audio, iOS plays the sound through its call-mode path — static and a changed level that the page cannot
     // undo without restarting its audio, and that restart leaves the page's microphone silent until a reload (K-3 lab,
     // 29 Oct 2026). Here the button opens the keyboard on the text field instead; the keyboard's own dictation runs outside
-    // the page and leaves the sound untouched (owner iPhone check, 29 Oct 2026). The iPhone app keeps its native voice.
+    // the page and leaves the sound untouched (owner iPhone check, 29 Oct 2026). The iPhone app does the same by default.
     const IOS_WEB = !IS_SHELL && (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
+    const KBD_VOICE = IOS_WEB || MIC_MODE === 'keyboard';
     const useWebkit = MIC_MODE === 'webkit' && !!SR && !IOS_WEB;
     const diagNative = (phase, extra) => { try { if (window.__swDiagNative) window.__swDiagNative(Object.assign({ type: 'speechNative', phase: phase }, extra || {})); } catch (_) { } };
+    if (IS_SHELL) diagNative('mode', { mode: MIC_MODE });   // diagnostic log: which Ask voice this session uses
     // the plugin reports every session end with the restored session's category and route — the line that proves
     // the microphone left the route on a device (visible only in the diagnostic build's log)
     let nativeStateHook = null;   // set below: the page's "getting ready" → "Listening" → "I can hear you" indication follows these events
     try { const P0 = useNative && nativeSR(); if (P0 && P0.addListener) P0.addListener('listeningState', e => { diagNative('state', e); try { if (nativeStateHook) nativeStateHook(e); } catch (_) { } }); } catch (_) { }
     // Contextual strings for Apple's recognizer (iPhone app): every sound name and alias plus the command words the
     // parser understands, so "pink" is favoured over "ping". Words only — nothing about the user.
-    const NATIVE_VOCAB = useNative ? Array.from(new Set(LEX.reduce((a, e) => a.concat(e.slice(1)), []).concat(['play', 'stop', 'pause', 'resume', 'add', 'remove', 'louder', 'softer', 'quieter', 'warmer', 'brighter', 'more movement', 'steadier', 'my sound', 'sleep timer', 'timer', 'undo', 'save']))) : null;
+    // At most 100 strings: the command words, then each sound's names in turn (its main name first), so the word forms
+    // added in v283 (rainy, windy, …) fill only the room left and the list stays within the plugin's tested size.
+    const NATIVE_VOCAB = useNative ? (() => {
+      const v = new Set(['play', 'stop', 'pause', 'resume', 'add', 'remove', 'louder', 'softer', 'quieter', 'warmer', 'brighter', 'more movement', 'steadier', 'my sound', 'sleep timer', 'timer', 'undo', 'save']);
+      for (let i = 1; v.size < 100 && LEX.some(e => e.length > i); i++) for (const e of LEX) if (e[i] && v.size < 100) v.add(e[i]);
+      return Array.from(v);
+    })() : null;
     // Build 78: the single-word sound names, for the plugin's alternative-transcript rule (a candidate transcript is used only
     // when it is the same utterance with one word swapped for one of these)
     const NATIVE_SOUNDS = useNative ? NATIVE_VOCAB.filter(w => w.indexOf(' ') < 0 && LEX.some(e => e.slice(1).indexOf(w) >= 0)) : null;
@@ -389,7 +402,7 @@
       return m ? 'add ' + t.slice(m[0].length - m[2].length) : t;
     };
     const escapeHtml = (t) => t.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
-    if (IOS_WEB) {
+    if (KBD_VOICE) {
       const mic = document.createElement('button');
       mic.type = 'button'; mic.id = 'ask-mic'; mic.className = 'btn btn-ghost btn-sm ask-mic';
       mic.setAttribute('aria-label', 'Use your keyboard microphone to speak'); mic.title = 'Use your keyboard microphone to speak';
@@ -408,7 +421,7 @@
         input.focus();   // within the tap, so iOS opens the keyboard
         clearTimeout(confirmLines._t);   // an earlier confirmation's clear-out must not wipe the hint
         out.innerHTML = '<div class="ask-line ask-kbd-hint">Use your keyboard microphone to speak. Say ‘Go back’ to undo.</div>';
-        if (noteGone) return;
+        if (noteGone || IS_SHELL) return;   // the note points to the app: never shown inside it
         const note = document.createElement('div'); note.className = 'ask-line ask-app-note';
         note.innerHTML = '<span>For hands-free voice, use the Find My Quiet Sound iPhone app.</span>';
         const badge = document.querySelector('#appstore-line .appstore-badge');
@@ -416,6 +429,20 @@
         const x = document.createElement('button'); x.type = 'button'; x.className = 'linklike ask-app-note-x'; x.textContent = 'Dismiss';
         x.addEventListener('click', () => { noteGone = true; try { localStorage.setItem(NOTE_KEY, '1'); } catch (_) { } note.remove(); input.focus(); });
         note.appendChild(x); out.appendChild(note);
+      });
+      // iPhone app only: if the sound stopped by itself while the keyboard was open (an audio interruption around
+      // dictation, e.g. a headset switching to its microphone), bring it back once when the keyboard closes. Any touch on
+      // the page already does this (the engine's tap arm), so this covers only a keyboard closed without one. Never for
+      // a mix the user paused (in the app or from the lock screen), a held pause, a stopped mix or an ended timer, and
+      // never while the app is in the background; the master comes back with Play's own gentle approach, from zero.
+      if (IS_SHELL) input.addEventListener('blur', () => {
+        setTimeout(() => {
+          const e = engine;
+          if (!e.ctx || e.ctx.state === 'running' || document.hidden || e.userPaused || e._softPaused || !(e.active && e.active.size) || !e.master) return;
+          diagNative('kbd-recover', { ctx: e.ctx.state });
+          const g = e.master.gain, t = e.ctx.currentTime; g.cancelScheduledValues(t); g.setValueAtTime(0, t);
+          e.playAll();
+        }, 700);
       });
     } else if (useNative || useWebkit) {
       const mic = document.createElement('button');
