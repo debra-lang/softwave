@@ -73,11 +73,20 @@
       confirmLines(['✓ Undone — back to how it was'], false);
     }
 
+    // ---------- starting levels: a sound starts where its card would (its remembered slider level, else 45%); sounds
+    // that build a new mix together share that level so the mix is about as loud as one sound. A layer's gain is
+    // volume^1.45, so ×0.79 halves the power of each of two, ×0.69 thirds each of three, and so on.
+    const cardVol = (id) => { const v = store.get('soundvol:' + id, null); return typeof v === 'number' && v >= 0 && v <= 1 ? v : 0.45; };
+    const SHARE = [1, 1, 0.79, 0.69, 0.62, 0.57];
+    const shareOf = (id, n, light) => { const c = cardVol(id), f = SHARE[Math.min(Math.max(n, 1), 5)] * (light ? 0.7 : 1); return f >= 1 ? c : Math.max(Math.min(c, 0.1), Math.round(c * f * 100) / 100); };
+    // adding to what already plays: 35% (25% light), never above the sound's own card level
+    const addOf = (id, light) => Math.min(light ? 0.25 : 0.35, cardVol(id));
+
     // ---------- the strict action executor (validates everything) ----------
     const ok = [];
     const A = {
-      async play_sound(p) { if (!engine.def(p.id)) return; await engine.loadMix([{ id: p.id, volume: 0.55 }]); ok.push('Playing ' + engine.def(p.id).name); },
-      async add_layer(p) { if (!engine.def(p.id)) return; const v = Math.max(0.1, Math.min(0.7, p.level || 0.35)); const r = await engine.startSound(p.id, v); ok.push(r === false ? 'Could not add ' + engine.def(p.id).name + ' (layer limit)' : 'Added ' + engine.def(p.id).name + (v <= 0.28 ? ' (light)' : '')); },
+      async play_sound(p) { if (!engine.def(p.id)) return; await engine.loadMix([{ id: p.id, volume: p.level != null ? p.level : cardVol(p.id) }]); ok.push('Playing ' + engine.def(p.id).name); },
+      async add_layer(p) { if (!engine.def(p.id)) return; const v = Math.max(0.1, Math.min(1, p.level || 0.35)); const r = await engine.startSound(p.id, v); ok.push(r === false ? 'Could not add ' + engine.def(p.id).name + ' (layer limit)' : 'Added ' + engine.def(p.id).name + (p.light ? ' (light)' : '')); },
       async remove_layer(p) { if (engine.isActive(p.id)) { engine.stopSound(p.id); ok.push('Removed ' + engine.def(p.id).name); } else ok.push(engine.def(p.id).name + ' is not playing'); },
       async layer_volume(p) { if (!engine.isActive(p.id)) return ok.push(engine.def(p.id).name + ' is not playing'); const s = engine.activeList().find(x => x.id === p.id); const v = Math.max(0.05, Math.min(1, s.volume + p.delta)); engine.setVolume(p.id, v); ok.push((p.delta < 0 ? 'Lowered ' : 'Raised ') + engine.def(p.id).name + ' to ' + Math.round(v * 100) + '%'); },
       async stop_all() { (window.softwaveStopAll || engine.stopAll.bind(engine))(); ok.push('Stopped everything'); },
@@ -149,7 +158,7 @@
         } else {
           const pool = engine.defs().map(d => d.id).filter(id => !act.has(id));
           const id = pool[Math.floor(Math.random() * pool.length)];
-          await engine.loadMix([{ id, volume: 0.55 }]);
+          await engine.loadMix([{ id, volume: cardVol(id) }]);
           ok.push('Trying ' + engine.def(id).name);
         }
       },
@@ -211,20 +220,29 @@
       else if (moreM) acts.push(['layer_volume', { id: moreM.id, delta: 0.15 }]);
       // a sound named for removal or lowering is never also started; a sound that "add"/"with" names is added, not played
       const blocked = new Set(remL.map(x => x.id).concat(lessM ? [lessM.id] : [])), addIds = new Set(addL.map(x => x.id)), started = new Set();
-      const levelOf = (x, list) => (x.light || (list.length === 1 && light)) ? 0.25 : 0.35;
+      const isLight = (x, list) => !!(x.light || (list.length === 1 && light));
       const playItems = playL.filter(x => !blocked.has(x.id) && !addIds.has(x.id));
+      // "play …" builds a new mix: every sound it names (with any "with/add" ones) shares one balanced level; the first
+      // sound is never made light. Without a play (or alongside a Moment), sounds are added to what already plays.
+      const newMix = playItems.length > 0 && !acts.some(a => a[0] === 'start_moment');
+      const addItems = addL.filter(x => !blocked.has(x.id) && !playItems.some(y => y.id === x.id));
+      const n = newMix ? playItems.length + addItems.length : 0;
       playItems.forEach((x, i) => {
         started.add(x.id);
-        if (i === 0 && !acts.some(a => a[0] === 'start_moment')) acts.push(['play_sound', { id: x.id }]);
-        else acts.push(['add_layer', { id: x.id, level: levelOf(x, playItems) }]);
+        if (newMix) acts.push(i === 0 ? ['play_sound', { id: x.id, level: shareOf(x.id, n, false) }] : ['add_layer', { id: x.id, level: shareOf(x.id, n, x.light), light: !!x.light }]);
+        else { const l = isLight(x, playItems); acts.push(['add_layer', { id: x.id, level: addOf(x.id, l), light: l }]); }
       });
-      for (const x of addL) if (!blocked.has(x.id) && !started.has(x.id)) { started.add(x.id); acts.push(['add_layer', { id: x.id, level: levelOf(x, addL) }]); }
+      for (const x of addItems) if (!started.has(x.id)) {
+        started.add(x.id);
+        if (newMix) acts.push(['add_layer', { id: x.id, level: shareOf(x.id, n, x.light), light: !!x.light }]);
+        else { const l = isLight(x, addL); acts.push(['add_layer', { id: x.id, level: addOf(x.id, l), light: l }]); }
+      }
       for (const x of remL) acts.push(['remove_layer', { id: x.id }]);
       let m;
       if (!acts.length) {
-        // bare list with no verb: "rain and ocean" (the whole request is sound names) plays the first and adds the rest
+        // bare list with no verb: "rain and ocean" (the whole request is sound names) plays them as one balanced new mix
         const bare = soundList(t, /^\s*/, true);
-        if (bare.length > 1) bare.forEach((x, i) => acts.push(i === 0 ? ['play_sound', { id: x.id }] : ['add_layer', { id: x.id, level: levelOf(x, bare) }]));
+        if (bare.length > 1) bare.forEach((x, i) => acts.push(i === 0 ? ['play_sound', { id: x.id, level: shareOf(x.id, bare.length, false) }] : ['add_layer', { id: x.id, level: shareOf(x.id, bare.length, x.light), light: !!x.light }]));
       }
       if (!acts.length && (m = findSound(t)) && t.trim().split(' ').length <= 4 && !/(louder|softer|quieter|warmer|brighter|steadier|too )/.test(t)) acts.push(['play_sound', { id: m.id }]);   // bare "rain on window"
       // character
