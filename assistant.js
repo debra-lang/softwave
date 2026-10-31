@@ -407,7 +407,7 @@
       mic.addEventListener('click', () => {   // no analytics event: opening the keyboard is not a voice request
         input.focus();   // within the tap, so iOS opens the keyboard
         clearTimeout(confirmLines._t);   // an earlier confirmation's clear-out must not wipe the hint
-        out.innerHTML = '<div class="ask-line ask-kbd-hint">Use your keyboard microphone to speak.</div>';
+        out.innerHTML = '<div class="ask-line ask-kbd-hint">Use your keyboard microphone to speak. Say ‘Go back’ to undo.</div>';
         if (noteGone) return;
         const note = document.createElement('div'); note.className = 'ask-line ask-app-note';
         note.innerHTML = '<span>For hands-free voice, use the Find My Quiet Sound iPhone app.</span>';
