@@ -477,7 +477,10 @@
     const ids = new Set(list.map(s => s.id));
     $$('#sound-groups .sound-card').forEach(c => {
       const on = ids.has(c.dataset.id); c.classList.toggle('active', on); $('.card-btn', c).setAttribute('aria-pressed', on);
-      if (on) { const s = list.find(x => x.id === c.dataset.id); const r = $('input', c); r.value = Math.round(s.volume * 100); paintRange(r); $('output', c).textContent = r.value + '%'; }
+      // playing: the slider shows the real level; stopped (slider hidden): back to the remembered level, so a card tap
+      // starts where the Mixer, Add a sound, Visual Focus and Ask do — never at a level Ask or a saved mix assigned
+      const s = on && list.find(x => x.id === c.dataset.id); const r = $('input', c), v = Math.round((on ? s.volume : soundVol(c.dataset.id)) * 100);
+      if (+r.value !== v) { r.value = v; paintRange(r); $('output', c).textContent = v + '%'; }
     });
   }
 
