@@ -454,11 +454,11 @@ learn({
 });
 
 learn({
-  slug: 'ask-find-my-quiet-sound', updated: '2026-10-30',
+  slug: 'ask-find-my-quiet-sound', updated: '2026-11-01',
   title: 'Ask Find My Quiet Sound — Voice & Text Sound Control',
   description: 'A tinnitus sound app you can control by voice or text. Say "something gentle for sleep" or "add a little rain" — hands-free masking sounds, with the microphone on only when you tap it.',
   h1: 'Ask Find My Quiet Sound',
-  intro: 'Just say what you want. Ask Find My Quiet Sound lets you control your sound environment using everyday language. Type your request, or tap the microphone and speak. On iPhone and iPad browsers, the microphone button opens your keyboard, so you can use its microphone key to dictate.',
+  intro: 'Just say what you want. Ask Find My Quiet Sound lets you control your sound environment using everyday language. Type your request, or speak it. In the iPhone app and in iPhone and iPad browsers, you speak using Apple’s keyboard dictation.',
   body: `
 <h2>Try things like</h2>
 <ul>
@@ -476,8 +476,14 @@ learn({
 <h2>About voice</h2>
 <p>How voice works depends on where you use Find My Quiet Sound.</p>
 <ul>
-<li><strong>In the iPhone app, and in browsers on Android, Mac and Windows:</strong> tap the microphone and speak. It listens only when you tap it, one request at a time — never in the background.</li>
-<li><strong>In Safari or another browser on iPhone or iPad:</strong> the microphone button opens your keyboard. Tap the keyboard’s microphone key to dictate, and your sound keeps playing without interruption. Find My Quiet Sound doesn’t turn on the microphone itself in these browsers. To undo a change by voice, say ‘Go back’ instead of ‘Undo,’ which iPhone dictation may interpret as an editing command. You can also tap Undo.</li>
+<li><strong>In the iPhone app, and in Safari or another browser on iPhone or iPad:</strong> you speak using Apple’s keyboard dictation.
+<ol>
+<li>Tap the Ask box, or the microphone button beside it. Your keyboard opens.</li>
+<li>Tap the keyboard’s microphone key and say your request. Your words appear in the box.</li>
+<li>Tap <strong>Go</strong>.</li>
+</ol>
+Your sound keeps playing while you dictate. Find My Quiet Sound doesn’t turn on the microphone itself — your keyboard does the listening. No microphone key? Turn on Dictation in Settings › General › Keyboard. To undo a change by voice, say ‘Go back’ instead of ‘Undo,’ which iPhone dictation may interpret as an editing command. You can also tap Undo.</li>
+<li><strong>In browsers on Android, Mac and Windows:</strong> tap the microphone and speak. It listens only when you tap it, one request at a time — never in the background.</li>
 </ul>
 <p>Voice recognition may be processed by your browser or device provider (by Apple, for keyboard dictation). Find My Quiet Sound does not store your voice or send My Sound Profile or tinnitus information with your request.</p>
 <p><a href="/">Try it now — it lives just under the main controls on the Sounds page →</a></p>`,
