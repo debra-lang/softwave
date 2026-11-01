@@ -353,7 +353,8 @@
     const form = $('#ask-form'), input = $('#ask-input'), out = $('#ask-out');
     let openedOnce = false;
     input.addEventListener('focus', () => { if (!openedOnce) { openedOnce = true; track('ai_assistant_opened'); } });
-    form.addEventListener('submit', async e => { e.preventDefault(); const v = input.value; input.value = ''; await run(v); });
+    // typed and keyboard-dictated text arrive the same way; the misheard-"add" fix (below) applies only where the keyboard is the voice
+    form.addEventListener('submit', async e => { e.preventDefault(); const v = KBD_VOICE ? normaliseAdd(input.value.trim()) : input.value; input.value = ''; await run(v); });
     input.addEventListener('keydown', e => { if (e.key === 'Escape') { out.innerHTML = ''; input.blur(); } });
 
     // ---------- Phase 2: tap-to-talk (speech becomes text; the SAME pipeline runs it) ----------
@@ -410,14 +411,23 @@
     // of these and is followed by a known sound name is read as "add …". Conservative: "and", "ad" and "had" may carry
     // the parser's own qualifiers ("a little", "some", "the", …); "at" and "an" only directly before a sound name. Nothing
     // else about the text changes, and a request with a real verb ("play", "with", "stop", …) is never touched.
-    const SOUND_ALIASES = useNative ? LEX.reduce((a, e) => a.concat(e.slice(1)), []).map(w => w.replace(/ /g, '\\s+')).sort((a, b) => b.length - a.length) : null;
+    // Build 91: keyboard dictation too (the default Ask voice since Build 90, and iPhone/iPad browsers), whose first word
+    // also comes back as "ed"/"ead", or run together with the sound ("Eadwind", owner iPhone test, 1 Nov 2026). A run-
+    // together word counts only when what follows add/ad/ead/ed is exactly a sound name ("Edwin" stays as it is), and
+    // "at"/"an" only when the sound name is the whole request, give or take "please"/"too" ("At night, play rain" is not
+    // "add night"). Names take the parser's plural ("and winds"). A request about a level ("and rain louder", "and rain is
+    // too loud") is left alone: the parser already reads it as a level change, and "add" would reset the playing sound.
+    const FIX_ADD = useNative || KBD_VOICE;
+    const SOUND_ALIASES = FIX_ADD ? LEX.reduce((a, e) => a.concat(e.slice(1)), []).map(w => w.replace(/ /g, '\\s+')).sort((a, b) => b.length - a.length) : null;
+    const LEVEL_WORDS = /\b(?:louder|softer|quieter|lower|higher|up|down|stronger|weaker|more|less|volume|too\s+(?:loud|quiet|soft|much))\b/i;
     const normaliseAdd = (t) => {
-      if (!useNative || !(engine.active && engine.active.size > 0)) return t;
-      const names = '(?:' + SOUND_ALIASES.join('|') + ')\\b';
-      const loose = new RegExp('^(and|ad|had)\\s+((?:a little |a bit of |some |a touch of |light |the |an |a )?' + names + ')', 'i');
-      const strict = new RegExp('^(at|an)\\s+(' + names + ')', 'i');
-      const m = loose.exec(t) || strict.exec(t);
-      return m ? 'add ' + t.slice(m[0].length - m[2].length) : t;
+      if (!FIX_ADD || !(engine.active && engine.active.size > 0) || LEVEL_WORDS.test(t)) return t;
+      const names = '(?:' + SOUND_ALIASES.join('|') + ')(?:e?s)?\\b';
+      const loose = new RegExp('^(and|ad|had|ed|ead)[\\s,]+((?:a little |a bit of |some |a touch of |light |the |an |a )?' + names + ')', 'i');
+      const strict = new RegExp('^(at|an)\\s+(' + names + ')(?:\\s+(?:please|too|as well|also))?[\\s.!?]*$', 'i');
+      const glued = new RegExp('^(add|ad|ead|ed)(' + names + ')', 'i');
+      const m = loose.exec(t) || strict.exec(t) || glued.exec(t);
+      return m ? 'add ' + t.slice(m[1].length).replace(/^[\s,]+/, '') : t;
     };
     const escapeHtml = (t) => t.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
     if (KBD_VOICE) {
@@ -663,7 +673,7 @@
       clearTimeout(confirmLines._t); confirmLines._t = setTimeout(() => { if (!out.contains(document.activeElement)) out.innerHTML = ''; }, 14000);
     }
 
-    window.softwaveAssistant = { run, undo, parse };   // parse exposed for testing; run for future voice tier
+    window.softwaveAssistant = { run, undo, parse, normaliseAdd };   // parse and normaliseAdd exposed for testing; run for future voice tier
   };
   boot();
 })();
