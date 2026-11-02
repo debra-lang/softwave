@@ -4,8 +4,7 @@
 name: Audio soak simulator
 
 on:
-  push:
-    branches: [audio-audit-simtest]
+  workflow_dispatch:
 
 permissions:
   contents: read
