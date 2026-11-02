@@ -1,0 +1,82 @@
+# TEST-ONLY workflow (branch audio-audit-simtest; kept, never merged). Nothing is signed or uploaded and no secrets are used.
+# The 29-sound audit on the candidates (Build 91 code with the "rain louder" and "Edwin" fixes) with each engine prototype, and on Build 89 with the stereo prototype;
+# plus the offline engine comparison in the simulator's WebKit. A simulator run is not proof of iPhone sound quality.
+name: Audio prototype audit
+
+on:
+  push:
+    branches: [audio-audit-simtest]
+    paths: [.github/simtest/trigger-audit]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Select Xcode 26
+        run: |
+          XC=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1)
+          if [ -n "$XC" ]; then sudo xcode-select -s "$XC"; fi
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build the simulator apps
+        run: |
+          set -eo pipefail
+          SIM=$GITHUB_WORKSPACE/.github/simtest; mkdir -p $GITHUB_WORKSPACE/simapps
+          git worktree add $GITHUB_WORKSPACE/../b89 faacd9b
+          git -C $GITHUB_WORKSPACE show d9140ba:audio.js > /tmp/orig.js
+          build() {   # $1 = tree, $2 = output name, $3 = SOFTWAVE_DIAG, $4 = engine (pin, pool, orig), $5 = script to inject
+            cd "$1"; git checkout -q d9140ba -- audio.js 2>/dev/null || git checkout -q -- audio.js
+            python3 $SIM/mkproto.py audio.js /tmp/pin.js /tmp/pool.js
+            if [ "$4" != orig ]; then cp /tmp/$4.js audio.js; fi
+            cd native; [ -d node_modules ] || npm ci --no-audit --no-fund >/dev/null
+            SOFTWAVE_DIAG=$3 node build-www.js; node $SIM/inject.js www "$5"
+            if [ "$(basename "$5")" = offline-sim.js ]; then cp $SIM/offline-compare.js www/; cp /tmp/orig.js www/engine-orig.js; python3 $SIM/mkproto.py /tmp/orig.js www/engine-pin.js www/engine-pool.js; fi
+            npx cap sync ios
+            xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug -sdk iphonesimulator \
+              -destination 'generic/platform=iOS Simulator' -derivedDataPath dd CODE_SIGNING_ALLOWED=NO ARCHS=arm64 ONLY_ACTIVE_ARCH=NO build | tail -1
+            mkdir -p $GITHUB_WORKSPACE/simapps/$2; cp -R "$(find dd/Build/Products -name App.app -type d | head -1)" $GITHUB_WORKSPACE/simapps/$2/
+          }
+          W=$GITHUB_WORKSPACE
+          build $W pinr 0 pin $SIM/audio-audit.js
+          build $W pind 1 pin $SIM/audio-audit.js
+          build $W poolr 0 pool $SIM/audio-audit.js
+          build $W/../b89 b89pin 0 pin $SIM/audio-audit.js
+          build $W offline 0 orig $SIM/offline-sim.js
+          cd $W && git checkout -q -- audio.js && tar -czf simapps.tgz simapps
+      - uses: actions/upload-artifact@v4
+        with:
+          name: auditapps
+          path: simapps.tgz
+          retention-days: 7
+
+  audit:
+    needs: build
+    runs-on: macos-26
+    timeout-minutes: 170
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [pinr, pind, poolr, b89pin, offline]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: auditapps
+      - name: Run the audit
+        run: |
+          tar -xzf simapps.tgz; S=.github/simtest; chmod +x $S/audit-run.sh
+          XC=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1); if [ -n "$XC" ]; then sudo xcode-select -s "$XC"; fi
+          $S/audit-run.sh ${{ matrix.app }} simapps/${{ matrix.app }} out 9300
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: results-${{ matrix.app }}
+          path: out/
