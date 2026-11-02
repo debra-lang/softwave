@@ -5,8 +5,7 @@
 name: Audio audit simulator
 
 on:
-  push:
-    branches: [audio-audit-simtest]
+  workflow_dispatch:
 
 permissions:
   contents: read

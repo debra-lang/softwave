@@ -1,0 +1,82 @@
+# TEST-ONLY workflow (branch audio-audit-simtest; kept, never merged). Nothing is signed or uploaded and no secrets are used.
+# Controlled simulator soak: one sound from launch with no test instrumentation, to separate what grows with playing time from what grows with use.
+# A simulator run is not proof of iPhone sound quality.
+name: Audio soak simulator
+
+on:
+  push:
+    branches: [audio-audit-simtest]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Select Xcode 26
+        run: |
+          XC=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1)
+          if [ -n "$XC" ]; then sudo xcode-select -s "$XC"; fi
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build the simulator apps
+        run: |
+          set -eo pipefail
+          SIM=$GITHUB_WORKSPACE/.github/simtest; mkdir -p $GITHUB_WORKSPACE/simapps
+          build() {   # $1 = native dir, $2 = output name, $3 = SOFTWAVE_DIAG (1 diagnostic, 0 release)
+            cd "$1"; npm ci --no-audit --no-fund >/dev/null
+            SOFTWAVE_DIAG=$3 node build-www.js
+            node $SIM/inject.js www $SIM/soak.js
+            npx cap sync ios
+            xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug -sdk iphonesimulator \
+              -destination 'generic/platform=iOS Simulator' -derivedDataPath dd CODE_SIGNING_ALLOWED=NO ARCHS=arm64 ONLY_ACTIVE_ARCH=NO build | tail -3
+            APP=$(find dd/Build/Products -name App.app -type d | head -1)
+            mkdir -p $GITHUB_WORKSPACE/simapps/$2; cp -R "$APP" $GITHUB_WORKSPACE/simapps/$2/
+          }
+          build $GITHUB_WORKSPACE/native cand92d 1
+          build $GITHUB_WORKSPACE/native cand92r 0
+          git worktree add $GITHUB_WORKSPACE/../b89 faacd9b
+          build $GITHUB_WORKSPACE/../b89/native b89 0
+          cd $GITHUB_WORKSPACE && tar -czf simapps.tgz simapps
+      - uses: actions/upload-artifact@v4
+        with:
+          name: soakapps
+          path: simapps.tgz
+          retention-days: 7
+
+  soak:
+    needs: build
+    runs-on: macos-26
+    timeout-minutes: 125
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { label: rain90-b89, app: b89, sound: rain, min: 90, mode: plain }
+          - { label: rain90-cand, app: cand92r, sound: rain, min: 90, mode: plain }
+          - { label: rain90-diag, app: cand92d, sound: rain, min: 90, mode: plain }
+          - { label: brown45-b89, app: b89, sound: brown, min: 45, mode: plain }
+          - { label: rain45-gc-b89, app: b89, sound: rain, min: 45, mode: gc }
+          - { label: rain45-disc-b89, app: b89, sound: rain, min: 45, mode: disc }
+          - { label: fire45-b89, app: b89, sound: fire, min: 45, mode: plain }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: soakapps
+      - name: Run the soak
+        run: |
+          tar -xzf simapps.tgz; S=.github/simtest; chmod +x $S/soak-run.sh
+          XC=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1); if [ -n "$XC" ]; then sudo xcode-select -s "$XC"; fi
+          $S/soak-run.sh ${{ matrix.label }} simapps/${{ matrix.app }} out $(( (${{ matrix.min }} + 12) * 60 )) ${{ matrix.sound }} ${{ matrix.min }} ${{ matrix.mode }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: results-${{ matrix.label }}
+          path: out/
