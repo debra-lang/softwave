@@ -33,7 +33,7 @@ jobs:
           git worktree add $GITHUB_WORKSPACE/../b89 faacd9b
           git -C $GITHUB_WORKSPACE show d9140ba:audio.js > /tmp/orig.js
           build() {   # $1 = tree, $2 = output name, $3 = SOFTWAVE_DIAG, $4 = engine (pin, pool, orig), $5 = script to inject
-            cd "$1"; git checkout -q d9140ba -- audio.js 2>/dev/null || git checkout -q -- audio.js
+            cd "$1"; git checkout -q HEAD -- audio.js
             python3 $SIM/mkproto.py audio.js /tmp/pin.js /tmp/pool.js
             if [ "$4" != orig ]; then cp /tmp/$4.js audio.js; fi
             cd native; [ -d node_modules ] || npm ci --no-audit --no-fund >/dev/null
