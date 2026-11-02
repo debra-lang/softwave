@@ -1,0 +1,80 @@
+# TEST-ONLY workflow (branch audio-audit-simtest; kept, never merged). Nothing is signed or uploaded and no secrets are used.
+# Compiles simulator builds and runs the audio audit (.github/simtest/audio-audit.js) on the current iOS: the Build 91 engine with
+# the local "rain louder" and "Edwin" fixes (diagnostic and release bundles) and Build 89 (faacd9b, the App Store reference).
+# A simulator run is not proof of iPhone sound quality.
+name: Audio audit simulator
+
+on:
+  push:
+    branches: [audio-audit-simtest]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Select Xcode 26
+        run: |
+          XC=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1)
+          if [ -n "$XC" ]; then sudo xcode-select -s "$XC"; fi
+          xcodebuild -version
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build the simulator apps
+        run: |
+          set -eo pipefail
+          SIM=$GITHUB_WORKSPACE/.github/simtest; mkdir -p $GITHUB_WORKSPACE/simapps
+          build() {   # $1 = native dir, $2 = output name, $3 = SOFTWAVE_DIAG (1 diagnostic, 0 release)
+            cd "$1"; npm ci --no-audit --no-fund >/dev/null
+            SOFTWAVE_DIAG=$3 node build-www.js
+            node $SIM/inject.js www $SIM/audio-audit.js
+            npx cap sync ios
+            xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug -sdk iphonesimulator \
+              -destination 'generic/platform=iOS Simulator' -derivedDataPath dd CODE_SIGNING_ALLOWED=NO ARCHS=arm64 ONLY_ACTIVE_ARCH=NO build | tail -3
+            APP=$(find dd/Build/Products -name App.app -type d | head -1)
+            /usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' -c 'Print CFBundleVersion' "$APP/Info.plist"
+            mkdir -p $GITHUB_WORKSPACE/simapps/$2; cp -R "$APP" $GITHUB_WORKSPACE/simapps/$2/
+          }
+          build $GITHUB_WORKSPACE/native cand92d 1
+          build $GITHUB_WORKSPACE/native cand92r 0
+          test -f $GITHUB_WORKSPACE/simapps/cand92d/App.app/public/diag.js || { echo 'FATAL: diagnostic bundle lacks diag.js'; exit 1; }
+          test ! -f $GITHUB_WORKSPACE/simapps/cand92r/App.app/public/diag.js || { echo 'FATAL: release bundle contains diag.js'; exit 1; }
+          git worktree add $GITHUB_WORKSPACE/../b89 faacd9b
+          build $GITHUB_WORKSPACE/../b89/native b89 0
+          cd $GITHUB_WORKSPACE && tar -czf simapps.tgz simapps
+      - uses: actions/upload-artifact@v4
+        with:
+          name: simapps
+          path: simapps.tgz
+          retention-days: 7
+
+  audit:
+    needs: build
+    runs-on: macos-26
+    timeout-minutes: 170
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [cand92d, cand92r, b89]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: simapps
+      - name: Run the audit
+        run: |
+          tar -xzf simapps.tgz; S=.github/simtest; chmod +x $S/audit-run.sh
+          XC=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1); if [ -n "$XC" ]; then sudo xcode-select -s "$XC"; fi
+          $S/audit-run.sh ${{ matrix.app }} simapps/${{ matrix.app }} out 9300
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: results-${{ matrix.app }}
+          path: out/

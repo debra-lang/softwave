@@ -66,6 +66,7 @@
       const u = undoState; undoState = null;
       if (u.mix.length) await engine.loadMix(u.mix); else engine.stopAll();
       app.setMaster(u.master);
+      app.syncLevels();
       if (u.timerMin) engine.setTimer(u.timerMin, true); else engine.clearTimer();
       if (u.visual && window.softwaveFocus) softwaveFocus.setVisual(u.visual);
       engine.setVariation(u.variation || 0);
@@ -322,6 +323,7 @@
     // ---------- run a command ----------
     async function run(raw) {
       const req = raw.trim(); if (!req) return;
+      if (FIX_ADD && engine.active && engine.active.size > 0 && !engine.isActive('wind') && ADD_WIND_NEAR.test(req)) { track('ai_command_failed'); askAddWind(); return; }
       const parsed = parse(req);
       if (parsed.undo) { await undo(); return; }
       if (parsed.help) { confirmLines(['You can ask for sounds (“play rain”, “add a little ocean”), character (“something warm and steady”), purpose (“something for sleep”), changes (“softer”, “more movement”, “less rain”), timers (“for 30 minutes”), plus “save this”, “stop” and “undo”.'].concat(KBD_VOICE ? ['To speak, tap the microphone, then your keyboard’s microphone key. No microphone key? Turn on Dictation in Settings › General › Keyboard. To undo by voice, say “Go back”.'] : []), false); return; }
@@ -332,6 +334,7 @@
       snapshot();
       ok.length = 0;
       for (const [type, params] of parsed.actions) { try { await A[type](params); } catch (e) { console.error('assistant action failed', type, e); } }
+      app.syncLevels();
       track('ai_command_completed');
       confirmLines(ok.map(l => '✓ ' + l), true);
     }
@@ -428,6 +431,16 @@
       const glued = new RegExp('^(add|ad|ead|ed)(' + names + ')', 'i');
       const m = loose.exec(t) || strict.exec(t) || glued.exec(t);
       return m ? 'add ' + t.slice(m[1].length).replace(/^[\s,]+/, '') : t;
+    };
+    // Apple's dictation also hears "add wind" as a name or another word ("Edwin", owner iPhone test, 2 Nov 2026). These could
+    // be meant as they are, so nothing changes until the question below is answered: only when the whole request is one of
+    // them, something is playing and Wind is not.
+    const ADD_WIND_NEAR = /^(?:edwin|eadwin|edwyn|add when)[.!?]*$/i;
+    const askAddWind = () => {
+      confirmLines(['Did you mean “Add Wind”?'], false);
+      const b = document.createElement('button'); b.type = 'button'; b.id = 'ask-did-mean'; b.className = 'btn btn-ghost btn-sm'; b.textContent = 'Add Wind';
+      b.addEventListener('click', () => { out.innerHTML = ''; run('add wind'); });
+      out.appendChild(b);
     };
     const escapeHtml = (t) => t.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
     if (KBD_VOICE) {
