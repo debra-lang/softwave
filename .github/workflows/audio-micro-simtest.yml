@@ -49,7 +49,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        variant: [base, pin, restart, restartpin]
+        include:
+          - { label: base1, variant: base }
+          - { label: base2, variant: base }
+          - { label: base3, variant: base }
+          - { label: restart1, variant: restart }
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
@@ -59,9 +63,9 @@ jobs:
         run: |
           tar -xzf simapps.tgz; S=.github/simtest; chmod +x $S/micro-run.sh
           XC=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1); if [ -n "$XC" ]; then sudo xcode-select -s "$XC"; fi
-          $S/micro-run.sh ${{ matrix.variant }} simapps/orig out '{"variant":"${{ matrix.variant }}","rate":170,"run":270,"idle":240}' 570
+          $S/micro-run.sh ${{ matrix.label }} simapps/orig out '{"variant":"${{ matrix.variant }}","rate":170,"run":270,"idle":240}' 570
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: results-${{ matrix.variant }}
+          name: results-${{ matrix.label }}
           path: out/

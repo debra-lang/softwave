@@ -1,0 +1,84 @@
+# TEST-ONLY workflow (branch audio-audit-simtest; kept, never merged). Nothing is signed or uploaded and no secrets are used.
+# Repeats the stopping, restarting and switching run, keeping the reason if the WebKit process is lost (one such loss in the first stereo-prototype run).
+# A simulator run is not proof of iPhone sound quality.
+name: Audio prototype repeat
+
+on:
+  push:
+    branches: [audio-audit-simtest]
+    paths: [.github/simtest/trigger-repeat]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Select Xcode 26
+        run: |
+          XC=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1)
+          if [ -n "$XC" ]; then sudo xcode-select -s "$XC"; fi
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build the simulator apps
+        run: |
+          set -eo pipefail
+          SIM=$GITHUB_WORKSPACE/.github/simtest; mkdir -p $GITHUB_WORKSPACE/simapps
+          git worktree add $GITHUB_WORKSPACE/../b91 d9140ba
+          build() {   # $1 = tree, $2 = output name, $3 = engine (orig, pin, pool)
+            cd "$1"; git checkout -q -- audio.js
+            python3 $SIM/mkproto.py audio.js /tmp/pin.js /tmp/pool.js
+            if [ "$3" != orig ]; then cp /tmp/$3.js audio.js; fi
+            cd native; [ -d node_modules ] || npm ci --no-audit --no-fund >/dev/null
+            SOFTWAVE_DIAG=0 node build-www.js; node $SIM/inject.js www $SIM/soak.js; npx cap sync ios
+            xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug -sdk iphonesimulator \
+              -destination 'generic/platform=iOS Simulator' -derivedDataPath dd CODE_SIGNING_ALLOWED=NO ARCHS=arm64 ONLY_ACTIVE_ARCH=NO build | tail -1
+            mkdir -p $GITHUB_WORKSPACE/simapps/$2; cp -R "$(find dd/Build/Products -name App.app -type d | head -1)" $GITHUB_WORKSPACE/simapps/$2/
+            grep -c "channelCountMode = 'explicit'" $GITHUB_WORKSPACE/simapps/$2/App.app/public/audio.js || true
+          }
+          build $GITHUB_WORKSPACE/../b91 orig orig
+          build $GITHUB_WORKSPACE/../b91 pin pin
+          build $GITHUB_WORKSPACE/../b91 pool pool
+          cd $GITHUB_WORKSPACE && tar -czf simapps.tgz simapps
+      - uses: actions/upload-artifact@v4
+        with:
+          name: soakapps
+          path: simapps.tgz
+          retention-days: 7
+
+  soak:
+    needs: build
+    runs-on: macos-26
+    timeout-minutes: 140
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { label: cycle-pin-2, app: pin, sound: rain, min: 90, mode: cycle }
+          - { label: cycle-pin-3, app: pin, sound: rain, min: 90, mode: cycle }
+          - { label: cycle-pin-4, app: pin, sound: rain, min: 90, mode: cycle }
+          - { label: cycle-pin-5, app: pin, sound: rain, min: 90, mode: cycle }
+          - { label: cycle-pool-2, app: pool, sound: rain, min: 90, mode: cycle }
+          - { label: cycle-pool-3, app: pool, sound: rain, min: 90, mode: cycle }
+          - { label: cycle-orig-2, app: orig, sound: rain, min: 90, mode: cycle }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: soakapps
+      - name: Run the soak
+        run: |
+          tar -xzf simapps.tgz; S=.github/simtest; chmod +x $S/soak-run.sh
+          XC=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1); if [ -n "$XC" ]; then sudo xcode-select -s "$XC"; fi
+          $S/soak-run.sh ${{ matrix.label }} simapps/${{ matrix.app }} out $(( (${{ matrix.min }} + 12) * 60 )) ${{ matrix.sound }} ${{ matrix.min }} ${{ matrix.mode }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: results-${{ matrix.label }}
+          path: out/
