@@ -1,0 +1,41 @@
+# TEST-ONLY workflow (branch audio-audit-simtest; kept, never merged). Nothing is signed or uploaded and no secrets are used.
+# Repeats the offline engine comparison in the simulator's WebKit, with the original engine against itself as a control. A simulator run is not proof of iPhone sound quality.
+name: Audio offline repeat
+
+on:
+  push:
+    branches: [audio-audit-simtest]
+    paths: [.github/simtest/trigger-offline]
+
+permissions:
+  contents: read
+
+jobs:
+  offline:
+    runs-on: macos-26
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build and run
+        run: |
+          set -eo pipefail
+          XC=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1); if [ -n "$XC" ]; then sudo xcode-select -s "$XC"; fi
+          W=$GITHUB_WORKSPACE; SIM=$W/.github/simtest; mkdir -p $W/simapps/offline
+          git show d9140ba:audio.js > /tmp/orig.js
+          cd native; npm ci --no-audit --no-fund >/dev/null
+          SOFTWAVE_DIAG=0 node build-www.js; node $SIM/inject.js www $SIM/offline-sim2.js
+          cp $SIM/offline-compare.js www/; cp /tmp/orig.js www/engine-orig.js; python3 $SIM/mkproto.py /tmp/orig.js www/engine-pin.js www/engine-pool.js
+          npx cap sync ios
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath dd CODE_SIGNING_ALLOWED=NO ARCHS=arm64 ONLY_ACTIVE_ARCH=NO build | tail -1
+          cp -R "$(find dd/Build/Products -name App.app -type d | head -1)" $W/simapps/offline/
+          cd $W; chmod +x $SIM/audit-run.sh; $SIM/audit-run.sh offline simapps/offline out 7200
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: results-offline2
+          path: out/
