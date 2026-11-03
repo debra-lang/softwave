@@ -46,12 +46,15 @@
     }
     softwave.stopAll();
   }
+  // Only the quick stop and start, to count how often starting the audio output fails.
+  async function quick(secs) { var end = Date.now() + secs * 1000, n = 0; while (Date.now() < end) { await softwave.startSound('rain', 0.6); await w(2500); softwave.setVolume('rain', n % 2 ? 0.6 : 1); await w(500); softwave.stopAll(); await w(1000); n++; if (n % 30 === 0) emit('pass', Object.assign({ pass: n, rate: +(softwave.ctx.currentTime).toFixed(1) }, C)); } emit('stopped', { restarts: n }); }
   addEventListener('load', function () { setTimeout(async function () {
     emit('start', { cfg: CFG, ua: navigator.userAgent.slice(0, 60), proto: !!(softwave._voices), heap: heap() });
     var gc = CFG.mode === 'gc' ? pressure() : 0;
     try {
       await softwave.startSound(CFG.mode === 'cycle' ? 'rain' : list[0], 0.6); softwave.setMasterVolume(0.45);
       if (CFG.mode === 'cycle') await cycle(CFG.minutes * 60);
+      else if (CFG.mode === 'quick') await quick(CFG.minutes * 60);
       else { await startAll(list); await watch('play', CFG.minutes * 60); softwave.stopAll(); }
       emit('stopped', {});
       await watch('idle', 120);

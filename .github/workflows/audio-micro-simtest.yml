@@ -53,7 +53,6 @@ jobs:
           - { label: base1, variant: base }
           - { label: base2, variant: base }
           - { label: base3, variant: base }
-          - { label: restart1, variant: restart }
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4

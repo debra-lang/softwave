@@ -35,6 +35,7 @@ def probe(debugger, command, result, internal):
         if first is None: first = this
         elif this == first and wrapped is None: wrapped = len(seen)
         seen[this] = val; hits += 1
+        if hits <= 40 or hits % 200 == 0: print('TAILPROBE hit', hits, hex(this), val, round(time.time() - start, 1), flush=True)
     done.set(); bp.SetEnabled(False)
     print('TAILPROBE hits', hits, 'distinct', len(seen), 'scan wrapped after', wrapped, 'seconds', round(time.time() - start))
     print('TAILPROBE values', collections.Counter(seen.values()).most_common(12), flush=True)

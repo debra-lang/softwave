@@ -1,5 +1,5 @@
 # TEST-ONLY workflow (branch audio-audit-simtest; kept, never merged). Nothing is signed or uploaded and no secrets are used.
-# Repeats the stopping, restarting and switching run, keeping the reason if the WebKit process is lost (one such loss in the first stereo-prototype run).
+# Quick stop and start only, on the original engine, each prototype and Build 89 as shipped: how often does starting the audio output fail, and is the engine involved?
 # A simulator run is not proof of iPhone sound quality.
 name: Audio prototype repeat
 
@@ -31,6 +31,7 @@ jobs:
           set -eo pipefail
           SIM=$GITHUB_WORKSPACE/.github/simtest; mkdir -p $GITHUB_WORKSPACE/simapps
           git worktree add $GITHUB_WORKSPACE/../b91 d9140ba
+          git worktree add $GITHUB_WORKSPACE/../b89 faacd9b
           build() {   # $1 = tree, $2 = output name, $3 = engine (orig, pin, pool)
             cd "$1"; git checkout -q -- audio.js
             python3 $SIM/mkproto.py audio.js /tmp/pin.js /tmp/pool.js
@@ -45,6 +46,7 @@ jobs:
           build $GITHUB_WORKSPACE/../b91 orig orig
           build $GITHUB_WORKSPACE/../b91 pin pin
           build $GITHUB_WORKSPACE/../b91 pool pool
+          build $GITHUB_WORKSPACE/../b89 b89 orig
           cd $GITHUB_WORKSPACE && tar -czf simapps.tgz simapps
       - uses: actions/upload-artifact@v4
         with:
@@ -60,13 +62,22 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { label: cycle-pin-2, app: pin, sound: rain, min: 90, mode: cycle }
-          - { label: cycle-pin-3, app: pin, sound: rain, min: 90, mode: cycle }
-          - { label: cycle-pin-4, app: pin, sound: rain, min: 90, mode: cycle }
-          - { label: cycle-pin-5, app: pin, sound: rain, min: 90, mode: cycle }
-          - { label: cycle-pool-2, app: pool, sound: rain, min: 90, mode: cycle }
-          - { label: cycle-pool-3, app: pool, sound: rain, min: 90, mode: cycle }
-          - { label: cycle-orig-2, app: orig, sound: rain, min: 90, mode: cycle }
+          - { label: quick-orig-1, app: orig, sound: rain, min: 30, mode: quick }
+          - { label: quick-orig-2, app: orig, sound: rain, min: 30, mode: quick }
+          - { label: quick-orig-3, app: orig, sound: rain, min: 30, mode: quick }
+          - { label: quick-orig-4, app: orig, sound: rain, min: 30, mode: quick }
+          - { label: quick-pin-1, app: pin, sound: rain, min: 30, mode: quick }
+          - { label: quick-pin-2, app: pin, sound: rain, min: 30, mode: quick }
+          - { label: quick-pin-3, app: pin, sound: rain, min: 30, mode: quick }
+          - { label: quick-pin-4, app: pin, sound: rain, min: 30, mode: quick }
+          - { label: quick-pool-1, app: pool, sound: rain, min: 30, mode: quick }
+          - { label: quick-pool-2, app: pool, sound: rain, min: 30, mode: quick }
+          - { label: quick-pool-3, app: pool, sound: rain, min: 30, mode: quick }
+          - { label: quick-pool-4, app: pool, sound: rain, min: 30, mode: quick }
+          - { label: quick-b89-1, app: b89, sound: rain, min: 30, mode: quick }
+          - { label: quick-b89-2, app: b89, sound: rain, min: 30, mode: quick }
+          - { label: quick-b89-3, app: b89, sound: rain, min: 30, mode: quick }
+          - { label: quick-b89-4, app: b89, sound: rain, min: 30, mode: quick }
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
