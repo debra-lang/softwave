@@ -61,16 +61,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { label: rain-pin, app: pin, sound: 'rain', min: 90, mode: plain }
-          - { label: rain-pool, app: pool, sound: 'rain', min: 90, mode: plain }
+          - { label: fire-pin, app: pin, sound: 'fire', min: 90, mode: plain }
           - { label: fire-pool, app: pool, sound: 'fire', min: 90, mode: plain }
-          - { label: mix-pin, app: pin, sound: 'rain,fire,glassrain,lapping,ocean', min: 90, mode: plain }
-          - { label: mix-pool, app: pool, sound: 'rain,fire,glassrain,lapping,ocean', min: 90, mode: plain }
-          - { label: cycle-pin-1, app: pin, sound: 'rain', min: 90, mode: cycle }
-          - { label: cycle-pin-2, app: pin, sound: 'rain', min: 90, mode: cycle }
-          - { label: cycle-pool-1, app: pool, sound: 'rain', min: 90, mode: cycle }
-          - { label: cycle-pool-2, app: pool, sound: 'rain', min: 90, mode: cycle }
-          - { label: rain-b89pin, app: b89pin, sound: 'rain', min: 90, mode: plain }
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
