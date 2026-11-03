@@ -43,7 +43,6 @@ jobs:
             mkdir -p $GITHUB_WORKSPACE/simapps/$2; cp -R "$(find dd/Build/Products -name App.app -type d | head -1)" $GITHUB_WORKSPACE/simapps/$2/
             grep -c "channelCountMode = 'explicit'" $GITHUB_WORKSPACE/simapps/$2/App.app/public/audio.js || true
           }
-          build $GITHUB_WORKSPACE/../b91 orig orig
           build $GITHUB_WORKSPACE/../b91 pin pin
           build $GITHUB_WORKSPACE/../b91 pool pool
           build $GITHUB_WORKSPACE/../b89 b89pin pin
@@ -62,25 +61,16 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { label: rain-orig, app: orig, sound: rain, min: 90, mode: plain }
-          - { label: rain-pin, app: pin, sound: rain, min: 90, mode: plain }
-          - { label: rain-pool, app: pool, sound: rain, min: 90, mode: plain }
-          - { label: fire-orig, app: orig, sound: fire, min: 90, mode: plain }
-          - { label: fire-pin, app: pin, sound: fire, min: 90, mode: plain }
-          - { label: fire-pool, app: pool, sound: fire, min: 90, mode: plain }
-          - { label: mix-orig, app: orig, sound: 'rain,fire,glassrain,lapping,ocean', min: 90, mode: plain }
+          - { label: rain-pin, app: pin, sound: 'rain', min: 90, mode: plain }
+          - { label: rain-pool, app: pool, sound: 'rain', min: 90, mode: plain }
+          - { label: fire-pool, app: pool, sound: 'fire', min: 90, mode: plain }
           - { label: mix-pin, app: pin, sound: 'rain,fire,glassrain,lapping,ocean', min: 90, mode: plain }
           - { label: mix-pool, app: pool, sound: 'rain,fire,glassrain,lapping,ocean', min: 90, mode: plain }
-          - { label: cycle-orig, app: orig, sound: rain, min: 90, mode: cycle }
-          - { label: cycle-pin, app: pin, sound: rain, min: 90, mode: cycle }
-          - { label: cycle-pool, app: pool, sound: rain, min: 90, mode: cycle }
-          - { label: rain-b89pin, app: b89pin, sound: rain, min: 90, mode: plain }
-          - { label: glass-orig, app: orig, sound: glassrain, min: 60, mode: plain }
-          - { label: glass-pin, app: pin, sound: glassrain, min: 60, mode: plain }
-          - { label: lapping-orig, app: orig, sound: lapping, min: 60, mode: plain }
-          - { label: lapping-pin, app: pin, sound: lapping, min: 60, mode: plain }
-          - { label: thunder-orig, app: orig, sound: thunder, min: 60, mode: plain }
-          - { label: leaves-orig, app: orig, sound: leaves, min: 60, mode: plain }
+          - { label: cycle-pin-1, app: pin, sound: 'rain', min: 90, mode: cycle }
+          - { label: cycle-pin-2, app: pin, sound: 'rain', min: 90, mode: cycle }
+          - { label: cycle-pool-1, app: pool, sound: 'rain', min: 90, mode: cycle }
+          - { label: cycle-pool-2, app: pool, sound: 'rain', min: 90, mode: cycle }
+          - { label: rain-b89pin, app: b89pin, sound: 'rain', min: 90, mode: plain }
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4

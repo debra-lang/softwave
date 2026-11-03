@@ -49,7 +49,6 @@ jobs:
           build $W pind 1 pin $SIM/audio-audit.js
           build $W poolr 0 pool $SIM/audio-audit.js
           build $W/../b89 b89pin 0 pin $SIM/audio-audit.js
-          build $W offline 0 orig $SIM/offline-sim.js
           cd $W && git checkout -q -- audio.js && tar -czf simapps.tgz simapps
       - uses: actions/upload-artifact@v4
         with:
@@ -64,7 +63,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        app: [pinr, pind, poolr, b89pin, offline]
+        app: [pinr, pind, poolr, b89pin]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4

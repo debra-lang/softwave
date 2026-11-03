@@ -48,11 +48,28 @@
   }
   // Only the quick stop and start, to count how often starting the audio output fails.
   async function quick(secs) { var end = Date.now() + secs * 1000, n = 0; while (Date.now() < end) { await softwave.startSound('rain', 0.6); await w(2500); softwave.setVolume('rain', n % 2 ? 0.6 : 1); await w(500); softwave.stopAll(); await w(1000); n++; if (n % 30 === 0) emit('pass', Object.assign({ pass: n, rate: +(softwave.ctx.currentTime).toFixed(1) }, C)); } emit('stopped', { restarts: n }); }
+  // Focused test of the crash when a filter's type is set during its rebuild: many new filters per burst, in the order under test, while the audio thread is running.
+  async function race(secs, order) {
+    var c = softwave.ctx, end = Date.now() + secs * 1000, n = 0, last = Date.now();
+    while (Date.now() < end) {
+      for (var i = 0; i < 40; i++) {
+        var f = c.createBiquadFilter();
+        if (order === 'pinfirst') { f.channelCountMode = 'explicit'; f.channelCount = 2; f.type = 'bandpass'; }
+        else if (order === 'typefirst') { f.type = 'bandpass'; f.channelCountMode = 'explicit'; f.channelCount = 2; }
+        else f.type = 'bandpass';
+        n++;
+      }
+      await w(4);
+      if (Date.now() - last > 30000) { last = Date.now(); emit('pass', Object.assign({ made: n, rate: +c.currentTime.toFixed(1) }, C)); }
+    }
+    emit('stopped', { made: n });
+  }
   addEventListener('load', function () { setTimeout(async function () {
     emit('start', { cfg: CFG, ua: navigator.userAgent.slice(0, 60), proto: !!(softwave._voices), heap: heap() });
     var gc = CFG.mode === 'gc' ? pressure() : 0;
     try {
       await softwave.startSound(CFG.mode === 'cycle' ? 'rain' : list[0], 0.6); softwave.setMasterVolume(0.45);
+      if (CFG.mode.indexOf('race-') === 0) { await race(CFG.minutes * 60, CFG.mode.slice(5)); softwave.stopAll(); emit('done', C); return; }
       if (CFG.mode === 'cycle') await cycle(CFG.minutes * 60);
       else if (CFG.mode === 'quick') await quick(CFG.minutes * 60);
       else { await startAll(list); await watch('play', CFG.minutes * 60); softwave.stopAll(); }

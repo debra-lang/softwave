@@ -8,7 +8,7 @@ window.offlineCompare = async function (Engines, opts) {
   const ids = opts.ids || refEngine.SOUND_DEFS.map(d => d.id);
 
   async function render(api, id, seed) {
-    Math.random = seeded(seed);
+    const sr0 = seeded(seed); let calls = 0; Math.random = () => { calls++; return sr0(); };
     const ctx = new OfflineAudioContext(2, opts.seconds * opts.sr, opts.sr);
     const e = new api.Engine(); e.ctx = ctx;
     // the same three buffers for every engine and sound
@@ -22,7 +22,7 @@ window.offlineCompare = async function (Engines, opts) {
     e._build(id, entry, out);
     const buf = await ctx.startRendering();
     Math.random = realRandom;
-    return [buf.getChannelData(0), buf.getChannelData(1)];
+    const res = [buf.getChannelData(0), buf.getChannelData(1)]; res.calls = calls; return res;
   }
   const db = x => x > 1e-12 ? 10 * Math.log10(x) : -120;
   function measure(ch, sr) {
@@ -48,7 +48,7 @@ window.offlineCompare = async function (Engines, opts) {
     const row = results[id] = {}; let ref = null, refM = null;
     for (const name of names) {
       const ch = await render(Engines[name], id, 1234567);
-      const m = measure(ch, opts.sr);
+      const m = measure(ch, opts.sr); row['calls_' + name] = ch.calls;
       if (!ref) { ref = ch; refM = m; row[name] = { rms: m.rms, peak: m.peak, balance: m.balance, corr: m.corr, events: m.onsets.length }; continue; }
       let dd = 0, rr = 0; for (let c = 0; c < 2; c++) for (let i = 0; i < ch[c].length; i++) { const d = ch[c][i] - ref[c][i]; dd += d * d; rr += ref[c][i] * ref[c][i]; }
       const maxBand = Math.max(...m.bands.map((b, i) => Math.abs(b - refM.bands[i])).filter((_, i) => refM.bands[i] > -90).concat(0));

@@ -18,8 +18,10 @@ pin = rep(h, """    _filter(type, freq, q = 1) {
     // one disconnected before the next render keeps that tail for good: it stays on a list the audio thread walks every 3 ms until the app restarts.
     _filter(type, freq, q = 1, mono = false) {
       const f = this.ctx.createBiquadFilter();
+      // The type comes first: changing the channel count makes the audio thread rebuild the filter, and setting the type during that rebuild crashes WebKit.
+      f.type = type; f.frequency.value = freq; f.Q.value = q;
       if (!mono) { f.channelCountMode = 'explicit'; f.channelCount = 2; }
-      f.type = type; f.frequency.value = freq; f.Q.value = q; return f;
+      return f;
     }""")
 pin = rep(pin, "const lp = this._filter('lowpass', t.freq * 1.5, 0.5); o.connect(lp);", "const lp = this._filter('lowpass', t.freq * 1.5, 0.5, true); o.connect(lp);")
 
