@@ -448,7 +448,7 @@
         const FD = (window.SoftwaveField && window.SoftwaveField.DESC[d.id]) || d.desc;
         card.innerHTML = `
           <button class="card-btn" aria-pressed="false" aria-label="${d.name}: ${FD}"><span class="tile-preview" aria-hidden="true"><canvas class="tile-canvas"></canvas></span></button>
-          <div class="vol"><button class="vol-pause" aria-label="Pause or resume playback"><svg class="vp-pause" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M7 5h4v14H7zM13 5h4v14h-4z" fill="currentColor"/></svg><svg class="vp-play" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg></button><label class="sr-only" for="vol-${d.id}">${d.name} volume</label><input id="vol-${d.id}" type="range" min="0" max="100" value="${Math.round(soundVol(d.id) * 100)}"><output>60%</output><button class="vol-stop" aria-label="Stop ${d.name}"><svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><path d="M6 6h12v12H6z" fill="currentColor"/></svg></button></div>
+          <div class="vol"><button class="vol-pause" aria-label="Pause or resume playback"><svg class="vp-pause" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M7 5h4v14H7zM13 5h4v14h-4z" fill="currentColor"/></svg><svg class="vp-play" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg></button><label class="sr-only" for="vol-${d.id}">${d.name} volume</label><input id="vol-${d.id}" type="range" min="0" max="100" value="${Math.round(soundVol(d.id) * 100)}"><output>${Math.round(soundVol(d.id) * 100)}%</output><button class="vol-stop" aria-label="Stop ${d.name}"><svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><path d="M6 6h12v12H6z" fill="currentColor"/></svg></button></div>
           <span class="name">${d.name}</span><span class="desc">${FD}</span>`;
         const btn = $('.card-btn', card);
         $$('.name, .desc', card).forEach(el => el.addEventListener('click', () => btn.click()));
@@ -508,6 +508,12 @@
     const add = $('#mix-add-list'); add.innerHTML = '';
     const full = list.length >= MAX_ACTIVE; $('#mix-add-title').textContent = full ? `Up to ${MAX_ACTIVE} sounds — turn one off to add another` : 'Add a sound';
     engine.defs().filter(d => !engine.isActive(d.id)).forEach(d => { const b = document.createElement('button'); b.className = 'pane-sound add-pill'; b.style.setProperty('--hue', d.hue); b.disabled = full; b.innerHTML = `<span class="ico" aria-hidden="true">${d.icon}</span>${d.name}`; b.setAttribute('aria-label', 'Add ' + d.name); b.addEventListener('click', async () => { b.disabled = true; b.classList.add('adding'); await engine.startSound(d.id, soundVol(d.id)); }); add.appendChild(b); });
+  }
+  // a level changed without the sound list changing (Ask's "rain louder", Go back): the card and the Mixer follow the
+  // real level. The Mixer's values are updated in place, so a slider being dragged is never rebuilt under the finger.
+  function syncLevels() {
+    const list = engine.activeList(); syncCards(list);
+    list.forEach(s => { const v = $('#chv-' + s.id), n = Math.round(s.volume * 100); if (v && +v.value !== n) { v.value = n; paintRange(v); $('output', v.parentElement).textContent = n + '%'; } });
   }
   function panLabel(b) { if (Math.abs(b) < 0.05) return 'Centre'; return (b < 0 ? 'L ' : 'R ') + Math.round(Math.abs(b) * 100) + '%'; }
   $('#mix-pause').addEventListener('click', () => togglePlay());
@@ -1366,6 +1372,7 @@
   function askBedActive() { return askBed && engine.isActive('sculpt') && !(window.softwaveLab && softwaveLab.isRunning()); }
   engine.on(type => { if (type === 'sounds' && askBed && !engine.isActive('sculpt')) askBed = false; });
   window.softwaveApp.noteAskBed = () => { askBed = true; };
+  window.softwaveApp.syncLevels = syncLevels;
 
   // ---------- init ----------
   renderSounds(); renderPresets(); renderMixer([]); updatePlayer(); renderProfileHooks(); if (window.SoftwaveField) syncField();
