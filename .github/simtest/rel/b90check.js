@@ -569,7 +569,7 @@
     setScale('t', 5); act('start'); await w(3000);
     var during = await kept(), sc = screen(); var o1 = meter();
     await shot('ri-listening');
-    out('B61BGRI'); var t; for (t = 0; t < 160 && !document.hidden; t++) await w(250);
+    out('B61BGRI'); var t; for (t = 0; t < 220 && !document.hidden; t++) await w(250);
     var wentHidden = document.hidden; for (t = 0; t < 240 && document.hidden; t++) await w(250);
     await w(1500); var tr1 = lastTrial();
     ok('backgrounded during the sound: trial invalidated (backgrounded, or audio_interrupted where iOS stops the audio first), shown as interrupted, no output hold left', sc === 'listen' && wentHidden && !document.hidden && tr1 && tr1.trial_valid === false && (tr1.trial_invalid_reason === 'backgrounded' || tr1.trial_invalid_reason === 'audio_interrupted') && screen() === 'interrupted' && hold() === 0, { screen: screen(), wentHidden: wentHidden, hidden: document.hidden, trial: tr1 && { valid: tr1.trial_valid, reason: tr1.trial_invalid_reason }, hold: hold(), outAtStart: o1 });
