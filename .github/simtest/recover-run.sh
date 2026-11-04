@@ -2,7 +2,7 @@
 # TEST-ONLY. Runs the recovery check in one simulator app and breaks the audio system when the page asks.
 # Usage: recover-run.sh <label> <app dir> <out dir> <mode: gpukill, cakill, castop>
 set -u
-L=$1; APP=$2; OUT=$3; MODE=$4; TO=480; mkdir -p "$OUT"; APPID=com.findmyquietsound.app
+L=$1; APP=$2; OUT=$3; MODE=$4; TO=1200; mkdir -p "$OUT"; APPID=com.findmyquietsound.app
 python3 "$(dirname "$0")/soak-cfg.py" "$APP/App.app/public/recover.js" rain 2 "$MODE"
 SINK_FILE="$OUT/$L.events" python3 "$(dirname "$0")/sink.py" & SINKPID=$!; trap "kill $SINKPID 2>/dev/null; sudo killall -CONT coreaudiod 2>/dev/null" EXIT; sleep 1
 RT=$(xcrun simctl list runtimes -j | python3 -c "import json,sys; r=[x for x in json.load(sys.stdin)['runtimes'] if x['platform']=='iOS' and x['isAvailable']]; print(sorted(r,key=lambda x:[int(p) for p in x['version'].split('.')])[-1]['identifier'])")
@@ -28,8 +28,11 @@ while [ $((SECONDS - START)) -lt "$TO" ]; do
   if [ "$MODE" = castop ] && grep -aq '"tag":"releasereq"' "$OUT/$L.events" && [ ! -f "$OUT/.released-$L" ]; then
     touch "$OUT/.released-$L"; echo "$((SECONDS - START)) release coreaudiod" >> "$OUT/$L-actions.txt"; sudo killall -CONT coreaudiod
   fi
-  if [ "$MODE" = castart ] && [ -n "${FROZEN:-}" ] && [ $((SECONDS - FROZEN)) -ge 70 ]; then
-    FROZEN=; echo "$((SECONDS - START)) release coreaudiod" >> "$OUT/$L-actions.txt"; sudo killall -CONT coreaudiod
+  if [ "$MODE" = castart ] && [ -n "${FROZEN:-}" ]; then
+    if [ -z "${SEEN:-}" ] && grep -aq '"tag":"play"' "$OUT/$L.events"; then SEEN=$SECONDS; echo "$((SECONDS - START)) tap reported" >> "$OUT/$L-actions.txt"; fi
+    if { [ -n "${SEEN:-}" ] && [ $((SECONDS - SEEN)) -ge 30 ]; } || [ $((SECONDS - FROZEN)) -ge 300 ]; then
+      FROZEN=; echo "$((SECONDS - START)) release coreaudiod" >> "$OUT/$L-actions.txt"; sudo killall -CONT coreaudiod
+    fi
   fi
   if [ "$MODE" = carelaunch ] && [ "$(grep -ac '"tag":"done"' "$OUT/$L.events")" = 1 ] && [ ! -f "$OUT/.relaunched-$L" ]; then
     touch "$OUT/.relaunched-$L"; echo "$((SECONDS - START)) close and reopen the app" >> "$OUT/$L-actions.txt"
