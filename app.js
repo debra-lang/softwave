@@ -465,7 +465,7 @@
           if (ok === false) toast(`You can layer up to ${MAX_ACTIVE} sounds. Turn one off to add another.`);
         });
         const slider = $('input', card);
-        slider.addEventListener('input', () => { engine.setVolume(d.id, +slider.value / 100); rememberVol(d.id, +slider.value / 100); $('output', card).textContent = slider.value + '%'; });
+        slider.addEventListener('input', () => { engine.setVolume(d.id, +slider.value / 100); rememberVol(d.id, +slider.value / 100); $('output', card).textContent = slider.value + '%'; syncLevels(); });
         $('.vol-pause', card).addEventListener('click', pauseOrPlay);
         $('.vol-stop', card).addEventListener('click', () => engine.stopSound(d.id));
         grid.appendChild(card);
