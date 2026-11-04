@@ -716,9 +716,15 @@
       for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); let y = 0; for (let i = 0; i < n; i++) { y = y * 0.75 + (Math.random() * 2 - 1) * 0.25; d[i] = y * Math.pow(1 - i / n, 2.8); } }
       this._hall = ir; this._hallCtx = this.ctx; return ir;
     }
-    _filter(type, freq, q = 1) {
+    // A filter stays in stereo for life (mono = true only for one fed by a mono oscillator on its way to a panner, whose level depends on the channel count).
+    // Left to follow its input, a filter falls to one channel when its last stereo source ends. WebKit then rebuilds it with an unknown (infinite) tail, and
+    // one disconnected before the next render keeps that tail for good: it stays on a list the audio thread walks every 3 ms until the app restarts.
+    _filter(type, freq, q = 1, mono = false) {
       const f = this.ctx.createBiquadFilter();
-      f.type = type; f.frequency.value = freq; f.Q.value = q; return f;
+      // The type comes first: changing the channel count makes the audio thread rebuild the filter, and setting the type during that rebuild crashes WebKit.
+      f.type = type; f.frequency.value = freq; f.Q.value = q;
+      if (!mono) { f.channelCountMode = 'explicit'; f.channelCount = 2; }
+      return f;
     }
     _lfo(freq, depth, target, offset) {
       const o = this.ctx.createOscillator(); o.type = 'sine'; o.frequency.value = freq;
@@ -727,6 +733,12 @@
       if (offset !== undefined) target.value = offset;
       o.start();
       return [o, g];
+    }
+    // Reusable voices for scheduled events, taken in turn: each sound keeps a few filters and envelopes for its whole life instead of making new ones per event.
+    // count must cover the longest possible overlap of events, so that a voice is free again when its turn returns.
+    _voices(e, count, make) {
+      const v = []; for (let i = 0; i < count; i++) { const x = make(); e.nodes.push(...Object.values(x)); v.push(x); }
+      let i = 0; return () => v[i++ % count];
     }
     _chain(entry, nodes, out) {
       for (let i = 0; i < nodes.length - 1; i++) nodes[i].connect(nodes[i + 1]);
@@ -776,13 +788,15 @@
           this._chain(e, [s, hp, lp, g], out);
           // droplets: short filtered bursts
           const dropGain = ctx.createGain(); dropGain.gain.value = 0.5; dropGain.connect(out); e.nodes.push(dropGain);
+          // gaps are at least 0.04 s and a droplet lasts 0.2 s, so six voices never overlap
+          const voice = this._voices(e, 6, () => { const f = this._filter('bandpass', 4000, 6); const gg = ctx.createGain(); gg.gain.value = 0; f.connect(gg); gg.connect(dropGain); return { f, gg }; });
           const tick = (t) => {
             const n = this.ctx.createBufferSource(); n.buffer = B.white;
-            const f = this._filter('bandpass', 1500 + Math.random() * 5000, 6);
-            const gg = ctx.createGain();
+            const { f, gg } = voice();
+            f.frequency.setValueAtTime(1500 + Math.random() * 5000, t);
             gg.gain.setValueAtTime(0, t); gg.gain.linearRampToValueAtTime(0.15 + Math.random() * 0.25, t + 0.004); gg.gain.exponentialRampToValueAtTime(0.001, t + 0.05 + Math.random() * 0.08);
-            n.connect(f); f.connect(gg); gg.connect(dropGain);
-            n.start(t, Math.random() * 5, 0.2); n.onended = () => { try { f.disconnect(); gg.disconnect(); } catch (_) { } };
+            n.connect(f);
+            n.start(t, Math.random() * 5, 0.2); n.onended = () => { try { n.disconnect(); } catch (_) { } };
           };
           this._pump(e, id, 0.05, () => 0.04 + Math.random() * 0.16, tick, 5); break;
         }
@@ -866,15 +880,16 @@
           this._chain(e, [sz, shp, sg], out);
           const crackGain = ctx.createGain(); crackGain.gain.value = 0.66; crackGain.connect(out); e.nodes.push(crackGain);
           // two voices make it read as fire: deep woody pops and sharp snaps — plus occasional quick clusters
+          const voice = this._voices(e, 8, () => { const f = this._filter('bandpass', 2000, 2); const gg = ctx.createGain(); gg.gain.value = 0; f.connect(gg); gg.connect(crackGain); return { f, gg }; });
           const one = (t, kind) => {
             const n = ctx.createBufferSource(); n.buffer = B.white;
-            const f = kind === 'pop' ? this._filter('bandpass', 500 + Math.random() * 1100, 1.6) : this._filter('bandpass', 2000 + Math.random() * 4000, 2);
-            const gg = ctx.createGain();
+            const { f, gg } = voice();
+            f.frequency.setValueAtTime(kind === 'pop' ? 500 + Math.random() * 1100 : 2000 + Math.random() * 4000, t); f.Q.setValueAtTime(kind === 'pop' ? 1.6 : 2, t);
             const lvl = kind === 'pop' ? 0.45 + Math.random() * 0.45 : 0.3 + Math.random() * 0.5;
             const dur = kind === 'pop' ? 0.03 + Math.random() * 0.06 : 0.015 + Math.random() * 0.045;
             gg.gain.setValueAtTime(0, t); gg.gain.linearRampToValueAtTime(lvl, t + 0.003); gg.gain.exponentialRampToValueAtTime(0.001, t + dur);
-            n.connect(f); f.connect(gg); gg.connect(crackGain); n.start(t, Math.random() * 5, dur + 0.05);
-            n.onended = () => { try { f.disconnect(); gg.disconnect(); } catch (_) { } };
+            n.connect(f); n.start(t, Math.random() * 5, dur + 0.05);
+            n.onended = () => { try { n.disconnect(); } catch (_) { } };
           };
           const crackle = (t) => {
             const r = Math.random();
@@ -1013,27 +1028,29 @@
           this._chain(e, [s2, hp2, lp2, g2], out);
           const tapGain = ctx.createGain(); tapGain.gain.value = 0.5; tapGain.connect(out); e.nodes.push(tapGain);
           let ph = Math.random() * 100;
+          const tapVoice = this._voices(e, 4, () => { const f = this._filter('bandpass', 1500, 8); const gg = ctx.createGain(); gg.gain.value = 0; const p = ctx.createStereoPanner ? ctx.createStereoPanner() : null; f.connect(gg); if (p) { gg.connect(p); p.connect(tapGain); return { f, gg, p }; } gg.connect(tapGain); return { f, gg }; });
           const tap = (t) => {
             ph += 1; const density = 0.65 + 0.3 * Math.sin(ph * 0.05);
             if (Math.random() < density) {
               const n = ctx.createBufferSource(); n.buffer = B.white;
-              const f = this._filter('bandpass', 850 + Math.random() * 1700, 8);
-              const gg = ctx.createGain(); const p = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
+              const { f, gg, p } = tapVoice();
+              f.frequency.setValueAtTime(850 + Math.random() * 1700, t);
               gg.gain.setValueAtTime(0, t); gg.gain.linearRampToValueAtTime(0.10 + Math.random() * 0.14, t + 0.006); gg.gain.exponentialRampToValueAtTime(0.001, t + 0.05 + Math.random() * 0.09);
-              n.connect(f); f.connect(gg);
-              if (p) { p.pan.value = (Math.random() * 2 - 1) * 0.7; gg.connect(p); p.connect(tapGain); } else gg.connect(tapGain);
-              n.start(t, Math.random() * 5, 0.2); n.onended = () => { try { f.disconnect(); gg.disconnect(); if (p) p.disconnect(); } catch (_) { } };
+              n.connect(f);
+              if (p) p.pan.setValueAtTime((Math.random() * 2 - 1) * 0.7, t);
+              n.start(t, Math.random() * 5, 0.2); n.onended = () => { try { n.disconnect(); } catch (_) { } };
             }
           };
           this._pump(e, id, 0.1, () => 0.13 + Math.random() * 0.52, tap, 5);
+          const runVoice = this._voices(e, 1, () => { const f = this._filter('bandpass', 1900, 10); const gg = ctx.createGain(); gg.gain.value = 0; f.connect(gg); gg.connect(tapGain); return { f, gg }; });
           const run = (t) => {
             const n = ctx.createBufferSource(); n.buffer = B.white;
-            const f = this._filter('bandpass', 1900, 10); const gg = ctx.createGain();
+            const { f, gg } = runVoice();
             const dur = 0.5 + Math.random() * 0.6;
             f.frequency.setValueAtTime(1700 + Math.random() * 500, t); f.frequency.exponentialRampToValueAtTime(650 + Math.random() * 250, t + dur);
             gg.gain.setValueAtTime(0, t); gg.gain.linearRampToValueAtTime(0.05, t + dur * 0.3); gg.gain.linearRampToValueAtTime(0, t + dur);
-            n.connect(f); f.connect(gg); gg.connect(tapGain);
-            n.start(t, Math.random() * 5, dur + 0.05); n.onended = () => { try { f.disconnect(); gg.disconnect(); } catch (_) { } };
+            n.connect(f);
+            n.start(t, Math.random() * 5, dur + 0.05); n.onended = () => { try { n.disconnect(); } catch (_) { } };
           };
           this._pump(e, id, 2.5 + Math.random() * 4, () => 4 + Math.random() * 9, run, 14);
           break;
@@ -1317,7 +1334,7 @@
         t.src = s; t.filt = f; t.preGain = g;
       } else {
         const o = ctx.createOscillator(); o.type = t.type === 'soft' ? 'triangle' : t.type; o.frequency.value = t.freq;
-        if (t.type === 'soft') { const lp = this._filter('lowpass', t.freq * 1.5, 0.5); o.connect(lp); lp.connect(t.gain); t.filt = lp; }
+        if (t.type === 'soft') { const lp = this._filter('lowpass', t.freq * 1.5, 0.5, true); o.connect(lp); lp.connect(t.gain); t.filt = lp; }
         else o.connect(t.gain);
         o.start(); t.src = o;
       }
