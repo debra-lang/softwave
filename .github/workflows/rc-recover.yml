@@ -57,12 +57,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { label: rc-gpukill, app: rc, mode: gpukill }
-          - { label: rc-cakill, app: rc, mode: cakill }
-          - { label: rc-castop, app: rc, mode: castop }
-          - { label: b89-gpukill, app: b89, mode: gpukill }
-          - { label: b89-cakill, app: b89, mode: cakill }
-          - { label: b89-castop, app: b89, mode: castop }
+          - { label: rc-castart, app: rc, mode: castart }
+          - { label: rc-carelaunch, app: rc, mode: carelaunch }
+          - { label: b89-castart, app: b89, mode: castart }
+          - { label: b89-carelaunch, app: b89, mode: carelaunch }
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4

@@ -20,13 +20,24 @@ while [ $((SECONDS - START)) -lt "$TO" ]; do
     DONE=$N; t=$((SECONDS - START))
     case "$MODE" in
       gpukill) G=$(pgrep -f com.apple.WebKit.GPU); echo "$t kill GPU process: ${G:-none}" >> "$OUT/$L-actions.txt"; [ -n "$G" ] && kill -9 $G ;;
-      cakill) echo "$t kill coreaudiod" >> "$OUT/$L-actions.txt"; sudo killall -9 coreaudiod ;;
+      cakill|carelaunch) echo "$t kill coreaudiod" >> "$OUT/$L-actions.txt"; sudo killall -9 coreaudiod ;;
+      castart) echo "$t freeze coreaudiod" >> "$OUT/$L-actions.txt"; sudo killall -STOP coreaudiod; FROZEN=$SECONDS ;;
       castop) echo "$t freeze coreaudiod" >> "$OUT/$L-actions.txt"; sudo killall -STOP coreaudiod ;;
     esac
   fi
   if [ "$MODE" = castop ] && grep -aq '"tag":"releasereq"' "$OUT/$L.events" && [ ! -f "$OUT/.released-$L" ]; then
     touch "$OUT/.released-$L"; echo "$((SECONDS - START)) release coreaudiod" >> "$OUT/$L-actions.txt"; sudo killall -CONT coreaudiod
   fi
+  if [ "$MODE" = castart ] && [ -n "${FROZEN:-}" ] && [ $((SECONDS - FROZEN)) -ge 70 ]; then
+    FROZEN=; echo "$((SECONDS - START)) release coreaudiod" >> "$OUT/$L-actions.txt"; sudo killall -CONT coreaudiod
+  fi
+  if [ "$MODE" = carelaunch ] && [ "$(grep -ac '"tag":"done"' "$OUT/$L.events")" = 1 ] && [ ! -f "$OUT/.relaunched-$L" ]; then
+    touch "$OUT/.relaunched-$L"; echo "$((SECONDS - START)) close and reopen the app" >> "$OUT/$L-actions.txt"
+    kill "$PID" 2>/dev/null; xcrun simctl terminate "$U" "$APPID" >/dev/null 2>&1; sleep 3
+    script -q -a -F "$OUT/$L.log" xcrun simctl launch --console-pty --terminate-running-process "$U" "$APPID" >/dev/null 2>&1 &
+    PID=$!; continue
+  fi
+  [ "$MODE" = carelaunch ] && [ "$(grep -ac '"tag":"done"' "$OUT/$L.events")" -lt 2 ] && continue
   grep -aq '"tag":"done"' "$OUT/$L.events" && break
 done
 [ $((SECONDS - START)) -ge "$TO" ] && echo "$L: TIMEOUT after ${TO}s"
