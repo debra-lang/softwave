@@ -1,0 +1,214 @@
+diff --git a/app.js b/app.js
+index 3a9795d..d1a2a5e 100644
+--- a/app.js
++++ b/app.js
+@@ -448,7 +448,7 @@
+         const FD = (window.SoftwaveField && window.SoftwaveField.DESC[d.id]) || d.desc;
+         card.innerHTML = `
+           <button class="card-btn" aria-pressed="false" aria-label="${d.name}: ${FD}"><span class="tile-preview" aria-hidden="true"><canvas class="tile-canvas"></canvas></span></button>
+-          <div class="vol"><button class="vol-pause" aria-label="Pause or resume playback"><svg class="vp-pause" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M7 5h4v14H7zM13 5h4v14h-4z" fill="currentColor"/></svg><svg class="vp-play" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg></button><label class="sr-only" for="vol-${d.id}">${d.name} volume</label><input id="vol-${d.id}" type="range" min="0" max="100" value="${Math.round(soundVol(d.id) * 100)}"><output>60%</output><button class="vol-stop" aria-label="Stop ${d.name}"><svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><path d="M6 6h12v12H6z" fill="currentColor"/></svg></button></div>
++          <div class="vol"><button class="vol-pause" aria-label="Pause or resume playback"><svg class="vp-pause" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M7 5h4v14H7zM13 5h4v14h-4z" fill="currentColor"/></svg><svg class="vp-play" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg></button><label class="sr-only" for="vol-${d.id}">${d.name} volume</label><input id="vol-${d.id}" type="range" min="0" max="100" value="${Math.round(soundVol(d.id) * 100)}"><output>${Math.round(soundVol(d.id) * 100)}%</output><button class="vol-stop" aria-label="Stop ${d.name}"><svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><path d="M6 6h12v12H6z" fill="currentColor"/></svg></button></div>
+           <span class="name">${d.name}</span><span class="desc">${FD}</span>`;
+         const btn = $('.card-btn', card);
+         $$('.name, .desc', card).forEach(el => el.addEventListener('click', () => btn.click()));
+@@ -509,6 +509,12 @@
+     const full = list.length >= MAX_ACTIVE; $('#mix-add-title').textContent = full ? `Up to ${MAX_ACTIVE} sounds — turn one off to add another` : 'Add a sound';
+     engine.defs().filter(d => !engine.isActive(d.id)).forEach(d => { const b = document.createElement('button'); b.className = 'pane-sound add-pill'; b.style.setProperty('--hue', d.hue); b.disabled = full; b.innerHTML = `<span class="ico" aria-hidden="true">${d.icon}</span>${d.name}`; b.setAttribute('aria-label', 'Add ' + d.name); b.addEventListener('click', async () => { b.disabled = true; b.classList.add('adding'); await engine.startSound(d.id, soundVol(d.id)); }); add.appendChild(b); });
+   }
++  // a level changed without the sound list changing (Ask's "rain louder", Go back): the card and the Mixer follow the
++  // real level. The Mixer's values are updated in place, so a slider being dragged is never rebuilt under the finger.
++  function syncLevels() {
++    const list = engine.activeList(); syncCards(list);
++    list.forEach(s => { const v = $('#chv-' + s.id), n = Math.round(s.volume * 100); if (v && +v.value !== n) { v.value = n; paintRange(v); $('output', v.parentElement).textContent = n + '%'; } });
++  }
+   function panLabel(b) { if (Math.abs(b) < 0.05) return 'Centre'; return (b < 0 ? 'L ' : 'R ') + Math.round(Math.abs(b) * 100) + '%'; }
+   $('#mix-pause').addEventListener('click', () => togglePlay());
+   $('#mix-pick').addEventListener('click', () => { const l = $('#mix-add-list'); if (l) l.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+@@ -1366,6 +1372,7 @@
+   function askBedActive() { return askBed && engine.isActive('sculpt') && !(window.softwaveLab && softwaveLab.isRunning()); }
+   engine.on(type => { if (type === 'sounds' && askBed && !engine.isActive('sculpt')) askBed = false; });
+   window.softwaveApp.noteAskBed = () => { askBed = true; };
++  window.softwaveApp.syncLevels = syncLevels;
+ 
+   // ---------- init ----------
+   renderSounds(); renderPresets(); renderMixer([]); updatePlayer(); renderProfileHooks(); if (window.SoftwaveField) syncField();
+diff --git a/assistant.js b/assistant.js
+index 41b0bdd..0f89c83 100644
+--- a/assistant.js
++++ b/assistant.js
+@@ -66,6 +66,7 @@
+       const u = undoState; undoState = null;
+       if (u.mix.length) await engine.loadMix(u.mix); else engine.stopAll();
+       app.setMaster(u.master);
++      app.syncLevels();
+       if (u.timerMin) engine.setTimer(u.timerMin, true); else engine.clearTimer();
+       if (u.visual && window.softwaveFocus) softwaveFocus.setVisual(u.visual);
+       engine.setVariation(u.variation || 0);
+@@ -88,7 +89,10 @@
+       async play_sound(p) { if (!engine.def(p.id)) return; await engine.loadMix([{ id: p.id, volume: p.level != null ? p.level : cardVol(p.id) }]); ok.push('Playing ' + engine.def(p.id).name); },
+       async add_layer(p) { if (!engine.def(p.id)) return; const v = Math.max(0.1, Math.min(1, p.level || 0.35)); const r = await engine.startSound(p.id, v); ok.push(r === false ? 'Could not add ' + engine.def(p.id).name + ' (layer limit)' : 'Added ' + engine.def(p.id).name + (p.light ? ' (light)' : '')); },
+       async remove_layer(p) { if (engine.isActive(p.id)) { engine.stopSound(p.id); ok.push('Removed ' + engine.def(p.id).name); } else ok.push(engine.def(p.id).name + ' is not playing'); },
+-      async layer_volume(p) { if (!engine.isActive(p.id)) return ok.push(engine.def(p.id).name + ' is not playing'); const s = engine.activeList().find(x => x.id === p.id); const v = Math.max(0.05, Math.min(1, s.volume + p.delta)); engine.setVolume(p.id, v); ok.push((p.delta < 0 ? 'Lowered ' : 'Raised ') + engine.def(p.id).name + ' to ' + Math.round(v * 100) + '%'); },
++      async layer_volume(p) { if (!engine.isActive(p.id)) return ok.push(engine.def(p.id).name + ' is not playing'); const s = engine.activeList().find(x => x.id === p.id);
++        // relative increases stop at 90%, like the main volume below. The sliders go to 100%, and a level set there above 90% stays as it is.
++        if (p.delta > 0 && Math.round(s.volume * 100) >= 90) return ok.push(engine.def(p.id).name + ' is already at ' + Math.round(s.volume * 100) + '% — please use its slider for more.');
++        const v = Math.max(0.05, Math.min(p.delta > 0 ? 0.90 : 1, s.volume + p.delta)); engine.setVolume(p.id, v); ok.push((p.delta < 0 ? 'Lowered ' : 'Raised ') + engine.def(p.id).name + ' to ' + Math.round(v * 100) + '%'); },
+       async stop_all() { (window.softwaveStopAll || engine.stopAll.bind(engine))(); ok.push('Stopped everything'); },
+       async now_playing() { const l = engine.activeList().map(s => engine.def(s.id).name); ok.push(l.length ? 'Playing: ' + l.join(' + ') + ' · volume ' + Math.round(engine.masterVolume * 100) + '%' : 'Nothing is playing right now'); },
+       async pause_all() { await engine.pauseAll(); ok.push('Paused — say “resume” to continue'); },
+@@ -322,6 +326,7 @@
+     // ---------- run a command ----------
+     async function run(raw) {
+       const req = raw.trim(); if (!req) return;
++      if (FIX_ADD && engine.active && engine.active.size > 0 && !engine.isActive('wind') && ADD_WIND_NEAR.test(req)) { track('ai_command_failed'); askAddWind(); return; }
+       const parsed = parse(req);
+       if (parsed.undo) { await undo(); return; }
+       if (parsed.help) { confirmLines(['You can ask for sounds (“play rain”, “add a little ocean”), character (“something warm and steady”), purpose (“something for sleep”), changes (“softer”, “more movement”, “less rain”), timers (“for 30 minutes”), plus “save this”, “stop” and “undo”.'].concat(KBD_VOICE ? ['To speak, tap the microphone, then your keyboard’s microphone key. No microphone key? Turn on Dictation in Settings › General › Keyboard. To undo by voice, say “Go back”.'] : []), false); return; }
+@@ -332,6 +337,7 @@
+       snapshot();
+       ok.length = 0;
+       for (const [type, params] of parsed.actions) { try { await A[type](params); } catch (e) { console.error('assistant action failed', type, e); } }
++      app.syncLevels();
+       track('ai_command_completed');
+       confirmLines(ok.map(l => '✓ ' + l), true);
+     }
+@@ -429,6 +435,16 @@
+       const m = loose.exec(t) || strict.exec(t) || glued.exec(t);
+       return m ? 'add ' + t.slice(m[1].length).replace(/^[\s,]+/, '') : t;
+     };
++    // Apple's dictation also hears "add wind" as a name or another word ("Edwin", owner iPhone test, 2 Nov 2026). These could
++    // be meant as they are, so nothing changes until the question below is answered: only when the whole request is one of
++    // them, something is playing and Wind is not.
++    const ADD_WIND_NEAR = /^(?:edwin|eadwin|edwyn|add when)[.!?]*$/i;
++    const askAddWind = () => {
++      confirmLines(['Did you mean “Add Wind”?'], false);
++      const b = document.createElement('button'); b.type = 'button'; b.id = 'ask-did-mean'; b.className = 'btn btn-ghost btn-sm'; b.textContent = 'Add Wind';
++      b.addEventListener('click', () => { out.innerHTML = ''; run('add wind'); });
++      out.appendChild(b);
++    };
+     const escapeHtml = (t) => t.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+     if (KBD_VOICE) {
+       const mic = document.createElement('button');
+diff --git a/audio.js b/audio.js
+index ab4aaf4..113e7b1 100644
+--- a/audio.js
++++ b/audio.js
+@@ -716,9 +716,15 @@
+       for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); let y = 0; for (let i = 0; i < n; i++) { y = y * 0.75 + (Math.random() * 2 - 1) * 0.25; d[i] = y * Math.pow(1 - i / n, 2.8); } }
+       this._hall = ir; this._hallCtx = this.ctx; return ir;
+     }
+-    _filter(type, freq, q = 1) {
++    // A filter stays in stereo for life (mono = true only for one fed by a mono oscillator on its way to a panner, whose level depends on the channel count).
++    // Left to follow its input, a filter falls to one channel when its last stereo source ends. WebKit then rebuilds it with an unknown (infinite) tail, and
++    // one disconnected before the next render keeps that tail for good: it stays on a list the audio thread walks every 3 ms until the app restarts.
++    _filter(type, freq, q = 1, mono = false) {
+       const f = this.ctx.createBiquadFilter();
+-      f.type = type; f.frequency.value = freq; f.Q.value = q; return f;
++      // The type comes first: changing the channel count makes the audio thread rebuild the filter, and setting the type during that rebuild crashes WebKit.
++      f.type = type; f.frequency.value = freq; f.Q.value = q;
++      if (!mono) { f.channelCountMode = 'explicit'; f.channelCount = 2; }
++      return f;
+     }
+     _lfo(freq, depth, target, offset) {
+       const o = this.ctx.createOscillator(); o.type = 'sine'; o.frequency.value = freq;
+@@ -728,6 +734,12 @@
+       o.start();
+       return [o, g];
+     }
++    // Reusable voices for scheduled events, taken in turn: each sound keeps a few filters and envelopes for its whole life instead of making new ones per event.
++    // count must cover the longest possible overlap of events, so that a voice is free again when its turn returns.
++    _voices(e, count, make) {
++      const v = []; for (let i = 0; i < count; i++) { const x = make(); e.nodes.push(...Object.values(x)); v.push(x); }
++      let i = 0; return () => v[i++ % count];
++    }
+     _chain(entry, nodes, out) {
+       for (let i = 0; i < nodes.length - 1; i++) nodes[i].connect(nodes[i + 1]);
+       nodes[nodes.length - 1].connect(out);
+@@ -776,13 +788,15 @@
+           this._chain(e, [s, hp, lp, g], out);
+           // droplets: short filtered bursts
+           const dropGain = ctx.createGain(); dropGain.gain.value = 0.5; dropGain.connect(out); e.nodes.push(dropGain);
++          // gaps are at least 0.04 s and a droplet lasts 0.2 s, so six voices never overlap
++          const voice = this._voices(e, 6, () => { const f = this._filter('bandpass', 4000, 6); const gg = ctx.createGain(); gg.gain.value = 0; f.connect(gg); gg.connect(dropGain); return { f, gg }; });
+           const tick = (t) => {
+             const n = this.ctx.createBufferSource(); n.buffer = B.white;
+-            const f = this._filter('bandpass', 1500 + Math.random() * 5000, 6);
+-            const gg = ctx.createGain();
++            const { f, gg } = voice();
++            f.frequency.setValueAtTime(1500 + Math.random() * 5000, t);
+             gg.gain.setValueAtTime(0, t); gg.gain.linearRampToValueAtTime(0.15 + Math.random() * 0.25, t + 0.004); gg.gain.exponentialRampToValueAtTime(0.001, t + 0.05 + Math.random() * 0.08);
+-            n.connect(f); f.connect(gg); gg.connect(dropGain);
+-            n.start(t, Math.random() * 5, 0.2); n.onended = () => { try { f.disconnect(); gg.disconnect(); } catch (_) { } };
++            n.connect(f);
++            n.start(t, Math.random() * 5, 0.2); n.onended = () => { try { n.disconnect(); } catch (_) { } };
+           };
+           this._pump(e, id, 0.05, () => 0.04 + Math.random() * 0.16, tick, 5); break;
+         }
+@@ -866,15 +880,16 @@
+           this._chain(e, [sz, shp, sg], out);
+           const crackGain = ctx.createGain(); crackGain.gain.value = 0.66; crackGain.connect(out); e.nodes.push(crackGain);
+           // two voices make it read as fire: deep woody pops and sharp snaps — plus occasional quick clusters
++          const voice = this._voices(e, 8, () => { const f = this._filter('bandpass', 2000, 2); const gg = ctx.createGain(); gg.gain.value = 0; f.connect(gg); gg.connect(crackGain); return { f, gg }; });
+           const one = (t, kind) => {
+             const n = ctx.createBufferSource(); n.buffer = B.white;
+-            const f = kind === 'pop' ? this._filter('bandpass', 500 + Math.random() * 1100, 1.6) : this._filter('bandpass', 2000 + Math.random() * 4000, 2);
+-            const gg = ctx.createGain();
++            const { f, gg } = voice();
++            f.frequency.setValueAtTime(kind === 'pop' ? 500 + Math.random() * 1100 : 2000 + Math.random() * 4000, t); f.Q.setValueAtTime(kind === 'pop' ? 1.6 : 2, t);
+             const lvl = kind === 'pop' ? 0.45 + Math.random() * 0.45 : 0.3 + Math.random() * 0.5;
+             const dur = kind === 'pop' ? 0.03 + Math.random() * 0.06 : 0.015 + Math.random() * 0.045;
+             gg.gain.setValueAtTime(0, t); gg.gain.linearRampToValueAtTime(lvl, t + 0.003); gg.gain.exponentialRampToValueAtTime(0.001, t + dur);
+-            n.connect(f); f.connect(gg); gg.connect(crackGain); n.start(t, Math.random() * 5, dur + 0.05);
+-            n.onended = () => { try { f.disconnect(); gg.disconnect(); } catch (_) { } };
++            n.connect(f); n.start(t, Math.random() * 5, dur + 0.05);
++            n.onended = () => { try { n.disconnect(); } catch (_) { } };
+           };
+           const crackle = (t) => {
+             const r = Math.random();
+@@ -1013,27 +1028,29 @@
+           this._chain(e, [s2, hp2, lp2, g2], out);
+           const tapGain = ctx.createGain(); tapGain.gain.value = 0.5; tapGain.connect(out); e.nodes.push(tapGain);
+           let ph = Math.random() * 100;
++          const tapVoice = this._voices(e, 4, () => { const f = this._filter('bandpass', 1500, 8); const gg = ctx.createGain(); gg.gain.value = 0; const p = ctx.createStereoPanner ? ctx.createStereoPanner() : null; f.connect(gg); if (p) { gg.connect(p); p.connect(tapGain); return { f, gg, p }; } gg.connect(tapGain); return { f, gg }; });
+           const tap = (t) => {
+             ph += 1; const density = 0.65 + 0.3 * Math.sin(ph * 0.05);
+             if (Math.random() < density) {
+               const n = ctx.createBufferSource(); n.buffer = B.white;
+-              const f = this._filter('bandpass', 850 + Math.random() * 1700, 8);
+-              const gg = ctx.createGain(); const p = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
++              const { f, gg, p } = tapVoice();
++              f.frequency.setValueAtTime(850 + Math.random() * 1700, t);
+               gg.gain.setValueAtTime(0, t); gg.gain.linearRampToValueAtTime(0.10 + Math.random() * 0.14, t + 0.006); gg.gain.exponentialRampToValueAtTime(0.001, t + 0.05 + Math.random() * 0.09);
+-              n.connect(f); f.connect(gg);
+-              if (p) { p.pan.value = (Math.random() * 2 - 1) * 0.7; gg.connect(p); p.connect(tapGain); } else gg.connect(tapGain);
+-              n.start(t, Math.random() * 5, 0.2); n.onended = () => { try { f.disconnect(); gg.disconnect(); if (p) p.disconnect(); } catch (_) { } };
++              n.connect(f);
++              if (p) p.pan.setValueAtTime((Math.random() * 2 - 1) * 0.7, t);
++              n.start(t, Math.random() * 5, 0.2); n.onended = () => { try { n.disconnect(); } catch (_) { } };
+             }
+           };
+           this._pump(e, id, 0.1, () => 0.13 + Math.random() * 0.52, tap, 5);
++          const runVoice = this._voices(e, 1, () => { const f = this._filter('bandpass', 1900, 10); const gg = ctx.createGain(); gg.gain.value = 0; f.connect(gg); gg.connect(tapGain); return { f, gg }; });
+           const run = (t) => {
+             const n = ctx.createBufferSource(); n.buffer = B.white;
+-            const f = this._filter('bandpass', 1900, 10); const gg = ctx.createGain();
++            const { f, gg } = runVoice();
+             const dur = 0.5 + Math.random() * 0.6;
+             f.frequency.setValueAtTime(1700 + Math.random() * 500, t); f.frequency.exponentialRampToValueAtTime(650 + Math.random() * 250, t + dur);
+             gg.gain.setValueAtTime(0, t); gg.gain.linearRampToValueAtTime(0.05, t + dur * 0.3); gg.gain.linearRampToValueAtTime(0, t + dur);
+-            n.connect(f); f.connect(gg); gg.connect(tapGain);
+-            n.start(t, Math.random() * 5, dur + 0.05); n.onended = () => { try { f.disconnect(); gg.disconnect(); } catch (_) { } };
++            n.connect(f);
++            n.start(t, Math.random() * 5, dur + 0.05); n.onended = () => { try { n.disconnect(); } catch (_) { } };
+           };
+           this._pump(e, id, 2.5 + Math.random() * 4, () => 4 + Math.random() * 9, run, 14);
+           break;
+@@ -1317,7 +1334,7 @@
+         t.src = s; t.filt = f; t.preGain = g;
+       } else {
+         const o = ctx.createOscillator(); o.type = t.type === 'soft' ? 'triangle' : t.type; o.frequency.value = t.freq;
+-        if (t.type === 'soft') { const lp = this._filter('lowpass', t.freq * 1.5, 0.5); o.connect(lp); lp.connect(t.gain); t.filt = lp; }
++        if (t.type === 'soft') { const lp = this._filter('lowpass', t.freq * 1.5, 0.5, true); o.connect(lp); lp.connect(t.gain); t.filt = lp; }
+         else o.connect(t.gain);
+         o.start(); t.src = o;
+       }

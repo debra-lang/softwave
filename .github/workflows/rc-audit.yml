@@ -1,0 +1,99 @@
+# TEST-ONLY workflow (branch audio-audit-simtest; kept, never merged). Nothing is signed or uploaded and no secrets are used.
+# The 29-sound audit on the release candidate (release and diagnostic bundles), and the offline comparison of all 29 sounds against the original engine in the simulator's WebKit. A simulator run is not proof of iPhone sound quality.
+name: Release candidate audit
+
+on:
+  push:
+    branches: [audio-audit-simtest]
+    paths: [.github/simtest/trigger-rc-audit]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Select Xcode 26
+        run: |
+          XC=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1)
+          if [ -n "$XC" ]; then sudo xcode-select -s "$XC"; fi
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build the simulator apps
+        run: |
+          set -eo pipefail
+          W=$GITHUB_WORKSPACE; SIM=$W/.github/simtest; mkdir -p $W/simapps
+          bash $SIM/prep-rc.sh
+          build() {   # $1 = tree, $2 = output name, $3 = SOFTWAVE_DIAG, $4 = script to inject
+            cd "$1/native"; [ -d node_modules ] || npm ci --no-audit --no-fund >/dev/null
+            SOFTWAVE_DIAG=$3 node build-www.js; node $SIM/inject.js www "$4"
+            if [ "$(basename "$4")" = offline-sim3.js ]; then cp $SIM/offline-compare.js www/; cp /tmp/orig.js www/engine-orig.js; cp ../audio.js www/engine-rc.js; fi
+            npx cap sync ios
+            xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug -sdk iphonesimulator \
+              -destination 'generic/platform=iOS Simulator' -derivedDataPath dd CODE_SIGNING_ALLOWED=NO ARCHS=arm64 ONLY_ACTIVE_ARCH=NO build | tail -1
+            mkdir -p $W/simapps/$2; cp -R "$(find dd/Build/Products -name App.app -type d | head -1)" $W/simapps/$2/
+          }
+          build $W/../rc rcr 0 $SIM/audio-audit.js
+          build $W/../rc rcd 1 $SIM/audio-audit.js
+          build $W/../rc offline 0 $SIM/offline-sim3.js
+          cd $W && tar -czf simapps.tgz simapps
+      - uses: actions/upload-artifact@v4
+        with:
+          name: apps
+          path: simapps.tgz
+          retention-days: 7
+
+  audit:
+    needs: build
+    runs-on: macos-26
+    timeout-minutes: 170
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [rcr, rcd]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: apps
+      - name: Run
+        run: |
+          tar -xzf simapps.tgz; S=.github/simtest; chmod +x $S/*.sh
+          XC=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1); if [ -n "$XC" ]; then sudo xcode-select -s "$XC"; fi
+          $S/audit-run.sh ${{ matrix.app }} simapps/${{ matrix.app }} out 9300
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: results-${{ matrix.app }}
+          path: out/
+
+  offline:
+    needs: build
+    runs-on: macos-26
+    timeout-minutes: 170
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [offline]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: apps
+      - name: Run
+        run: |
+          tar -xzf simapps.tgz; S=.github/simtest; chmod +x $S/*.sh
+          XC=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1); if [ -n "$XC" ]; then sudo xcode-select -s "$XC"; fi
+          $S/audit-run.sh offline simapps/offline out 9000
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: results-offline
+          path: out/
+
