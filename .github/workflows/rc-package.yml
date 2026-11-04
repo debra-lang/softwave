@@ -1,0 +1,53 @@
+# TEST-ONLY workflow (branch audio-audit-simtest; kept, never merged). Nothing is signed or uploaded and no secrets are used.
+# Compiles the final candidate the way the signed lane of ios-build.yml does (Release, device, diagnostic bundle), unsigned, and keeps only a manifest: no app file leaves the runner.
+name: Release candidate package check
+
+on:
+  push:
+    branches: [audio-audit-simtest]
+    paths: [.github/simtest/trigger-rc-package]
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: macos-26
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Select Xcode 26
+        run: |
+          XC=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1)
+          if [ -n "$XC" ]; then sudo xcode-select -s "$XC"; fi
+          xcodebuild -version
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Compile unsigned and write the manifest
+        run: |
+          set -eo pipefail
+          W=$GITHUB_WORKSPACE; bash $W/.github/simtest/prep-rc.sh
+          cd $W/../rc/native; npm ci --no-audit --no-fund >/dev/null
+          SOFTWAVE_DIAG=1 npm run sync
+          test -f www/diag.js && grep -q 'src="diag.js"' www/index.html || { echo 'FATAL: not a diagnostic bundle'; exit 1; }
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release -destination 'generic/platform=iOS' \
+            -derivedDataPath ios/DerivedData CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY="" build | tail -1
+          APP=$(find ios/DerivedData/Build/Products -name App.app -type d | head -1)
+          mkdir -p $W/out; M=$W/out/manifest.txt
+          { echo "tree $(git -C .. write-tree)"
+            echo "version $(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' "$APP/Info.plist")"
+            echo "build $(/usr/libexec/PlistBuddy -c 'Print CFBundleVersion' "$APP/Info.plist")"
+            echo "bundle id $(/usr/libexec/PlistBuddy -c 'Print CFBundleIdentifier' "$APP/Info.plist")"
+            echo "diag.js $(test -f "$APP/public/diag.js" && echo present || echo absent)"
+            echo "selftest.js $(test -f "$APP/public/selftest.js" && echo present || echo absent)"
+            for f in app.js assistant.js audio.js; do echo "$f $(shasum -a 256 "$APP/public/$f" | cut -d' ' -f1)"; done
+          } > $M
+          cat $M; cat $M >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: results-package
+          path: out/manifest.txt
+          retention-days: 30
