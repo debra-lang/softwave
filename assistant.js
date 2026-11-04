@@ -89,7 +89,10 @@
       async play_sound(p) { if (!engine.def(p.id)) return; await engine.loadMix([{ id: p.id, volume: p.level != null ? p.level : cardVol(p.id) }]); ok.push('Playing ' + engine.def(p.id).name); },
       async add_layer(p) { if (!engine.def(p.id)) return; const v = Math.max(0.1, Math.min(1, p.level || 0.35)); const r = await engine.startSound(p.id, v); ok.push(r === false ? 'Could not add ' + engine.def(p.id).name + ' (layer limit)' : 'Added ' + engine.def(p.id).name + (p.light ? ' (light)' : '')); },
       async remove_layer(p) { if (engine.isActive(p.id)) { engine.stopSound(p.id); ok.push('Removed ' + engine.def(p.id).name); } else ok.push(engine.def(p.id).name + ' is not playing'); },
-      async layer_volume(p) { if (!engine.isActive(p.id)) return ok.push(engine.def(p.id).name + ' is not playing'); const s = engine.activeList().find(x => x.id === p.id); const v = Math.max(0.05, Math.min(1, s.volume + p.delta)); engine.setVolume(p.id, v); ok.push((p.delta < 0 ? 'Lowered ' : 'Raised ') + engine.def(p.id).name + ' to ' + Math.round(v * 100) + '%'); },
+      async layer_volume(p) { if (!engine.isActive(p.id)) return ok.push(engine.def(p.id).name + ' is not playing'); const s = engine.activeList().find(x => x.id === p.id);
+        // relative increases stop at 90%, like the main volume below. The sliders go to 100%, and a level set there above 90% stays as it is.
+        if (p.delta > 0 && Math.round(s.volume * 100) >= 90) return ok.push(engine.def(p.id).name + ' is already at ' + Math.round(s.volume * 100) + '% — please use its slider for more.');
+        const v = Math.max(0.05, Math.min(p.delta > 0 ? 0.90 : 1, s.volume + p.delta)); engine.setVolume(p.id, v); ok.push((p.delta < 0 ? 'Lowered ' : 'Raised ') + engine.def(p.id).name + ' to ' + Math.round(v * 100) + '%'); },
       async stop_all() { (window.softwaveStopAll || engine.stopAll.bind(engine))(); ok.push('Stopped everything'); },
       async now_playing() { const l = engine.activeList().map(s => engine.def(s.id).name); ok.push(l.length ? 'Playing: ' + l.join(' + ') + ' · volume ' + Math.round(engine.masterVolume * 100) + '%' : 'Nothing is playing right now'); },
       async pause_all() { await engine.pauseAll(); ok.push('Paused — say “resume” to continue'); },
