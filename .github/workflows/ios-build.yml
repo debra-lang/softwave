@@ -8,6 +8,11 @@
 # SIGNED lane (after you enroll in the Apple Developer Program):
 #   Add the four repository secrets listed in IOS-APP.md, then run the
 #   workflow with "signed" set to true. Produces a TestFlight-ready .ipa.
+#   This repository is public: a signed .ipa is never published. The run
+#   records its identity and hashes, and publishes only a copy encrypted to the
+#   backup key (native/ipa-backup-public-key.asc, fingerprint pinned below).
+#   Any failure in the record or encryption checks stops the run before the
+#   App Store Connect upload.
 name: iOS build
 
 on:
@@ -121,6 +126,76 @@ jobs:
             -exportOptionsPlist exportOptions.plist -exportPath output
           mv output/*.ipa output/FindMyQuietSound.ipa
 
+      - name: Record the signed build's identity (log, run summary and backup record)
+        if: ${{ inputs.signed }}
+        env:
+          REQUESTED_MODE: ${{ inputs.diag && 'diagnostic' || 'release' }}
+        run: |
+          set -euo pipefail
+          IPA=output/FindMyQuietSound.ipa
+          LIST="$RUNNER_TEMP/ipa-files.txt"
+          PLIST="$RUNNER_TEMP/ipa-info.plist"
+          unzip -Z1 "$IPA" > "$LIST"
+          unzip -p "$IPA" Payload/App.app/Info.plist > "$PLIST"
+          plist() { /usr/libexec/PlistBuddy -c "Print $1" "$PLIST"; }
+          has() { grep -qxF "Payload/App.app/public/$1" "$LIST"; }
+          hash_of() { if has "$1"; then unzip -p "$IPA" "Payload/App.app/public/$1" | shasum -a 256 | cut -d' ' -f1; else echo missing; fi; }
+          if has diag.js || has selftest.js; then FOUND=diagnostic; else FOUND=release; fi
+          if [ "$FOUND" != "$REQUESTED_MODE" ]; then echo "FATAL: $REQUESTED_MODE build requested but the signed IPA is $FOUND"; exit 1; fi
+          mkdir -p backup
+          {
+            echo "bundle id:     $(plist CFBundleIdentifier)"
+            echo "version:       $(plist CFBundleShortVersionString)"
+            echo "build:         $(plist CFBundleVersion)"
+            echo "mode:          $FOUND"
+            echo "commit:        $GITHUB_SHA"
+            echo "branch:        $GITHUB_REF_NAME"
+            echo "workflow file: $GITHUB_WORKFLOW_SHA"
+            echo "run:           $GITHUB_RUN_ID attempt $GITHUB_RUN_ATTEMPT"
+            echo "ipa bytes:     $(wc -c < "$IPA" | tr -d ' ')"
+            echo "ipa sha256:    $(shasum -a 256 "$IPA" | cut -d' ' -f1)"
+            for f in index.html app.js assistant.js audio.js diag.js selftest.js; do
+              printf '%-14s %s\n' "$f:" "$(hash_of "$f")"
+            done
+          } > backup/build-record.txt
+          { echo "### Signed build record"; echo '```'; cat backup/build-record.txt; echo '```'; } | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Encrypt the signed IPA to the backup key and verify it
+        if: ${{ inputs.signed }}
+        env:
+          BACKUP_KEY_FINGERPRINT: D9CBC15E2F6754494F90C7C54298C7729F0D90C6
+        run: |
+          set -euo pipefail
+          command -v gpg > /dev/null || HOMEBREW_NO_AUTO_UPDATE=1 brew install --quiet gnupg
+          export GNUPGHOME="$RUNNER_TEMP/gnupg"
+          mkdir -m 700 "$GNUPGHOME"
+          gpg --batch --quiet --import ipa-backup-public-key.asc
+          KEY=$(gpg --batch --with-colons --list-keys | awk -F: '/^fpr:/ { print $10; exit }')
+          if [ "$KEY" != "$BACKUP_KEY_FINGERPRINT" ]; then echo "FATAL: the backup public key is not the expected key"; exit 1; fi
+          OUT="backup/FindMyQuietSound-$GITHUB_RUN_ID.ipa.gpg"
+          gpg --batch --trust-model always --cipher-algo AES256 --compress-algo none \
+            --recipient "$KEY" --output "$OUT" --encrypt output/FindMyQuietSound.ipa
+          # Nothing is published unless the file is OpenPGP data encrypted to the backup key.
+          if [ "$(head -c 2 "$OUT")" = "PK" ] || grep -aqF 'Payload/App.app/' "$OUT"; then echo "FATAL: backup file is not encrypted"; exit 1; fi
+          RECIPIENT=$( { gpg --batch --list-packets "$OUT" 2> /dev/null || true; } | awk '/^:pubkey enc packet:/ { print $NF; exit }')
+          gpg --batch --with-colons --list-keys | awk -F: '/^(pub|sub):/ { print $5 }' | grep -qxF "${RECIPIENT:-none}" || { echo "FATAL: backup file is not encrypted to the backup key"; exit 1; }
+          {
+            echo "backup key:    $KEY"
+            echo "gpg sha256:    $(shasum -a 256 "$OUT" | cut -d' ' -f1)"
+          } | tee -a backup/build-record.txt >> "$GITHUB_STEP_SUMMARY"
+          ls backup
+
+      - name: Upload the encrypted IPA and its record (never the IPA itself)
+        if: ${{ inputs.signed }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: FindMyQuietSound-signed-encrypted
+          path: |
+            native/backup/*.ipa.gpg
+            native/backup/build-record.txt
+          if-no-files-found: error
+          retention-days: 14
+
       - name: Upload to App Store Connect (TestFlight)
         if: ${{ inputs.signed }}
         env:
@@ -133,9 +208,10 @@ jobs:
           xcrun altool --upload-app -f output/FindMyQuietSound.ipa -t ios \
             --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID"
 
-      - name: Upload artifact
+      - name: Upload unsigned artifact (a signed IPA is never published)
+        if: ${{ !inputs.signed }}
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ inputs.signed && 'FindMyQuietSound-ipa' || 'FindMyQuietSound-unsigned-ipa' }}
+          name: FindMyQuietSound-unsigned-ipa
           path: native/output/*.ipa
           retention-days: 30
